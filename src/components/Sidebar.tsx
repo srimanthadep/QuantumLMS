@@ -18,7 +18,7 @@ export function Logo() {
 export function TeacherProfile() {
   return (
     <div className="teacher">
-      <img src="assets/srimanth.png" alt="Srimanth" />
+      <img src="/assets/srimanth.png" alt="Srimanth" />
       <strong>Srimanth</strong>
       <span>Teacher</span>
     </div>
@@ -204,7 +204,7 @@ export function MobileTopBar({
           <span>+New Assignment</span>
         </button>
         <img
-          src="assets/srimanth.png"
+          src="/assets/srimanth.png"
           alt="Srimanth"
           className="w-8 h-8 rounded-full object-cover border border-purple-300"
         />

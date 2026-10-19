@@ -146,7 +146,7 @@ export function AddStudentModal({
     onSubmit({
       name: name.trim(),
       rollNumber: `#Y4-${randomNum}`,
-      image: `assets/student-${(randomNum % 5) + 1}.png`,
+      image: `/assets/student-${(randomNum % 8) + 1}.png`,
       completion: status === "Excelling" ? 92 : status === "On Track" ? 80 : 65,
       average: status === "Excelling" ? 90 : status === "On Track" ? 78 : 64,
       attendance: 96,

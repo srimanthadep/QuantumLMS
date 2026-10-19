@@ -149,7 +149,7 @@ export default function SettingsPage({
 
             <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#f8f8fd] border border-purple-100">
               <img
-                src="assets/srimanth.png"
+                src="/assets/srimanth.png"
                 alt="Srimanth"
                 className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-300"
               />

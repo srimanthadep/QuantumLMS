@@ -556,7 +556,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Olivia Benett",
           rollNumber: "#Y4-101",
-          image: "assets/student-1.png",
+          image: "/assets/student-1.png",
           gpa: 88,
           growthRate: "+12% this term",
           actionTag: "Advance to Level 5 Reading",
@@ -564,7 +564,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Ethan Davies",
           rollNumber: "#Y4-105",
-          image: "assets/student-5.png",
+          image: "/assets/student-5.png",
           gpa: 93,
           growthRate: "+14% this term",
           actionTag: "Math Olympiad Candidate",
@@ -572,7 +572,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Mia Anderson",
           rollNumber: "#Y4-112",
-          image: "assets/student-2.png",
+          image: "/assets/student-2.png",
           gpa: 91,
           growthRate: "+9% this term",
           actionTag: "Peer Mentor in Science",
@@ -580,7 +580,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Emma Johnson",
           rollNumber: "#Y4-108",
-          image: "assets/student-8.png",
+          image: "/assets/student-8.png",
           gpa: 90,
           growthRate: "+11% this term",
           actionTag: "Creative Writing Showcase",
@@ -598,7 +598,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Liam Brooks",
           rollNumber: "#Y4-103",
-          image: "assets/student-3.png",
+          image: "/assets/student-3.png",
           gpa: 70,
           growthRate: "+18% growth!",
           actionTag: "Fractions Visual Practice",
@@ -606,7 +606,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Ava Patel",
           rollNumber: "#Y4-104",
-          image: "assets/student-4.png",
+          image: "/assets/student-4.png",
           gpa: 62,
           growthRate: "+16% growth!",
           actionTag: "Reading Fluency Boost",
@@ -614,7 +614,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Noah Wilson",
           rollNumber: "#Y4-102",
-          image: "assets/student-2.png",
+          image: "/assets/student-2.png",
           gpa: 74,
           growthRate: "+10% growth",
           actionTag: "STEM Lab Project Lead",
@@ -632,7 +632,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Sophia Martinez",
           rollNumber: "#Y4-106",
-          image: "assets/student-6.png",
+          image: "/assets/student-6.png",
           gpa: 86,
           growthRate: "+4% stable",
           actionTag: "Maintain Enrichment Track",
@@ -640,7 +640,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Isabella Brown",
           rollNumber: "#Y4-110",
-          image: "assets/student-1.png",
+          image: "/assets/student-1.png",
           gpa: 85,
           growthRate: "+5% steady",
           actionTag: "Weekly Discussion Lead",
@@ -658,7 +658,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Lucas Chen",
           rollNumber: "#Y4-107",
-          image: "assets/student-7.png",
+          image: "/assets/student-7.png",
           gpa: 68,
           growthRate: "+3% steady",
           actionTag: "1-on-1 Geometry Check-in",
@@ -666,7 +666,7 @@ function CohortGrowthQuadrantCard({
         {
           name: "Alexander Wright",
           rollNumber: "#Y4-111",
-          image: "assets/student-3.png",
+          image: "/assets/student-3.png",
           gpa: 71,
           growthRate: "+4% steady",
           actionTag: "Reading Support Group",

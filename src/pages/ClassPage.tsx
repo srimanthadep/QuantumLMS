@@ -86,7 +86,7 @@ function StudentAvatarGroup() {
       {[1, 2, 3, 4, 5].map((number) => (
         <img
           key={number}
-          src={`assets/student-${number}.png`}
+          src={`/assets/student-${number}.png`}
           alt={`Student ${number}`}
         />
       ))}
@@ -105,7 +105,7 @@ function ClassOverviewCard() {
       <span className="on-track">On track</span>
       <img
         className="hand-art"
-        src="assets/hand.png"
+        src="/assets/hand.png"
         alt=""
         aria-hidden="true"
       />
