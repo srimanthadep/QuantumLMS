@@ -19,3 +19,10 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Verification screenshots
+/analytics_*.png
+/class_*.png
+/modal_*.png
+/reports_*.png
+/students_*.png
