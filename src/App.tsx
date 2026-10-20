@@ -32,8 +32,63 @@ import StudentsPage from "./pages/StudentsPage"
 import ReportsPage from "./pages/ReportsPage"
 import AnalyticsPage from "./pages/AnalyticsPage"
 import SettingsPage from "./pages/SettingsPage"
+import AuthPage from "./pages/AuthPage"
+import StudentPortal from "./pages/StudentPortal"
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname.toLowerCase()
+      if (p === "/auth" || p === "/login" || p.startsWith("/auth/")) {
+        return false
+      }
+    }
+    try {
+      const auth = localStorage.getItem("quantum_auth_session")
+      if (auth === "false") return false
+      return true
+    } catch {
+      return true
+    }
+  })
+
+  const [userRole, setUserRole] = useState<"Teacher" | "Student">(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname.toLowerCase()
+      if (p.includes("/student")) return "Student"
+      if (p.includes("/teacher")) return "Teacher"
+    }
+    try {
+      const saved = localStorage.getItem("quantum_user_role")
+      if (saved === "Teacher") return "Teacher"
+      if (saved === "Student") return "Student"
+    } catch {
+      // ignore
+    }
+    return "Student"
+  })
+
+  // Synchronize route with back/forward history navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = window.location.pathname.toLowerCase()
+      if (p === "/auth" || p === "/login" || p.startsWith("/auth/")) {
+        setIsAuthenticated(false)
+      } else {
+        const auth = localStorage.getItem("quantum_auth_session")
+        if (auth !== "false") {
+          setIsAuthenticated(true)
+        }
+        if (p.includes("/student")) {
+          setUserRole("Student")
+        } else if (p.includes("/teacher") || p === "/" || p === "") {
+          setUserRole("Teacher")
+        }
+      }
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
   const [activeTab, setActiveTab] = useState("Class")
   const [searchQuery, setSearchQuery] = useState("")
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -207,6 +262,92 @@ export default function App() {
     setIsReportModalOpen(true)
   }
 
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    try {
+      localStorage.setItem("quantum_auth_session", "false")
+      window.history.pushState(null, "", "/auth")
+    } catch {
+      // ignore
+    }
+    setToastMessage("You have been signed out.")
+  }
+
+  const handleLogin = (user: { name: string; role: string; email: string }) => {
+    setIsAuthenticated(true)
+    const nextRole = user.role === "Teacher" ? "Teacher" : "Student"
+    setUserRole(nextRole)
+    try {
+      localStorage.setItem("quantum_auth_session", "true")
+      localStorage.setItem("quantum_user_role", nextRole)
+      window.history.pushState(null, "", nextRole === "Student" ? "/student" : "/")
+    } catch {
+      // ignore
+    }
+    setToastMessage(`Welcome back, ${user.name}! Connected to Quantum AI.`)
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div
+        className="auth-shell"
+        style={{
+          backgroundColor: hexColor,
+          backgroundImage: isLightBg
+            ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
+            : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
+        }}
+      >
+        <AuthPage
+          onLogin={handleLogin}
+          hexColor={hexColor}
+          onChangeHexColor={handleHexColorChange}
+        />
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (userRole === "Student") {
+    return (
+      <>
+        <StudentPortal
+          onOpenAiModal={() => setIsAiModalOpen(true)}
+          onSwitchToTeacher={() => {
+            setUserRole("Teacher")
+            try {
+              localStorage.setItem("quantum_user_role", "Teacher")
+              window.history.pushState(null, "", "/")
+            } catch {
+              // ignore
+            }
+            setToastMessage("Switched to Teacher Workspace")
+          }}
+          onLogout={handleLogout}
+          onToast={(msg) => setToastMessage(msg)}
+          hexColor={hexColor}
+          onChangeHexColor={handleHexColorChange}
+          isLightBg={isLightBg}
+        />
+        <AskAiModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+        />
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+      </>
+    )
+  }
+
   return (
     <div
       className="dashboard-shell"
@@ -221,7 +362,7 @@ export default function App() {
       <DesktopSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenNewAssignment={handleOpenNewAssignment}
+        onLogout={handleLogout}
       />
 
       {/* Mobile & Tablet Slide-over Drawer */}
@@ -230,7 +371,7 @@ export default function App() {
         onClose={() => setIsDrawerOpen(false)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenNewAssignment={handleOpenNewAssignment}
+        onLogout={handleLogout}
         hexColor={hexColor}
         onChangeHexColor={handleHexColorChange}
       />
@@ -264,6 +405,16 @@ export default function App() {
               setActiveTab("Students")
             }}
             onShowAllStudents={() => setActiveTab("Students")}
+            onSwitchToStudent={() => {
+              setUserRole("Student")
+              try {
+                localStorage.setItem("quantum_user_role", "Student")
+                window.history.pushState(null, "", "/student")
+              } catch {
+                // ignore
+              }
+              setToastMessage("Switched to Student Portal")
+            }}
           />
         )}
 

@@ -10,12 +10,14 @@ export function DashboardHeader({
   onOpenAiModal,
   hexColor,
   onChangeHexColor,
+  onSwitchToStudent,
 }: {
   searchQuery: string
   setSearchQuery: (q: string) => void
   onOpenAiModal: () => void
   hexColor: string
   onChangeHexColor: (color: string) => void
+  onSwitchToStudent?: () => void
 }) {
   return (
     <header className="dashboard-header">
@@ -48,6 +50,15 @@ export function DashboardHeader({
             </button>
           )}
         </div>
+        {onSwitchToStudent && (
+          <button
+            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer"
+            onClick={onSwitchToStudent}
+            aria-label="Switch to Student Portal"
+          >
+            <span>🎓 Student Portal</span>
+          </button>
+        )}
         <HexColorField
           hexColor={hexColor}
           onChangeHex={onChangeHexColor}
@@ -311,6 +322,7 @@ export default function ClassPage({
   onOpenReportModal,
   onSelectStudent,
   onShowAllStudents,
+  onSwitchToStudent,
 }: {
   metrics: MetricItem[]
   searchQuery: string
@@ -325,6 +337,7 @@ export default function ClassPage({
   onOpenReportModal: () => void
   onSelectStudent: (s: StudentItem) => void
   onShowAllStudents: () => void
+  onSwitchToStudent?: () => void
 }) {
   return (
     <>
@@ -334,6 +347,7 @@ export default function ClassPage({
         onOpenAiModal={onOpenAiModal}
         hexColor={hexColor}
         onChangeHexColor={onChangeHexColor}
+        onSwitchToStudent={onSwitchToStudent}
       />
 
       {/* Metrics Grid (4 folder tab status cards) */}

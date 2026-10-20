@@ -5,12 +5,12 @@ import { HexColorField } from "./HexColorField"
 
 export function Logo() {
   return (
-    <div className="logo" aria-label="Quantum LMS">
-      <span className="logo-mark">
-        <i />
-        <i />
-      </span>
-      <span>Quantum LMS</span>
+    <div className="logo" aria-label="Quantum School of AI">
+      <img
+        src="/logo.png"
+        alt="Quantum School of AI"
+        className="logo-img"
+      />
     </div>
   )
 }
@@ -67,11 +67,11 @@ export function NavigationList({
 export function DesktopSidebar({
   activeTab,
   setActiveTab,
-  onOpenNewAssignment,
+  onLogout,
 }: {
   activeTab: string
   setActiveTab: (tab: string) => void
-  onOpenNewAssignment: () => void
+  onLogout: () => void
 }) {
   return (
     <aside className="sidebar" aria-label="Main sidebar">
@@ -79,10 +79,12 @@ export function DesktopSidebar({
       <TeacherProfile />
       <NavigationList activeTab={activeTab} setActiveTab={setActiveTab} />
       <button
-        className="new-assignment-btn"
-        onClick={onOpenNewAssignment}
+        className="logout-btn"
+        onClick={onLogout}
+        aria-label="Log out"
       >
-        +New Assignment
+        <Icon name="logout" size={15} />
+        <span>Log Out</span>
       </button>
     </aside>
   )
@@ -93,7 +95,7 @@ export function MobileDrawer({
   onClose,
   activeTab,
   setActiveTab,
-  onOpenNewAssignment,
+  onLogout,
   hexColor,
   onChangeHexColor,
 }: {
@@ -101,7 +103,7 @@ export function MobileDrawer({
   onClose: () => void
   activeTab: string
   setActiveTab: (tab: string) => void
-  onOpenNewAssignment: () => void
+  onLogout: () => void
   hexColor: string
   onChangeHexColor: (color: string) => void
 }) {
@@ -164,13 +166,15 @@ export function MobileDrawer({
           </div>
         </div>
         <button
-          className="new-assignment-btn"
+          className="logout-btn"
           onClick={() => {
             onClose()
-            onOpenNewAssignment()
+            onLogout()
           }}
+          aria-label="Log out"
         >
-          +New Assignment
+          <Icon name="logout" size={15} />
+          <span>Log Out</span>
         </button>
       </div>
     </>

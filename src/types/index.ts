@@ -20,6 +20,18 @@ export type IconName =
   | "star"
   | "mail"
   | "filter"
+  | "logout"
+  | "compass"
+  | "radio"
+  | "note"
+  | "award"
+  | "help"
+  | "bell"
+  | "fire"
+  | "clock"
+  | "bookmark"
+  | "play"
+  | "chevron-right"
 
 export interface MetricItem {
   icon: IconName
