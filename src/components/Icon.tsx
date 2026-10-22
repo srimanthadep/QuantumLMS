@@ -99,25 +99,25 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
           width="14"
           height="10"
           rx="2"
-          transform="rotate(-42 12 12)"
+          transform="rotate(45 12 12)"
         />
-        <path d="m9.5 9.5 2 2m.5-5 2 2m-7.5 5 2 2" />
+        <path d="m9.5 7.5 1.5 1.5m1 1 1.5 1.5m1 1 1.5 1.5" />
       </svg>
     )
   }
   if (name === "dots") {
     return (
       <svg {...common}>
-        <circle cx="12" cy="5" r=".9" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="19" r=".9" fill="currentColor" stroke="none" />
+        <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
       </svg>
     )
   }
   if (name === "menu") {
     return (
       <svg {...common}>
-        <path d="M4 6h16M4 12h16M4 18h16" />
+        <path d="M4 7h16M4 12h16M4 17h16" />
       </svg>
     )
   }
@@ -170,6 +170,13 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
         <polyline points="16 17 21 12 16 7" />
         <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+    )
+  }
+  if (name === "activity") {
+    return (
+      <svg {...common}>
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
     )
   }
@@ -258,6 +265,153 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     return (
       <svg {...common}>
         <polyline points="9 18 15 12 9 6" />
+      </svg>
+    )
+  }
+  if (name === "chevron-left") {
+    return (
+      <svg {...common}>
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    )
+  }
+  if (name === "grid") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    )
+  }
+  if (name === "list") {
+    return (
+      <svg {...common}>
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" strokeWidth={2.8} />
+        <line x1="3" y1="12" x2="3.01" y2="12" strokeWidth={2.8} />
+        <line x1="3" y1="18" x2="3.01" y2="18" strokeWidth={2.8} />
+      </svg>
+    )
+  }
+  if (name === "message-circle") {
+    return (
+      <svg {...common}>
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+      </svg>
+    )
+  }
+  if (name === "video") {
+    return (
+      <svg {...common}>
+        <polygon points="23 7 16 12 23 17 23 7" />
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+      </svg>
+    )
+  }
+  if (name === "mic") {
+    return (
+      <svg {...common}>
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="23" />
+        <line x1="8" y1="23" x2="16" y2="23" />
+      </svg>
+    )
+  }
+  if (name === "mic-off") {
+    return (
+      <svg {...common}>
+        <line x1="1" y1="1" x2="23" y2="23" />
+        <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+        <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+        <line x1="12" y1="19" x2="12" y2="23" />
+        <line x1="8" y1="23" x2="16" y2="23" />
+      </svg>
+    )
+  }
+  if (name === "video-off") {
+    return (
+      <svg {...common}>
+        <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    )
+  }
+  if (name === "monitor") {
+    return (
+      <svg {...common}>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    )
+  }
+  if (name === "phone-off") {
+    return (
+      <svg {...common}>
+        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
+        <line x1="23" y1="1" x2="1" y2="23" />
+      </svg>
+    )
+  }
+  if (name === "info") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+    )
+  }
+  if (name === "download") {
+    return (
+      <svg {...common}>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+    )
+  }
+  if (name === "tag") {
+    return (
+      <svg {...common}>
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    )
+  }
+  if (name === "pause") {
+    return (
+      <svg {...common}>
+        <rect x="6" y="4" width="4" height="16" rx="1" />
+        <rect x="14" y="4" width="4" height="16" rx="1" />
+      </svg>
+    )
+  }
+  if (name === "maximize") {
+    return (
+      <svg {...common}>
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+      </svg>
+    )
+  }
+  if (name === "edit") {
+    return (
+      <svg {...common}>
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+    )
+  }
+  if (name === "check-circle") {
+    return (
+      <svg {...common}>
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
     )
   }

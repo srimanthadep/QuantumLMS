@@ -80,7 +80,7 @@ export function NewAssignmentModal({
             <select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--purple)] bg-white"
+              className="form-select-standard"
             >
               <option value="Reading Comprehension">Reading Comprehension</option>
               <option value="Fractions Practice">Fractions & Math</option>
@@ -198,7 +198,7 @@ export function AddStudentModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--purple)] bg-white"
+              className="form-select-standard"
             >
               <option value="Excelling">Excelling (Grade A)</option>
               <option value="On Track">On Track (Grade B)</option>

@@ -35,9 +35,12 @@ export function NavigationList({
   onItemClick?: () => void
 }) {
   const navigation = [
-    { icon: "home" as IconName, label: "Class" },
-    { icon: "users" as IconName, label: "Students" },
-    { icon: "reports" as IconName, label: "Reports" },
+    { icon: "home" as IconName, label: "Dashboard" },
+    { icon: "book" as IconName, label: "My Courses" },
+    { icon: "users" as IconName, label: "My Students" },
+    { icon: "message-circle" as IconName, label: "Doubts" },
+    { icon: "calendar" as IconName, label: "Calendar" },
+    { icon: "video" as IconName, label: "Live Class" },
     { icon: "analytics" as IconName, label: "Analytics" },
     { icon: "settings" as IconName, label: "Settings" },
   ]
@@ -45,7 +48,10 @@ export function NavigationList({
   return (
     <nav aria-label="Dashboard navigation">
       {navigation.map((item) => {
-        const isActive = activeTab === item.label
+        const isActive =
+          activeTab === item.label ||
+          (item.label === "Dashboard" && activeTab === "Class") ||
+          (item.label === "My Students" && activeTab === "Students")
         return (
           <button
             key={item.label}

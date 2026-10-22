@@ -1118,14 +1118,23 @@ button {
   flex-direction: column;
 }
 
+.roster-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.roster-table-inner {
+  min-width: 960px;
+}
+
 .roster-table-head {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: minmax(140px, 2fr) 70px minmax(120px, 1.6fr) 75px 110px 32px;
-  gap: 10px;
+  grid-template-columns: minmax(190px, 2.1fr) minmax(180px, 1.9fr) minmax(105px, 1.1fr) minmax(105px, 1.1fr) minmax(125px, 1.3fr) minmax(95px, 1fr) 105px;
+  gap: 12px;
   color: #666373;
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0 8px 8px;
   border-bottom: 1px solid #f0f1f4;
   align-items: center;
@@ -1134,22 +1143,22 @@ button {
 .roster-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   margin-top: 6px;
-  max-height: 430px;
+  max-height: 540px;
   overflow-y: auto;
 }
 
 .roster-row {
-  height: 48px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: minmax(140px, 2fr) 70px minmax(120px, 1.6fr) 75px 110px 32px;
-  gap: 10px;
+  grid-template-columns: minmax(190px, 2.1fr) minmax(180px, 1.9fr) minmax(105px, 1.1fr) minmax(105px, 1.1fr) minmax(125px, 1.3fr) minmax(95px, 1fr) 105px;
+  gap: 12px;
   align-items: center;
   font-size: 12px;
   transition: all 0.15s ease;
   border-radius: 12px;
-  padding: 0 8px;
+  padding: 6px 8px;
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -1161,6 +1170,151 @@ button {
 .roster-row.selected {
   background: rgba(152, 96, 233, 0.09);
   border-color: rgba(152, 96, 233, 0.35);
+}
+
+.view-details-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(152, 96, 233, 0.28);
+  background: rgba(152, 96, 233, 0.08);
+  color: var(--purple-dark);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.view-details-btn:hover {
+  background: var(--purple);
+  color: #fff;
+  border-color: var(--purple);
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 6px rgba(152, 96, 233, 0.25);
+}
+
+.roster-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f2f3f7;
+}
+
+.roster-select,
+.lms-select {
+  height: 32px;
+  padding: 0 30px 0 11px;
+  border-radius: 9px;
+  border: 1px solid #e2e4ea;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center / 12px 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color: #18181b;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 30px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.roster-select:hover,
+.lms-select:hover {
+  border-color: #cbd5e1;
+  background-color: #fbfbfe;
+}
+
+.roster-select:focus,
+.lms-select:focus {
+  border-color: var(--purple, #9860e9);
+  box-shadow: 0 0 0 3px rgba(152, 96, 233, 0.15);
+  background-color: #ffffff;
+}
+
+.roster-select:disabled,
+.lms-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f4f4f5;
+}
+
+.form-select-standard {
+  width: 100%;
+  height: 38px;
+  padding: 0 34px 0 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e4ea;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center / 13px 13px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color: #18181b;
+  font-size: 12.5px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.form-select-standard:hover {
+  border-color: #cbd5e1;
+  background-color: #fbfbfe;
+}
+
+.form-select-standard:focus {
+  border-color: var(--purple, #9860e9);
+  box-shadow: 0 0 0 3px rgba(152, 96, 233, 0.18);
+  background-color: #ffffff;
+}
+
+select option {
+  color: #18181b;
+  background-color: #ffffff;
+  padding: 6px 10px;
+  font-weight: normal;
+}
+
+.clear-filters-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px dashed #d1d5db;
+  background: transparent;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.clear-filters-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.roster-empty-state {
+  padding: 36px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .student-meta {
@@ -1517,6 +1671,11 @@ button {
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.modal-content.student-details-modal {
+  max-width: 720px;
+  padding: 24px 26px;
 }
 
 @keyframes fadeIn {
@@ -4613,9 +4772,6 @@ button {
   display: inline-block;
   animation: pulse 1.5s infinite;
 }
-
-/* Administrator & Super Admin Experience uses canonical .dashboard-shell, .dashboard-header, .sidebar, .metrics-grid, and .content-grid */
-
 
 
 
