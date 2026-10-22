@@ -36,6 +36,7 @@ import SettingsPage from "./pages/SettingsPage"
 import AuthPage from "./pages/AuthPage"
 import StudentPortal from "./pages/StudentPortal"
 import AdminPortal from "./pages/AdminPortal"
+import SupportPortal from "./pages/support"
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -54,16 +55,17 @@ export default function App() {
     }
   })
 
-  const [userRole, setUserRole] = useState<UserRole>(() => {
+  const [userRole, setUserRole] = useState<UserRole | "Support">(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname.toLowerCase()
+      if (p.includes("/support")) return "Support"
       if (p.includes("/super-admin")) return "Super Admin"
       if (p.includes("/admin")) return "Admin"
       if (p.includes("/student")) return "Student"
       if (p.includes("/teacher")) return "Teacher"
     }
     try {
-      const saved = localStorage.getItem("quantum_user_role") as UserRole
+      const saved = localStorage.getItem("quantum_user_role") as UserRole | "Support"
       if (saved) return saved
     } catch {
       // ignore
@@ -99,7 +101,9 @@ export default function App() {
         if (auth !== "false") {
           setIsAuthenticated(true)
         }
-        if (p.includes("/super-admin")) {
+        if (p.includes("/support")) {
+          setUserRole("Support")
+        } else if (p.includes("/super-admin")) {
           setUserRole("Super Admin")
         } else if (p.includes("/admin")) {
           setUserRole("Admin")
@@ -404,6 +408,51 @@ export default function App() {
           hexColor={hexColor}
           onChangeHexColor={handleHexColorChange}
           isLightBg={isLightBg}
+        />
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+      </>
+    )
+  }
+
+  if (userRole === "Support") {
+    return (
+      <>
+        <SupportPortal
+          onOpenAiModal={() => setIsAiModalOpen(true)}
+          onSwitchToTeacher={() => {
+            setUserRole("Teacher")
+            try {
+              localStorage.setItem("quantum_user_role", "Teacher")
+              window.history.pushState(null, "", "/")
+            } catch {
+              // ignore
+            }
+            setToastMessage("Switched to Teacher Workspace")
+          }}
+          onSwitchToStudent={() => {
+            setUserRole("Student")
+            try {
+              localStorage.setItem("quantum_user_role", "Student")
+              window.history.pushState(null, "", "/student")
+            } catch {
+              // ignore
+            }
+            setToastMessage("Switched to Student Portal")
+          }}
+          onLogout={handleLogout}
+          onToast={(msg) => setToastMessage(msg)}
+          hexColor={hexColor}
+          onChangeHexColor={handleHexColorChange}
+          isLightBg={isLightBg}
+        />
+        <AskAiModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
         />
         {toastMessage && (
           <Toast

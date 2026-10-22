@@ -1,0 +1,396 @@
+import React, { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  LifeBuoy,
+  Search,
+  Clock,
+  ArrowRight,
+  MessageSquare,
+  AlertCircle,
+  CheckCircle2,
+  Layers,
+  ArrowUp,
+} from "lucide-react";
+import { SupportTicket, getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { StatCard } from "@/components/ui/StatCard";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export const TicketsInboxPage: React.FC = () => {
+  const [tickets] = useState<SupportTicket[]>(getAllSupportTickets());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+
+  const openCount = tickets.filter((t) => t.status === "open").length;
+  const pendingCount = tickets.filter((t) => t.status === "pending").length;
+  const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
+
+  const filteredTickets = tickets.filter((tkt) => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !query ||
+      tkt.subject.toLowerCase().includes(query) ||
+      tkt.studentName.toLowerCase().includes(query) ||
+      tkt.ticketNumber.toLowerCase().includes(query) ||
+      tkt.studentBatch.toLowerCase().includes(query) ||
+      (tkt.assignedAgent && tkt.assignedAgent.toLowerCase().includes(query));
+
+    if (!matchesSearch) return false;
+    if (statusFilter !== "all" && tkt.status !== statusFilter) return false;
+
+    if (categoryFilter !== "all" && tkt.category !== categoryFilter) return false;
+
+    if (priorityFilter !== "all" && tkt.priority !== priorityFilter) return false;
+
+    return true;
+  });
+
+  const checkScrollState = () => {
+    if (listRef.current) {
+      const { scrollTop } = listRef.current;
+      setCanScrollUp(scrollTop > 20);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollState();
+  }, [filteredTickets]);
+
+  const handleScrollToTop = () => {
+    listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(checkScrollState, 350);
+  };
+
+  const getCategoryBadgeClass = (category: string) => {
+    const found = SUPPORT_CATEGORIES.find((c) => c.id === category);
+    return found ? found.badgeClass : "bg-slate-50 text-zinc-600 border-slate-200";
+  };
+
+  const getPriorityBadge = (priority: SupportTicket["priority"]) => {
+    switch (priority) {
+      case "high":
+        return (
+          <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-bold">
+            High
+          </Badge>
+        );
+      case "medium":
+        return (
+          <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold">
+            Medium
+          </Badge>
+        );
+      case "low":
+        return (
+          <Badge className="bg-slate-50 text-slate-700 border-slate-200 text-[10px] font-bold">
+            Low
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1
+              className="text-2xl font-bold tracking-tight text-white drop-shadow-xs flex items-center gap-2"
+              style={{ color: "var(--header-text-color, #ffffff)" }}
+            >
+              <LifeBuoy className="h-6 w-6 text-white" />
+              All Tickets &amp; Support Inbox
+            </h1>
+          </div>
+          <p
+            className="text-xs sm:text-sm mt-1 font-medium"
+            style={{ color: "var(--header-subtitle-color, rgba(255, 255, 255, 0.95))" }}
+          >
+            Direct queue of student inquiries, batch migrations, and academic requests.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link to="/support/sla-escalations">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5 font-bold bg-white hover:bg-white/95 text-zinc-900 border-white/80 shadow-xs rounded-xl"
+            >
+              <Clock className="h-3.5 w-3.5 text-amber-500" />
+              SLA Command Desk
+            </Button>
+          </Link>
+          <Link to="/support/live-chat">
+            <Button
+              size="sm"
+              className="text-xs gap-1.5 bg-white hover:bg-white/95 text-purple-700 border border-white/80 font-bold shadow-xs rounded-xl"
+            >
+              <MessageSquare className="h-3.5 w-3.5 text-purple-600" />
+              Live Chat Desk
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* KPI Stats (Quantum folder-tab status cards) */}
+      <div className="metrics-grid shrink-0">
+        <StatCard
+          title="All Tickets"
+          value={tickets.length}
+          icon={Layers}
+          tone="lavender"
+          trend={{ value: "All registered requests", isPositive: true }}
+          index={0}
+        />
+        <StatCard
+          title="Open Queue"
+          value={openCount}
+          icon={Clock}
+          tone="pink"
+          trend={{ value: "Awaiting mentor action", isPositive: true }}
+          index={1}
+        />
+        <StatCard
+          title="Pending Approval"
+          value={pendingCount}
+          icon={AlertCircle}
+          tone="yellow"
+          trend={{ value: "Admin & committee review", isPositive: false }}
+          index={2}
+        />
+        <StatCard
+          title="Resolved"
+          value={resolvedCount}
+          icon={CheckCircle2}
+          tone="lime"
+          trend={{ value: "Fully closed with SLA met", isPositive: true }}
+          index={3}
+        />
+      </div>
+
+      {/* Filter and Search Bar */}
+      <Card className="bg-white border-[#E5DEFF] shadow-xs rounded-2xl shrink-0">
+        <CardContent className="p-3.5 sm:p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
+            <Input
+              placeholder="Search students or topics..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] placeholder:text-zinc-400 focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[220px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent align="end" className="rounded-2xl border border-[#E5DEFF] bg-white text-[#111111] shadow-xl min-w-[240px]">
+                <SelectItem value="all">All Categories</SelectItem>
+                {SUPPORT_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Priority Filter */}
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-full sm:w-[130px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
+                <SelectValue placeholder="All Priorities" />
+              </SelectTrigger>
+              <SelectContent align="end" className="rounded-2xl border border-[#E5DEFF] bg-white text-[#111111] shadow-xl min-w-[140px]">
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Status Tabs */}
+            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
+              <TabsList className="grid grid-cols-4 w-full sm:w-auto rounded-full bg-[#F0EDFF] p-1 border border-[#905FEB]/20">
+                <TabsTrigger value="all" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="open" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                  Open
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                  Pending
+                </TabsTrigger>
+                <TabsTrigger value="resolved" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                  Resolved
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white border-slate-200/90 shadow-xs rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden relative">
+        {/* Pinned Card Header */}
+        <div className="px-4 py-2 sm:px-5 sm:py-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
+              <LifeBuoy className="h-3.5 w-3.5 text-purple-600" />
+              <span>Support Tickets Queue</span>
+
+            </span>
+          </div>
+        </div>
+
+        {/* Scrollable Viewport: ONLY this section scrolls */}
+        <CardContent
+          ref={listRef}
+          onScroll={checkScrollState}
+          className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-white [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-purple-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-purple-300"
+        >
+          {filteredTickets.length === 0 ? (
+            <div className="p-8 text-center text-xs text-zinc-500">
+              <LifeBuoy className="h-7 w-7 mx-auto text-zinc-300 mb-1.5" />
+              <p className="font-semibold text-zinc-700 text-sm">No tickets matching this filter</p>
+              <p className="mt-1">Try resetting the search query or status filter.</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setCategoryFilter("all");
+                  setPriorityFilter("all");
+                }}
+                className="mt-2.5 text-xs rounded-xl"
+              >
+                Reset All Filters
+              </Button>
+            </div>
+          ) : (
+            filteredTickets.map((tkt) => (
+              <div
+                key={tkt.id}
+                className="px-4 py-2 sm:px-5 sm:py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 hover:bg-[#F0EDFF]/30 transition-colors"
+              >
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-xs font-bold text-[#7042D2] bg-[#F0EDFF] border border-[#905FEB]/30 px-2.5 py-0.5 rounded-full">
+                      {tkt.ticketNumber}
+                    </span>
+                    <span className="text-xs font-bold text-[#111111]">
+                      {tkt.studentName}
+                    </span>
+                    <span className="text-xs text-zinc-300">•</span>
+                    <span className="text-xs text-zinc-500 font-medium">{tkt.createdAt}</span>
+
+                    {tkt.priority === "high" && (
+                      <span className="badge-status-assigned text-[10px] px-2 py-0.5 font-bold">
+                        High
+                      </span>
+                    )}
+                    {tkt.priority === "medium" && (
+                      <span className="badge-status-in-progress text-[10px] px-2 py-0.5 font-bold">
+                        Medium
+                      </span>
+                    )}
+                    {tkt.priority === "low" && (
+                      <span className="badge-status-not-started text-[10px] px-2 py-0.5 font-bold">
+                        Low
+                      </span>
+                    )}
+
+                    {tkt.status === "open" && (
+                      <span className="badge-status-in-progress text-[10px] px-2 py-0.5 font-bold">
+                        In Progress
+                      </span>
+                    )}
+                    {tkt.status === "pending" && (
+                      <span className="badge-status-assigned text-[10px] px-2 py-0.5 font-bold">
+                        Assigned
+                      </span>
+                    )}
+                    {tkt.status === "resolved" && (
+                      <span className="badge-status-completed text-[10px] px-2 py-0.5 font-bold">
+                        Completed
+                      </span>
+                    )}
+
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-semibold rounded-full border-[#E5DEFF] text-[#111111] bg-white"
+                    >
+                      {tkt.category}
+                    </Badge>
+
+                    {tkt.proposedAction && (
+                      <Badge variant="outline" className="text-[10px] bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 font-bold rounded-full">
+                        Proposed: {tkt.proposedAction.type === "batch_move" ? "Batch Move" : `${tkt.proposedAction.extensionDays || 30}-day Extension`}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Link to={`/support/ticket/${tkt.id}`} className="group block">
+                    <h3 className="text-xs sm:text-sm font-bold text-[#111111] leading-snug group-hover:text-[#905FEB] transition-colors">
+                      {tkt.subject}
+                    </h3>
+                  </Link>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/70 font-medium">
+                    <span>Batch: <strong className="text-[#111111]">{tkt.studentBatch}</strong></span>
+                    <span>Assigned Agent: <strong className="text-[#111111]">{tkt.assignedAgent || "Unassigned"}</strong></span>
+                    <span>Email: <span className="font-mono text-zinc-600">{tkt.studentEmail}</span></span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between lg:justify-end gap-2 pt-1 lg:pt-0 border-t lg:border-t-0 border-[#F0EDFF] shrink-0">
+                  <Link to={`/support/ticket/${tkt.id}`}>
+                    <button
+                      className="btn-support-secondary text-xs h-7.5 px-3.5 gap-1.5 font-bold cursor-pointer"
+                    >
+                      Open Workstation <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+
+        {/* Floating Scroll to Top button inside the container */}
+        {canScrollUp && (
+          <button
+            onClick={handleScrollToTop}
+            className="absolute bottom-5 right-6 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-lg transition-all animate-in fade-in zoom-in-95 cursor-pointer"
+            title="Scroll back to top"
+          >
+            <ArrowUp className="h-3.5 w-3.5" />
+            <span>Scroll to Top</span>
+          </button>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+export default TicketsInboxPage;
