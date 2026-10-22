@@ -261,5 +261,72 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       </svg>
     )
   }
+  if (name === "shield") {
+    return (
+      <svg {...common}>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    )
+  }
+  if (name === "server") {
+    return (
+      <svg {...common}>
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+        <line x1="6" y1="6" x2="6.01" y2="6" />
+        <line x1="6" y1="18" x2="6.01" y2="18" />
+      </svg>
+    )
+  }
+  if (name === "key") {
+    return (
+      <svg {...common}>
+        <path d="M21 2l-2 2m-1.5 1.5L14 9l-2-2-4 4 1.5 1.5L8 14l-2 2 4 4 2-2 1.5 1.5 4-4-2-2 3.5-3.5L21 2z" />
+      </svg>
+    )
+  }
+  if (name === "cpu") {
+    return (
+      <svg {...common}>
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <rect x="9" y="9" width="6" height="6" />
+        <path d="M9 1v3m6-3v3M9 20v3m6-3v3M20 9h3m-3 6h3M1 9h3m-3 6h3" />
+      </svg>
+    )
+  }
+  if (name === "lock") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    )
+  }
+  if (name === "database") {
+    return (
+      <svg {...common}>
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      </svg>
+    )
+  }
+  if (name === "terminal") {
+    return (
+      <svg {...common}>
+        <polyline points="4 17 10 11 4 5" />
+        <line x1="12" y1="19" x2="20" y2="19" />
+      </svg>
+    )
+  }
+  if (name === "layers") {
+    return (
+      <svg {...common}>
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </svg>
+    )
+  }
   return null
 }

@@ -32,6 +32,77 @@ export type IconName =
   | "bookmark"
   | "play"
   | "chevron-right"
+  | "shield"
+  | "server"
+  | "key"
+  | "cpu"
+  | "lock"
+  | "database"
+  | "terminal"
+  | "layers"
+
+export type UserRole = "Super Admin" | "Admin" | "Teacher" | "Student" | "Parent"
+
+export interface CurrentUser {
+  id: string
+  name: string
+  role: UserRole
+  email: string
+  title?: string
+  avatar?: string
+  campus?: string
+  permissions?: string[]
+}
+
+export interface FacultyMember {
+  id: string
+  name: string
+  email: string
+  title: string
+  department: string
+  classesAssigned: string[]
+  studentCount: number
+  status: "Active" | "In Class" | "On Leave"
+  attendanceRate: number
+  avatar: string
+  rating: number
+}
+
+export interface AuditLogItem {
+  id: string
+  timestamp: string
+  actor: string
+  role: string
+  action: string
+  target: string
+  ip: string
+  severity: "info" | "warning" | "security"
+  category: "Auth" | "Permission" | "AI Engine" | "Database" | "Academic"
+}
+
+export interface CampusTenant {
+  id: string
+  name: string
+  location: string
+  type: "Primary Campus" | "Virtual Academy" | "Innovation Hub"
+  studentCount: number
+  facultyCount: number
+  status: "Online" | "Maintenance" | "Syncing"
+  cloudRegion: string
+  aiQuotaUsed: number
+}
+
+export interface ClassRoomInfo {
+  id: string
+  name: string
+  room: string
+  grade: string
+  leadTeacher: string
+  studentsEnrolled: number
+  maxCapacity: number
+  avgScore: number
+  attendance: number
+}
 
 export interface MetricItem {
   icon: IconName

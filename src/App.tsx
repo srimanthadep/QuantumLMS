@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import type { AssignmentItem, StudentItem, ReportItem } from "./types"
+import type { AssignmentItem, StudentItem, ReportItem, UserRole, CurrentUser } from "./types"
 import {
   initialClassMetrics,
   initialStudentMetrics,
@@ -9,6 +9,7 @@ import {
   initialStudents,
   initialReports,
 } from "./data/mockData"
+import { demoAccounts } from "./data/adminMockData"
 import {
   DEFAULT_BG_HEX,
   isValidHexColor,
@@ -34,6 +35,7 @@ import AnalyticsPage from "./pages/AnalyticsPage"
 import SettingsPage from "./pages/SettingsPage"
 import AuthPage from "./pages/AuthPage"
 import StudentPortal from "./pages/StudentPortal"
+import AdminPortal from "./pages/AdminPortal"
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -52,20 +54,38 @@ export default function App() {
     }
   })
 
-  const [userRole, setUserRole] = useState<"Teacher" | "Student">(() => {
+  const [userRole, setUserRole] = useState<UserRole>(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname.toLowerCase()
+      if (p.includes("/super-admin")) return "Super Admin"
+      if (p.includes("/admin")) return "Admin"
       if (p.includes("/student")) return "Student"
       if (p.includes("/teacher")) return "Teacher"
     }
     try {
-      const saved = localStorage.getItem("quantum_user_role")
-      if (saved === "Teacher") return "Teacher"
-      if (saved === "Student") return "Student"
+      const saved = localStorage.getItem("quantum_user_role") as UserRole
+      if (saved) return saved
     } catch {
       // ignore
     }
-    return "Student"
+    return "Teacher"
+  })
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser>(() => {
+    try {
+      const saved = localStorage.getItem("quantum_current_user")
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // ignore
+    }
+    return {
+      id: "u-1",
+      name: "Srimanth",
+      role: "Teacher",
+      email: "srimanth@quantum-lms.edu",
+      title: "Lead Educator · Year 4 Maple Class",
+      avatar: "/assets/srimanth.png",
+    }
   })
 
   // Synchronize route with back/forward history navigation
@@ -79,7 +99,11 @@ export default function App() {
         if (auth !== "false") {
           setIsAuthenticated(true)
         }
-        if (p.includes("/student")) {
+        if (p.includes("/super-admin")) {
+          setUserRole("Super Admin")
+        } else if (p.includes("/admin")) {
+          setUserRole("Admin")
+        } else if (p.includes("/student")) {
           setUserRole("Student")
         } else if (p.includes("/teacher") || p === "/" || p === "") {
           setUserRole("Teacher")
@@ -273,18 +297,73 @@ export default function App() {
     setToastMessage("You have been signed out.")
   }
 
-  const handleLogin = (user: { name: string; role: string; email: string }) => {
+  const handleSwitchRole = (targetRole: UserRole) => {
+    setUserRole(targetRole)
+    const acc = demoAccounts.find((d) => d.role === targetRole)
+    if (acc) {
+      const updatedUser: CurrentUser = {
+        id: `u-${Date.now()}`,
+        name: acc.name,
+        role: targetRole,
+        email: acc.email,
+        avatar: acc.avatar,
+        title: acc.title,
+      }
+      setCurrentUser(updatedUser)
+      try {
+        localStorage.setItem("quantum_user_role", targetRole)
+        localStorage.setItem("quantum_current_user", JSON.stringify(updatedUser))
+        const path =
+          targetRole === "Super Admin"
+            ? "/super-admin"
+            : targetRole === "Admin"
+            ? "/admin"
+            : targetRole === "Student"
+            ? "/student"
+            : "/"
+        window.history.pushState(null, "", path)
+      } catch {
+        // ignore
+      }
+    }
+    setToastMessage(`Switched active perspective to: ${targetRole}`)
+  }
+
+  const handleLogin = (user: {
+    name: string
+    role: UserRole
+    email: string
+    avatar?: string
+    title?: string
+  }) => {
     setIsAuthenticated(true)
-    const nextRole = user.role === "Teacher" ? "Teacher" : "Student"
-    setUserRole(nextRole)
+    setUserRole(user.role)
+    const fullUser: CurrentUser = {
+      id: `u-${Date.now()}`,
+      name: user.name,
+      role: user.role,
+      email: user.email,
+      avatar: user.avatar,
+      title: user.title,
+    }
+    setCurrentUser(fullUser)
     try {
       localStorage.setItem("quantum_auth_session", "true")
-      localStorage.setItem("quantum_user_role", nextRole)
-      window.history.pushState(null, "", nextRole === "Student" ? "/student" : "/")
+      localStorage.setItem("quantum_user_role", user.role)
+      localStorage.setItem("quantum_current_user", JSON.stringify(fullUser))
+      const path =
+        user.role === "Super Admin"
+          ? "/super-admin"
+          : user.role === "Admin"
+          ? "/admin"
+          : user.role === "Student"
+          ? "/student"
+          : "/"
+      window.history.pushState(null, "", path)
     } catch {
       // ignore
     }
-    setToastMessage(`Welcome back, ${user.name}! Connected to Quantum AI.`)
+    setToastMessage(`Welcome back, ${user.name}! Connected to Quantum AI as ${user.role}.`)
   }
 
   if (!isAuthenticated) {
@@ -313,21 +392,35 @@ export default function App() {
     )
   }
 
+  if (userRole === "Super Admin" || userRole === "Admin") {
+    return (
+      <>
+        <AdminPortal
+          role={userRole}
+          currentUser={currentUser}
+          onSwitchRole={handleSwitchRole}
+          onLogout={handleLogout}
+          onToast={(msg) => setToastMessage(msg)}
+          hexColor={hexColor}
+          onChangeHexColor={handleHexColorChange}
+          isLightBg={isLightBg}
+        />
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+      </>
+    )
+  }
+
   if (userRole === "Student") {
     return (
       <>
         <StudentPortal
           onOpenAiModal={() => setIsAiModalOpen(true)}
-          onSwitchToTeacher={() => {
-            setUserRole("Teacher")
-            try {
-              localStorage.setItem("quantum_user_role", "Teacher")
-              window.history.pushState(null, "", "/")
-            } catch {
-              // ignore
-            }
-            setToastMessage("Switched to Teacher Workspace")
-          }}
+          onSwitchToTeacher={() => handleSwitchRole("Teacher")}
           onLogout={handleLogout}
           onToast={(msg) => setToastMessage(msg)}
           hexColor={hexColor}
@@ -405,16 +498,7 @@ export default function App() {
               setActiveTab("Students")
             }}
             onShowAllStudents={() => setActiveTab("Students")}
-            onSwitchToStudent={() => {
-              setUserRole("Student")
-              try {
-                localStorage.setItem("quantum_user_role", "Student")
-                window.history.pushState(null, "", "/student")
-              } catch {
-                // ignore
-              }
-              setToastMessage("Switched to Student Portal")
-            }}
+            onSwitchToStudent={() => handleSwitchRole("Student")}
           />
         )}
 
