@@ -50,7 +50,8 @@ import SettingsPage from "./pages/SettingsPage"
 import AuthPage from "./pages/AuthPage"
 import StudentPortal from "./pages/StudentPortal"
 import AdminPortal from "./pages/AdminPortal"
-import SupportPortal from "./pages/support"
+import { lazy, Suspense } from "react"
+const SupportPortal = lazy(() => import("./pages/support"))
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -548,16 +549,18 @@ export default function App() {
   if (userRole === "Support") {
     return (
       <>
-        <SupportPortal
-          onOpenAiModal={() => setIsAiModalOpen(true)}
-          onSwitchToTeacher={() => handleSwitchRole("Teacher")}
-          onSwitchToStudent={() => handleSwitchRole("Student")}
-          onLogout={handleLogout}
-          onToast={(msg) => setToastMessage(msg)}
-          hexColor={hexColor}
-          onChangeHexColor={handleHexColorChange}
-          isLightBg={isLightBg}
-        />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-zinc-500">Loading Support Portal...</div>}>
+          <SupportPortal
+            onOpenAiModal={() => setIsAiModalOpen(true)}
+            onSwitchToTeacher={() => handleSwitchRole("Teacher")}
+            onSwitchToStudent={() => handleSwitchRole("Student")}
+            onLogout={handleLogout}
+            onToast={(msg) => setToastMessage(msg)}
+            hexColor={hexColor}
+            onChangeHexColor={handleHexColorChange}
+            isLightBg={isLightBg}
+          />
+        </Suspense>
         <AskAiModal
           isOpen={isAiModalOpen}
           onClose={() => setIsAiModalOpen(false)}
