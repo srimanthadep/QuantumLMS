@@ -8,7 +8,7 @@ import type {
 } from "../types"
 
 export const demoAccounts: {
-  role: "Super Admin" | "Admin" | "Teacher" | "Student"
+  role: "Super Admin" | "Admin" | "Teacher" | "Student" | "Support"
   name: string
   email: string
   password: string
@@ -61,6 +61,17 @@ export const demoAccounts: {
     avatar: "/assets/student-2.png",
     tagline: "Interactive daily quests, AI tutor help, assignments & XP leaderboard",
     accentColor: "#3b82f6",
+  },
+  {
+    role: "Support",
+    name: "Alex Rivera",
+    email: "support@quantum-lms.edu",
+    password: "support2026",
+    title: "Senior Support Specialist · Operations Desk",
+    badge: "SUPPORT DESK",
+    avatar: "/assets/student-3.png",
+    tagline: "Live omnichannel chat, SLA ticketing, analytics & Student 360",
+    accentColor: "#06b6d4",
   },
 ]
 

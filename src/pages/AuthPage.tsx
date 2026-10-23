@@ -166,6 +166,24 @@ export default function AuthPage({
                     <span>Top 5% Class Rank</span>
                   </div>
                 </div>
+              ) : role === "Support" ? (
+                <div className="auth-lime-card !bg-linear-to-br !from-cyan-600 !to-teal-700 text-white">
+                  <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
+                    <span>🎧</span>
+                    <span>Support & Resolution Suite</span>
+                  </div>
+                  <h1 className="auth-lime-heading !text-white">
+                    Omnichannel Helpdesk, Live Chat & Student 360
+                  </h1>
+                  <p className="auth-lime-sub !text-white/90">
+                    Real-time ticket routing, SLA alerts, student telemetry, and multi-agent coordination.
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                    <span>⚡ 98.7% SLA Met</span>
+                    <span>⏱ 2.4m Avg Response</span>
+                    <span>⭐ 4.9/5 CSAT</span>
+                  </div>
+                </div>
               ) : (
                 /* Teacher Default Banner */
                 <div className="auth-lime-card">
@@ -231,6 +249,8 @@ export default function AuthPage({
                     ? "/assets/student-1.png"
                     : role === "Student"
                     ? "/assets/student-2.png"
+                    : role === "Support"
+                    ? "/assets/student-3.png"
                     : "/assets/srimanth.png"
                 }
                 alt="Account User"
@@ -244,11 +264,17 @@ export default function AuthPage({
                       ? "Marcus Sterling"
                       : role === "Student"
                       ? "Leo Thompson"
+                      : role === "Support"
+                      ? "Alex Rivera"
                       : "Srimanth"}
                   </strong>
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      role === "Super Admin" ? "bg-red-500" : "bg-emerald-500"
+                      role === "Super Admin"
+                        ? "bg-red-500"
+                        : role === "Support"
+                        ? "bg-cyan-500"
+                        : "bg-emerald-500"
                     }`}
                   />
                 </div>
@@ -382,7 +408,7 @@ export default function AuthPage({
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
                 Or Select Your Role
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-5 gap-1">
                 <button
                   type="button"
                   className={`role-chip ${role === "Super Admin" ? "active !bg-red-50 !border-red-400 !text-red-700" : ""}`}
@@ -390,7 +416,7 @@ export default function AuthPage({
                   title="Chief System Director / Super Admin"
                 >
                   <span>⚡</span>
-                  <span className="truncate">Super Admin</span>
+                  <span className="truncate">Super</span>
                 </button>
                 <button
                   type="button"
@@ -418,6 +444,15 @@ export default function AuthPage({
                 >
                   <span>🎒</span>
                   <span className="truncate">Student</span>
+                </button>
+                <button
+                  type="button"
+                  className={`role-chip ${role === "Support" ? "active !bg-cyan-50 !border-cyan-400 !text-cyan-800" : ""}`}
+                  onClick={() => handleRoleSelect("Support")}
+                  title="Omnichannel Support Desk & Ticketing"
+                >
+                  <span>🎧</span>
+                  <span className="truncate">Support</span>
                 </button>
               </div>
             </div>

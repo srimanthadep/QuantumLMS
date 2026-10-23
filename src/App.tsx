@@ -440,6 +440,8 @@ export default function App() {
             ? "/admin"
             : targetRole === "Student"
             ? "/student"
+            : targetRole === "Support"
+            ? "/support"
             : "/"
         window.history.pushState(null, "", path)
       } catch {
@@ -489,6 +491,8 @@ export default function App() {
           ? "/admin"
           : user.role === "Student"
           ? "/student"
+          : user.role === "Support"
+          ? "/support"
           : "/"
       window.history.pushState(null, "", path)
     } catch {

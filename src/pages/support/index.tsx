@@ -169,23 +169,21 @@ function SupportSidebar({
         )}
 
         {/* Switch to Teacher Portal */}
-        <a
-          href="http://localhost:8443/teacher"
-          className="student-action-switch-btn flex items-center justify-center"
-          onClick={(e) => {
-            e.preventDefault()
-            try {
-              localStorage.setItem("quantum_user_role", "Teacher")
-            } catch { }
-            if (onSwitchToTeacher) {
+        {onSwitchToTeacher && (
+          <button
+            type="button"
+            className="student-action-switch-btn flex items-center justify-center cursor-pointer"
+            onClick={() => {
+              try {
+                localStorage.setItem("quantum_user_role", "Teacher")
+              } catch { }
               onSwitchToTeacher()
-            }
-            window.location.href = "http://localhost:8443/teacher"
-          }}
-          title="Switch to Teacher Workspace"
-        >
-          <span>👨‍🏫 Teacher Portal</span>
-        </a>
+            }}
+            title="Switch to Teacher Workspace"
+          >
+            <span>👨‍🏫 Teacher Portal</span>
+          </button>
+        )}
 
         {/* Switch to Student Portal */}
         {onSwitchToStudent && (
