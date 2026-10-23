@@ -588,7 +588,7 @@ export default function DoubtsPage({
       </div>
 
       {/* Doubts Main Panel */}
-      <section className="panel p-5 mt-2 bg-white rounded-2xl border border-zinc-150" aria-label="Student Doubts Roster">
+      <section className="panel p-5" aria-label="Student Doubts Roster">
         {/* Top Header & Status Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>

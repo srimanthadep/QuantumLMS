@@ -23,6 +23,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { MetricItem } from "@/types";
+import { MetricCard } from "@/components/MetricCard";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -225,44 +227,53 @@ export const KnowledgeBasePage: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  return (
-    <div className="space-y-2 support-page-font">
-      {/* Header Banner */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white border border-white/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-2xs">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900">
-                Support Knowledge Base &amp; SOPs
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-500 mt-1 font-medium">
-                Standard operating procedures, policy guidelines, and quick response macros for support agents.
-              </p>
-            </div>
-          </div>
-        </div>
+  const kpis: MetricItem[] = [
+    {
+      icon: "book",
+      label: "Verified SOPs",
+      value: `${ARTICLES.length}`,
+      trend: "All policies active",
+      tone: "lavender",
+    },
+    {
+      icon: "compass",
+      label: "Support Categories",
+      value: `${categories.length - 1}`,
+      trend: "Coverage domains",
+      tone: "pink",
+    },
+    {
+      icon: "clock",
+      label: "Avg Read Time",
+      value: "3.5m",
+      trend: "Fast reference",
+      tone: "lime",
+    },
+    {
+      icon: "sparkles",
+      label: "Macro Adherence",
+      value: "99.4%",
+      trend: "Verified QA score",
+      tone: "yellow",
+    },
+  ];
 
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="text-xs py-1.5 px-3.5 border-purple-200 text-purple-800 bg-purple-50 shadow-2xs font-bold rounded-xl flex items-center gap-1.5"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-purple-600 animate-pulse" />
-            <span>{ARTICLES.length} Verified SOP Articles</span>
-          </Badge>
-        </div>
+  return (
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* 1. KPI Stats Grid (Canonical 132px Folder-Tab Cards with 8px Gap) */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
       </div>
 
-      {/* Search and Category Filter Bar */}
-      <Card className="bg-white border-[#E5DEFF] shadow-xs rounded-2xl">
-        <CardContent className="p-3 sm:p-3.5 space-y-2.5 bg-white">
+      {/* 2. Search and Category Filter Bar */}
+      <div className="panel p-3.5 bg-white border border-zinc-150">
+        <div className="space-y-2.5">
           <div className="relative">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
             <Input
-              placeholder="Search students or topics..."
+              placeholder="Search SOP articles, keywords, or macros..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-9 text-xs sm:text-sm bg-white border-[#E5DEFF] rounded-full focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20 text-[#111111] placeholder:text-zinc-400 shadow-2xs"
@@ -289,17 +300,17 @@ export const KnowledgeBasePage: React.FC = () => {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Articles Grid with Unified Theme from Design System */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      {/* 3. Articles Grid with 8px gap */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {filtered.map((art) => {
           return (
             <div
               key={art.id}
               onClick={() => setActiveArticle(art)}
-              className="relative rounded-2xl bg-white border border-[#E5DEFF] hover:border-[#905FEB]/60 shadow-xs hover:shadow-md flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200 hover:scale-[1.01]"
+              className="panel relative bg-white border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
             >
               {/* Top Colorful Category Gradient Strip */}
               <div

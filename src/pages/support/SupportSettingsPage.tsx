@@ -121,27 +121,22 @@ export const SupportSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden min-h-0">
-      {/* Header Banner matching Figma Style Guide */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5DEFF] shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold shadow-xs">
-              <Settings className="h-5 w-5 text-[#905FEB]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#111111]">
-                  Operations &amp; Operational Policies
-                </h1>
-                <span className="badge-status-completed text-[10px] font-bold px-2.5 py-0.5 hidden sm:inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#3B6600] animate-pulse" />
-                  Live Desk Active
-                </span>
-              </div>
-
-            </div>
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* Settings Control Strip matching canonical panel design */}
+      <div className="panel px-4 py-2.5 bg-white border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+              <Settings className="h-4 w-4 text-purple-600" />
+              <span>Operations &amp; Operational Policies</span>
+            </span>
+            <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5 hidden sm:inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#3B6600] animate-pulse" />
+              Live Desk Active
+            </span>
           </div>
+          <span className="text-zinc-300">|</span>
+          <span className="text-xs text-zinc-500 font-medium">SLA Tiers, Escalation Matrix, Webhooks &amp; AI Copilot</span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -160,7 +155,7 @@ export const SupportSettingsPage: React.FC = () => {
               setP3Sla("360");
               setP4Sla("1440");
             }}
-            className="btn-support-secondary text-xs h-8.5 px-3.5 font-bold cursor-pointer"
+            className="btn-support-secondary text-xs h-7.5 px-3.5 font-bold cursor-pointer"
             title="Reset to recommended defaults"
           >
             Reset Defaults
@@ -168,11 +163,10 @@ export const SupportSettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleSave}
-            className="btn-support-primary text-xs h-8.5 px-4 gap-1.5 font-bold cursor-pointer shadow-md hover:shadow-lg transition-all"
+            className="btn-support-primary text-xs h-7.5 px-4 gap-1.5 font-bold cursor-pointer shadow-xs"
           >
             <Save className="h-3.5 w-3.5" />
             <span>Save Configuration</span>
-            <ArrowRight className="h-3 w-3 ml-0.5" />
           </button>
         </div>
       </div>

@@ -31,7 +31,8 @@ import {
   Bell,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
+import { MetricCard } from "@/components/MetricCard";
 import { cn } from "@/lib/utils";
 import { getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
 import "./supportTheme.css";
@@ -161,29 +162,60 @@ export const SupportAnalyticsPage: React.FC = () => {
     };
   });
 
+  const kpis: MetricItem[] = [
+    {
+      icon: "clock",
+      label: "Avg First Reply",
+      value: "14 mins",
+      trend: "-6 mins vs SLA",
+      tone: "pink",
+    },
+    {
+      icon: "check-circle",
+      label: "SLA Adherence",
+      value: "96.8%",
+      trend: "+1.2% this week",
+      tone: "lime",
+    },
+    {
+      icon: "mail",
+      label: "Resolved Tickets",
+      value: "184",
+      trend: "+28% vs previous",
+      tone: "lavender",
+    },
+    {
+      icon: "star",
+      label: "CSAT Satisfaction",
+      value: "4.94 / 5.0",
+      trend: "98.4% positive",
+      tone: "yellow",
+    },
+  ];
+
   return (
-    <div className="h-full max-h-full flex-1 min-h-0 overflow-y-auto space-y-4 support-page-font pb-12 pr-1.5 support-sleek-scroll">
-      {/* Header Banner matching KnowledgeBase & SupportAgents Figma Tokens */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-white/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#7042D2] flex items-center justify-center shadow-2xs shrink-0">
-              <BarChart2 className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111111]">
-                Reports &amp; Support Analytics
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-500 mt-1 font-medium">
-                Monitor response velocity, SLA compliance trends, ticket volume distributions, and mentor workload.
-              </p>
-            </div>
-          </div>
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* 1. KPI Stats Grid (Canonical Folder-Tab Cards with 8px Gap) */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
+      </div>
+
+      {/* 2. Operations & Timeframe Toolbar */}
+      <div className="panel px-4 py-2.5 bg-white border border-zinc-150 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Support Velocity &amp; SLA Trends</span>
+          </span>
+          <span className="text-zinc-300">|</span>
+          <span className="text-xs text-zinc-500">Live Telemetry · 342 Reviews Analyzed</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Timeframe pill tabs */}
-          <div className="flex items-center p-0.5 rounded-full bg-[#FAF9FF] border border-[#E5DEFF]">
+          <div className="flex items-center p-0.5 rounded-full bg-zinc-50 border border-zinc-200">
             {(["7d", "30d", "90d"] as const).map((r) => (
               <button
                 key={r}
@@ -201,15 +233,10 @@ export const SupportAnalyticsPage: React.FC = () => {
             ))}
           </div>
 
-          <span className="badge-status-completed shadow-2xs font-bold px-3 py-1.5 text-xs">
-            <span className="h-2 w-2 rounded-full bg-[#AEEB00] animate-pulse" />
-            <span>Live SLA Active</span>
-          </span>
-
           <button
             type="button"
-            className="btn-support-primary text-xs h-8.5 gap-1.5 font-bold cursor-pointer"
-            onClick={() => alert("Monthly Support & SLA Performance Report (PDF) generated and sent to Admin desk.")}
+            className="btn-support-primary text-xs h-7.5 px-3.5 gap-1.5 font-bold cursor-pointer"
+            onClick={() => alert("Monthly Support & SLA Performance Report (PDF) generated.")}
           >
             <ArrowUpRight className="h-3.5 w-3.5" />
             <span>Export Report</span>
@@ -217,47 +244,11 @@ export const SupportAnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Stats (Quantum folder-tab status cards with Figma Brand Tones) */}
-      <div className="metrics-grid">
-        <StatCard
-          title="Avg First Response"
-          value="14 mins"
-          icon={Clock}
-          tone="pink"
-          trend={{ value: "-6 mins vs SLA target", isPositive: true }}
-          index={0}
-        />
-        <StatCard
-          title="SLA Compliance Rate"
-          value="96.8%"
-          icon={CheckCircle2}
-          tone="lime"
-          trend={{ value: "+1.2% this week", isPositive: true }}
-          index={1}
-        />
-        <StatCard
-          title="Resolved This Month"
-          value="184"
-          icon={Award}
-          tone="lavender"
-          trend={{ value: "+28% vs previous month", isPositive: true }}
-          index={2}
-        />
-        <StatCard
-          title="Average CSAT Rating"
-          value="4.94 / 5.0"
-          icon={Star}
-          tone="yellow"
-          trend={{ value: "98.4% positive feedback", isPositive: true }}
-          index={3}
-        />
-      </div>
-
-      {/* Primary Analytics Grid: Inquiry Category Breakdown & Mentor Team Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Inquiry Category Breakdown Card with Progress Bars (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          <Card className="rounded-2xl bg-white border border-[#E5DEFF] shadow-xs overflow-hidden flex flex-col justify-between">
+      {/* 3. Primary Analytics Grid (8px gap) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+        {/* Inquiry Category Breakdown Card (6 cols) */}
+        <div className="lg:col-span-6 flex flex-col gap-2">
+          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col justify-between">
             {/* Top Purple Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs" />
 
@@ -339,12 +330,12 @@ export const SupportAnalyticsPage: React.FC = () => {
                 })}
               </div>
             </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Mentor Performance Leaderboard (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          <Card className="rounded-2xl bg-white border border-[#E5DEFF] shadow-xs overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-6 flex flex-col gap-2">
+          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col justify-between">
             {/* Top Lavender Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#B89CF5] to-[#E5DEFF] shadow-xs" />
 
@@ -437,7 +428,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
     </div>

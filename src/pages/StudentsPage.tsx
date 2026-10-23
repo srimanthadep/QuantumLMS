@@ -541,7 +541,7 @@ function StudentRosterCard({
 
   return (
     <section
-      className="roster-card panel w-full bg-white rounded-2xl border border-zinc-150"
+      className="roster-card panel w-full bg-white"
       aria-label="Assigned Students Roster"
     >
       {/* Top Header & Status Filter Pills */}
@@ -904,7 +904,7 @@ function StudentRosterCard({
 function ClassDistributionCard() {
   return (
     <section
-      className="distribution-card panel w-full bg-white rounded-2xl border border-zinc-150 p-5"
+      className="distribution-card panel w-full bg-white p-5"
       aria-label="Class Grade Distribution"
     >
       <div className="card-header flex items-center justify-between mb-3">
@@ -1017,7 +1017,7 @@ export default function StudentsPage({
       </div>
 
       {/* Full-width Content Layout: Student Spotlight completely removed so the student list reclaims the available page area */}
-      <div className="space-y-4 mt-2">
+      <div className="flex flex-col gap-2">
         <StudentRosterCard
           students={students}
           selectedStudentId={selectedStudentId}

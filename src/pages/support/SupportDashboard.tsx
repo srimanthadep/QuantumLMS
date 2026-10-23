@@ -1,92 +1,115 @@
-import React, { useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import UseAnimations from 'react-useanimations';
-import arrowUpRight from 'react-useanimations/lib/arrowUpRight';
-import {
-  LifeBuoy,
-  Clock,
-  CheckCircle2,
-  ArrowRight,
-  MessageSquare,
-  Star,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react";
-import { getAllSupportTickets, SupportTicket } from "./supportTicketsData";
-import { StatCard } from "@/components/ui/StatCard";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useRef } from "react"
+import { Link } from "react-router-dom"
+import type { MetricItem } from "@/types"
+import { Icon } from "@/components/Icon"
+import { MetricCard } from "@/components/MetricCard"
+import { getAllSupportTickets, SupportTicket } from "./supportTicketsData"
 
-export const SupportDashboard: React.FC = () => {
-  const [agentPresence, setAgentPresence] = useState<"online" | "away" | "busy">("online");
-  const [tickets] = useState<SupportTicket[]>(getAllSupportTickets());
-  const queueListRef = useRef<HTMLDivElement>(null);
+export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onOpenAiModal }) => {
+  const [agentPresence, setAgentPresence] = useState<"online" | "away" | "busy">("online")
+  const [tickets] = useState<SupportTicket[]>(getAllSupportTickets())
+  const queueListRef = useRef<HTMLDivElement>(null)
 
   const scrollQueue = (direction: "up" | "down") => {
     if (queueListRef.current) {
-      const step = 200;
+      const step = 200
       queueListRef.current.scrollBy({
         top: direction === "down" ? step : -step,
         behavior: "smooth",
-      });
+      })
     }
-  };
+  }
 
-  const [selectedCard, setSelectedCard] = useState<"open" | "pending" | "resolved" | null>(null);
+  const [selectedCard, setSelectedCard] = useState<"open" | "pending" | "resolved" | null>(null)
 
-  const openCount = tickets.filter((t) => t.status === "open").length;
-  const pendingCount = tickets.filter((t) => t.status === "pending").length;
-  const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
+  const openCount = tickets.filter((t) => t.status === "open").length
+  const pendingCount = tickets.filter((t) => t.status === "pending").length
+  const resolvedCount = tickets.filter((t) => t.status === "resolved").length
 
   const filteredTickets = tickets.filter((tkt) => {
-    if (!selectedCard) return true;
-    return tkt.status === selectedCard;
-  });
+    if (!selectedCard) return true
+    return tkt.status === selectedCard
+  })
+
+  // 4 Canonical Folder-Tab Metric Cards matching Teacher & Admin
+  const kpis: MetricItem[] = [
+    {
+      icon: "mail",
+      label: "Active Tickets",
+      value: `${openCount}`,
+      trend: `${pendingCount} Pending Review`,
+      tone: "lavender",
+    },
+    {
+      icon: "fire",
+      label: "Avg First Reply",
+      value: "1.8m",
+      trend: "98.7% SLA Met",
+      tone: "lime",
+    },
+    {
+      icon: "star",
+      label: "CSAT Satisfaction",
+      value: "4.92 / 5",
+      trend: "342 Reviews",
+      tone: "yellow",
+    },
+    {
+      icon: "message-circle",
+      label: "Live Chat Desk",
+      value: "6 Active",
+      trend: "3 in Queue",
+      tone: "pink",
+    },
+  ]
 
   return (
-    <div className="space-y-4 support-page-font">
-      {/* Header Banner in White Background */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white border border-white/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900">
-              Support &amp; Mentor Command Center
-            </h1>
-            <span className="badge-status-completed shadow-2xs font-bold px-3 py-1">
-              <span
-                className={`h-2 w-2 rounded-full ${agentPresence === "online" ? "bg-[#AEEB00] animate-pulse" : "bg-zinc-400"}`}
-              />
-              Agent Status: {agentPresence}
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1.5 font-medium">
-            Resolve student tickets, handle live chat sessions, monitor SLA countdowns, and manage customer records.
-          </p>
+    <div className="flex flex-col gap-2">
+      {/* 1. Metric Cards Grid - identical 132px folder tabs and 8px gap */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
+      </div>
+
+      {/* 2. Operations Strip / Agent Status Bar */}
+      <div className="panel px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                agentPresence === "online"
+                  ? "bg-emerald-500 animate-pulse"
+                  : agentPresence === "busy"
+                  ? "bg-rose-500"
+                  : "bg-amber-500"
+              }`}
+            />
+            <span>Omnichannel Dispatcher</span>
+          </span>
+          <span className="text-zinc-300">|</span>
+          <span className="text-[11px] text-zinc-500 font-medium">
+            24 Total Tickets · 3 Urgent SLAs · Level 2 Escalations Active
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Status selector */}
-          <div className="flex items-center rounded-xl border border-slate-200 p-0.5 bg-slate-50 text-xs">
+        <div className="flex items-center gap-2">
+          {/* Agent Presence Toggles */}
+          <div className="flex items-center rounded-full border border-zinc-200 p-0.5 bg-zinc-50 text-xs">
             {(["online", "away", "busy"] as const).map((st) => (
               <button
                 key={st}
                 type="button"
                 onClick={() => setAgentPresence(st)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all ${agentPresence === st
-                  ? st === "online"
-                    ? "text-white shadow-xs"
-                    : st === "busy"
-                      ? "bg-red-500 text-white shadow-xs"
-                      : "bg-amber-500 text-white shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-                style={
-                  agentPresence === st && st === "online"
-                    ? { backgroundColor: "#10b981", color: "#ffffff" }
-                    : undefined
-                }
+                className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
+                  agentPresence === st
+                    ? st === "online"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : st === "busy"
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "bg-amber-600 text-white shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
               >
                 {st}
               </button>
@@ -94,219 +117,194 @@ export const SupportDashboard: React.FC = () => {
           </div>
 
           <Link to="/support/live-chat">
-            <button className="btn-support-primary text-xs font-bold h-9 px-4 rounded-full group cursor-pointer gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>Live Chat Desk</span>
-              <UseAnimations animation={arrowUpRight} size={18} strokeColor="#ffffff" />
+            <button className="px-3.5 h-8 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
+              <Icon name="message-circle" size={14} />
+              <span>Launch Live Desk →</span>
             </button>
           </Link>
         </div>
       </div>
 
-      {/* KPI Stats (Quantum folder-tab status cards) */}
-      <div className="metrics-grid">
-        <StatCard
-          title="Open Tickets"
-          value={openCount}
-          icon={LifeBuoy}
-          tone="pink"
-          trend={{ value: "1 SLA Alert", isPositive: true }}
-          onClick={() => setSelectedCard(selectedCard === "open" ? null : "open")}
-          isActive={selectedCard === "open"}
-          index={0}
-        />
-        <StatCard
-          title="Pending Approval"
-          value={pendingCount}
-          icon={Clock}
-          tone="yellow"
-          trend={{ value: "Awaiting Admin", isPositive: true }}
-          onClick={() => setSelectedCard(selectedCard === "pending" ? null : "pending")}
-          isActive={selectedCard === "pending"}
-          index={1}
-        />
-        <StatCard
-          title="Resolved Tickets"
-          value={resolvedCount}
-          icon={CheckCircle2}
-          tone="lime"
-          trend={{ value: "98.2% in SLA", isPositive: true }}
-          onClick={() => setSelectedCard(selectedCard === "resolved" ? null : "resolved")}
-          isActive={selectedCard === "resolved"}
-          index={2}
-        />
-        <StatCard
-          title="Customer CSAT Score"
-          value="4.92 / 5.0"
-          icon={Star}
-          tone="lavender"
-          trend={{ value: "+0.2 vs last mo", isPositive: true }}
-          onClick={() => setSelectedCard(null)}
-          isActive={selectedCard === null}
-          index={3}
-        />
-      </div>
-
-      {/* Main Grid: Priority Inbox & Fast Operational Quick Links */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Priority Tickets Queue (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
-          <Card className="bg-white shadow-xs border-white/80 rounded-2xl flex flex-col h-[460px] overflow-hidden">
-            <CardHeader className="p-4 sm:px-5 sm:py-3.5 border-b border-slate-100 flex flex-row items-center justify-between shrink-0 bg-white">
+      {/* 3. Main Content Grid - standard 8px gap */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+        {/* Left Column: Priority Tickets Queue (8 cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-2">
+          <div className="panel p-5 bg-white flex flex-col h-[520px]">
+            {/* Card Header matching Teacher & Admin */}
+            <div className="card-header">
               <div>
-                <CardTitle className="text-base sm:text-lg font-bold text-zinc-900">
-                  Active Support Queue
-                </CardTitle>
-                <CardDescription className="text-xs text-zinc-500">
-                  Urgent tickets and batch change proposals requiring mentor response.
-                </CardDescription>
+                <h3 className="card-title">Active Support Queue</h3>
+                <div className="text-[11px] text-zinc-500 mt-0.5">
+                  Urgent tickets, cohort transfer inquiries, and mentor triage requests
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="flex items-center gap-1 mr-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <button
                     onClick={() => scrollQueue("up")}
-                    className="h-7 w-7 p-0 rounded-lg border-slate-200 hover:bg-purple-50 text-purple-700"
+                    className="w-7 h-7 rounded-lg border border-zinc-200 hover:bg-zinc-100 flex items-center justify-center text-zinc-700 cursor-pointer"
                     title="Scroll Up"
                   >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                    ▲
+                  </button>
+                  <button
                     onClick={() => scrollQueue("down")}
-                    className="h-7 w-7 p-0 rounded-lg border-slate-200 hover:bg-purple-50 text-purple-700"
+                    className="w-7 h-7 rounded-lg border border-zinc-200 hover:bg-zinc-100 flex items-center justify-center text-zinc-700 cursor-pointer"
                     title="Scroll Down"
                   >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
+                    ▼
+                  </button>
                 </div>
                 <Link to="/support/inbox">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs gap-1 h-8 text-purple-700 hover:bg-purple-50 font-bold"
-                  >
-                    View All <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
+                  <span className="text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors">
+                    View All Tickets →
+                  </span>
                 </Link>
               </div>
-            </CardHeader>
-            <CardContent
-              ref={queueListRef}
-              className="p-0 divide-y divide-slate-100 flex-1 min-h-0 overflow-y-auto scroll-smooth bg-white [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300"
-            >
-              {tickets.length === 0 ? (
-                <div className="p-8 text-center text-xs text-zinc-500 flex flex-col items-center justify-center gap-2 h-full bg-white">
-                  <p>No tickets found in this filtered category.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs font-bold h-7 bg-white text-purple-700 border-purple-200 hover:bg-purple-50"
-                    onClick={() => setSelectedCard(null)}
-                  >
-                    Reset Filter &amp; Show All
-                  </Button>
-                </div>
-              ) : (
-                filteredTickets.map((tkt) => (
-                  <div
-                    key={tkt.id}
-                    className="p-3.5 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-purple-50/40 transition-colors bg-white"
-                  >
-                    <div className="space-y-1 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
-                          {tkt.ticketNumber}
-                        </span>
-                        <span className="text-xs text-zinc-400">•</span>
-                        <span className="text-xs font-bold text-zinc-900">
-                          {tkt.studentName}
-                        </span>
-                        {tkt.priority === "high" && (
-                          <Badge variant="destructive" className="text-[10px] font-bold">
-                            High Priority
-                          </Badge>
-                        )}
-                        {tkt.status === "open" && (
-                          <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
-                            Open
-                          </span>
-                        )}
-                        {tkt.status === "pending" && (
-                          <span className="badge-status-assigned text-[10px] font-bold px-2 py-0.5">
-                            Pending Admin
-                          </span>
-                        )}
-                        {tkt.status === "resolved" && (
-                          <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5">
-                            Resolved
-                          </span>
-                        )}
-                      </div>
+            </div>
 
-                      <h4 className="text-sm font-semibold text-[#111111]">
-                        {tkt.subject}
-                      </h4>
-                      <p className="text-xs text-zinc-500">
-                        Batch: {tkt.studentBatch} • Assigned to: {tkt.assignedAgent}
-                      </p>
+            {/* Scrollable Ticket List */}
+            <div
+              ref={queueListRef}
+              className="flex-1 overflow-y-auto divide-y divide-zinc-100 pr-1 mt-2"
+            >
+              {filteredTickets.map((tkt) => (
+                <div
+                  key={tkt.id}
+                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-purple-50/30 px-2 rounded-xl transition-colors"
+                >
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                        {tkt.ticketNumber}
+                      </span>
+                      <span className="text-xs text-zinc-400">•</span>
+                      <strong className="text-xs font-bold text-zinc-900">
+                        {tkt.studentName}
+                      </strong>
+                      {tkt.priority === "high" && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                          High Priority
+                        </span>
+                      )}
+                      {tkt.status === "open" && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                          Open
+                        </span>
+                      )}
+                      {tkt.status === "pending" && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                          Pending Admin
+                        </span>
+                      )}
+                      {tkt.status === "resolved" && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Resolved
+                        </span>
+                      )}
                     </div>
 
-                    <Link to={`/support/ticket/${tkt.id}`}>
-                      <button
-                        className="btn-support-secondary text-xs gap-1.5 shrink-0 font-bold h-8 px-3.5 cursor-pointer"
-                      >
-                        Open Ticket <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    </Link>
+                    <h4 className="text-xs font-bold text-zinc-900 truncate">
+                      {tkt.subject}
+                    </h4>
+                    <p className="text-[11px] text-zinc-500 truncate">
+                      Batch: {tkt.studentBatch} · Assigned: {tkt.assignedAgent}
+                    </p>
                   </div>
-                ))
-              )}
-            </CardContent>
-            <div className="p-2.5 sm:px-5 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-zinc-500 shrink-0">
-              <span>Support Tickets Queue</span>
+
+                  <Link to={`/support/ticket/${tkt.id}`}>
+                    <button className="px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-purple-100 text-zinc-800 hover:text-purple-900 text-xs font-bold transition-colors cursor-pointer shrink-0">
+                      Open Ticket →
+                    </button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            {/* Queue Footer */}
+            <div className="pt-3 mt-auto border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
+              <span>Showing {filteredTickets.length} tickets in active queue</span>
               {selectedCard && (
                 <button
                   onClick={() => setSelectedCard(null)}
-                  className="text-purple-700 hover:underline font-bold text-xs cursor-pointer"
+                  className="text-purple-700 font-bold hover:underline cursor-pointer"
                 >
                   Clear filter
                 </button>
               )}
             </div>
-          </Card>
+          </div>
         </div>
 
-        {/* Right Column: Portal Navigation & Live Quick Access (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* Mentor Inbox Card in White Background */}
-          <div className="p-5 rounded-2xl bg-white border border-white/80 space-y-2.5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                <LifeBuoy className="h-3.5 w-3.5 text-purple-600" /> Mentor Inbox
-              </span>
+        {/* Right Column: Fast Operational Hub & Telemetry (4 cols) */}
+        <div className="lg:col-span-4 flex flex-col gap-2">
+          {/* Quick SLA Radar Panel */}
+          <div className="panel p-5 bg-white flex flex-col gap-3">
+            <div className="card-header !mb-0">
+              <h3 className="card-title text-sm">SLA Escalation Radar</h3>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
-            <p className="text-base font-bold text-zinc-900 leading-snug">
-              Active Inquiries
+
+            <div className="space-y-2.5">
+              <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100">
+                <div className="flex justify-between items-center text-xs font-bold text-purple-950">
+                  <span>First Response SLA</span>
+                  <span>98.7%</span>
+                </div>
+                <div className="w-full bg-purple-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
+                  <div className="bg-purple-600 h-1.5 rounded-full w-[98%]" />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                <div className="flex justify-between items-center text-xs font-bold text-amber-950">
+                  <span>Batch Transfer Approvals</span>
+                  <span>4 Pending</span>
+                </div>
+                <div className="w-full bg-amber-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
+                  <div className="bg-amber-500 h-1.5 rounded-full w-[70%]" />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                <div className="flex justify-between items-center text-xs font-bold text-emerald-950">
+                  <span>Resolved Within 24h</span>
+                  <span>94.2%</span>
+                </div>
+                <div className="w-full bg-emerald-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
+                  <div className="bg-emerald-500 h-1.5 rounded-full w-[94%]" />
+                </div>
+              </div>
+            </div>
+
+            <Link to="/support/sla-escalations" className="block pt-1">
+              <button className="w-full h-8 rounded-full border border-purple-300 text-purple-800 hover:bg-purple-50 text-xs font-bold transition-colors cursor-pointer">
+                View SLA Escalations →
+              </button>
+            </Link>
+          </div>
+
+          {/* Student 360 Fast Inspection Panel */}
+          <div className="panel p-5 bg-white flex flex-col gap-2.5">
+            <div className="card-header !mb-0">
+              <h3 className="card-title text-sm">Student 360 Telemetry</h3>
+              <span className="text-[10px] font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded">
+                Live Sync
+              </span>
+            </div>
+
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Instant access to student course progress, attendance health, assignment submission history, and risk factor diagnostics.
             </p>
-            <p className="text-xs text-zinc-500 font-medium">
-              Avg SLA: 14 mins response
-            </p>
-            <Link to="/support/inbox" className="block pt-1">
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full h-8 text-xs rounded-xl gap-1.5 font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80 transition-all"
-              >
-                <span>Open Tickets</span> <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
+
+            <Link to="/support/student-360" className="pt-1">
+              <button className="w-full h-8 rounded-full bg-black text-white hover:bg-zinc-800 text-xs font-bold transition-colors cursor-pointer">
+                Open Student 360 →
+              </button>
             </Link>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

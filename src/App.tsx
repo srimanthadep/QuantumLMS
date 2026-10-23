@@ -555,6 +555,8 @@ export default function App() {
       <>
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-zinc-500">Loading Support Portal...</div>}>
           <SupportPortal
+            currentUser={currentUser}
+            onSwitchRole={handleSwitchRole}
             onOpenAiModal={() => setIsAiModalOpen(true)}
             onSwitchToTeacher={() => handleSwitchRole("Teacher")}
             onSwitchToStudent={() => handleSwitchRole("Student")}
@@ -620,6 +622,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
+        currentUser={currentUser}
+        onSwitchRole={handleSwitchRole}
       />
 
       {/* Mobile & Tablet Slide-over Drawer */}
@@ -631,6 +635,8 @@ export default function App() {
         onLogout={handleLogout}
         hexColor={hexColor}
         onChangeHexColor={handleHexColorChange}
+        currentUser={currentUser}
+        onSwitchRole={handleSwitchRole}
       />
 
       {/* Main Content Viewport */}

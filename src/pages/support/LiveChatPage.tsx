@@ -414,7 +414,7 @@ export const LiveChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden min-h-0">
+    <div className="flex flex-col gap-2 support-page-font">
       {/* Toast Notification Alert */}
       {workflowToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
@@ -431,8 +431,8 @@ export const LiveChatPage: React.FC = () => {
         </div>
       )}
 
-      {/* Control Header matching Figma Style Guide */}
-      <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-white border border-[#E5DEFF] shadow-xs">
+      {/* Control Header matching canonical design */}
+      <div className="panel shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-zinc-150">
         <div className="flex items-center gap-3 min-w-0">
           <div className="h-9 w-9 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold shadow-2xs shrink-0">
             <MessageSquare className="h-4.5 w-4.5 text-[#905FEB]" />
@@ -514,11 +514,11 @@ export const LiveChatPage: React.FC = () => {
       </div>
 
       {/* Main 3-Column Workspace */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2.5 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
         {/* =========================================
             COLUMN 1: Conversation Queue (4 cols)
            ========================================= */}
-        <div className="lg:col-span-4 h-full flex flex-col overflow-hidden rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
+        <div className="lg:col-span-4 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
           {/* Search & Filter Header */}
           <div className="p-3 border-b border-[#F0EDFF] space-y-2 bg-[#FAF9FF] shrink-0">
             <div className="relative">
@@ -672,7 +672,7 @@ export const LiveChatPage: React.FC = () => {
         {/* =========================================
             COLUMN 2: Chat Stream Console (5 cols)
            ========================================= */}
-        <div className="lg:col-span-5 h-full flex flex-col overflow-hidden rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
+        <div className="lg:col-span-5 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
           {/* Active Conversation Header */}
           <div className="p-3 border-b border-[#F0EDFF] flex items-center justify-between bg-[#FAF9FF] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
@@ -908,7 +908,7 @@ export const LiveChatPage: React.FC = () => {
         {/* =========================================
             COLUMN 3: Telemetry & Instant Actions (3 cols)
            ========================================= */}
-        <div className="lg:col-span-3 h-full flex flex-col overflow-hidden rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
+        <div className="lg:col-span-3 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
           <div className="p-3 border-b border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-between shrink-0">
             <span className="text-xs font-extrabold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
               <UserCheck className="h-4 w-4 text-[#905FEB]" />

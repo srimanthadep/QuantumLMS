@@ -749,7 +749,7 @@ export default function CalendarPage({
       />
 
       {/* Main Calendar Panel */}
-      <div className="panel p-4 sm:p-5 mt-2 bg-white rounded-2xl border border-zinc-150" aria-label="Academic Calendar Workspace">
+      <div className="panel p-4 sm:p-5" aria-label="Academic Calendar Workspace">
         {/* Google Calendar Style Controls Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-gray-150">
           {/* Navigation Controls: Today, Prev, Next, Month Heading */}
@@ -1151,7 +1151,7 @@ export default function CalendarPage({
       </div>
 
       {/* Upcoming Events Bottom Panel */}
-      <div className="panel p-5 mt-4 bg-white rounded-2xl border border-zinc-150">
+      <div className="panel p-5 mt-2">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h4 className="card-title text-sm sm:text-base">

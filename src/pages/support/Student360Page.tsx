@@ -23,7 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
+import { MetricCard } from "@/components/MetricCard";
 import {
   Dialog,
   DialogContent,
@@ -165,94 +166,53 @@ export const Student360Page: React.FC = () => {
   const activeCount = LEARNERS.filter((l) => l.status === "active").length;
   const atRiskCount = LEARNERS.filter((l) => l.status === "at_risk").length;
 
+  const kpis: MetricItem[] = [
+    {
+      icon: "users",
+      label: "Total Customers",
+      value: "340",
+      trend: "+28 enrollments",
+      tone: "lavender",
+    },
+    {
+      icon: "check-circle",
+      label: "Active Students",
+      value: `${activeCount}`,
+      trend: "92% attendance",
+      tone: "lime",
+    },
+    {
+      icon: "fire",
+      label: "At-Risk Learners",
+      value: `${atRiskCount}`,
+      trend: "Needs attention",
+      tone: "pink",
+    },
+    {
+      icon: "star",
+      label: "Avg Customer CSAT",
+      value: "4.86 / 5.0",
+      trend: "96.2% satisfaction",
+      tone: "yellow",
+    },
+  ];
+
   return (
-    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden min-h-0">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1
-              className="text-2xl font-bold tracking-tight text-white drop-shadow-xs flex items-center gap-2"
-              style={{ color: "var(--header-text-color, #ffffff)" }}
-            >
-              <User className="h-6 w-6 text-white" />
-              Customers &amp; Learner 360° Directory
-            </h1>
-          </div>
-          <p
-            className="text-xs sm:text-sm mt-0.5 font-medium"
-            style={{ color: "var(--header-subtitle-color, rgba(255, 255, 255, 0.95))" }}
-          >
-            Search customer records, audit attendance telemetry, analyze engagement risk, and propose academic accommodations.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link to="/support/live-chat">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs gap-1.5 font-bold bg-white hover:bg-white/95 text-zinc-900 border-white/80 shadow-xs"
-            >
-              <MessageSquare className="h-3.5 w-3.5 text-[#905FEB]" />
-              Live Chat Desk
-            </Button>
-          </Link>
-          <Link to="/support/tickets">
-            <Button
-              size="sm"
-              className="text-xs gap-1.5 bg-white hover:bg-white/95 text-[#7042D2] border border-white/80 font-bold shadow-xs"
-            >
-              <LifeBuoy className="h-3.5 w-3.5 text-[#905FEB]" />
-              View Open Tickets
-            </Button>
-          </Link>
-        </div>
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* 1. KPI Stats Grid (Canonical 132px Folder-Tab Cards with 8px Gap) */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
       </div>
 
-      {/* KPI Stats (Quantum folder-tab status cards in #905FEB tone) */}
-      <div className="metrics-grid shrink-0">
-        <StatCard
-          title="Total Customers"
-          value="340"
-          icon={Users}
-          tone="lavender"
-          trend={{ value: "+28 enrollments", isPositive: true }}
-          index={0}
-        />
-        <StatCard
-          title="Active Students"
-          value={activeCount}
-          icon={CheckCircle2}
-          tone="lavender"
-          trend={{ value: "92% attendance", isPositive: true }}
-          index={0}
-        />
-        <StatCard
-          title="At-Risk Learners"
-          value={atRiskCount}
-          icon={Flame}
-          tone="lavender"
-          trend={{ value: "Needs attention", isPositive: false }}
-          index={0}
-        />
-        <StatCard
-          title="Avg Customer CSAT"
-          value="4.86 / 5.0"
-          icon={Star}
-          tone="lavender"
-          trend={{ value: "96.2% satisfaction", isPositive: true }}
-          index={0}
-        />
-      </div>
-
-      {/* Search and Filters */}
-      <Card className="bg-white border-[#E5DEFF] shadow-xs rounded-2xl shrink-0">
-        <CardContent className="p-3 sm:p-3.5 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      {/* 2. Search and Filters Bar */}
+      <div className="panel p-3.5 bg-white border border-zinc-150">
+        <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
             <Input
-              placeholder="Search students or topics..."
+              placeholder="Search students, emails, or courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] placeholder:text-zinc-400 focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20"
@@ -275,13 +235,13 @@ export const Student360Page: React.FC = () => {
               Showing {filtered.length} of {LEARNERS.length} customers
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Dedicated Scrollable Container for Student Boxes Only with Clean Transparent Scrollbar */}
+      {/* 3. Dedicated Scrollable Container with 8px Gap */}
       <div className="flex-1 min-h-0 support-sleek-scroll pr-1 pb-3">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-2xl border border-[#E5DEFF] p-8 shadow-xs">
+          <div className="py-12 text-center bg-white panel p-8">
             <Users className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
             <p className="text-sm font-bold text-[#111111]">No customers or learners found</p>
             <p className="text-xs text-zinc-500 mt-1">Try resetting the search query or status filter.</p>
@@ -298,7 +258,7 @@ export const Student360Page: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {filtered.map((learner) => (
               <div
                 key={learner.id}
@@ -311,7 +271,7 @@ export const Student360Page: React.FC = () => {
                     setSelectedStudent(learner);
                   }
                 }}
-                className="group relative rounded-2xl bg-white border border-[#E5DEFF] hover:border-[#905FEB]/70 shadow-xs hover:shadow-lg flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200 hover:scale-[1.015] hover:-translate-y-0.5 text-left focus:outline-none focus:ring-2 focus:ring-[#905FEB]/40"
+                className="panel group relative bg-white border border-[#E5DEFF] hover:border-[#905FEB]/70 shadow-xs hover:shadow-lg flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-[#905FEB]/40"
               >
                 {/* Top Full #905FEB Strip */}
                 <div className="h-1.5 w-full bg-[#905FEB] shadow-xs transition-all duration-200 group-hover:h-2" />

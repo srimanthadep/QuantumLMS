@@ -122,6 +122,16 @@ export function AdminSidebar({
             >
               <span>🎒 Student</span>
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Support")
+                setShowRoleSwitcher(false)
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🎧 Support Desk</span>
+            </button>
           </div>
         )}
       </div>

@@ -146,7 +146,7 @@ export const TicketDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full max-h-full flex-1 min-h-0 flex flex-col lg:overflow-hidden overflow-y-auto gap-2.5 support-page-font pb-1">
+    <div className="flex flex-col gap-2 support-page-font pb-1">
       {/* Toast Notification */}
       {actionToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
@@ -163,10 +163,8 @@ export const TicketDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================
-          TOP CONTROL BAR matching Figma Design System
-         ======================================================== */}
-      <div className="py-2 px-3 sm:px-4 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+      {/* TOP CONTROL BAR matching canonical panel */}
+      <div className="panel py-2 px-3 sm:px-4 bg-white border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/support/inbox">
             <button
@@ -239,18 +237,14 @@ export const TicketDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ========================================================
-          MAIN 2-COLUMN WORKSPACE
-          - Left Column (8 cols): Ticket Context, Conversation Stream & Composer
-          - Right Column (4 cols): Student Telemetry & Mentor Governance
-         ======================================================== */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2.5 lg:overflow-hidden">
+      {/* MAIN 2-COLUMN WORKSPACE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
         {/* ========================================================
             COLUMN 1: Conversation Thread & AI Composer (8 cols)
            ======================================================== */}
         <div className="lg:col-span-8 flex flex-col h-full min-h-0 gap-2 overflow-hidden">
           {/* Compact Ticket Overview Capsule */}
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-1.5 shrink-0">
+          <div className="panel p-3 bg-white border border-zinc-150 space-y-1.5 shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="space-y-0.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -676,7 +670,7 @@ export const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Ticket SLA & Assignment Telemetry */}
-          <div className="p-2.5 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-1.5 text-xs shrink-0">
+          <div className="panel p-3 bg-white border border-zinc-150 space-y-1.5 text-xs shrink-0">
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-zinc-400 block">
               SLA Audit &amp; Ownership
             </span>

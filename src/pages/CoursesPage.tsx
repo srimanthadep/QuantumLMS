@@ -140,7 +140,7 @@ function CourseCard({
 }) {
   return (
     <div
-      className="panel p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 border border-zinc-150 cursor-pointer group rounded-2xl bg-white"
+      className="panel p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 cursor-pointer group bg-white"
       onClick={() => onViewCourse(course)}
       role="button"
       tabIndex={0}
@@ -248,7 +248,7 @@ function CourseRow({
 }) {
   return (
     <div
-      className="panel p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 hover:shadow-md transition-all duration-200 border border-zinc-150 cursor-pointer group rounded-2xl bg-white"
+      className="panel p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 hover:shadow-md transition-all duration-200 cursor-pointer group bg-white"
       onClick={() => onViewCourse(course)}
       role="button"
       tabIndex={0}
@@ -367,7 +367,7 @@ function NotFoundFallback({
   buttonLabel?: string
 }) {
   return (
-    <div className="panel p-8 text-center bg-white rounded-2xl border border-gray-150 my-4 max-w-xl mx-auto shadow-sm">
+    <div className="panel p-8 text-center bg-white my-4 max-w-xl mx-auto shadow-sm">
       <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 grid place-items-center mx-auto mb-3">
         <Icon name="help" size={24} />
       </div>
@@ -485,7 +485,7 @@ function CourseDetailsView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-2">
       {/* 1. Top Navigation Bar (NO BREADCRUMBS) */}
       <div className="flex items-center justify-between gap-3 p-3 bg-white/90 backdrop-blur-xs rounded-xl border border-gray-150">
         <button
@@ -524,7 +524,7 @@ function CourseDetailsView({
       </div>
 
       {/* 2. Course Overview Banner */}
-      <div className="panel p-5 bg-white rounded-2xl border border-zinc-150">
+      <div className="panel p-5 bg-white">
         <div className="flex flex-col md:flex-row gap-5 items-start">
           <img
             src={course.thumbnail}
@@ -610,7 +610,7 @@ function CourseDetailsView({
       </div>
 
       {/* 3. Combined Modules & Lessons Continuous Section */}
-      <div className="panel p-5 bg-white rounded-2xl border border-zinc-150">
+      <div className="panel p-5 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h3 className="card-title text-sm sm:text-base">
@@ -894,7 +894,7 @@ function CourseDetailsView({
       </div>
 
       {/* 4. Enrolled Students Roster */}
-      <div className="panel p-5 bg-white rounded-2xl border border-zinc-150">
+      <div className="panel p-5 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="card-title text-sm sm:text-base">
@@ -1020,7 +1020,7 @@ function ModuleDetailsView({
       </div>
 
       {/* 2. Module Header Overview Card */}
-      <div className="panel p-5 sm:p-6 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+      <div className="panel p-5 sm:p-6 bg-white">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1108,7 +1108,7 @@ function ModuleDetailsView({
       </div>
 
       {/* 4. Lessons List (The Main Focus) */}
-      <div className="panel p-5 sm:p-6 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+      <div className="panel p-5 sm:p-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h2 className="card-title text-base sm:text-lg">
@@ -1324,7 +1324,7 @@ function LessonDetailsView({
       </div>
 
       {/* 2. Compact Lesson Header */}
-      <div className="panel p-5 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+      <div className="panel p-5 bg-white">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">
             Lesson {lessonIndexInModule >= 0 ? lessonIndexInModule + 1 : 1} of {moduleItem.lessons.length}
@@ -1353,11 +1353,11 @@ function LessonDetailsView({
       </div>
 
       {/* 3. Main Content Grid: 70% Content (Left) + 30% Sidebar (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-start">
         {/* Left Column (Main Lesson Content - 8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 flex flex-col gap-2">
           {/* A. Curriculum Content & Teaching Notes */}
-          <div className="panel p-5 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+          <div className="panel p-5 bg-white">
             <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-2.5 flex items-center gap-2">
               <Icon name="document" size={15} />
               <span>Curriculum Content & Teaching Notes</span>
@@ -1376,7 +1376,7 @@ function LessonDetailsView({
 
           {/* B. Learning Objectives */}
           {lesson.objectives && lesson.objectives.length > 0 && (
-            <div className="panel p-5 bg-purple-50/60 rounded-2xl border border-purple-100 shadow-xs">
+            <div className="panel p-5 bg-purple-50/60 border border-purple-100 shadow-xs">
               <h2 className="text-sm font-bold text-purple-950 flex items-center gap-2 mb-3">
                 <Icon name="sparkles" size={15} />
                 <span>Lesson Learning Objectives</span>
@@ -1394,7 +1394,7 @@ function LessonDetailsView({
           )}
 
           {/* C. Admin-Provided Teaching Materials */}
-          <div className="panel p-5 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+          <div className="panel p-5 bg-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div>
                 <h2 className="card-title text-sm sm:text-base flex items-center gap-2">
@@ -1467,9 +1467,9 @@ function LessonDetailsView({
         </div>
 
         {/* Right Column (Secondary Info & Persistent Module Lesson Navigation - 4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-4 flex flex-col gap-2">
           {/* Quick Module Context Card */}
-          <div className="panel p-4 sm:p-5 bg-white rounded-2xl border border-zinc-150 shadow-xs space-y-3">
+          <div className="panel p-4 sm:p-5 bg-white flex flex-col gap-2">
             <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
               Course & Cohort Context
             </h3>
@@ -1501,7 +1501,7 @@ function LessonDetailsView({
           </div>
 
           {/* Persistent In-Module Lesson Navigation */}
-          <div className="panel p-4 sm:p-5 bg-white rounded-2xl border border-zinc-150 shadow-xs">
+          <div className="panel p-4 sm:p-5 bg-white">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
                 Lessons in this Module
@@ -1559,7 +1559,7 @@ function LessonDetailsView({
       </div>
 
       {/* 4. Bottom Previous & Next Lesson Navigation Bar */}
-      <div className="panel p-4 bg-white rounded-2xl border border-zinc-150 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="panel p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
         {prevItem ? (
           <button
             onClick={() => onNavigateLesson(prevItem.lesson, prevItem.module)}
@@ -1788,7 +1788,7 @@ export default function CoursesPage({
 
       {/* UNIFIED CONTINUOUS COURSE LEARNING PAGE (Modules, Lessons, Resources & Assignments) */}
       {routeState.level === "course" && (
-        <div className="mt-2" aria-label="Course Learning Section">
+        <div aria-label="Course Learning Section">
           {activeCourse ? (
             <CourseDetailsView
               course={activeCourse}
@@ -1812,7 +1812,7 @@ export default function CoursesPage({
 
       {/* LEVEL 1: ALL COURSES LIST (GRID & LIST VIEW) */}
       {routeState.level === "list" && (
-        <div className="panel p-5 mt-2" aria-label="Assigned Courses Section">
+        <div className="panel p-5" aria-label="Assigned Courses Section">
           {/* Top Header, Filters & View Switcher */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
@@ -1922,7 +1922,7 @@ export default function CoursesPage({
               )}
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
               {filteredCourses.map((course) => (
                 <CourseCard
                   key={course.id}
@@ -1932,7 +1932,7 @@ export default function CoursesPage({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {filteredCourses.map((course) => (
                 <CourseRow
                   key={course.id}

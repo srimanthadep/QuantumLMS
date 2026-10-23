@@ -471,7 +471,7 @@ export default function AnalyticsPage({
   }, [])
 
   return (
-    <div className="flex flex-col gap-5 pb-12">
+    <div className="flex flex-col gap-2">
       {/* 1. Header */}
       <AnalyticsHeader
         searchQuery={searchQuery}
@@ -483,14 +483,14 @@ export default function AnalyticsPage({
       />
 
       {/* 2. Top Summary KPI Cards (Section 2.A) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
         {kpiCards.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 3. Global Filter Toolbar & View Mode Switcher (Section 2.H) */}
-      <div className="panel p-3.5 sm:p-4 rounded-2xl flex flex-col gap-3.5">
+      <div className="panel p-3.5 sm:p-4 flex flex-col gap-2">
         {/* Navigation Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-purple-100/70">
           <button
@@ -673,7 +673,7 @@ export default function AnalyticsPage({
           VIEW: STUDENT ACTIVITY ANALYTICS & HEATMAP (Section 2.B)
           ======================================================== */}
       {(activeTab === "overview" || activeTab === "student_activity") && (
-        <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -924,7 +924,7 @@ export default function AnalyticsPage({
           VIEW: COURSE & LEARNING ANALYTICS (Section 2.C)
           ======================================================== */}
       {(activeTab === "overview" || activeTab === "curriculum") && (
-        <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
             <div>
               <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1093,7 +1093,7 @@ export default function AnalyticsPage({
           VIEW: MODULE ASSIGNMENTS ANALYTICS (Section 2.D)
           ======================================================== */}
       {(activeTab === "overview" || activeTab === "assignments") && (
-        <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
             <div>
               <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1248,9 +1248,9 @@ export default function AnalyticsPage({
           VIEW: ATTENDANCE & LIVE CLASS ANALYTICS (Section 2.E & 2.F)
           ======================================================== */}
       {(activeTab === "overview" || activeTab === "attendance_live") && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {/* Attendance Analytics Card (Section 2.E) */}
-          <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+          <section className="panel p-4 sm:p-5 flex flex-col gap-2">
             <div className="flex items-center justify-between border-b border-gray-150 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1344,7 +1344,7 @@ export default function AnalyticsPage({
           </section>
 
           {/* Live Class Analytics Card (Section 2.F) */}
-          <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+          <section className="panel p-4 sm:p-5 flex flex-col gap-2">
             <div className="flex items-center justify-between border-b border-gray-150 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1429,7 +1429,7 @@ export default function AnalyticsPage({
           VIEW: AI LIVE MONITORING & RECORDING REVIEW (Section 2.G)
           ======================================================== */}
       {(activeTab === "overview" || activeTab === "ai_intelligence") && (
-        <section className="panel p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
+        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
             <div>
               <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1579,7 +1579,7 @@ export default function AnalyticsPage({
           EXISTING VISUAL DIAGNOSTIC CARDS (PRESERVED & INTEGRATED)
           ======================================================== */}
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           <SubjectMasteryChartCard searchQuery={searchQuery} />
           <DiagnosticInterventionCard
             searchQuery={searchQuery}
@@ -1589,7 +1589,7 @@ export default function AnalyticsPage({
       )}
 
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
           <div className="lg:col-span-1">
             <CohortGrowthQuadrantCard
               onSelectStudentForReport={onSelectStudentForReport}

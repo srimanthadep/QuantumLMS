@@ -8,24 +8,10 @@ import {
   useNavigate,
   Navigate,
 } from "react-router-dom"
-import {
-  LayoutDashboard,
-  Inbox,
-  MessageSquare,
-  BookOpen,
-  Clock,
-  Users,
-  BarChart3,
-  UserCheck,
-  Settings,
-  LogOut,
-  Sparkles,
-  Menu,
-  X,
-  ExternalLink,
-} from "lucide-react"
-import { NotificationProvider } from "@/context/NotificationContext"
+import type { UserRole, CurrentUser, IconName } from "@/types"
+import { Icon } from "@/components/Icon"
 import { HexColorField } from "@/components/HexColorField"
+import { NotificationProvider } from "@/context/NotificationContext"
 import "./supportTheme.css"
 
 // Import all Support sub-pages
@@ -41,6 +27,8 @@ import { Student360Page } from "./Student360Page"
 import { SupportSettingsPage } from "./SupportSettingsPage"
 
 export interface SupportPortalProps {
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
   onOpenAiModal?: () => void
   onSwitchToTeacher?: () => void
   onSwitchToStudent?: () => void
@@ -66,154 +54,189 @@ interface NavItem {
   key: SupportTab
   label: string
   path: string
-  icon: React.ComponentType<{ className?: string; size?: number }>
-  badge?: string | number
+  icon: IconName
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", path: "/support/dashboard", icon: LayoutDashboard },
-  { key: "inbox", label: "Tickets Inbox", path: "/support/inbox", icon: Inbox },
-  { key: "live-chat", label: "Live Chat", path: "/support/live-chat", icon: MessageSquare },
-  { key: "knowledge-base", label: "Knowledge Base", path: "/support/knowledge-base", icon: BookOpen },
-  { key: "sla-escalations", label: "SLA & Escalations", path: "/support/sla-escalations", icon: Clock },
-  { key: "agents", label: "Support Agents", path: "/support/agents", icon: Users },
-  { key: "analytics", label: "Analytics", path: "/support/analytics", icon: BarChart3 },
-  { key: "student-360", label: "Student 360", path: "/support/student-360", icon: UserCheck },
-  { key: "settings", label: "Settings", path: "/support/settings", icon: Settings },
+  { key: "dashboard", label: "Dashboard", path: "/support/dashboard", icon: "home" },
+  { key: "inbox", label: "Tickets Inbox", path: "/support/inbox", icon: "mail" },
+  { key: "live-chat", label: "Live Chat", path: "/support/live-chat", icon: "message-circle" },
+  { key: "knowledge-base", label: "Knowledge Base", path: "/support/knowledge-base", icon: "book" },
+  { key: "sla-escalations", label: "SLA & Escalations", path: "/support/sla-escalations", icon: "fire" },
+  { key: "agents", label: "Support Agents", path: "/support/agents", icon: "users" },
+  { key: "analytics", label: "Analytics", path: "/support/analytics", icon: "analytics" },
+  { key: "student-360", label: "Student 360", path: "/support/student-360", icon: "compass" },
+  { key: "settings", label: "Settings", path: "/support/settings", icon: "settings" },
 ]
 
 function SupportSidebar({
-  onSwitchToTeacher,
-  onSwitchToStudent,
+  currentUser,
+  onSwitchRole,
   onLogout,
-  onOpenAiModal,
   onCloseDrawer,
 }: {
-  onSwitchToTeacher?: () => void
-  onSwitchToStudent?: () => void
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
   onLogout?: () => void
-  onOpenAiModal?: () => void
   onCloseDrawer?: () => void
 }) {
   const location = useLocation()
   const currentPath = location.pathname.toLowerCase()
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
 
   const isItemActive = (item: NavItem) => {
-    if (item.key === "dashboard" && (currentPath === "/support" || currentPath === "/support/" || currentPath === "/support/dashboard")) {
+    if (
+      item.key === "dashboard" &&
+      (currentPath === "/support" ||
+        currentPath === "/support/" ||
+        currentPath === "/support/dashboard")
+    ) {
       return true
     }
-    if (item.key === "inbox" && (currentPath.startsWith("/support/inbox") || currentPath.startsWith("/support/tickets"))) {
+    if (
+      item.key === "inbox" &&
+      (currentPath.startsWith("/support/inbox") || currentPath.startsWith("/support/tickets"))
+    ) {
       return true
     }
     return currentPath.startsWith(item.path)
   }
 
+  const userDisplayName = currentUser?.name || "Alex Rivera"
+  const userAvatar = currentUser?.avatar || "/assets/student-3.png"
+
   return (
-    <aside className="sidebar student-sidebar-shared h-full max-h-full overflow-y-auto flex flex-col [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-purple-200" aria-label="Support Navigation">
-      {/* Brand Logo */}
+    <aside className="sidebar" aria-label="Support sidebar">
+      {/* Brand Logo - identical to teacher and admin sidebar */}
       <div className="logo" aria-label="Quantum School of AI">
         <Link to="/support/dashboard" onClick={onCloseDrawer}>
           <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
         </Link>
       </div>
 
-      {/* Support Specialist Profile */}
-      <div className="teacher">
-        <div className="relative">
-          <img src="/assets/srimanth.png" alt="Srimanth" className="w-10 h-10 rounded-full object-cover border border-purple-200" />
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-        </div>
-        <strong>Srimanth</strong>
-        <span>Support Operations</span>
+      {/* Support User Profile Block - matches canonical .teacher layout */}
+      <div
+        className="teacher relative"
+        style={{ cursor: "pointer" }}
+        onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
+        title="Click to switch perspective"
+      >
+        <img src={userAvatar} alt={userDisplayName} />
+        <strong>{userDisplayName}</strong>
+        <span className="flex items-center justify-center gap-1">
+          <span>Support Desk</span>
+          <span className="text-[9px] text-purple-600 font-bold">▾</span>
+        </span>
+
+        {/* Interactive Role Switcher Popup */}
+        {showRoleSwitcher && onSwitchRole && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
+              Switch Perspective
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Super Admin")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>⚡ Super Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Admin")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🏫 School Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Teacher")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🎓 Teacher</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Student")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🎒 Student</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Support")
+                setShowRoleSwitcher(false)
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between bg-cyan-50 text-cyan-800 cursor-pointer"
+            >
+              <span>🎧 Support Desk</span>
+              <span className="text-cyan-600 font-bold">✓</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Support Navigation List */}
-      <nav className="student-shared-nav" aria-label="Support main navigation">
+      {/* Navigation List - matches teacher and admin navigation styles */}
+      <nav aria-label="Support navigation">
         {NAV_ITEMS.map((item) => {
           const active = isItemActive(item)
-          const IconComponent = item.icon
           return (
             <Link
               key={item.key}
               to={item.path}
               onClick={onCloseDrawer}
-              className={active ? "nav-item active flex items-center justify-between" : "nav-item flex items-center justify-between"}
+              className={active ? "nav-item active" : "nav-item"}
               title={item.label}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <IconComponent size={16} />
-                <span className="truncate">{item.label}</span>
-              </div>
-              {item.badge && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? "bg-[#905FEB] text-white" : "bg-[#F0EDFF] text-[#7042D2]"}`}>
-                  {item.badge}
-                </span>
-              )}
+              <Icon name={item.icon} size={18} />
+              <span className="truncate">{item.label}</span>
             </Link>
           )
         })}
       </nav>
 
-      {/* Sidebar Bottom Actions */}
-      <div className="student-sidebar-actions mt-auto pt-3 border-t border-purple-200/50">
-        {/* Ask AI Pill Button */}
-        {onOpenAiModal && (
-          <button
-            className="student-action-ai-btn"
-            onClick={onOpenAiModal}
-            aria-label="Support AI Co-pilot"
-          >
-            <Sparkles size={14} className="text-purple-600 animate-pulse" />
-            <span>Support AI</span>
-          </button>
-        )}
-
-        {/* Switch to Teacher Portal */}
-        {onSwitchToTeacher && (
-          <button
-            type="button"
-            className="student-action-switch-btn flex items-center justify-center cursor-pointer"
-            onClick={() => {
-              try {
-                localStorage.setItem("quantum_user_role", "Teacher")
-              } catch { }
-              onSwitchToTeacher()
-            }}
-            title="Switch to Teacher Workspace"
-          >
-            <span>👨‍🏫 Teacher Portal</span>
-          </button>
-        )}
-
-        {/* Switch to Student Portal */}
-        {onSwitchToStudent && (
-          <button
-            className="student-action-switch-btn"
-            onClick={onSwitchToStudent}
-            title="Switch to Student Portal"
-          >
-            <span>🎓 Student Portal</span>
-          </button>
-        )}
-
-        {/* Log Out Button */}
-        {onLogout && (
-          <button
-            className="student-action-logout-btn"
-            onClick={onLogout}
-            aria-label="Log Out"
-          >
-            <LogOut size={14} />
-            <span>Log Out</span>
-          </button>
-        )}
-      </div>
+      {/* Logout Button - identical to teacher and admin sidebar */}
+      {onLogout && (
+        <button
+          className="logout-btn"
+          onClick={() => {
+            onCloseDrawer?.()
+            onLogout()
+          }}
+          aria-label="Log Out"
+        >
+          <Icon name="logout" size={15} />
+          <span>Log Out</span>
+        </button>
+      )}
     </aside>
   )
 }
 
 function SupportLayout({
   children,
+  currentUser,
+  onSwitchRole,
   onSwitchToTeacher,
   onSwitchToStudent,
   onLogout,
@@ -223,6 +246,8 @@ function SupportLayout({
   isLightBg,
 }: SupportPortalProps & { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("")
   const location = useLocation()
 
   // Scroll to top on navigation
@@ -230,113 +255,224 @@ function SupportLayout({
     window.scrollTo(0, 0)
   }, [location.pathname])
 
+  const userFirstName = (currentUser?.name || "Alex").split(" ")[0]
+
   return (
     <div
-      className="dashboard-shell student-dashboard-shell lg:h-screen lg:max-h-screen lg:overflow-hidden support-portal-root"
+      className="dashboard-shell support-portal-root"
       style={{
-        backgroundColor: hexColor || "var(--bg-custom, #905FEB)",
+        backgroundColor: hexColor || "var(--bg-custom, #9860e9)",
         backgroundImage: isLightBg
           ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
           : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
       }}
     >
       {/* Desktop Persistent Sidebar */}
-      <div className="hidden lg:flex lg:flex-col lg:h-full lg:max-h-full lg:overflow-hidden">
-        <SupportSidebar
-          onSwitchToTeacher={onSwitchToTeacher}
-          onSwitchToStudent={onSwitchToStudent}
-          onLogout={onLogout}
-          onOpenAiModal={onOpenAiModal}
-        />
-      </div>
+      <SupportSidebar
+        currentUser={currentUser}
+        onSwitchRole={onSwitchRole}
+        onLogout={onLogout}
+      />
 
-      {/* Mobile Header Bar */}
-      <div className="lg:hidden col-span-full flex items-center justify-between p-3 bg-white/95 backdrop-blur-md rounded-2xl border border-[#E5DEFF] shadow-xs mb-2">
+      {/* Mobile Top Header */}
+      <div className="mobile-top-bar col-span-full">
         <div className="flex items-center gap-3">
           <button
+            className="mobile-nav-btn"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 rounded-xl bg-[#F0EDFF] text-[#7042D2] hover:bg-[#E2DBFC] transition-colors"
-            aria-label="Open menu"
+            aria-label="Open navigation menu"
           >
-            <Menu size={20} />
+            <Icon name="menu" size={20} />
           </button>
-          <img src="/logo.png" alt="Quantum Logo" className="h-6 w-auto" />
-          <span className="text-xs font-bold text-[#7042D2] bg-[#F0EDFF] px-2.5 py-0.5 rounded-full border border-[#905FEB]/20">
-            Support
-          </span>
+          <div className="logo">
+            <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+          </div>
         </div>
-
         <div className="flex items-center gap-2">
           {onChangeHexColor && (
             <div className="scale-90">
               <HexColorField
-                hexColor={hexColor || "#905FEB"}
+                hexColor={hexColor || "#9860e9"}
                 onChangeHex={onChangeHexColor}
               />
             </div>
           )}
           <img
-            src="/assets/srimanth.png"
-            alt="Srimanth"
-            className="w-8 h-8 rounded-full border-2 border-[#905FEB]/40 object-cover"
+            src={currentUser?.avatar || "/assets/student-3.png"}
+            alt={currentUser?.name || "Support"}
+            className="w-8 h-8 rounded-full object-cover border border-purple-300"
           />
         </div>
       </div>
 
       {/* Mobile Slide-out Drawer */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+        <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            className="drawer-overlay"
             onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
           />
-          <div className="relative w-72 max-w-[85vw] h-full bg-[#FAF9FF] p-4 flex flex-col shadow-2xl z-10 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5DEFF]">
-              <span className="font-bold text-sm text-[#111111]">Support Workspace</span>
+          <div
+            className="drawer-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Support Navigation drawer"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-purple-200/50">
+              <div className="logo">
+                <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+              </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-full bg-black/5 hover:bg-black/10 text-zinc-700"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors text-zinc-700"
+                aria-label="Close menu"
               >
-                <X size={18} />
+                <Icon name="close" size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto mt-2">
+            <div className="mt-2">
               <SupportSidebar
-                onSwitchToTeacher={onSwitchToTeacher}
-                onSwitchToStudent={onSwitchToStudent}
+                currentUser={currentUser}
+                onSwitchRole={onSwitchRole}
                 onLogout={onLogout}
-                onOpenAiModal={onOpenAiModal}
                 onCloseDrawer={() => setIsMobileMenuOpen(false)}
               />
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Main Support Content Viewport */}
-      <main className="dashboard-content lg:h-full lg:max-h-full lg:overflow-hidden flex flex-col min-h-0">
-        {/* Top Control Bar for Desktop - Aligned to Right Side */}
-        <div className="hidden lg:flex items-center justify-end mb-2.5 px-2 py-0.5 shrink-0">
-          {onChangeHexColor && (
-            <div className="scale-95">
+      <main className="dashboard-content">
+        {/* Canonical Dashboard Header - perfectly aligned with Teacher & Admin */}
+        <header className="dashboard-header">
+          <div className="min-w-fit flex-shrink-0">
+            <div className="greeting whitespace-nowrap">
+              <span>Good morning, {userFirstName}</span>
+              <span className="wave-emoji" role="img" aria-label="waving hand">
+                👋
+              </span>
+            </div>
+            <div className="subtitle whitespace-nowrap">
+              24 active student tickets · 3 live chats waiting · 98.7% SLA resolution
+            </div>
+          </div>
+
+          <div className="header-actions flex-shrink-0">
+            {/* Search Box */}
+            <div className="search-box !w-[155px] md:!w-[190px]">
+              <Icon name="search" size={15} />
+              <input
+                type="text"
+                value={headerSearchQuery}
+                onChange={(e) => setHeaderSearchQuery(e.target.value)}
+                placeholder="Search tickets, students..."
+                aria-label="Search support desk"
+              />
+              {headerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setHeaderSearchQuery("")}
+                  className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1 cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* Quick Role Switcher Pill */}
+            {onSwitchRole && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                  className="px-3 h-[35px] rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-cyan-700 transition-colors cursor-pointer whitespace-nowrap"
+                  aria-label="Switch active role view"
+                >
+                  <span>🎧 Support Desk</span>
+                  <span className="text-[10px] text-cyan-200">▾</span>
+                </button>
+
+                {showRoleDropdown && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
+                      Switch Role View
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Teacher")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🎓 Teacher Portal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Student")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🎒 Student Portal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Admin")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🏫 School Admin</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Super Admin")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>⚡ Super Admin</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hex Color Field */}
+            {onChangeHexColor && (
               <HexColorField
-                hexColor={hexColor || "#905FEB"}
+                hexColor={hexColor || "#9860e9"}
                 onChangeHex={onChangeHexColor}
               />
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Viewport Content */}
-        <div className="support-view-container flex-1 min-h-0 flex flex-col lg:overflow-hidden pb-1">
-          <style>{`
-            @media (width >= 40rem) {
-              .support-view-container .sm\\:p-6,
-              .support-page-font .sm\\:p-6 {
-                padding: calc(var(--spacing) * 2);
-              }
-            }
-          `}</style>
+            {/* Ask AI Pill */}
+            {onOpenAiModal && (
+              <button
+                type="button"
+                className="ask-ai cursor-pointer"
+                onClick={onOpenAiModal}
+                aria-label="Ask Support AI"
+              >
+                <span>✦</span>
+                Ask AI
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Viewport Content - standard 8px gap */}
+        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-2 pb-6">
           {children}
         </div>
       </main>
@@ -350,8 +486,8 @@ export function SupportPortal(props: SupportPortalProps) {
       <BrowserRouter>
         <SupportLayout {...props}>
           <Routes>
-            <Route path="/support" element={<SupportDashboard />} />
-            <Route path="/support/dashboard" element={<SupportDashboard />} />
+            <Route path="/support" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
+            <Route path="/support/dashboard" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
             <Route path="/support/inbox" element={<TicketsInboxPage />} />
             <Route path="/support/tickets" element={<TicketsInboxPage />} />
             <Route path="/support/ticket/:ticketId" element={<TicketDetailPage />} />

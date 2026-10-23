@@ -546,7 +546,7 @@ export function LiveClassPage({
       </div>
 
       {/* 4 Feature Tabs Bar */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs overflow-x-auto mt-2" role="tablist" aria-label="Live Class features navigation">
+      <div className="flex items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs overflow-x-auto" role="tablist" aria-label="Live Class features navigation">
         <button
           type="button"
           onClick={() => {
@@ -622,7 +622,7 @@ export function LiveClassPage({
 
       {/* Main Content Area Based on viewMode */}
       {viewMode === "schedule" && (
-        <section className="panel p-5 mt-2 bg-white rounded-2xl border border-zinc-150" aria-label="Live Sessions Dashboard">
+        <section className="panel p-5 mt-2" aria-label="Live Sessions Dashboard">
         {/* Top Header & Status Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
@@ -989,7 +989,7 @@ export function LiveClassPage({
       {/* VIEW 2: AI LIVE MONITORING */}
       {viewMode === "monitoring" && (
         <section
-          className="panel p-5 mt-2 bg-white rounded-2xl border border-zinc-150"
+          className="panel p-5 mt-2"
           aria-label="AI Live Monitoring Section"
         >
           <AIMonitoringSection
@@ -1002,7 +1002,7 @@ export function LiveClassPage({
       {/* VIEW 3: LECTURE RECORDING & AI INTELLIGENCE REVIEW */}
       {viewMode === "recordings" && (
         <section
-          className="panel p-5 mt-2 bg-white rounded-2xl border border-zinc-150"
+          className="panel p-5 mt-2"
           aria-label="Lecture Recording & AI Intelligence Review Section"
         >
           <RecordingsSuggestionsSection
@@ -1020,7 +1020,7 @@ export function LiveClassPage({
       {/* VIEW 4: ATTENDANCE */}
       {viewMode === "attendance" && (
         <section
-          className="panel p-5 mt-2 bg-white rounded-2xl border border-zinc-150"
+          className="panel p-5 mt-2"
           aria-label="Live Class Attendance Section"
         >
           <AttendanceSection

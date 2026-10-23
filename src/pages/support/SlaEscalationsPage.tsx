@@ -18,7 +18,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
+import { MetricCard } from "@/components/MetricCard";
 import {
   Select,
   SelectContent,
@@ -204,81 +205,49 @@ export const SlaEscalationsPage: React.FC = () => {
     alert(`Ticket ${id} escalated to Super Admin queue with executive priority tag.`);
   };
 
+  const kpis: MetricItem[] = [
+    {
+      icon: "check-circle",
+      label: "Overall SLA Adherence",
+      value: "96.8%",
+      trend: "+1.4% vs target",
+      tone: "lime",
+    },
+    {
+      icon: "fire",
+      label: "Tickets At Risk (< 20m)",
+      value: `${atRiskCount}`,
+      trend: "Urgent dispatch",
+      tone: "pink",
+    },
+    {
+      icon: "shield",
+      label: "Escalated to Admin",
+      value: `${adminEscalatedCount}`,
+      trend: "Pending auth",
+      tone: "yellow",
+    },
+    {
+      icon: "clock",
+      label: "Avg Breach Recovery",
+      value: "14 mins",
+      trend: "Rapid triage active",
+      tone: "lavender",
+    },
+  ];
+
   return (
-    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1
-              className="text-2xl font-bold tracking-tight text-white drop-shadow-xs flex items-center gap-2"
-              style={{ color: "var(--header-text-color, #ffffff)" }}
-            >
-              <Clock className="h-6 w-6 text-white" />
-              SLA Monitoring &amp; Escalation Command Desk
-            </h1>
-          </div>
-          <p
-            className="text-xs sm:text-sm mt-1 font-medium"
-            style={{ color: "var(--header-subtitle-color, rgba(255, 255, 255, 0.95))" }}
-          >
-            Real-time countdown monitors, SLA breach prevention alarms, and multi-tier escalation hierarchy.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {breachedCount > 0 ? (
-            <Badge className="gap-1.5 px-3.5 py-1 text-xs bg-white text-rose-700 border border-rose-200 shadow-xs font-bold rounded-full">
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-600 animate-bounce" />
-              {breachedCount} SLA Breach Active
-            </Badge>
-          ) : (
-            <span className="badge-status-completed shadow-xs py-1 px-3.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#3B6600]" /> 100% SLA Maintained Today
-            </span>
-          )}
-        </div>
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* 1. KPI Stats (Canonical Folder-Tab Cards with 8px Gap) */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
       </div>
 
-      {/* KPI Stats (Quantum folder-tab status cards) */}
-      <div className="metrics-grid shrink-0">
-        <StatCard
-          title="Overall SLA Adherence"
-          value="96.8%"
-          icon={CheckCircle2}
-          tone="lime"
-          trend={{ value: "+1.4% vs target", isPositive: true }}
-          index={0}
-        />
-        <StatCard
-          title="Tickets At Risk (< 20m)"
-          value={atRiskCount}
-          icon={AlertTriangle}
-          tone="pink"
-          trend={{ value: "Urgent dispatch", isPositive: true }}
-          index={1}
-        />
-        <StatCard
-          title="Escalated to Admin"
-          value={adminEscalatedCount}
-          icon={ShieldAlert}
-          tone="yellow"
-          trend={{ value: "Pending auth", isPositive: true }}
-          index={2}
-        />
-        <StatCard
-          title="Avg Breach Recovery"
-          value="14 mins"
-          icon={Clock}
-          tone="lavender"
-          trend={{ value: "Rapid triage active", isPositive: true }}
-          index={3}
-        />
-      </div>
-
-      {/* SLA Tiers Adherence Breakdown in White Background */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
-        <div className="p-2 sm:px-3 sm:py-2.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs space-y-1.5">
+      {/* 2. SLA Tiers Adherence Breakdown in 8px grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">
               <span className="h-2 w-2 rounded-full bg-[#905FEB] animate-pulse" />
@@ -293,7 +262,7 @@ export const SlaEscalationsPage: React.FC = () => {
           <p className="text-[10px] text-zinc-500 font-medium truncate">Double charges &amp; live stream cutoffs</p>
         </div>
 
-        <div className="p-2 sm:px-3 sm:py-2.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs space-y-1.5">
+        <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">
               <span className="h-2 w-2 rounded-full bg-[#AEEB00]" />
@@ -308,7 +277,7 @@ export const SlaEscalationsPage: React.FC = () => {
           <p className="text-[10px] text-zinc-500 font-medium truncate">Validity extensions &amp; 2FA lockouts</p>
         </div>
 
-        <div className="p-2 sm:px-3 sm:py-2.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs space-y-1.5">
+        <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">
               <span className="h-2 w-2 rounded-full bg-[#905FEB]" />
@@ -323,7 +292,7 @@ export const SlaEscalationsPage: React.FC = () => {
           <p className="text-[10px] text-zinc-500 font-medium truncate">Batch transfers &amp; schedule clashes</p>
         </div>
 
-        <div className="p-2 sm:px-3 sm:py-2.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs space-y-1.5">
+        <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">
               <span className="h-2 w-2 rounded-full bg-[#AEEB00]" />
@@ -339,9 +308,9 @@ export const SlaEscalationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Escalation Queue Table */}
-      <Card className="bg-white border-[#E5DEFF] shadow-xs rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden relative">
-        <CardHeader className="px-5 py-2.5 border-b border-[#F0EDFF] flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white rounded-t-2xl shrink-0">
+      {/* 3. Escalation Queue Panel */}
+      <div className="panel bg-white border border-zinc-150 flex flex-col min-h-[450px] overflow-hidden relative">
+        <div className="card-header px-5 py-3 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 mb-0">
           <div>
             <CardTitle className="text-base font-bold text-[#111111]">
               Active SLA Countdown Queue
@@ -384,7 +353,7 @@ export const SlaEscalationsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
+        </div>
 
         <CardContent
           className="p-0 divide-y divide-[#F0EDFF] bg-white flex-1 min-h-0 overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-[#E5DEFF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#C4B5FD]"
@@ -476,7 +445,7 @@ export const SlaEscalationsPage: React.FC = () => {
             );
           })}
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 };

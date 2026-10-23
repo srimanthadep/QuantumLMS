@@ -16,7 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
+import { MetricCard } from "@/components/MetricCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -106,90 +107,49 @@ export const TicketsInboxPage: React.FC = () => {
     }
   };
 
+  const kpis: MetricItem[] = [
+    {
+      icon: "mail",
+      label: "All Tickets",
+      value: `${tickets.length}`,
+      trend: "All registered requests",
+      tone: "lavender",
+    },
+    {
+      icon: "clock",
+      label: "Open Queue",
+      value: `${openCount}`,
+      trend: "Awaiting action",
+      tone: "pink",
+    },
+    {
+      icon: "info",
+      label: "Pending Review",
+      value: `${pendingCount}`,
+      trend: "In verification",
+      tone: "yellow",
+    },
+    {
+      icon: "check-circle",
+      label: "Resolved",
+      value: `${resolvedCount}`,
+      trend: "SLA met",
+      tone: "lime",
+    },
+  ];
+
   return (
-    <div className="h-full max-h-full flex flex-col gap-2.5 support-page-font overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1
-              className="text-2xl font-bold tracking-tight text-white drop-shadow-xs flex items-center gap-2"
-              style={{ color: "var(--header-text-color, #ffffff)" }}
-            >
-              <LifeBuoy className="h-6 w-6 text-white" />
-              All Tickets &amp; Support Inbox
-            </h1>
-          </div>
-          <p
-            className="text-xs sm:text-sm mt-1 font-medium"
-            style={{ color: "var(--header-subtitle-color, rgba(255, 255, 255, 0.95))" }}
-          >
-            Direct queue of student inquiries, batch migrations, and academic requests.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link to="/support/sla-escalations">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs gap-1.5 font-bold bg-white hover:bg-white/95 text-zinc-900 border-white/80 shadow-xs rounded-xl"
-            >
-              <Clock className="h-3.5 w-3.5 text-amber-500" />
-              SLA Command Desk
-            </Button>
-          </Link>
-          <Link to="/support/live-chat">
-            <Button
-              size="sm"
-              className="text-xs gap-1.5 bg-white hover:bg-white/95 text-purple-700 border border-white/80 font-bold shadow-xs rounded-xl"
-            >
-              <MessageSquare className="h-3.5 w-3.5 text-purple-600" />
-              Live Chat Desk
-            </Button>
-          </Link>
-        </div>
+    <div className="flex flex-col gap-2 support-page-font">
+      {/* 1. KPI Stats (Canonical 132px Folder-Tab Cards with 8px Gap) */}
+      <div className="metrics-grid">
+        {kpis.map((item) => (
+          <MetricCard key={item.label} item={item} />
+        ))}
       </div>
 
-      {/* KPI Stats (Quantum folder-tab status cards) */}
-      <div className="metrics-grid shrink-0">
-        <StatCard
-          title="All Tickets"
-          value={tickets.length}
-          icon={Layers}
-          tone="lavender"
-          trend={{ value: "All registered requests", isPositive: true }}
-          index={0}
-        />
-        <StatCard
-          title="Open Queue"
-          value={openCount}
-          icon={Clock}
-          tone="pink"
-          trend={{ value: "Awaiting mentor action", isPositive: true }}
-          index={1}
-        />
-        <StatCard
-          title="Pending Approval"
-          value={pendingCount}
-          icon={AlertCircle}
-          tone="yellow"
-          trend={{ value: "Admin & committee review", isPositive: false }}
-          index={2}
-        />
-        <StatCard
-          title="Resolved"
-          value={resolvedCount}
-          icon={CheckCircle2}
-          tone="lime"
-          trend={{ value: "Fully closed with SLA met", isPositive: true }}
-          index={3}
-        />
-      </div>
-
-      {/* Filter and Search Bar */}
-      <Card className="bg-white border-[#E5DEFF] shadow-xs rounded-2xl shrink-0">
-        <CardContent className="p-3.5 sm:p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+      {/* 2. Filter and Search Bar */}
+      <div className="panel p-3.5 bg-white border border-zinc-150">
+        <div className="flex flex-col md:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
             <Input
@@ -203,7 +163,7 @@ export const TicketsInboxPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[220px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
+              <SelectTrigger className="w-full sm:w-[200px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent align="end" className="rounded-2xl border border-[#E5DEFF] bg-white text-[#111111] shadow-xl min-w-[240px]">
@@ -247,18 +207,33 @@ export const TicketsInboxPage: React.FC = () => {
               </TabsList>
             </Tabs>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-white border-slate-200/90 shadow-xs rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden relative">
+      {/* 3. Tickets Queue Panel */}
+      <div className="panel bg-white border border-zinc-150 flex flex-col min-h-[500px] overflow-hidden relative">
         {/* Pinned Card Header */}
-        <div className="px-4 py-2 sm:px-5 sm:py-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
+        <div className="card-header px-4 py-3 border-b border-zinc-100 flex items-center justify-between shrink-0 mb-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
-              <LifeBuoy className="h-3.5 w-3.5 text-purple-600" />
+            <span className="card-title flex items-center gap-2 text-sm font-bold text-zinc-900">
+              <LifeBuoy className="h-4 w-4 text-purple-600" />
               <span>Support Tickets Queue</span>
-
             </span>
+            <span className="text-xs text-zinc-400 font-medium">({filteredTickets.length} tickets)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/support/sla-escalations">
+              <button className="px-3 h-7.5 rounded-full border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-50 flex items-center gap-1.5 transition-colors cursor-pointer">
+                <Clock className="h-3.5 w-3.5 text-amber-500" />
+                <span>SLA Desk</span>
+              </button>
+            </Link>
+            <Link to="/support/live-chat">
+              <button className="px-3 h-7.5 rounded-full bg-purple-600 hover:bg-purple-700 text-xs font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs">
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>Live Chat</span>
+              </button>
+            </Link>
           </div>
         </div>
 
@@ -388,7 +363,7 @@ export const TicketsInboxPage: React.FC = () => {
             <span>Scroll to Top</span>
           </button>
         )}
-      </Card>
+      </div>
     </div>
   );
 };
