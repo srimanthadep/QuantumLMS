@@ -39,7 +39,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles, Eye, Check } from "lucide-react";
+import { ArrowRight, Sparkles, Eye, Check, ChevronsUpDown } from "lucide-react";
 
 interface SupportAgent {
   id: string;
@@ -286,16 +286,16 @@ export const SupportAgentsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats Grid (Canonical 132px Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Search and Category Filter Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150">
+      <div className="panel p-3.5 bg-white border border-zinc-150 shrink-0">
         <div className="space-y-2.5">
           <div className="relative">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
@@ -336,40 +336,50 @@ export const SupportAgentsPage: React.FC = () => {
               })}
             </div>
 
-            {/* Status Pills */}
-            <div className="flex gap-1 items-center overflow-x-auto">
-              {statuses.map((st) => {
-                const isActive = statusFilter === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setStatusFilter(st.id)}
-                    className={cn(
-                      "h-6.5 px-2.5 text-[10px] font-semibold rounded-full whitespace-nowrap cursor-pointer border transition-all",
-                      isActive
-                        ? "bg-[#111111] text-white border-[#111111]"
-                        : "bg-white text-zinc-600 border-[#E5DEFF] hover:bg-[#FAF9FF]"
-                    )}
-                  >
-                    {st.label}
-                  </button>
-                );
-              })}
+            {/* Status Pills & Scroll Indicator */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-1 items-center overflow-x-auto min-w-0">
+                {statuses.map((st) => {
+                  const isActive = statusFilter === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setStatusFilter(st.id)}
+                      className={cn(
+                        "h-6.5 px-2.5 text-[10px] font-semibold rounded-full whitespace-nowrap cursor-pointer border transition-all shrink-0",
+                        isActive
+                          ? "bg-[#111111] text-white border-[#111111]"
+                          : "bg-white text-zinc-600 border-[#E5DEFF] hover:bg-[#FAF9FF]"
+                      )}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
+                title="Agents directory is scrollable"
+              >
+                <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+                <span>Scroll Directory</span>
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Agents Grid */}
-      {filteredAgents.length === 0 ? (
-        <div className="py-12 text-center bg-white panel p-8">
-          <Users className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
-          <p className="text-sm font-bold text-[#111111]">No support agents found</p>
-          <p className="text-xs text-zinc-500 mt-1">Try resetting the search query or tier/status filters.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+      {/* Agents Scrollable Viewport */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 support-queue-scrollbar">
+        {filteredAgents.length === 0 ? (
+          <div className="py-12 text-center bg-white panel p-8">
+            <Users className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-[#111111]">No support agents found</p>
+            <p className="text-xs text-zinc-500 mt-1">Try resetting the search query or tier/status filters.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
           {filteredAgents.map((agt) => {
             return (
               <div
@@ -503,6 +513,7 @@ export const SupportAgentsPage: React.FC = () => {
           })}
         </div>
       )}
+      </div>
 
       {/* Agent Detail Modal like KnowledgeBasePage */}
       {selectedAgent && (

@@ -14,6 +14,7 @@ import {
   RefreshCw,
   BellRing,
   ExternalLink,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -237,16 +238,16 @@ export const SlaEscalationsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats (Canonical Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. SLA Tiers Adherence Breakdown in 8px grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
         <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">
@@ -309,13 +310,22 @@ export const SlaEscalationsPage: React.FC = () => {
       </div>
 
       {/* 3. Escalation Queue Panel */}
-      <div className="panel bg-white border border-zinc-150 flex flex-col min-h-[450px] overflow-hidden relative">
+      <div className="panel bg-white border border-zinc-150 flex flex-col flex-1 min-h-0 overflow-hidden relative">
         <div className="card-header px-5 py-3 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 mb-0">
           <div>
-            <CardTitle className="text-base font-bold text-[#111111]">
-              Active SLA Countdown Queue
-            </CardTitle>
-            <CardDescription className="text-xs text-zinc-500">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-bold text-[#111111]">
+                Active SLA Countdown Queue
+              </CardTitle>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
+                title="Active SLA Countdown Queue is scrollable"
+              >
+                <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+                <span>Scroll Queue</span>
+              </span>
+            </div>
+            <CardDescription className="text-xs text-zinc-500 mt-0.5">
               Live tickets prioritized by remaining resolution window ({filtered.length} total active).
             </CardDescription>
           </div>
@@ -356,7 +366,7 @@ export const SlaEscalationsPage: React.FC = () => {
         </div>
 
         <CardContent
-          className="p-0 divide-y divide-[#F0EDFF] bg-white flex-1 min-h-0 overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-[#E5DEFF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#C4B5FD]"
+          className="p-0 divide-y divide-[#F0EDFF] bg-white flex-1 min-h-0 overflow-y-auto scroll-smooth support-queue-scrollbar"
         >
           {filtered.map((tkt) => {
             const isBreached = tkt.minutesRemaining <= 0;
