@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Layers,
   ArrowUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { SupportTicket, getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,16 +140,16 @@ export const TicketsInboxPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats (Canonical 132px Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Filter and Search Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150">
+      <div className="panel p-3 bg-white border border-zinc-150 shrink-0">
         <div className="flex flex-col md:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
@@ -211,15 +212,46 @@ export const TicketsInboxPage: React.FC = () => {
       </div>
 
       {/* 3. Tickets Queue Panel */}
-      <div className="panel bg-white border border-zinc-150 flex flex-col min-h-[500px] overflow-hidden relative">
-        {/* Pinned Card Header */}
-        <div className="card-header px-4 py-3 border-b border-zinc-100 flex items-center justify-between shrink-0 mb-0">
-          <div className="flex items-center gap-2">
+      <div className="panel bg-white border border-zinc-150 flex flex-col flex-1 min-h-0 overflow-hidden relative">
+        {/* Pinned Card Header with Scroll Bar Symbol & Indicator */}
+        <div className="card-header px-4 py-3 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-2 shrink-0 mb-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="card-title flex items-center gap-2 text-sm font-bold text-zinc-900">
               <LifeBuoy className="h-4 w-4 text-purple-600" />
               <span>Support Tickets Queue</span>
             </span>
             <span className="text-xs text-zinc-400 font-medium">({filteredTickets.length} tickets)</span>
+
+            {/* Scroll Bar Symbol & Indicator Badge */}
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
+              title="Support Tickets Queue is scrollable"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+              <span>Scroll Queue</span>
+            </span>
+
+            {/* Scroll Bar Directional Controls */}
+            <div className="flex items-center gap-1 ml-0.5">
+              <button
+                type="button"
+                onClick={() => listRef.current?.scrollBy({ top: -200, behavior: "smooth" })}
+                className="w-6.5 h-6.5 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                title="Scroll Up"
+                aria-label="Scroll queue up"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => listRef.current?.scrollBy({ top: 200, behavior: "smooth" })}
+                className="w-6.5 h-6.5 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                title="Scroll Down"
+                aria-label="Scroll queue down"
+              >
+                ▼
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/support/sla-escalations">
@@ -237,11 +269,11 @@ export const TicketsInboxPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Viewport: ONLY this section scrolls */}
+        {/* Scrollable Viewport with visible custom scrollbar */}
         <CardContent
           ref={listRef}
           onScroll={checkScrollState}
-          className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-white [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-purple-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-purple-300"
+          className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-white support-queue-scrollbar pr-2"
         >
           {filteredTickets.length === 0 ? (
             <div className="p-8 text-center text-xs text-zinc-500">

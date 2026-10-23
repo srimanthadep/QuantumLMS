@@ -64,26 +64,25 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
   ]
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 h-full">
       {/* 1. Metric Cards Grid - identical 132px folder tabs and 8px gap */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Operations Strip / Agent Status Bar */}
-      <div className="panel px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 bg-white">
+      <div className="panel px-4 py-2 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
             <span
-              className={`w-2 h-2 rounded-full ${
-                agentPresence === "online"
-                  ? "bg-emerald-500 animate-pulse"
-                  : agentPresence === "busy"
+              className={`w-2 h-2 rounded-full ${agentPresence === "online"
+                ? "bg-emerald-500 animate-pulse"
+                : agentPresence === "busy"
                   ? "bg-rose-500"
                   : "bg-amber-500"
-              }`}
+                }`}
             />
             <span>Omnichannel Dispatcher</span>
           </span>
@@ -101,15 +100,14 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                 key={st}
                 type="button"
                 onClick={() => setAgentPresence(st)}
-                className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
-                  agentPresence === st
-                    ? st === "online"
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : st === "busy"
+                className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${agentPresence === st
+                  ? st === "online"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : st === "busy"
                       ? "bg-rose-600 text-white shadow-xs"
                       : "bg-amber-600 text-white shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
+                  : "text-zinc-600 hover:text-zinc-900"
+                  }`}
               >
                 {st}
               </button>
@@ -126,14 +124,23 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
       </div>
 
       {/* 3. Main Content Grid - standard 8px gap */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
         {/* Left Column: Priority Tickets Queue (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-2">
-          <div className="panel p-5 bg-white flex flex-col h-[520px]">
+        <div className="lg:col-span-8 flex flex-col gap-2 h-full min-h-0">
+          <div className="panel p-4 sm:p-5 bg-white flex flex-col h-full min-h-0">
             {/* Card Header matching Teacher & Admin */}
             <div className="card-header">
               <div>
-                <h3 className="card-title">Active Support Queue</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="card-title">Active Support Queue</h3>
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                    title="Support Tickets Queue is scrollable"
+                  >
+                    <span className="text-[11px] text-[#905FEB]">↕</span>
+                    <span>Scroll Queue</span>
+                  </span>
+                </div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">
                   Urgent tickets, cohort transfer inquiries, and mentor triage requests
                 </div>
@@ -142,14 +149,14 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => scrollQueue("up")}
-                    className="w-7 h-7 rounded-lg border border-zinc-200 hover:bg-zinc-100 flex items-center justify-center text-zinc-700 cursor-pointer"
+                    className="w-7 h-7 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                     title="Scroll Up"
                   >
                     ▲
                   </button>
                   <button
                     onClick={() => scrollQueue("down")}
-                    className="w-7 h-7 rounded-lg border border-zinc-200 hover:bg-zinc-100 flex items-center justify-center text-zinc-700 cursor-pointer"
+                    className="w-7 h-7 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                     title="Scroll Down"
                   >
                     ▼
@@ -163,10 +170,10 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
               </div>
             </div>
 
-            {/* Scrollable Ticket List */}
+            {/* Scrollable Ticket List with Visible Custom Scrollbar */}
             <div
               ref={queueListRef}
-              className="flex-1 overflow-y-auto divide-y divide-zinc-100 pr-1 mt-2"
+              className="flex-1 min-h-0 overflow-y-auto divide-y divide-zinc-100 pr-2 mt-2 support-queue-scrollbar"
             >
               {filteredTickets.map((tkt) => (
                 <div

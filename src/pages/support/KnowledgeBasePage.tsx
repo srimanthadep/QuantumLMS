@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Layers,
   Zap,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -259,16 +260,16 @@ export const KnowledgeBasePage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats Grid (Canonical 132px Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Search and Category Filter Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150">
+      <div className="panel p-3.5 bg-white border border-zinc-150 shrink-0">
         <div className="space-y-2.5">
           <div className="relative">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
@@ -280,31 +281,41 @@ export const KnowledgeBasePage: React.FC = () => {
             />
           </div>
 
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 sleek-scrollbar items-center">
-            {categories.map((cat) => {
-              const isActive = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    "h-7 px-3 text-[11px] sm:text-xs font-semibold rounded-full capitalize whitespace-nowrap cursor-pointer flex items-center border transition-all duration-150",
-                    isActive
-                      ? "bg-[#905FEB] text-white border-[#905FEB] shadow-xs hover:bg-[#7D46E7]"
-                      : "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/20 hover:bg-[#E2DBFC]"
-                  )}
-                >
-                  <span>{cat === "all" ? "All SOP Categories" : cat}</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 sleek-scrollbar items-center flex-1 min-w-0">
+              {categories.map((cat) => {
+                const isActive = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "h-7 px-3 text-[11px] sm:text-xs font-semibold rounded-full capitalize whitespace-nowrap cursor-pointer flex items-center border transition-all duration-150 shrink-0",
+                      isActive
+                        ? "bg-[#905FEB] text-white border-[#905FEB] shadow-xs hover:bg-[#7D46E7]"
+                        : "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/20 hover:bg-[#E2DBFC]"
+                    )}
+                  >
+                    <span>{cat === "all" ? "All SOP Categories" : cat}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
+              title="Articles catalog is scrollable"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+              <span>Scroll Articles</span>
+            </span>
           </div>
         </div>
       </div>
 
       {/* 3. Articles Grid with 8px gap */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 support-queue-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {filtered.map((art) => {
           return (
             <div
@@ -384,6 +395,7 @@ export const KnowledgeBasePage: React.FC = () => {
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Full Article Modal Dialog with Pure Solid White Background */}

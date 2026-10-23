@@ -29,6 +29,7 @@ import {
   ChevronRight,
   TrendingUp,
   Cpu,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,7 @@ export const SupportSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* Settings Control Strip matching canonical panel design */}
       <div className="panel px-4 py-2.5 bg-white border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
@@ -176,7 +177,7 @@ export const SupportSettingsPage: React.FC = () => {
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col min-h-0">
           {/* Pill Tabs Bar matching Figma UI kit */}
-          <div className="shrink-0 pb-2">
+          <div className="shrink-0 pb-2 flex flex-wrap items-center justify-between gap-2">
             <TabsList className="bg-white border border-[#E5DEFF] shadow-2xs rounded-full p-1 h-auto flex flex-wrap gap-1">
               <TabsTrigger
                 value="general"
@@ -214,10 +215,18 @@ export const SupportSettingsPage: React.FC = () => {
                 AI Copilot &amp; Macros
               </TabsTrigger>
             </TabsList>
+
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
+              title="Settings viewport is scrollable"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+              <span>Scroll Settings</span>
+            </span>
           </div>
 
           {/* Scrollable Content Viewport */}
-          <div className="flex-1 min-h-0 support-sleek-scroll pr-1 pb-4">
+          <div className="flex-1 min-h-0 overflow-y-auto support-queue-scrollbar pr-1 pb-1">
             {/* TAB 1: General Desk Preferences */}
             <TabsContent value="general" className="space-y-3.5 mt-0">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">

@@ -250,7 +250,22 @@ function SupportLayout({
   const [headerSearchQuery, setHeaderSearchQuery] = useState("")
   const location = useLocation()
 
-  // Scroll to top on navigation
+  // Lock window and document scroll while in Support Portal
+  useEffect(() => {
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverflow = document.body.style.overflow
+    const originalBodyHeight = document.body.style.height
+    document.documentElement.style.overflow = "hidden"
+    document.body.style.overflow = "hidden"
+    document.body.style.height = "100vh"
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
+      document.body.style.height = originalBodyHeight
+    }
+  }, [])
+
+  // Reset scroll to top on navigation
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
@@ -472,7 +487,7 @@ function SupportLayout({
         </header>
 
         {/* Viewport Content - standard 8px gap */}
-        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-2 pb-6">
+        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-2 pb-0 overflow-hidden">
           {children}
         </div>
       </main>

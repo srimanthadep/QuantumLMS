@@ -24,6 +24,7 @@ import {
   AlertCircle,
   ArrowRight,
   TrendingUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -414,7 +415,7 @@ export const LiveChatPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* Toast Notification Alert */}
       {workflowToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
@@ -514,11 +515,11 @@ export const LiveChatPage: React.FC = () => {
       </div>
 
       {/* Main 3-Column Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
         {/* =========================================
             COLUMN 1: Conversation Queue (4 cols)
            ========================================= */}
-        <div className="lg:col-span-4 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
+        <div className="lg:col-span-4 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
           {/* Search & Filter Header */}
           <div className="p-3 border-b border-[#F0EDFF] space-y-2 bg-[#FAF9FF] shrink-0">
             <div className="relative">
@@ -583,10 +584,22 @@ export const LiveChatPage: React.FC = () => {
                 <Flame className={`h-3.5 w-3.5 ${urgentOnly ? "text-amber-600 animate-pulse" : "text-zinc-400"}`} />
               </button>
             </div>
+
+            {/* Scroll Indicator Sub-bar */}
+            <div className="flex items-center justify-between px-1 pt-0.5 text-[11px]">
+              <span className="font-semibold text-zinc-500">Queue ({filteredChats.length})</span>
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                title="Live conversation queue is scrollable"
+              >
+                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
+                <span>Scroll Queue</span>
+              </span>
+            </div>
           </div>
 
-          {/* Conversation Cards List with Clean Transparent Scrollbar */}
-          <div className="p-1 flex-1 min-h-0 overflow-y-auto space-y-1 support-card-scroll">
+          {/* Conversation Cards List with Visible Custom Scrollbar */}
+          <div className="p-1 flex-1 min-h-0 overflow-y-auto space-y-1 support-queue-scrollbar">
             {filteredChats.length === 0 ? (
               <div className="p-8 text-center text-xs text-zinc-500 space-y-1">
                 <AlertCircle className="h-6 w-6 mx-auto text-zinc-300 mb-1" />
@@ -672,7 +685,7 @@ export const LiveChatPage: React.FC = () => {
         {/* =========================================
             COLUMN 2: Chat Stream Console (5 cols)
            ========================================= */}
-        <div className="lg:col-span-5 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
+        <div className="lg:col-span-5 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
           {/* Active Conversation Header */}
           <div className="p-3 border-b border-[#F0EDFF] flex items-center justify-between bg-[#FAF9FF] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
@@ -707,6 +720,13 @@ export const LiveChatPage: React.FC = () => {
 
             {/* Quick Action Tools using Figma Action Icons */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                title="Conversation messages are scrollable"
+              >
+                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
+                <span>Scroll Chat</span>
+              </span>
               <button
                 type="button"
                 className="action-icon-lavender"
@@ -735,7 +755,7 @@ export const LiveChatPage: React.FC = () => {
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 min-h-0 p-3.5 overflow-y-auto space-y-3 support-card-scroll bg-[#FAF9FF]/40">
+          <div className="flex-1 min-h-0 p-3.5 overflow-y-auto space-y-3 support-queue-scrollbar bg-[#FAF9FF]/40">
             {selectedChat.messages.map((msg) => {
               if (msg.sender === "system") {
                 return (
@@ -908,18 +928,27 @@ export const LiveChatPage: React.FC = () => {
         {/* =========================================
             COLUMN 3: Telemetry & Instant Actions (3 cols)
            ========================================= */}
-        <div className="lg:col-span-3 h-[720px] panel flex flex-col overflow-hidden bg-white border border-zinc-150">
+        <div className="lg:col-span-3 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
           <div className="p-3 border-b border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-between shrink-0">
             <span className="text-xs font-extrabold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
               <UserCheck className="h-4 w-4 text-[#905FEB]" />
               Learner 360° Telemetry
             </span>
-            <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
-              Verified
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                title="Telemetry details are scrollable"
+              >
+                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
+                <span>Scroll Telemetry</span>
+              </span>
+              <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
+                Verified
+              </span>
+            </div>
           </div>
 
-          <div className="p-3.5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto support-card-scroll">
+          <div className="p-3.5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
             {/* Student ID Card */}
             <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] text-center space-y-1.5 shadow-2xs">
               <div className="h-12 w-12 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 font-extrabold text-sm mx-auto flex items-center justify-center shadow-xs">

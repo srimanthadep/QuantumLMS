@@ -25,6 +25,7 @@ import {
   Receipt,
   X,
   Award,
+  ChevronsUpDown,
 } from "lucide-react";
 import { getAllSupportTickets, getSupportTicketById } from "./supportTicketsData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -146,7 +147,7 @@ export const TicketDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2 support-page-font pb-1">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font pb-0 h-full">
       {/* Toast Notification */}
       {actionToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
@@ -238,7 +239,7 @@ export const TicketDetailPage: React.FC = () => {
       </div>
 
       {/* MAIN 2-COLUMN WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
         {/* ========================================================
             COLUMN 1: Conversation Thread & AI Composer (8 cols)
            ======================================================== */}
@@ -305,6 +306,13 @@ export const TicketDetailPage: React.FC = () => {
                 <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
                   Live
                 </span>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                  title="Communication thread is scrollable"
+                >
+                  <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
+                  <span>Scroll Thread</span>
+                </span>
               </div>
               <span className="text-[10px] text-zinc-400 font-mono">
                 Auto-scroll active
@@ -312,7 +320,7 @@ export const TicketDetailPage: React.FC = () => {
             </div>
 
             {/* Scrollable Message List */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1.5 support-card-scroll">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1.5 support-queue-scrollbar">
               {messages.map((msg) => {
                 const isAgent = msg.role === "agent";
                 return (
@@ -470,16 +478,25 @@ export const TicketDetailPage: React.FC = () => {
         {/* ========================================================
             COLUMN 2: Student Telemetry, Mentor Actions & Governance (4 cols)
            ======================================================== */}
-        <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-2 overflow-y-auto support-card-scroll pr-0.5">
+        <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-2 overflow-y-auto support-queue-scrollbar pr-0.5">
           {/* Learner 360° Profile Telemetry Card */}
           <div className="p-3 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-2 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
                 Learner 360° Profile
               </span>
-              <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
-                Active Enrolled
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                  title="Telemetry details are scrollable"
+                >
+                  <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
+                  <span>Scroll Details</span>
+                </span>
+                <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
+                  Active Enrolled
+                </span>
+              </div>
             </div>
 
             <div className="flex items-center gap-2.5">

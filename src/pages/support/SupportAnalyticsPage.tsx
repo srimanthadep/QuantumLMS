@@ -29,6 +29,7 @@ import {
   Cpu,
   GraduationCap,
   Bell,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { MetricItem } from "@/types";
@@ -194,16 +195,16 @@ export const SupportAnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats Grid (Canonical Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Operations & Timeframe Toolbar */}
-      <div className="panel px-4 py-2.5 bg-white border border-zinc-150 flex flex-wrap items-center justify-between gap-3">
+      <div className="panel px-4 py-2 bg-white border border-zinc-150 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -245,10 +246,10 @@ export const SupportAnalyticsPage: React.FC = () => {
       </div>
 
       {/* 3. Primary Analytics Grid (8px gap) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
         {/* Inquiry Category Breakdown Card (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-2">
-          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-6 flex flex-col gap-2 h-full min-h-0">
+          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Purple Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs" />
 
@@ -260,6 +261,13 @@ export const SupportAnalyticsPage: React.FC = () => {
                   </CardTitle>
                   <span className="badge-status-in-progress rounded-full text-[10px] font-bold px-2.5 py-0.5 shadow-2xs">
                     {tickets.length} Active Tickets
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
+                    title="Category breakdown is scrollable"
+                  >
+                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+                    <span>Scroll Breakdown</span>
                   </span>
                 </div>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
@@ -276,9 +284,9 @@ export const SupportAnalyticsPage: React.FC = () => {
               </button>
             </CardHeader>
 
-            <CardContent className="p-5 sm:p-6 flex-1 bg-white overflow-hidden">
+            <CardContent className="p-4 sm:p-5 flex-1 min-h-0 bg-white overflow-hidden flex flex-col">
               {/* Category Breakdown Items with Smooth Scroll & Figma Pill Progress Bars */}
-              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2.5 support-card-scroll">
+              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2.5 support-queue-scrollbar">
                 {categoryStats.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -334,16 +342,25 @@ export const SupportAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Mentor Performance Leaderboard (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-2">
-          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-6 flex flex-col gap-2 h-full min-h-0">
+          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Lavender Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#B89CF5] to-[#E5DEFF] shadow-xs" />
 
             <CardHeader className="p-4 sm:p-5 border-b border-[#F0EDFF] flex flex-row items-center justify-between bg-white shrink-0">
               <div>
-                <CardTitle className="text-base sm:text-lg font-extrabold text-[#111111] tracking-tight">
-                  Mentor Team Performance
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg font-extrabold text-[#111111] tracking-tight">
+                    Mentor Team Performance
+                  </CardTitle>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
+                    title="Mentor performance leaderboard is scrollable"
+                  >
+                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+                    <span>Scroll Mentors</span>
+                  </span>
+                </div>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
                   Active team members handling learner inquiries and batch shifts.
                 </CardDescription>
@@ -358,7 +375,7 @@ export const SupportAnalyticsPage: React.FC = () => {
               </button>
             </CardHeader>
 
-            <CardContent className="p-0 divide-y divide-[#F0EDFF] bg-white">
+            <CardContent className="p-0 divide-y divide-[#F0EDFF] bg-white flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
               {TOP_MENTORS.map((m) => (
                 <div
                   key={m.id}

@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   ArrowRightLeft,
   ShieldCheck,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -198,16 +199,16 @@ export const Student360Page: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-2 support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
       {/* 1. KPI Stats Grid (Canonical 132px Folder-Tab Cards with 8px Gap) */}
-      <div className="metrics-grid">
+      <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
       </div>
 
       {/* 2. Search and Filters Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150">
+      <div className="panel p-3.5 bg-white border border-zinc-150 shrink-0">
         <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
@@ -234,12 +235,19 @@ export const Student360Page: React.FC = () => {
             <span className="text-xs text-zinc-500 whitespace-nowrap hidden sm:inline">
               Showing {filtered.length} of {LEARNERS.length} customers
             </span>
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
+              title="Customer roster is scrollable"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+              <span>Scroll Customers</span>
+            </span>
           </div>
         </div>
       </div>
 
       {/* 3. Dedicated Scrollable Container with 8px Gap */}
-      <div className="flex-1 min-h-0 support-sleek-scroll pr-1 pb-3">
+      <div className="flex-1 min-h-0 overflow-y-auto support-queue-scrollbar pr-1 pb-1">
         {filtered.length === 0 ? (
           <div className="py-12 text-center bg-white panel p-8">
             <Users className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
