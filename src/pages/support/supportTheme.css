@@ -405,58 +405,130 @@
   outline: none;
 }
 
-/* Elegant, transparent-track scrollbar for Support Pages */
-.support-sleek-scroll {
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-}
-
-.support-sleek-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.support-sleek-scroll::-webkit-scrollbar-track {
+/* Hide root-level and unstyled window scrollbars while preserving inner containers */
+.support-portal-root::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
   background: transparent !important;
 }
 
-.support-sleek-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-radius: 9999px !important;
-  transition: background 0.15s ease-in-out;
-}
-
-.support-sleek-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5) !important;
-}
-
-/* Sleek scrollbar for white card containers */
-.support-card-scroll {
-  overflow-y: auto;
-  overflow-x: hidden;
+/* Explicitly visible custom branded scrollbar for all scrollable sections in Support Portal */
+.support-portal-root .support-queue-scrollbar,
+.support-queue-scrollbar,
+.support-portal-root .support-sleek-scroll,
+.support-sleek-scroll,
+.support-portal-root .support-card-scroll,
+.support-card-scroll,
+.support-portal-root .sleek-scrollbar,
+.sleek-scrollbar {
+  overflow-y: auto !important;
   scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(144, 95, 235, 0.35) transparent;
+  scrollbar-width: thin !important;
+  scrollbar-color: #905FEB #f4f2ff !important;
 }
 
-.support-card-scroll::-webkit-scrollbar {
-  width: 6px;
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar,
+.support-queue-scrollbar::-webkit-scrollbar,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar,
+.support-sleek-scroll::-webkit-scrollbar,
+.support-portal-root .support-card-scroll::-webkit-scrollbar,
+.support-card-scroll::-webkit-scrollbar,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar,
+.sleek-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+  height: 6px !important;
 }
 
-.support-card-scroll::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-
-.support-card-scroll::-webkit-scrollbar-thumb {
-  background: rgba(144, 95, 235, 0.3) !important;
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-track,
+.support-queue-scrollbar::-webkit-scrollbar-track,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-track,
+.support-sleek-scroll::-webkit-scrollbar-track,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-track,
+.support-card-scroll::-webkit-scrollbar-track,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-track,
+.sleek-scrollbar::-webkit-scrollbar-track {
+  display: block !important;
+  background: #f4f2ff !important;
   border-radius: 9999px !important;
-  transition: background 0.15s ease-in-out;
+  margin: 4px 0 !important;
 }
 
-.support-card-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(144, 95, 235, 0.6) !important;
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-thumb,
+.support-queue-scrollbar::-webkit-scrollbar-thumb,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb,
+.support-sleek-scroll::-webkit-scrollbar-thumb,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb,
+.support-card-scroll::-webkit-scrollbar-thumb,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb,
+.sleek-scrollbar::-webkit-scrollbar-thumb {
+  display: block !important;
+  background: #905FEB !important;
+  border-radius: 9999px !important;
+}
+
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-thumb:hover,
+.support-queue-scrollbar::-webkit-scrollbar-thumb:hover,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb:hover,
+.support-sleek-scroll::-webkit-scrollbar-thumb:hover,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb:hover,
+.support-card-scroll::-webkit-scrollbar-thumb:hover,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb:hover,
+.sleek-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7D46E7 !important;
+}
+
+/* Global Viewport Lock: Zero Window / Body Scroll for Support Portal */
+html:has(.support-portal-root),
+body:has(.support-portal-root) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+.support-portal-root {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Desktop Sidebar fits cleanly in 100vh without overflowing */
+.support-portal-root .sidebar {
+  height: calc(100vh - 24px) !important;
+  max-height: calc(100vh - 24px) !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.support-portal-root .sidebar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Main Dashboard Content Viewport locked to remaining height */
+.support-portal-root .dashboard-content {
+  height: calc(100vh - 24px) !important;
+  max-height: calc(100vh - 24px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Support view container fills full remaining space without bottom overflow */
+.support-portal-root .support-view-container {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
 }
 
 /* Global design alignment for support containers and card panels */
