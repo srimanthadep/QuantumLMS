@@ -244,47 +244,49 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
         </div>
 
         {/* Right Column: Fast Operational Hub & Telemetry (4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-2">
+        <div className="lg:col-span-4 flex flex-col gap-2 h-full min-h-0">
           {/* Quick SLA Radar Panel */}
-          <div className="panel p-5 bg-white flex flex-col gap-3">
-            <div className="card-header !mb-0">
-              <h3 className="card-title text-sm">SLA Escalation Radar</h3>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="panel p-4 sm:p-5 bg-white flex flex-col justify-between flex-1 min-h-0">
+            <div>
+              <div className="card-header !mb-0">
+                <h3 className="card-title text-sm">SLA Escalation Radar</h3>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+
+              <div className="space-y-2 mt-2">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-purple-50/60 border border-purple-100">
+                  <div className="flex justify-between items-center text-xs font-bold text-purple-950">
+                    <span>First Response SLA</span>
+                    <span>98.7%</span>
+                  </div>
+                  <div className="w-full bg-purple-200/50 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                    <div className="bg-purple-600 h-1.5 rounded-full w-[98%]" />
+                  </div>
+                </div>
+
+                <div className="p-2.5 sm:p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                  <div className="flex justify-between items-center text-xs font-bold text-amber-950">
+                    <span>Batch Transfer Approvals</span>
+                    <span>4 Pending</span>
+                  </div>
+                  <div className="w-full bg-amber-200/50 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                    <div className="bg-amber-500 h-1.5 rounded-full w-[70%]" />
+                  </div>
+                </div>
+
+                <div className="p-2.5 sm:p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                  <div className="flex justify-between items-center text-xs font-bold text-emerald-950">
+                    <span>Resolved Within 24h</span>
+                    <span>94.2%</span>
+                  </div>
+                  <div className="w-full bg-emerald-200/50 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                    <div className="bg-emerald-500 h-1.5 rounded-full w-[94%]" />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2.5">
-              <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100">
-                <div className="flex justify-between items-center text-xs font-bold text-purple-950">
-                  <span>First Response SLA</span>
-                  <span>98.7%</span>
-                </div>
-                <div className="w-full bg-purple-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
-                  <div className="bg-purple-600 h-1.5 rounded-full w-[98%]" />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
-                <div className="flex justify-between items-center text-xs font-bold text-amber-950">
-                  <span>Batch Transfer Approvals</span>
-                  <span>4 Pending</span>
-                </div>
-                <div className="w-full bg-amber-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
-                  <div className="bg-amber-500 h-1.5 rounded-full w-[70%]" />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
-                <div className="flex justify-between items-center text-xs font-bold text-emerald-950">
-                  <span>Resolved Within 24h</span>
-                  <span>94.2%</span>
-                </div>
-                <div className="w-full bg-emerald-200/50 rounded-full h-1.5 mt-2 overflow-hidden">
-                  <div className="bg-emerald-500 h-1.5 rounded-full w-[94%]" />
-                </div>
-              </div>
-            </div>
-
-            <Link to="/support/sla-escalations" className="block pt-1">
+            <Link to="/support/sla-escalations" className="block pt-2 mt-auto">
               <button className="w-full h-8 rounded-full border border-purple-300 text-purple-800 hover:bg-purple-50 text-xs font-bold transition-colors cursor-pointer">
                 View SLA Escalations →
               </button>
@@ -292,19 +294,21 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
           </div>
 
           {/* Student 360 Fast Inspection Panel */}
-          <div className="panel p-5 bg-white flex flex-col gap-2.5">
-            <div className="card-header !mb-0">
-              <h3 className="card-title text-sm">Student 360 Telemetry</h3>
-              <span className="text-[10px] font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded">
-                Live Sync
-              </span>
+          <div className="panel p-4 sm:p-5 bg-white flex flex-col justify-between flex-1 min-h-0">
+            <div>
+              <div className="card-header !mb-0">
+                <h3 className="card-title text-sm">Student 360 Telemetry</h3>
+                <span className="text-[10px] font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded">
+                  Live Sync
+                </span>
+              </div>
+
+              <p className="text-xs text-zinc-500 leading-relaxed mt-2">
+                Instant access to student course progress, attendance health, assignment submission history, and risk factor diagnostics.
+              </p>
             </div>
 
-            <p className="text-xs text-zinc-500 leading-relaxed">
-              Instant access to student course progress, attendance health, assignment submission history, and risk factor diagnostics.
-            </p>
-
-            <Link to="/support/student-360" className="pt-1">
+            <Link to="/support/student-360" className="pt-2 mt-auto">
               <button className="w-full h-8 rounded-full bg-black text-white hover:bg-zinc-800 text-xs font-bold transition-colors cursor-pointer">
                 Open Student 360 →
               </button>

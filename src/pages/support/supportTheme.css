@@ -479,12 +479,43 @@
   background: #7D46E7 !important;
 }
 
+/* Screen-ratio & Laptop-Adaptive Responsive Variables */
+:root {
+  --support-portal-pad-y: 12px;
+  --support-portal-pad-x: 16px;
+  --support-sidebar-w: 200px;
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --support-portal-pad-y: 10px;
+    --support-portal-pad-x: 12px;
+    --support-sidebar-w: 190px;
+  }
+}
+
+@media (max-height: 850px) {
+  :root {
+    --support-portal-pad-y: 10px;
+    --support-portal-pad-x: 12px;
+  }
+}
+
+@media (max-height: 720px) {
+  :root {
+    --support-portal-pad-y: 8px;
+    --support-portal-pad-x: 10px;
+  }
+}
+
 /* Global Viewport Lock: Zero Window / Body Scroll for Support Portal */
 html:has(.support-portal-root),
 body:has(.support-portal-root) {
   overflow: hidden !important;
   height: 100vh !important;
   max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .support-portal-root {
@@ -493,17 +524,23 @@ body:has(.support-portal-root) {
   min-height: 100vh !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  padding: var(--support-portal-pad-y) var(--support-portal-pad-x) !important;
+  display: grid !important;
+  grid-template-columns: var(--support-sidebar-w) minmax(0, 1fr) !important;
+  gap: 12px !important;
 }
 
-/* Desktop Sidebar fits cleanly in 100vh without overflowing */
+/* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */
 .support-portal-root .sidebar {
-  height: calc(100vh - 24px) !important;
-  max-height: calc(100vh - 24px) !important;
+  width: var(--support-sidebar-w) !important;
+  height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+  max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
   min-height: 0 !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  box-sizing: border-box !important;
 }
 
 .support-portal-root .sidebar::-webkit-scrollbar {
@@ -514,12 +551,13 @@ body:has(.support-portal-root) {
 
 /* Main Dashboard Content Viewport locked to remaining height */
 .support-portal-root .dashboard-content {
-  height: calc(100vh - 24px) !important;
-  max-height: calc(100vh - 24px) !important;
+  height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+  max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
   min-height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  box-sizing: border-box !important;
 }
 
 /* Support view container fills full remaining space without bottom overflow */
@@ -552,4 +590,121 @@ body:has(.support-portal-root) {
   font-weight: 700;
   letter-spacing: -0.3px;
   color: #000;
+}
+
+/* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
+@media (max-height: 860px) {
+  .support-portal-root .metrics-grid {
+    height: 112px !important;
+  }
+  .support-portal-root .metric-card {
+    height: 112px !important;
+  }
+  .support-portal-root .metric-label {
+    top: 22px !important;
+    font-size: 13px !important;
+  }
+  .support-portal-root .metric-icon {
+    top: 14px !important;
+    left: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .support-portal-root .metric-bottom {
+    bottom: 8px !important;
+    left: 14px !important;
+    right: 14px !important;
+  }
+  .support-portal-root .metric-bottom strong {
+    font-size: 24px !important;
+    line-height: 28px !important;
+  }
+  .support-portal-root .metric-bottom span {
+    font-size: 11px !important;
+  }
+  .support-portal-root .dashboard-header {
+    height: 46px !important;
+    margin-bottom: 4px !important;
+  }
+  .support-portal-root .greeting {
+    font-size: 19px !important;
+    line-height: 23px !important;
+  }
+  .support-portal-root .subtitle {
+    font-size: 11px !important;
+  }
+  .support-portal-root .sidebar {
+    padding: 16px 14px 14px !important;
+  }
+  .support-portal-root .sidebar .teacher {
+    margin-top: 16px !important;
+  }
+  .support-portal-root .sidebar nav {
+    margin-top: 16px !important;
+    gap: 4px !important;
+  }
+  .support-portal-root .nav-item {
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-height: 740px) {
+  .support-portal-root .metrics-grid {
+    height: 96px !important;
+  }
+  .support-portal-root .metric-card {
+    height: 96px !important;
+  }
+  .support-portal-root .metric-label {
+    top: 18px !important;
+    left: 50px !important;
+    font-size: 12px !important;
+  }
+  .support-portal-root .metric-icon {
+    top: 10px !important;
+    left: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .support-portal-root .metric-bottom {
+    bottom: 6px !important;
+    left: 10px !important;
+    right: 10px !important;
+  }
+  .support-portal-root .metric-bottom strong {
+    font-size: 20px !important;
+    line-height: 24px !important;
+  }
+  .support-portal-root .dashboard-header {
+    height: 40px !important;
+    margin-bottom: 2px !important;
+  }
+  .support-portal-root .greeting {
+    font-size: 17px !important;
+    line-height: 20px !important;
+  }
+  .support-portal-root .subtitle {
+    font-size: 10.5px !important;
+  }
+  .support-portal-root .sidebar {
+    padding: 12px 10px 10px !important;
+  }
+  .support-portal-root .sidebar .teacher img {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+  }
+  .support-portal-root .sidebar .teacher {
+    margin-top: 10px !important;
+  }
+  .support-portal-root .sidebar nav {
+    margin-top: 10px !important;
+    gap: 2px !important;
+  }
+  .support-portal-root .nav-item {
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+  }
 }
