@@ -38,18 +38,21 @@ import {
   ReportSenderModal,
   Toast,
 } from "./components/Modals"
-import ClassPage from "./pages/ClassPage"
-import CoursesPage from "./pages/CoursesPage"
-import StudentsPage from "./pages/StudentsPage"
-import DoubtsPage from "./pages/DoubtsPage"
-import CalendarPage from "./pages/CalendarPage"
-import { LiveClassPage } from "./pages/LiveClassPage"
-import LiveStudioPage from "./pages/LiveStudioPage"
-import AnalyticsPage from "./pages/AnalyticsPage"
-import SettingsPage from "./pages/SettingsPage"
-import AuthPage from "./pages/AuthPage"
-import StudentPortal from "./pages/StudentPortal"
-import AdminPortal from "./pages/AdminPortal"
+// Role Pages
+import AuthPage from "./pages/auth/AuthPage"
+import AdminPortal from "./pages/admin/AdminPortal"
+import StudentPortal from "./pages/student/StudentPortal"
+import {
+  ClassPage,
+  CoursesPage,
+  StudentsPage,
+  DoubtsPage,
+  CalendarPage,
+  LiveClassPage,
+  LiveStudioPage,
+  AnalyticsPage,
+  SettingsPage,
+} from "./pages/teacher"
 import { lazy, Suspense } from "react"
 const SupportPortal = lazy(() => import("./pages/support"))
 

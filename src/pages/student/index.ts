@@ -1,0 +1,6 @@
+export { default as StudentPortal } from "./StudentPortal"
+export { default as StudentDashboardPage } from "./StudentDashboardPage"
+export { StudentOtherPage } from "./StudentOtherPages"
+export * from "./studentTypes"
+export * from "./studentMockData"
+export * from "./materialUtils"
