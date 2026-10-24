@@ -261,5 +261,28 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       </svg>
     )
   }
+  if (name === "message") {
+    return (
+      <svg {...common}>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    )
+  }
+  if (name === "chat") {
+    return (
+      <svg {...common}>
+        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+      </svg>
+    )
+  }
+  if (name === "mic") {
+    return (
+      <svg {...common}>
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" x2="12" y1="19" y2="22" />
+      </svg>
+    )
+  }
   return null
 }

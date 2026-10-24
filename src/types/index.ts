@@ -32,6 +32,9 @@ export type IconName =
   | "bookmark"
   | "play"
   | "chevron-right"
+  | "message"
+  | "chat"
+  | "mic"
 
 export interface MetricItem {
   icon: IconName

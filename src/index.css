@@ -1991,7 +1991,7 @@ button {
 /* ========================================================
    RESPONSIVE ADAPTATIONS (< 1024px)
    ======================================================== */
-@media (max-width: 960px) {
+@media (max-width: 1023px) {
   .dashboard-shell {
     width: 100%;
     min-width: 320px;
@@ -2890,8 +2890,42 @@ button {
 /* Student Dashboard Content */
 .student-dashboard-content {
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.student-dashboard-content .panel {
+  padding: 20px 24px;
+  box-sizing: border-box;
+}
+
+.student-dashboard-content .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .student-dashboard-content .panel {
+    padding: 16px;
+  }
+
+  .student-dashboard-content .card-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .student-dashboard-content .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .student-dashboard-content .header-actions .search-box {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 /* Student Header */
@@ -3968,7 +4002,8 @@ button {
    ======================================================== */
 .student-sidebar-shared {
   position: relative;
-  width: 200px;
+  width: 100%;
+  max-width: 200px;
   min-height: 665px;
   border-radius: var(--radius-xl);
   background: var(--lavender);
@@ -3976,6 +4011,14 @@ button {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .student-sidebar-shared {
+    max-width: 100%;
+    height: 100%;
+    border-radius: 0 24px 24px 0;
+  }
 }
 
 .student-sidebar-shared .teacher {
@@ -4041,6 +4084,29 @@ button {
 .student-shared-nav::-webkit-scrollbar-thumb {
   background: rgba(152, 96, 233, 0.25);
   border-radius: 4px;
+}
+
+.student-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-nav-category {
+  padding: 8px 10px 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #7A748E;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.student-nav-divider {
+  height: 1px;
+  background: rgba(122, 116, 142, 0.18);
+  margin: 8px 6px 4px;
+  border: none;
 }
 
 /* Hero: Continue Learning Banner - Teacher Maple Class Lime Theme */
@@ -4613,6 +4679,304 @@ button {
   display: inline-block;
   animation: pulse 1.5s infinite;
 }
+
+/* ==================== NOORLY SOFT UI COMPONENT SYSTEM (STUDENT PORTAL) ==================== */
+:root {
+  --noorly-primary-purple: #905FEB;
+  --noorly-purple-hover: #7E4BDC;
+  --noorly-secondary-lime: #AEEB00;
+  --noorly-tertiary-lavender: #F0EDFF;
+  --noorly-neutral-ink: #111111;
+  --noorly-base-canvas: #F1F0F3;
+  --noorly-card-bg: #FFFFFF;
+  --noorly-card-border: rgba(17, 17, 17, 0.06);
+  --noorly-radius-pill: 9999px;
+  --noorly-radius-card: 20px;
+  --noorly-shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --noorly-shadow-hover: 0 10px 30px rgba(144, 95, 235, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Noorly Soft UI Card */
+.noorly-card {
+  background: var(--noorly-card-bg);
+  border: 1px solid var(--noorly-card-border);
+  border-radius: var(--noorly-radius-card);
+  box-shadow: var(--noorly-shadow-soft);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.noorly-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--noorly-shadow-hover);
+}
+
+/* Noorly Pill Buttons */
+.noorly-btn-primary {
+  background: var(--noorly-primary-purple);
+  color: #FFFFFF;
+  border-radius: var(--noorly-radius-pill);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 18px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 12px rgba(144, 95, 235, 0.25);
+  transition: all 0.18s ease;
+}
+
+.noorly-btn-primary:hover {
+  background: var(--noorly-purple-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(144, 95, 235, 0.35);
+}
+
+.noorly-btn-lime {
+  background: var(--noorly-secondary-lime);
+  color: var(--noorly-neutral-ink);
+  border-radius: var(--noorly-radius-pill);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 18px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 12px rgba(174, 235, 0, 0.28);
+  transition: all 0.18s ease;
+}
+
+.noorly-btn-lime:hover {
+  background: #9ee000;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(174, 235, 0, 0.38);
+}
+
+.noorly-btn-dark {
+  background: var(--noorly-neutral-ink);
+  color: #FFFFFF;
+  border-radius: var(--noorly-radius-pill);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 18px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  transition: all 0.18s ease;
+}
+
+.noorly-btn-dark:hover {
+  background: #252525;
+  transform: translateY(-1px);
+}
+
+.noorly-btn-secondary {
+  background: #FFFFFF;
+  color: var(--noorly-neutral-ink);
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: var(--noorly-radius-pill);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.noorly-btn-secondary:hover {
+  background: #FAFAFA;
+  border-color: rgba(17, 17, 17, 0.2);
+}
+
+/* Noorly Soft Badges */
+.noorly-badge-purple {
+  background: var(--noorly-tertiary-lavender);
+  color: var(--noorly-primary-purple);
+  border-radius: var(--noorly-radius-pill);
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.noorly-badge-lime {
+  background: #F3FFD1;
+  color: #557900;
+  border-radius: var(--noorly-radius-pill);
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.noorly-badge-ink {
+  background: var(--noorly-neutral-ink);
+  color: var(--noorly-secondary-lime);
+  border-radius: var(--noorly-radius-pill);
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Noorly Inputs */
+.noorly-input {
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background: #FFFFFF;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--noorly-neutral-ink);
+  outline: none;
+  transition: all 0.18s ease;
+}
+
+.noorly-input:focus {
+  border-color: var(--noorly-primary-purple);
+  box-shadow: 0 0 0 3px rgba(144, 95, 235, 0.15);
+}
+
+/* Noorly Progress Bar */
+.noorly-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--noorly-radius-pill);
+  background: rgba(17, 17, 17, 0.08);
+  overflow: hidden;
+}
+
+.noorly-progress-fill {
+  height: 100%;
+  border-radius: var(--noorly-radius-pill);
+  background: var(--noorly-primary-purple);
+  transition: width 0.4s ease;
+}
+
+/* Noorly active styles for student sidebar and panels */
+.student-shared-nav .nav-item.active {
+  color: var(--noorly-primary-purple) !important;
+  background: var(--noorly-tertiary-lavender) !important;
+  font-weight: 700;
+}
+
+.student-hero-banner.student-hero-lime {
+  background: var(--noorly-secondary-lime) !important;
+  color: var(--noorly-neutral-ink) !important;
+}
+
+.student-hero-btn-dark {
+  background: var(--noorly-neutral-ink) !important;
+}
+
+/* Noorly Course Card Styling */
+.noorly-course-card {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.noorly-course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================================
+   STUDENT PORTAL - COMPACT COURSES RESPONSIVE GRID
+   - Large Desktop (>=1200px): 3 columns, gap 24px
+   - Tablet (768px-1199px): 2 columns, gap 20px
+   - Mobile (<768px): 1 column, gap 14px
+   ======================================================== */
+.student-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.student-courses-grid > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .student-courses-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .student-courses-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+/* ========================================================
+   STUDENT PORTAL - INDEPENDENT SCROLLING LAYOUT
+   - Stationary sidebar
+   - Stationary top header
+   - Independently scrollable page content body
+   - Subtle Noorly purple scrollbar
+   ======================================================== */
+.student-dashboard-shell {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+.student-dashboard-shell .student-sidebar-shared {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box;
+}
+
+.student-dashboard-shell .student-shared-nav {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+}
+
+.student-scroll-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(144, 95, 235, 0.35) transparent;
+}
+
+.student-scroll-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.student-scroll-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.student-scroll-viewport::-webkit-scrollbar-thumb {
+  background: rgba(144, 95, 235, 0.3);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.student-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 95, 235, 0.55);
+}
+
 
 
 
