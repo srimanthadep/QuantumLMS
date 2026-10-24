@@ -29,7 +29,6 @@ import {
   Cpu,
   GraduationCap,
   Bell,
-  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { MetricItem } from "@/types";
@@ -262,13 +261,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                   <span className="badge-status-in-progress rounded-full text-[10px] font-bold px-2.5 py-0.5 shadow-2xs">
                     {tickets.length} Active Tickets
                   </span>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
-                    title="Category breakdown is scrollable"
-                  >
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-                    <span>Scroll Breakdown</span>
-                  </span>
+
                 </div>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
                   Volume percentage and progress distributions across support domains over {timeRange}.
@@ -353,13 +346,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                   <CardTitle className="text-base sm:text-lg font-extrabold text-[#111111] tracking-tight">
                     Mentor Team Performance
                   </CardTitle>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
-                    title="Mentor performance leaderboard is scrollable"
-                  >
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-                    <span>Scroll Mentors</span>
-                  </span>
+
                 </div>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
                   Active team members handling learner inquiries and batch shifts.

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   LifeBuoy,
   Search,
@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Layers,
   ArrowUp,
-  ChevronsUpDown,
 } from "lucide-react";
 import { SupportTicket, getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +29,16 @@ import {
 
 export const TicketsInboxPage: React.FC = () => {
   const [tickets] = useState<SupportTicket[]>(getAllSupportTickets());
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get("search") || "";
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
+
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -222,14 +230,7 @@ export const TicketsInboxPage: React.FC = () => {
             </span>
             <span className="text-xs text-zinc-400 font-medium">({filteredTickets.length} tickets)</span>
 
-            {/* Scroll Bar Symbol & Indicator Badge */}
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
-              title="Support Tickets Queue is scrollable"
-            >
-              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-              <span>Scroll Queue</span>
-            </span>
+
 
             {/* Scroll Bar Directional Controls */}
             <div className="flex items-center gap-1 ml-0.5">

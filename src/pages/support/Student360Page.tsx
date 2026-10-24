@@ -18,7 +18,6 @@ import {
   LifeBuoy,
   ArrowRightLeft,
   ShieldCheck,
-  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -235,13 +234,6 @@ export const Student360Page: React.FC = () => {
             <span className="text-xs text-zinc-500 whitespace-nowrap hidden sm:inline">
               Showing {filtered.length} of {LEARNERS.length} customers
             </span>
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
-              title="Customer roster is scrollable"
-            >
-              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-              <span>Scroll Customers</span>
-            </span>
           </div>
         </div>
       </div>
@@ -386,7 +378,7 @@ export const Student360Page: React.FC = () => {
                     >
                       <button
                         type="button"
-                        className="action-icon-lavender w-8.5 h-8.5 rounded-full cursor-pointer shrink-0 transition-all duration-150 hover:scale-110 hover:bg-[#E2DBFC] active:scale-95"
+                        className="action-icon-lavender w-8.5 h-8.5 rounded-full cursor-pointer shrink-0 transition-colors duration-150 hover:bg-[#E2DBFC]"
                         title="Direct Live Chat"
                       >
                         <MessageSquare className="h-3.5 w-3.5 text-[#7042D2]" />

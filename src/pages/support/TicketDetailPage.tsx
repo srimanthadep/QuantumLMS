@@ -25,7 +25,6 @@ import {
   Receipt,
   X,
   Award,
-  ChevronsUpDown,
 } from "lucide-react";
 import { getAllSupportTickets, getSupportTicketById } from "./supportTicketsData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -306,13 +305,7 @@ export const TicketDetailPage: React.FC = () => {
                 <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
                   Live
                 </span>
-                <span
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                  title="Communication thread is scrollable"
-                >
-                  <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
-                  <span>Scroll Thread</span>
-                </span>
+
               </div>
               <span className="text-[10px] text-zinc-400 font-mono">
                 Auto-scroll active
@@ -486,13 +479,7 @@ export const TicketDetailPage: React.FC = () => {
                 Learner 360° Profile
               </span>
               <div className="flex items-center gap-1.5">
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                  title="Telemetry details are scrollable"
-                >
-                  <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
-                  <span>Scroll Details</span>
-                </span>
+
                 <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
                   Active Enrolled
                 </span>

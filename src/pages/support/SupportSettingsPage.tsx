@@ -29,7 +29,6 @@ import {
   ChevronRight,
   TrendingUp,
   Cpu,
-  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,48 +180,42 @@ export const SupportSettingsPage: React.FC = () => {
             <TabsList className="bg-white border border-[#E5DEFF] shadow-2xs rounded-full p-1 h-auto flex flex-wrap gap-1">
               <TabsTrigger
                 value="general"
-                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-all data-[state=active]:bg-[#905FEB] data-[state=active]:text-white data-[state=active]:shadow-xs text-zinc-600 hover:text-[#905FEB]"
+                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-colors duration-150 data-[state=active]:bg-[#905FEB] data-[state=active]:text-white text-zinc-600 hover:text-[#905FEB]"
               >
                 <Sliders className="h-3.5 w-3.5 mr-1.5" />
                 Desk &amp; Hours
               </TabsTrigger>
               <TabsTrigger
                 value="sla"
-                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-all data-[state=active]:bg-[#905FEB] data-[state=active]:text-white data-[state=active]:shadow-xs text-zinc-600 hover:text-[#905FEB]"
+                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-colors duration-150 data-[state=active]:bg-[#905FEB] data-[state=active]:text-white text-zinc-600 hover:text-[#905FEB]"
               >
                 <Clock className="h-3.5 w-3.5 mr-1.5" />
                 SLA Deadlines
               </TabsTrigger>
               <TabsTrigger
                 value="routing"
-                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-all data-[state=active]:bg-[#905FEB] data-[state=active]:text-white data-[state=active]:shadow-xs text-zinc-600 hover:text-[#905FEB]"
+                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-colors duration-150 data-[state=active]:bg-[#905FEB] data-[state=active]:text-white text-zinc-600 hover:text-[#905FEB]"
               >
                 <UserCheck className="h-3.5 w-3.5 mr-1.5" />
                 Auto-Routing
               </TabsTrigger>
               <TabsTrigger
                 value="alerts"
-                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-all data-[state=active]:bg-[#905FEB] data-[state=active]:text-white data-[state=active]:shadow-xs text-zinc-600 hover:text-[#905FEB]"
+                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-colors duration-150 data-[state=active]:bg-[#905FEB] data-[state=active]:text-white text-zinc-600 hover:text-[#905FEB]"
               >
                 <Webhook className="h-3.5 w-3.5 mr-1.5" />
                 Webhooks &amp; Alerts
               </TabsTrigger>
               <TabsTrigger
                 value="ai"
-                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-all data-[state=active]:bg-[#905FEB] data-[state=active]:text-white data-[state=active]:shadow-xs text-zinc-600 hover:text-[#905FEB]"
+                className="rounded-full text-xs font-bold px-3.5 py-1.5 transition-colors duration-150 data-[state=active]:bg-[#905FEB] data-[state=active]:text-white text-zinc-600 hover:text-[#905FEB]"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                 AI Copilot &amp; Macros
               </TabsTrigger>
             </TabsList>
 
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
-              title="Settings viewport is scrollable"
-            >
-              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-              <span>Scroll Settings</span>
-            </span>
+
           </div>
 
           {/* Scrollable Content Viewport */}
