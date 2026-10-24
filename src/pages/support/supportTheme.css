@@ -1,0 +1,759 @@
+/* Design System Theme aligned with Quantum Global Design System:
+   - Font: "Sassoon Sans Std", "Sassoon Sans", sans-serif
+   - Primary Purple: var(--purple, #9860e9)
+   - Secondary Lime: var(--lime, #a8ed00)
+   - Tertiary Lavender: var(--lavender, #f1efff)
+   - Neutral: var(--ink, #09090b)
+*/
+
+:root {
+  --support-primary: #9860e9;
+  --support-primary-hover: #8750dc;
+  --support-primary-dark: #7042d2;
+  --support-secondary-lime: #a8ed00;
+  --support-tertiary-lavender: #f1efff;
+  --support-neutral: #09090b;
+  --support-font-family: "Sassoon Sans Std", "Sassoon Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Global Font Scope for Support Pages - aligned with global typography */
+.support-portal-root,
+.support-page-font,
+.support-view-container,
+.support-view-container * {
+  font-family: var(--support-font-family);
+}
+
+/* Typography Hierarchy according to Figma specs */
+.support-type-display {
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.support-type-h1 {
+  font-size: 25px;
+  line-height: 29px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.support-type-h2 {
+  font-size: 21px;
+  line-height: 25px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.support-type-h3 {
+  font-size: 19px;
+  line-height: 23px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.support-type-h4 {
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.support-body-large {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.support-body-medium {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
+.support-body-small {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+.support-caption {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 400;
+}
+
+.support-micro {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 400;
+}
+
+.support-label-large {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.support-label-medium {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.support-label-small {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 500;
+}
+
+.support-overline {
+  font-size: 9px;
+  line-height: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Button Variants from Figma */
+.btn-support-primary {
+  background-color: #905FEB;
+  color: #ffffff !important;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  padding: 0.5rem 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(144, 95, 235, 0.2);
+}
+
+.btn-support-primary:hover {
+  background-color: #7D46E7;
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 12px rgba(144, 95, 235, 0.3);
+}
+
+.btn-support-secondary {
+  background-color: #F0EDFF;
+  color: #7042D2 !important;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  padding: 0.5rem 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  border: 1px solid #E5DEFF;
+  cursor: pointer;
+}
+
+.btn-support-secondary:hover {
+  background-color: #E2DBFC;
+  color: #5D2EB8 !important;
+}
+
+.btn-support-inverted {
+  background-color: #111111;
+  color: #ffffff !important;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  padding: 0.5rem 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-support-inverted:hover {
+  background-color: #000000;
+  transform: translateY(-0.5px);
+}
+
+.btn-support-outlined {
+  background-color: #ffffff;
+  color: #905FEB !important;
+  border: 1.5px solid #905FEB;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  padding: 0.5rem 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-support-outlined:hover {
+  background-color: #F0EDFF;
+  border-color: #7D46E7;
+  color: #7D46E7 !important;
+}
+
+.btn-support-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 1rem;
+  background-color: #905FEB;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(144, 95, 235, 0.28);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-support-icon:hover {
+  background-color: #7D46E7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(144, 95, 235, 0.38);
+}
+
+/* Status Badges from Figma */
+.badge-status-completed {
+  background-color: #EAFCC7;
+  color: #3B6600;
+  border: 1px solid rgba(174, 235, 0, 0.5);
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-status-in-progress {
+  background-color: #F0EDFF;
+  color: #7042D2;
+  border: 1px solid rgba(144, 95, 235, 0.35);
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-status-assigned {
+  background-color: #FFF3E0;
+  color: #B45309;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-status-not-started {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Circular Action Icons */
+.action-icon-purple {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #905FEB;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  border: none;
+}
+
+.action-icon-purple:hover {
+  background-color: #7D46E7;
+  transform: scale(1.06);
+}
+
+.action-icon-lime {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #AEEB00;
+  color: #111111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  border: none;
+}
+
+.action-icon-lime:hover {
+  filter: brightness(1.08);
+  transform: scale(1.06);
+}
+
+.action-icon-lavender {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #F0EDFF;
+  color: #7042D2;
+  border: 1px solid #E5DEFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.action-icon-lavender:hover {
+  background-color: #E2DBFC;
+  transform: scale(1.06);
+}
+
+.action-icon-danger {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #DC2626;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  border: none;
+}
+
+.action-icon-danger:hover {
+  background-color: #B91C1C;
+  transform: scale(1.06);
+}
+
+/* Progress Bars from Figma */
+.progress-bar-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: #F2F4F7;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill-purple {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #905FEB;
+}
+
+.progress-bar-fill-lime {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #AEEB00;
+}
+
+.progress-bar-fill-pink {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #F472B6;
+}
+
+/* Search input with rounded-2xl / pill look */
+.support-search-pill {
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 1.5px solid #E5DEFF;
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  font-size: 13px;
+  color: #111111;
+  transition: all 0.15s ease-in-out;
+}
+
+.support-search-pill:focus {
+  border-color: #905FEB;
+  box-shadow: 0 0 0 3px rgba(144, 95, 235, 0.2);
+  outline: none;
+}
+
+/* Hide root-level and unstyled window scrollbars while preserving inner containers */
+.support-portal-root::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Explicitly visible custom branded scrollbar for all scrollable sections in Support Portal */
+.support-portal-root .support-queue-scrollbar,
+.support-queue-scrollbar,
+.support-portal-root .support-sleek-scroll,
+.support-sleek-scroll,
+.support-portal-root .support-card-scroll,
+.support-card-scroll {
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
+  scrollbar-width: thin !important;
+  scrollbar-color: #905FEB #f4f2ff !important;
+}
+
+.support-portal-root .sleek-scrollbar,
+.sleek-scrollbar {
+  scroll-behavior: smooth;
+  scrollbar-width: thin !important;
+  scrollbar-color: #905FEB #f4f2ff !important;
+}
+
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar,
+.support-queue-scrollbar::-webkit-scrollbar,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar,
+.support-sleek-scroll::-webkit-scrollbar,
+.support-portal-root .support-card-scroll::-webkit-scrollbar,
+.support-card-scroll::-webkit-scrollbar,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar,
+.sleek-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-track,
+.support-queue-scrollbar::-webkit-scrollbar-track,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-track,
+.support-sleek-scroll::-webkit-scrollbar-track,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-track,
+.support-card-scroll::-webkit-scrollbar-track,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-track,
+.sleek-scrollbar::-webkit-scrollbar-track {
+  display: block !important;
+  background: #f4f2ff !important;
+  border-radius: 9999px !important;
+  margin: 4px 0 !important;
+}
+
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-thumb,
+.support-queue-scrollbar::-webkit-scrollbar-thumb,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb,
+.support-sleek-scroll::-webkit-scrollbar-thumb,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb,
+.support-card-scroll::-webkit-scrollbar-thumb,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb,
+.sleek-scrollbar::-webkit-scrollbar-thumb {
+  display: block !important;
+  background: #905FEB !important;
+  border-radius: 9999px !important;
+}
+
+.support-portal-root .support-queue-scrollbar::-webkit-scrollbar-thumb:hover,
+.support-queue-scrollbar::-webkit-scrollbar-thumb:hover,
+.support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb:hover,
+.support-sleek-scroll::-webkit-scrollbar-thumb:hover,
+.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb:hover,
+.support-card-scroll::-webkit-scrollbar-thumb:hover,
+.support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb:hover,
+.sleek-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7D46E7 !important;
+}
+
+/* Screen-ratio & Laptop-Adaptive Responsive Variables */
+:root {
+  --support-portal-pad-y: 12px;
+  --support-portal-pad-x: 16px;
+  --support-sidebar-w: 200px;
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --support-portal-pad-y: 10px;
+    --support-portal-pad-x: 12px;
+    --support-sidebar-w: 190px;
+  }
+}
+
+@media (max-height: 850px) {
+  :root {
+    --support-portal-pad-y: 10px;
+    --support-portal-pad-x: 12px;
+  }
+}
+
+@media (max-height: 720px) {
+  :root {
+    --support-portal-pad-y: 8px;
+    --support-portal-pad-x: 10px;
+  }
+}
+
+/* Desktop / Laptop Viewport Lock: Zero Window / Body Scroll for Support Portal on desktop */
+@media (min-width: 961px) {
+  html:has(.support-portal-root),
+  body:has(.support-portal-root) {
+    overflow: hidden !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .support-portal-root {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: var(--support-portal-pad-y) var(--support-portal-pad-x) !important;
+    display: grid !important;
+    grid-template-columns: var(--support-sidebar-w) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */
+  .support-portal-root .sidebar {
+    width: var(--support-sidebar-w) !important;
+    height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .support-portal-root .sidebar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Main Dashboard Content Viewport locked to remaining height */
+  .support-portal-root .dashboard-content {
+    height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Support view container fills full remaining space without bottom overflow */
+  .support-portal-root .support-view-container {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Mobile & Tablet Adaptation (<= 960px): allow natural vertical scrolling and full-width layout */
+@media (max-width: 960px) {
+  html:has(.support-portal-root),
+  body:has(.support-portal-root) {
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .support-portal-root {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  .support-portal-root > .sidebar {
+    display: none !important;
+  }
+
+  .support-portal-root .dashboard-content {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .support-portal-root .support-view-container {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+}
+
+/* Global design alignment for support containers and card panels */
+.support-portal-root .panel,
+.support-view-container .panel,
+.support-view-container [class*="rounded-2xl"],
+.support-view-container [class*="rounded-3xl"] {
+  border-radius: var(--radius-xl, 24px) !important;
+}
+
+.support-view-container .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.support-view-container .card-title {
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #000;
+}
+
+/* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
+@media (max-height: 860px) {
+  .support-portal-root .metrics-grid {
+    height: 112px !important;
+  }
+  .support-portal-root .metric-card {
+    height: 112px !important;
+  }
+  .support-portal-root .metric-label {
+    top: 22px !important;
+    font-size: 13px !important;
+  }
+  .support-portal-root .metric-icon {
+    top: 14px !important;
+    left: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .support-portal-root .metric-bottom {
+    bottom: 8px !important;
+    left: 14px !important;
+    right: 14px !important;
+  }
+  .support-portal-root .metric-bottom strong {
+    font-size: 24px !important;
+    line-height: 28px !important;
+  }
+  .support-portal-root .metric-bottom span {
+    font-size: 11px !important;
+  }
+  .support-portal-root .dashboard-header {
+    height: 46px !important;
+    margin-bottom: 4px !important;
+  }
+  .support-portal-root .greeting {
+    font-size: 19px !important;
+    line-height: 23px !important;
+  }
+  .support-portal-root .subtitle {
+    font-size: 11px !important;
+  }
+  .support-portal-root .sidebar {
+    padding: 16px 14px 14px !important;
+  }
+  .support-portal-root .sidebar .teacher {
+    margin-top: 16px !important;
+  }
+  .support-portal-root .sidebar nav {
+    margin-top: 16px !important;
+    gap: 4px !important;
+  }
+  .support-portal-root .nav-item {
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-height: 740px) {
+  .support-portal-root .metrics-grid {
+    height: 96px !important;
+  }
+  .support-portal-root .metric-card {
+    height: 96px !important;
+  }
+  .support-portal-root .metric-label {
+    top: 18px !important;
+    left: 50px !important;
+    font-size: 12px !important;
+  }
+  .support-portal-root .metric-icon {
+    top: 10px !important;
+    left: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .support-portal-root .metric-bottom {
+    bottom: 6px !important;
+    left: 10px !important;
+    right: 10px !important;
+  }
+  .support-portal-root .metric-bottom strong {
+    font-size: 20px !important;
+    line-height: 24px !important;
+  }
+  .support-portal-root .dashboard-header {
+    height: 40px !important;
+    margin-bottom: 2px !important;
+  }
+  .support-portal-root .greeting {
+    font-size: 17px !important;
+    line-height: 20px !important;
+  }
+  .support-portal-root .subtitle {
+    font-size: 10.5px !important;
+  }
+  .support-portal-root .sidebar {
+    padding: 12px 10px 10px !important;
+  }
+  .support-portal-root .sidebar .teacher img {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+  }
+  .support-portal-root .sidebar .teacher {
+    margin-top: 10px !important;
+  }
+  .support-portal-root .sidebar nav {
+    margin-top: 10px !important;
+    gap: 2px !important;
+  }
+  .support-portal-root .nav-item {
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+  }
+}

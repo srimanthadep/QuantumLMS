@@ -1,9 +1,17 @@
 import { useState } from "react"
 import { Icon } from "../components/Icon"
 import { HexColorField } from "../components/HexColorField"
+import { demoAccounts } from "../data/adminMockData"
+import type { UserRole } from "../types"
 
 interface AuthPageProps {
-  onLogin: (user: { name: string; role: string; email: string }) => void
+  onLogin: (user: {
+    name: string
+    role: UserRole
+    email: string
+    avatar?: string
+    title?: string
+  }) => void
   hexColor: string
   onChangeHexColor: (color: string) => void
 }
@@ -14,7 +22,7 @@ export default function AuthPage({
   onChangeHexColor,
 }: AuthPageProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin")
-  const [role, setRole] = useState<"Teacher" | "Student" | "Parent" | "Admin">("Teacher")
+  const [role, setRole] = useState<UserRole>("Teacher")
   const [email, setEmail] = useState("srimanth@quantum-lms.edu")
   const [password, setPassword] = useState("quantum2026")
   const [fullName, setFullName] = useState("Srimanth")
@@ -23,32 +31,51 @@ export default function AuthPage({
   const [isLoading, setIsLoading] = useState(false)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
+  const handleRoleSelect = (selectedRole: UserRole) => {
+    setRole(selectedRole)
+    const account = demoAccounts.find((d) => d.role === selectedRole)
+    if (account) {
+      setEmail(account.email)
+      setPassword(account.password)
+      setFullName(account.name)
+    }
+  }
+
+  const handleQuickLaunch = (targetRole: UserRole) => {
+    setIsLoading(true)
+    const account = demoAccounts.find((d) => d.role === targetRole)
+    if (account) {
+      setEmail(account.email)
+      setPassword(account.password)
+      setRole(targetRole)
+      setFullName(account.name)
+      setTimeout(() => {
+        setIsLoading(false)
+        onLogin({
+          name: account.name,
+          role: account.role,
+          email: account.email,
+          avatar: account.avatar,
+          title: account.title,
+        })
+      }, 350)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    const account = demoAccounts.find((d) => d.role === role)
     setTimeout(() => {
       setIsLoading(false)
       onLogin({
-        name: mode === "signin" ? (role === "Teacher" ? "Srimanth" : role) : (fullName || "Educator"),
+        name: mode === "signin" ? (account?.name || fullName || role) : (fullName || "User"),
         role,
         email,
+        avatar: account?.avatar,
+        title: account?.title,
       })
     }, 400)
-  }
-
-  const handleQuickDemo = () => {
-    setIsLoading(true)
-    setEmail("srimanth@quantum-lms.edu")
-    setPassword("quantum2026")
-    setRole("Teacher")
-    setTimeout(() => {
-      setIsLoading(false)
-      onLogin({
-        name: "Srimanth",
-        role: "Teacher",
-        email: "srimanth@quantum-lms.edu",
-      })
-    }, 300)
   }
 
   const handleForgotPassword = () => {
@@ -78,44 +105,122 @@ export default function AuthPage({
 
         {/* Main Double Card Container */}
         <div className="auth-main-card">
-          {/* Left Side: Educational Platform Showcase */}
+          {/* Left Side: Dynamic Educational Showcase */}
           <div className="auth-showcase">
             <div>
-              {/* Lime Hero Banner */}
-              <div className="auth-lime-card">
-                <div className="auth-showcase-badge">
-                  <span>✦</span>
-                  <span>AI Learning Suite</span>
-                </div>
-                <h1 className="auth-lime-heading">
-                  Next-Gen Intelligence for Teachers & Classrooms
-                </h1>
-                <p className="auth-lime-sub">
-                  Real-time diagnostics, adaptive lesson paths, and transparent parental engagement.
-                </p>
-
-                {/* Overlapping student avatar previews */}
-                <div>
-                  <div className="text-[10px] font-bold text-black/70 uppercase tracking-wider mb-1">
-                    Year 4 · 24 Active Students
+              {/* Dynamic Hero Banner based on Active Role */}
+              {role === "Super Admin" ? (
+                <div className="auth-lime-card !bg-linear-to-br !from-red-500 !to-rose-600 text-white">
+                  <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
+                    <span>⚡</span>
+                    <span>Root Master Sovereignty</span>
                   </div>
-                  <div className="auth-avatar-row">
-                    <img src="/assets/student-1.png" alt="Student" className="auth-avatar-item" />
-                    <img src="/assets/student-2.png" alt="Student" className="auth-avatar-item" />
-                    <img src="/assets/student-3.png" alt="Student" className="auth-avatar-item" />
-                    <img src="/assets/student-4.png" alt="Student" className="auth-avatar-item" />
-                    <img src="/assets/student-5.png" alt="Student" className="auth-avatar-item" />
-                    <span className="auth-avatar-count">+19</span>
+                  <h1 className="auth-lime-heading !text-white">
+                    Multi-Campus Cloud Architecture & AI Governance
+                  </h1>
+                  <p className="auth-lime-sub !text-white/90">
+                    Orchestrate neural inference clusters, multi-tenant databases, RBAC permission matrices & cryptographic audit logs.
+                  </p>
+
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                    <span>99.98% Cloud SLA</span>
+                    <span>3 Campus Clusters</span>
+                    <span>1.42M AI Tokens/Day</span>
                   </div>
                 </div>
+              ) : role === "Admin" ? (
+                <div className="auth-lime-card !bg-linear-to-br !from-purple-600 !to-indigo-700 text-white">
+                  <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
+                    <span>🏫</span>
+                    <span>Campus Executive Oversight</span>
+                  </div>
+                  <h1 className="auth-lime-heading !text-white">
+                    Comprehensive School Operations & Faculty Leadership
+                  </h1>
+                  <p className="auth-lime-sub !text-white/90">
+                    Lead 28 verified educators, 480 enrolled students, class scheduling, and statutory accreditation reporting.
+                  </p>
 
-                {/* Playful Hand Art */}
-                <img
-                  src="/assets/hand.png"
-                  alt="Interactive Learning Hand"
-                  className="auth-hand-art"
-                />
-              </div>
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                    <span>480 Enrolled</span>
+                    <span>97.2% Attendance</span>
+                    <span>28 Verified Faculty</span>
+                  </div>
+                </div>
+              ) : role === "Student" ? (
+                <div className="auth-lime-card !bg-linear-to-br !from-blue-500 !to-cyan-600 text-white">
+                  <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
+                    <span>🎒</span>
+                    <span>Interactive Student Suite</span>
+                  </div>
+                  <h1 className="auth-lime-heading !text-white">
+                    Learn at Your Pace with Adaptive Quantum AI
+                  </h1>
+                  <p className="auth-lime-sub !text-white/90">
+                    Daily quests, real-time diagnostic challenges, AI tutor assistance, and exciting XP rank milestones.
+                  </p>
+
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                    <span>1,420 XP</span>
+                    <span>94% Avg Mastery</span>
+                    <span>Top 5% Class Rank</span>
+                  </div>
+                </div>
+              ) : role === "Support" ? (
+                <div className="auth-lime-card !bg-linear-to-br !from-cyan-600 !to-teal-700 text-white">
+                  <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
+                    <span>🎧</span>
+                    <span>Support & Resolution Suite</span>
+                  </div>
+                  <h1 className="auth-lime-heading !text-white">
+                    Omnichannel Helpdesk, Live Chat & Student 360
+                  </h1>
+                  <p className="auth-lime-sub !text-white/90">
+                    Real-time ticket routing, SLA alerts, student telemetry, and multi-agent coordination.
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                    <span>⚡ 98.7% SLA Met</span>
+                    <span>⏱ 2.4m Avg Response</span>
+                    <span>⭐ 4.9/5 CSAT</span>
+                  </div>
+                </div>
+              ) : (
+                /* Teacher Default Banner */
+                <div className="auth-lime-card">
+                  <div className="auth-showcase-badge">
+                    <span>✦</span>
+                    <span>AI Learning Suite</span>
+                  </div>
+                  <h1 className="auth-lime-heading">
+                    Next-Gen Intelligence for Teachers & Classrooms
+                  </h1>
+                  <p className="auth-lime-sub">
+                    Real-time diagnostics, adaptive lesson paths, and transparent parental engagement.
+                  </p>
+
+                  {/* Overlapping student avatar previews */}
+                  <div>
+                    <div className="text-[10px] font-bold text-black/70 uppercase tracking-wider mb-1">
+                      Year 4 · 24 Active Students
+                    </div>
+                    <div className="auth-avatar-row">
+                      <img src="/assets/student-1.png" alt="Student" className="auth-avatar-item" />
+                      <img src="/assets/student-2.png" alt="Student" className="auth-avatar-item" />
+                      <img src="/assets/student-3.png" alt="Student" className="auth-avatar-item" />
+                      <img src="/assets/student-4.png" alt="Student" className="auth-avatar-item" />
+                      <img src="/assets/student-5.png" alt="Student" className="auth-avatar-item" />
+                      <span className="auth-avatar-count">+19</span>
+                    </div>
+                  </div>
+
+                  {/* Playful Hand Art */}
+                  <img
+                    src="/assets/hand.png"
+                    alt="Interactive Learning Hand"
+                    className="auth-hand-art"
+                  />
+                </div>
+              )}
 
               {/* Quick Platform Metrics */}
               <div className="auth-stats-row mt-4">
@@ -134,19 +239,66 @@ export default function AuthPage({
               </div>
             </div>
 
-            {/* Educator Profile Card */}
+            {/* Profile Card according to selected role */}
             <div className="auth-teacher-card">
-              <img src="/assets/srimanth.png" alt="Srimanth" />
+              <img
+                src={
+                  role === "Super Admin"
+                    ? "/assets/srimanth.png"
+                    : role === "Admin"
+                    ? "/assets/student-1.png"
+                    : role === "Student"
+                    ? "/assets/student-2.png"
+                    : role === "Support"
+                    ? "/assets/student-3.png"
+                    : "/assets/srimanth.png"
+                }
+                alt="Account User"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <strong className="text-xs font-bold text-zinc-900">Srimanth</strong>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <strong className="text-xs font-bold text-zinc-900">
+                    {role === "Super Admin"
+                      ? "Dr. Katherine Vance"
+                      : role === "Admin"
+                      ? "Marcus Sterling"
+                      : role === "Student"
+                      ? "Leo Thompson"
+                      : role === "Support"
+                      ? "Alex Rivera"
+                      : "Srimanth"}
+                  </strong>
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      role === "Super Admin"
+                        ? "bg-red-500"
+                        : role === "Support"
+                        ? "bg-cyan-500"
+                        : "bg-emerald-500"
+                    }`}
+                  />
                 </div>
                 <span className="text-[11px] text-zinc-500 font-medium block">
-                  Lead Educator · Year 4 Maple Class
+                  {role === "Super Admin"
+                    ? "Chief System Director & Super Admin"
+                    : role === "Admin"
+                    ? "Principal & Academic Operations Director"
+                    : role === "Student"
+                    ? "Year 4 Student · Maple Class"
+                    : "Lead Educator · Year 4 Maple Class"}
                 </span>
-                <span className="text-[10px] text-purple-700 font-semibold block mt-0.5">
-                  Active Verified Session
+                <span
+                  className={`text-[10px] font-semibold block mt-0.5 ${
+                    role === "Super Admin"
+                      ? "text-red-700"
+                      : role === "Admin"
+                      ? "text-purple-700"
+                      : "text-emerald-700"
+                  }`}
+                >
+                  {role === "Super Admin"
+                    ? "🔒 Root Master Key Verified"
+                    : "Active Verified Session"}
                 </span>
               </div>
             </div>
@@ -155,11 +307,23 @@ export default function AuthPage({
             <div className="auth-feature-bullets">
               <div className="auth-bullet-item">
                 <span className="auth-bullet-icon">✦</span>
-                <span>Automatic AI parent digests generated from weekly tasks</span>
+                <span>
+                  {role === "Super Admin"
+                    ? "256-bit zero-trust tenant encryption across all campus nodes"
+                    : role === "Admin"
+                    ? "Automated faculty class scheduling & teacher workload balancing"
+                    : "Automatic AI parent digests generated from weekly tasks"}
+                </span>
               </div>
               <div className="auth-bullet-item">
                 <span className="auth-bullet-icon">⚡</span>
-                <span>Instant diagnostic grading with personalized skill interventions</span>
+                <span>
+                  {role === "Super Admin"
+                    ? "Live AI model inference tracking & rate limit controls"
+                    : role === "Admin"
+                    ? "School-wide attendance registers & statutory accreditation PDF"
+                    : "Instant diagnostic grading with personalized skill interventions"}
+                </span>
               </div>
             </div>
           </div>
@@ -184,66 +348,113 @@ export default function AuthPage({
               </button>
             </div>
 
-            {/* Role Chips */}
-            <div className="mb-2">
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Select Your Role
+            {/* 1-Click Fast Demo Launcher Cards */}
+            <div className="mb-4">
+              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>⚡ 1-Click Instant Demo Logins</span>
+                <span className="text-purple-600 font-extrabold text-[9px] uppercase">
+                  Direct Access
+                </span>
               </div>
-              <div className="role-chip-group">
+              <div className="grid grid-cols-2 gap-2">
+                {demoAccounts.map((acc) => (
+                  <button
+                    key={acc.role}
+                    type="button"
+                    onClick={() => handleQuickLaunch(acc.role)}
+                    disabled={isLoading}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      role === acc.role
+                        ? "bg-purple-50/80 border-purple-300 shadow-xs"
+                        : "bg-zinc-50/70 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs font-bold text-zinc-900 flex items-center gap-1">
+                        <span>
+                          {acc.role === "Super Admin"
+                            ? "⚡"
+                            : acc.role === "Admin"
+                            ? "🏫"
+                            : acc.role === "Teacher"
+                            ? "🎓"
+                            : "🎒"}
+                        </span>
+                        <span>{acc.role}</span>
+                      </span>
+                      <span
+                        className="text-[8px] font-black uppercase px-1.5 py-0.2 rounded"
+                        style={{
+                          backgroundColor: `${acc.accentColor}18`,
+                          color: acc.accentColor,
+                        }}
+                      >
+                        {acc.badge}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 truncate mt-1">
+                      {acc.name}
+                    </div>
+                    <div className="text-[9px] font-mono text-purple-700 font-bold mt-1">
+                      Launch 1-Click →
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Role Chips */}
+            <div className="mb-3">
+              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                Or Select Your Role
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                <button
+                  type="button"
+                  className={`role-chip ${role === "Super Admin" ? "active !bg-red-50 !border-red-400 !text-red-700" : ""}`}
+                  onClick={() => handleRoleSelect("Super Admin")}
+                  title="Chief System Director / Super Admin"
+                >
+                  <span>⚡</span>
+                  <span className="truncate">Super</span>
+                </button>
+                <button
+                  type="button"
+                  className={`role-chip ${role === "Admin" ? "active !bg-purple-50 !border-purple-400 !text-purple-800" : ""}`}
+                  onClick={() => handleRoleSelect("Admin")}
+                  title="School Principal / Academic Operations Admin"
+                >
+                  <span>🏫</span>
+                  <span className="truncate">Admin</span>
+                </button>
                 <button
                   type="button"
                   className={`role-chip ${role === "Teacher" ? "active" : ""}`}
-                  onClick={() => setRole("Teacher")}
+                  onClick={() => handleRoleSelect("Teacher")}
+                  title="Educator & Classroom Teacher"
                 >
                   <span>🎓</span>
-                  <span>Teacher</span>
+                  <span className="truncate">Teacher</span>
                 </button>
                 <button
                   type="button"
                   className={`role-chip ${role === "Student" ? "active" : ""}`}
-                  onClick={() => setRole("Student")}
+                  onClick={() => handleRoleSelect("Student")}
+                  title="Student Portal"
                 >
                   <span>🎒</span>
-                  <span>Student</span>
+                  <span className="truncate">Student</span>
                 </button>
                 <button
                   type="button"
-                  className={`role-chip ${role === "Parent" ? "active" : ""}`}
-                  onClick={() => setRole("Parent")}
+                  className={`role-chip ${role === "Support" ? "active !bg-cyan-50 !border-cyan-400 !text-cyan-800" : ""}`}
+                  onClick={() => handleRoleSelect("Support")}
+                  title="Omnichannel Support Desk & Ticketing"
                 >
-                  <span>👨‍👩‍👧</span>
-                  <span>Parent</span>
-                </button>
-                <button
-                  type="button"
-                  className={`role-chip ${role === "Admin" ? "active" : ""}`}
-                  onClick={() => setRole("Admin")}
-                >
-                  <span>🏫</span>
-                  <span>Admin</span>
+                  <span>🎧</span>
+                  <span className="truncate">Support</span>
                 </button>
               </div>
-            </div>
-
-            {/* 1-Click Fast Demo Box */}
-            <div className="auth-demo-box">
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-purple-900 flex items-center gap-1.5">
-                  <span>✨</span>
-                  <span>Interactive Teacher Demo</span>
-                </div>
-                <div className="text-[10px] text-zinc-600 font-medium">
-                  Instant access to Srimanth&apos;s live classroom
-                </div>
-              </div>
-              <button
-                type="button"
-                className="auth-demo-btn"
-                onClick={handleQuickDemo}
-                disabled={isLoading}
-              >
-                {isLoading ? "Launching..." : "1-Click Launch →"}
-              </button>
             </div>
 
             {infoMessage && (
@@ -265,7 +476,7 @@ export default function AuthPage({
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Srimanth"
+                      placeholder="e.g. Marcus Sterling"
                     />
                   </div>
                 </div>
@@ -339,13 +550,19 @@ export default function AuthPage({
                 disabled={isLoading}
                 className="auth-submit-btn"
               >
-                <span>{isLoading ? "Signing in..." : mode === "signin" ? "Sign In to Classroom →" : "Create Account & Launch →"}</span>
+                <span>
+                  {isLoading
+                    ? "Signing in..."
+                    : mode === "signin"
+                    ? `Sign In as ${role} →`
+                    : `Create ${role} Account & Launch →`}
+                </span>
               </button>
             </form>
 
             {/* Divider */}
             <div className="auth-divider">
-              <span>Or Continue With</span>
+              <span>Or Continue With SSO</span>
             </div>
 
             {/* SSO Buttons */}
@@ -353,7 +570,7 @@ export default function AuthPage({
               <button
                 type="button"
                 className="auth-sso-btn"
-                onClick={handleQuickDemo}
+                onClick={() => handleQuickLaunch(role)}
               >
                 <span className="text-emerald-600">📗</span>
                 <span>Google Classroom</span>
@@ -361,10 +578,10 @@ export default function AuthPage({
               <button
                 type="button"
                 className="auth-sso-btn"
-                onClick={handleQuickDemo}
+                onClick={() => handleQuickLaunch(role)}
               >
                 <span className="text-blue-600">🔷</span>
-                <span>School SSO</span>
+                <span>School SSO Identity</span>
               </button>
             </div>
 

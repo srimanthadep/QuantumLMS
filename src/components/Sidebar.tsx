@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import type { IconName } from "../types"
+import { useState, useEffect } from "react"
+import type { IconName, CurrentUser, UserRole } from "../types"
 import { Icon } from "./Icon"
 import { HexColorField } from "./HexColorField"
 
@@ -15,12 +15,93 @@ export function Logo() {
   )
 }
 
-export function TeacherProfile() {
+export function TeacherProfile({
+  currentUser,
+  onSwitchRole,
+}: {
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
+}) {
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
+  const displayName = currentUser?.name || "Srimanth"
+  const avatar = currentUser?.avatar || "/assets/srimanth.png"
+  const roleName = currentUser?.role || "Teacher"
+
   return (
-    <div className="teacher">
-      <img src="/assets/srimanth.png" alt="Srimanth" />
-      <strong>Srimanth</strong>
-      <span>Teacher</span>
+    <div
+      className="teacher relative"
+      style={{ cursor: onSwitchRole ? "pointer" : "default" }}
+      onClick={() => onSwitchRole && setShowRoleSwitcher(!showRoleSwitcher)}
+      title={onSwitchRole ? "Click to switch role perspective" : undefined}
+    >
+      <img src={avatar} alt={displayName} />
+      <strong>{displayName}</strong>
+      <span className="flex items-center justify-center gap-1">
+        <span>{roleName}</span>
+        {onSwitchRole && <span className="text-[9px] text-purple-600 font-bold">▾</span>}
+      </span>
+
+      {showRoleSwitcher && onSwitchRole && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
+            Switch Perspective
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Super Admin")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+          >
+            <span>⚡ Super Admin</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Admin")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+          >
+            <span>🏫 School Admin</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Teacher")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between bg-purple-50 text-purple-800 cursor-pointer"
+          >
+            <span>🎓 Teacher</span>
+            <span className="text-purple-600 font-bold">✓</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Student")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+          >
+            <span>🎒 Student</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Support")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+          >
+            <span>🎧 Support Desk</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -35,9 +116,12 @@ export function NavigationList({
   onItemClick?: () => void
 }) {
   const navigation = [
-    { icon: "home" as IconName, label: "Class" },
-    { icon: "users" as IconName, label: "Students" },
-    { icon: "reports" as IconName, label: "Reports" },
+    { icon: "home" as IconName, label: "Dashboard" },
+    { icon: "book" as IconName, label: "My Courses" },
+    { icon: "users" as IconName, label: "My Students" },
+    { icon: "message-circle" as IconName, label: "Doubts" },
+    { icon: "calendar" as IconName, label: "Calendar" },
+    { icon: "video" as IconName, label: "Live Class" },
     { icon: "analytics" as IconName, label: "Analytics" },
     { icon: "settings" as IconName, label: "Settings" },
   ]
@@ -45,7 +129,10 @@ export function NavigationList({
   return (
     <nav aria-label="Dashboard navigation">
       {navigation.map((item) => {
-        const isActive = activeTab === item.label
+        const isActive =
+          activeTab === item.label ||
+          (item.label === "Dashboard" && activeTab === "Class") ||
+          (item.label === "My Students" && activeTab === "Students")
         return (
           <button
             key={item.label}
@@ -68,15 +155,19 @@ export function DesktopSidebar({
   activeTab,
   setActiveTab,
   onLogout,
+  currentUser,
+  onSwitchRole,
 }: {
   activeTab: string
   setActiveTab: (tab: string) => void
   onLogout: () => void
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
 }) {
   return (
     <aside className="sidebar" aria-label="Main sidebar">
       <Logo />
-      <TeacherProfile />
+      <TeacherProfile currentUser={currentUser} onSwitchRole={onSwitchRole} />
       <NavigationList activeTab={activeTab} setActiveTab={setActiveTab} />
       <button
         className="logout-btn"
@@ -98,6 +189,8 @@ export function MobileDrawer({
   onLogout,
   hexColor,
   onChangeHexColor,
+  currentUser,
+  onSwitchRole,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -106,6 +199,8 @@ export function MobileDrawer({
   onLogout: () => void
   hexColor: string
   onChangeHexColor: (color: string) => void
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
 }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -147,7 +242,13 @@ export function MobileDrawer({
               <Icon name="close" size={18} />
             </button>
           </div>
-          <TeacherProfile />
+          <TeacherProfile
+            currentUser={currentUser}
+            onSwitchRole={(r) => {
+              onClose()
+              onSwitchRole?.(r)
+            }}
+          />
           <div className="mt-4">
             <NavigationList
               activeTab={activeTab}

@@ -1,0 +1,534 @@
+import React, { useState, useEffect } from "react"
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  useNavigate,
+  Navigate,
+} from "react-router-dom"
+import type { UserRole, CurrentUser, IconName } from "@/types"
+import { Icon } from "@/components/Icon"
+import { HexColorField } from "@/components/HexColorField"
+import { NotificationProvider } from "@/context/NotificationContext"
+import "./supportTheme.css"
+
+// Import all Support sub-pages
+import { SupportDashboard } from "./SupportDashboard"
+import { TicketsInboxPage } from "./TicketsInboxPage"
+import { TicketDetailPage } from "./TicketDetailPage"
+import { LiveChatPage } from "./LiveChatPage"
+import { KnowledgeBasePage } from "./KnowledgeBasePage"
+import { SlaEscalationsPage } from "./SlaEscalationsPage"
+import { SupportAgentsPage } from "./SupportAgentsPage"
+import { SupportAnalyticsPage } from "./SupportAnalyticsPage"
+import { Student360Page } from "./Student360Page"
+import { SupportSettingsPage } from "./SupportSettingsPage"
+
+export interface SupportPortalProps {
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
+  onOpenAiModal?: () => void
+  onSwitchToTeacher?: () => void
+  onSwitchToStudent?: () => void
+  onLogout?: () => void
+  onToast?: (msg: string) => void
+  hexColor?: string
+  onChangeHexColor?: (c: string) => void
+  isLightBg?: boolean
+}
+
+type SupportTab =
+  | "dashboard"
+  | "inbox"
+  | "live-chat"
+  | "knowledge-base"
+  | "sla-escalations"
+  | "agents"
+  | "analytics"
+  | "student-360"
+  | "settings"
+
+interface NavItem {
+  key: SupportTab
+  label: string
+  path: string
+  icon: IconName
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", label: "Dashboard", path: "/support/dashboard", icon: "home" },
+  { key: "inbox", label: "Tickets Inbox", path: "/support/inbox", icon: "mail" },
+  { key: "live-chat", label: "Live Chat", path: "/support/live-chat", icon: "message-circle" },
+  { key: "knowledge-base", label: "Knowledge Base", path: "/support/knowledge-base", icon: "book" },
+  { key: "sla-escalations", label: "SLA & Escalations", path: "/support/sla-escalations", icon: "fire" },
+  { key: "agents", label: "Support Agents", path: "/support/agents", icon: "users" },
+  { key: "analytics", label: "Analytics", path: "/support/analytics", icon: "analytics" },
+  { key: "student-360", label: "Student 360", path: "/support/student-360", icon: "compass" },
+  { key: "settings", label: "Settings", path: "/support/settings", icon: "settings" },
+]
+
+function SupportSidebar({
+  currentUser,
+  onSwitchRole,
+  onLogout,
+  onCloseDrawer,
+}: {
+  currentUser?: CurrentUser
+  onSwitchRole?: (role: UserRole) => void
+  onLogout?: () => void
+  onCloseDrawer?: () => void
+}) {
+  const location = useLocation()
+  const currentPath = location.pathname.toLowerCase()
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
+
+  const isItemActive = (item: NavItem) => {
+    if (
+      item.key === "dashboard" &&
+      (currentPath === "/support" ||
+        currentPath === "/support/" ||
+        currentPath === "/support/dashboard")
+    ) {
+      return true
+    }
+    if (
+      item.key === "inbox" &&
+      (currentPath.startsWith("/support/inbox") || currentPath.startsWith("/support/tickets"))
+    ) {
+      return true
+    }
+    return currentPath.startsWith(item.path)
+  }
+
+  const userDisplayName = currentUser?.name || "Alex Rivera"
+  const userAvatar = currentUser?.avatar || "/assets/student-3.png"
+
+  return (
+    <aside className="sidebar" aria-label="Support sidebar">
+      {/* Brand Logo - identical to teacher and admin sidebar */}
+      <div className="logo" aria-label="Quantum School of AI">
+        <Link to="/support/dashboard" onClick={onCloseDrawer}>
+          <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+        </Link>
+      </div>
+
+      {/* Support User Profile Block - matches canonical .teacher layout */}
+      <div
+        className="teacher relative"
+        style={{ cursor: "pointer" }}
+        onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
+        title="Click to switch perspective"
+      >
+        <img src={userAvatar} alt={userDisplayName} />
+        <strong>{userDisplayName}</strong>
+        <span className="flex items-center justify-center gap-1">
+          <span>Support Desk</span>
+          <span className="text-[9px] text-purple-600 font-bold">▾</span>
+        </span>
+
+        {/* Interactive Role Switcher Popup */}
+        {showRoleSwitcher && onSwitchRole && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
+              Switch Perspective
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Super Admin")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>⚡ Super Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Admin")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🏫 School Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Teacher")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🎓 Teacher</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Student")
+                setShowRoleSwitcher(false)
+                onCloseDrawer?.()
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+            >
+              <span>🎒 Student</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchRole("Support")
+                setShowRoleSwitcher(false)
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between bg-cyan-50 text-cyan-800 cursor-pointer"
+            >
+              <span>🎧 Support Desk</span>
+              <span className="text-cyan-600 font-bold">✓</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation List - matches teacher and admin navigation styles */}
+      <nav aria-label="Support navigation">
+        {NAV_ITEMS.map((item) => {
+          const active = isItemActive(item)
+          return (
+            <Link
+              key={item.key}
+              to={item.path}
+              onClick={onCloseDrawer}
+              className={active ? "nav-item active" : "nav-item"}
+              title={item.label}
+            >
+              <Icon name={item.icon} size={18} />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Logout Button - identical to teacher and admin sidebar */}
+      {onLogout && (
+        <button
+          className="logout-btn"
+          onClick={() => {
+            onCloseDrawer?.()
+            onLogout()
+          }}
+          aria-label="Log Out"
+        >
+          <Icon name="logout" size={15} />
+          <span>Log Out</span>
+        </button>
+      )}
+    </aside>
+  )
+}
+
+function SupportLayout({
+  children,
+  currentUser,
+  onSwitchRole,
+  onSwitchToTeacher,
+  onSwitchToStudent,
+  onLogout,
+  onOpenAiModal,
+  hexColor,
+  onChangeHexColor,
+  isLightBg,
+}: SupportPortalProps & { children: React.ReactNode }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("")
+  const location = useLocation()
+
+  // Lock window and document scroll while in Support Portal on desktop
+  useEffect(() => {
+    const applyScrollLock = () => {
+      if (typeof window !== "undefined" && window.innerWidth > 960) {
+        document.documentElement.style.overflow = "hidden"
+        document.body.style.overflow = "hidden"
+        document.body.style.height = "100vh"
+      } else {
+        document.documentElement.style.overflow = ""
+        document.body.style.overflow = ""
+        document.body.style.height = ""
+      }
+    }
+
+    applyScrollLock()
+    window.addEventListener("resize", applyScrollLock)
+    return () => {
+      window.removeEventListener("resize", applyScrollLock)
+      document.documentElement.style.overflow = ""
+      document.body.style.overflow = ""
+      document.body.style.height = ""
+    }
+  }, [])
+
+  // Reset scroll to top on navigation
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
+  const userFirstName = (currentUser?.name || "Alex").split(" ")[0]
+
+  return (
+    <div
+      className="dashboard-shell support-portal-root"
+      style={{
+        backgroundColor: hexColor || "var(--bg-custom, #9860e9)",
+        backgroundImage: isLightBg
+          ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
+          : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
+      }}
+    >
+      {/* Desktop Persistent Sidebar */}
+      <SupportSidebar
+        currentUser={currentUser}
+        onSwitchRole={onSwitchRole}
+        onLogout={onLogout}
+      />
+
+      {/* Mobile Top Header */}
+      <div className="mobile-top-bar col-span-full">
+        <div className="flex items-center gap-3">
+          <button
+            className="mobile-nav-btn"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Open navigation menu"
+          >
+            <Icon name="menu" size={20} />
+          </button>
+          <div className="logo">
+            <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {onChangeHexColor && (
+            <div className="scale-90">
+              <HexColorField
+                hexColor={hexColor || "#9860e9"}
+                onChangeHex={onChangeHexColor}
+              />
+            </div>
+          )}
+          <img
+            src={currentUser?.avatar || "/assets/student-3.png"}
+            alt={currentUser?.name || "Support"}
+            className="w-8 h-8 rounded-full object-cover border border-purple-300"
+          />
+        </div>
+      </div>
+
+      {/* Mobile Slide-out Drawer */}
+      {isMobileMenuOpen && (
+        <>
+          <div
+            className="drawer-overlay"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="drawer-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Support Navigation drawer"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-purple-200/50">
+              <div className="logo">
+                <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors text-zinc-700"
+                aria-label="Close menu"
+              >
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="mt-2">
+              <SupportSidebar
+                currentUser={currentUser}
+                onSwitchRole={onSwitchRole}
+                onLogout={onLogout}
+                onCloseDrawer={() => setIsMobileMenuOpen(false)}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main Support Content Viewport */}
+      <main className="dashboard-content">
+        {/* Canonical Dashboard Header - perfectly aligned with Teacher & Admin */}
+        <header className="dashboard-header">
+          <div className="min-w-fit flex-shrink-0">
+            <div className="greeting whitespace-nowrap">
+              <span>Good morning, {userFirstName}</span>
+              <span className="wave-emoji" role="img" aria-label="waving hand">
+                👋
+              </span>
+            </div>
+            <div className="subtitle whitespace-nowrap">
+              24 active student tickets · 3 live chats waiting · 98.7% SLA resolution
+            </div>
+          </div>
+
+          <div className="header-actions flex-shrink-0">
+            {/* Search Box */}
+            <div className="search-box !w-[155px] md:!w-[190px]">
+              <Icon name="search" size={15} />
+              <input
+                type="text"
+                value={headerSearchQuery}
+                onChange={(e) => setHeaderSearchQuery(e.target.value)}
+                placeholder="Search tickets, students..."
+                aria-label="Search support desk"
+              />
+              {headerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setHeaderSearchQuery("")}
+                  className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1 cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* Quick Role Switcher Pill */}
+            {onSwitchRole && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                  className="px-3 h-[35px] rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-cyan-700 transition-colors cursor-pointer whitespace-nowrap"
+                  aria-label="Switch active role view"
+                >
+                  <span>🎧 Support Desk</span>
+                  <span className="text-[10px] text-cyan-200">▾</span>
+                </button>
+
+                {showRoleDropdown && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
+                      Switch Role View
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Teacher")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🎓 Teacher Portal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Student")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🎒 Student Portal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Admin")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>🏫 School Admin</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchRole("Super Admin")
+                        setShowRoleDropdown(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    >
+                      <span>⚡ Super Admin</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hex Color Field */}
+            {onChangeHexColor && (
+              <HexColorField
+                hexColor={hexColor || "#9860e9"}
+                onChangeHex={onChangeHexColor}
+              />
+            )}
+
+            {/* Ask AI Pill */}
+            {onOpenAiModal && (
+              <button
+                type="button"
+                className="ask-ai cursor-pointer"
+                onClick={onOpenAiModal}
+                aria-label="Ask Support AI"
+              >
+                <span>✦</span>
+                Ask AI
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Viewport Content - standard 8px gap */}
+        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-2 pb-0 overflow-hidden">
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export function SupportPortal(props: SupportPortalProps) {
+  return (
+    <NotificationProvider>
+      <BrowserRouter>
+        <SupportLayout {...props}>
+          <Routes>
+            <Route path="/support" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
+            <Route path="/support/dashboard" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
+            <Route path="/support/inbox" element={<TicketsInboxPage />} />
+            <Route path="/support/tickets" element={<TicketsInboxPage />} />
+            <Route path="/support/ticket/:ticketId" element={<TicketDetailPage />} />
+            <Route path="/support/tickets/:ticketId" element={<TicketDetailPage />} />
+            <Route path="/support/live-chat" element={<LiveChatPage />} />
+            <Route path="/support/knowledge-base" element={<KnowledgeBasePage />} />
+            <Route path="/support/sla-escalations" element={<SlaEscalationsPage />} />
+            <Route path="/support/agents" element={<SupportAgentsPage />} />
+            <Route path="/support/analytics" element={<SupportAnalyticsPage />} />
+            <Route path="/support/student-360" element={<Student360Page />} />
+            <Route path="/support/settings" element={<SupportSettingsPage />} />
+            <Route path="*" element={<Navigate to="/support" replace />} />
+          </Routes>
+        </SupportLayout>
+      </BrowserRouter>
+    </NotificationProvider>
+  )
+}
+
+export default SupportPortal
