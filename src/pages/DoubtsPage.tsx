@@ -151,7 +151,7 @@ function DoubtDetailsModal({
                 alt={doubt.studentName}
                 className="w-12 h-12 rounded-xl object-cover border border-purple-200 shrink-0"
                 onError={(e) => {
-                  ;(e.target as HTMLImageElement).src = "/assets/student-1.png"
+                  ; (e.target as HTMLImageElement).src = "/assets/student-1.png"
                 }}
               />
               <div>
@@ -168,24 +168,22 @@ function DoubtDetailsModal({
 
             <div className="flex items-center gap-2">
               <span
-                className={`px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
-                  doubt.priority === "High"
+                className={`px-2 py-0.5 rounded-full text-[10.5px] font-bold ${doubt.priority === "High"
                     ? "bg-rose-100 text-rose-800 border border-rose-200"
                     : doubt.priority === "Low"
-                    ? "bg-zinc-100 text-zinc-700 border border-zinc-200"
-                    : "bg-amber-100 text-amber-800 border border-amber-200"
-                }`}
+                      ? "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                      : "bg-amber-100 text-amber-800 border border-amber-200"
+                  }`}
               >
                 {doubt.priority || "Medium"} Priority
               </span>
               <span
-                className={`status ${
-                  doubt.status === "Resolved"
+                className={`status ${doubt.status === "Resolved"
                     ? "green"
                     : doubt.status === "In Progress"
-                    ? "purple"
-                    : "yellow"
-                }`}
+                      ? "purple"
+                      : "yellow"
+                  }`}
               >
                 {doubt.status || "Pending"}
               </span>
@@ -247,38 +245,36 @@ function DoubtDetailsModal({
               ) : (
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
                   {responsesList.map((resp) => (
-                <div
-                  key={resp.id}
-                  className={`p-3 rounded-xl text-xs border ${
-                    resp.authorRole === "Teacher"
-                      ? "bg-purple-50/80 border-purple-200 ml-4"
-                      : "bg-white border-gray-200 mr-4"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={resp.authorAvatar || (resp.authorRole === "Teacher" ? "/assets/srimanth.png" : "/assets/student-1.png")}
-                        alt={resp.author}
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
-                      <strong className="text-zinc-900 font-bold">{resp.author}</strong>
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
-                          resp.authorRole === "Teacher"
-                            ? "bg-purple-200 text-purple-900"
-                            : "bg-gray-100 text-zinc-700"
+                    <div
+                      key={resp.id}
+                      className={`p-3 rounded-xl text-xs border ${resp.authorRole === "Teacher"
+                          ? "bg-purple-50/80 border-purple-200 ml-4"
+                          : "bg-white border-gray-200 mr-4"
                         }`}
-                      >
-                        {resp.authorRole}
-                      </span>
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <img
+                            src={resp.authorAvatar || (resp.authorRole === "Teacher" ? "/assets/srimanth.png" : "/assets/student-1.png")}
+                            alt={resp.author}
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                          <strong className="text-zinc-900 font-bold">{resp.author}</strong>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${resp.authorRole === "Teacher"
+                                ? "bg-purple-200 text-purple-900"
+                                : "bg-gray-100 text-zinc-700"
+                              }`}
+                          >
+                            {resp.authorRole}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-zinc-400">{resp.createdAt}</span>
+                      </div>
+                      <p className="text-zinc-700 leading-relaxed whitespace-pre-wrap pl-6">
+                        {resp.text}
+                      </p>
                     </div>
-                    <span className="text-[10px] text-zinc-400">{resp.createdAt}</span>
-                  </div>
-                  <p className="text-zinc-700 leading-relaxed whitespace-pre-wrap pl-6">
-                    {resp.text}
-                  </p>
-                </div>
                   ))}
                 </div>
               )}
@@ -748,7 +744,7 @@ export default function DoubtsPage({
                         alt={doubt.studentName}
                         className="w-8 h-8 rounded-full object-cover border border-purple-200 shrink-0"
                         onError={(e) => {
-                          ;(e.target as HTMLImageElement).src = "/assets/student-1.png"
+                          ; (e.target as HTMLImageElement).src = "/assets/student-1.png"
                         }}
                       />
                       <div className="min-w-0 flex-1">
@@ -796,13 +792,12 @@ export default function DoubtsPage({
                     {/* 5. Priority */}
                     <div className="pr-1">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          doubt.priority === "High"
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${doubt.priority === "High"
                             ? "bg-rose-100 text-rose-800 border border-rose-200"
                             : doubt.priority === "Medium"
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-zinc-100 text-zinc-700 border border-zinc-200"
-                        }`}
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                          }`}
                       >
                         {doubt.priority}
                       </span>
@@ -811,13 +806,12 @@ export default function DoubtsPage({
                     {/* 6. Status */}
                     <div className="pr-1">
                       <span
-                        className={`status ${
-                          doubt.status === "Resolved"
+                        className={`status ${doubt.status === "Resolved"
                             ? "green"
                             : doubt.status === "In Progress"
-                            ? "purple"
-                            : "yellow"
-                        }`}
+                              ? "purple"
+                              : "yellow"
+                          }`}
                       >
                         {doubt.status}
                       </span>

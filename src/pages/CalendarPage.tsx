@@ -821,11 +821,10 @@ export default function CalendarPage({
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
-                    viewMode === mode
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${viewMode === mode
                       ? "bg-white text-purple-700 shadow-xs border border-gray-200"
                       : "text-zinc-500 hover:text-zinc-800"
-                  }`}
+                    }`}
                   aria-pressed={viewMode === mode}
                 >
                   {mode}
@@ -863,19 +862,17 @@ export default function CalendarPage({
                         onClick={() => {
                           handleSelectDateAndJump(cell.dateStr)
                         }}
-                        className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${
-                          cell.isCurrentMonth ? "bg-white" : "bg-gray-50/60 text-zinc-400"
-                        } hover:bg-purple-50/20 cursor-pointer`}
+                        className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${cell.isCurrentMonth ? "bg-white" : "bg-gray-50/60 text-zinc-400"
+                          } hover:bg-purple-50/20 cursor-pointer`}
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
-                              isToday
+                            className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${isToday
                                 ? "bg-purple-600 text-white shadow-xs"
                                 : cell.isCurrentMonth
-                                ? "text-zinc-800"
-                                : "text-zinc-400"
-                            }`}
+                                  ? "text-zinc-800"
+                                  : "text-zinc-400"
+                              }`}
                           >
                             {cell.dayNum}
                           </span>
@@ -945,9 +942,8 @@ export default function CalendarPage({
                           {d.dayName}
                         </span>
                         <span
-                          className={`inline-block mt-0.5 text-sm font-bold w-7 h-7 rounded-full leading-7 ${
-                            isToday ? "bg-purple-600 text-white" : "text-zinc-800"
-                          }`}
+                          className={`inline-block mt-0.5 text-sm font-bold w-7 h-7 rounded-full leading-7 ${isToday ? "bg-purple-600 text-white" : "text-zinc-800"
+                            }`}
                         >
                           {d.dayNum}
                         </span>

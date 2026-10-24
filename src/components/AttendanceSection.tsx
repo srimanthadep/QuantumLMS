@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import type { LiveAttendanceRecord, AttendanceStatus, LiveSessionItem } from "../types"
 import { Icon } from "./Icon"
 
@@ -28,6 +28,30 @@ export default function AttendanceSection({
 
   // Selected Student for Detail Modal
   const [detailStudent, setDetailStudent] = useState<LiveAttendanceRecord | null>(null)
+
+  // Students Popup Modal state & internal filters
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false)
+  const [popupSearchQuery, setPopupSearchQuery] = useState("")
+  const [popupStatusFilter, setPopupStatusFilter] = useState<string>("All")
+
+  // Escape key handler for both modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (detailStudent) {
+          setDetailStudent(null)
+        } else if (isStudentsModalOpen) {
+          setIsStudentsModalOpen(false)
+        }
+      }
+    }
+    if (isStudentsModalOpen || detailStudent) {
+      window.addEventListener("keydown", handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isStudentsModalOpen, detailStudent])
 
   // Current session object
   const currentSession = useMemo(() => {
@@ -77,6 +101,23 @@ export default function AttendanceSection({
         return 0
       })
   }, [sessionRecords, statusFilter, searchQuery, sortBy])
+
+  // Filtered Records specifically for the Students Popup Modal (independent from main table filters)
+  const modalDisplayedStudents = useMemo(() => {
+    return sessionRecords.filter((rec) => {
+      if (popupStatusFilter !== "All" && rec.status !== popupStatusFilter) return false
+      if (popupSearchQuery.trim()) {
+        const q = popupSearchQuery.toLowerCase()
+        return (
+          rec.studentName.toLowerCase().includes(q) ||
+          rec.studentRoll.toLowerCase().includes(q) ||
+          rec.email.toLowerCase().includes(q) ||
+          (rec.deviceUsed && rec.deviceUsed.toLowerCase().includes(q))
+        )
+      }
+      return true
+    })
+  }, [sessionRecords, popupStatusFilter, popupSearchQuery])
 
   const isFiltered = statusFilter !== "All" || searchQuery.trim().length > 0 || sortBy !== "name-asc"
 
@@ -138,13 +179,19 @@ export default function AttendanceSection({
       {/* 1. Header & Session Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className={`text-base font-bold ${isStudioMode ? "text-white" : "text-zinc-900"}`}>
               Live Class Attendance
             </h3>
-            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-              {metrics.total} Enrolled Students
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsStudentsModalOpen(true)}
+              className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              title="Click to view enrolled students popup"
+            >
+              <Icon name="users" size={12} />
+              <span>{metrics.total} Enrolled Students</span>
+            </button>
             <span className="text-[10px] text-zinc-400 font-semibold bg-gray-100 px-2 py-0.5 rounded-full">
               Simulated Attendance Roster
             </span>
@@ -170,6 +217,17 @@ export default function AttendanceSection({
             </select>
           )}
 
+          {/* Students Popup Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsStudentsModalOpen(true)}
+            className="px-3.5 h-8.5 rounded-xl border border-purple-200 hover:border-purple-300 bg-purple-50 hover:bg-purple-100/70 text-purple-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            title="Open Students attendance popup"
+          >
+            <Icon name="users" size={14} />
+            <span>Students ({metrics.total})</span>
+          </button>
+
           <button
             type="button"
             onClick={handleExportCsv}
@@ -186,9 +244,15 @@ export default function AttendanceSection({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Total Enrolled */}
         <div
-          className={`p-3.5 rounded-2xl border ${
-            isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
-          }`}
+          onClick={() => setIsStudentsModalOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setIsStudentsModalOpen(true)
+          }}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm group ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+            }`}
+          title="Click to view enrolled students popup"
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block mb-1">
             Total Enrolled
@@ -196,14 +260,16 @@ export default function AttendanceSection({
           <span className={`text-xl sm:text-2xl font-black ${isStudioMode ? "text-white" : "text-zinc-900"}`}>
             {metrics.total}
           </span>
-          <span className="text-[10.5px] text-zinc-500 block mt-0.5">Cohort Roster</span>
+          <span className="text-[10.5px] text-purple-600 font-semibold flex items-center gap-1 mt-0.5 group-hover:underline">
+            <span>View Students</span>
+            <span>→</span>
+          </span>
         </div>
 
         {/* Present */}
         <div
-          className={`p-3.5 rounded-2xl border ${
-            isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
-          }`}
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+            }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 block mb-1">
             Present
@@ -216,9 +282,8 @@ export default function AttendanceSection({
 
         {/* Late */}
         <div
-          className={`p-3.5 rounded-2xl border ${
-            isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
-          }`}
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+            }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 block mb-1">
             Late Arrival
@@ -231,9 +296,8 @@ export default function AttendanceSection({
 
         {/* Absent */}
         <div
-          className={`p-3.5 rounded-2xl border ${
-            isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
-          }`}
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+            }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 block mb-1">
             Absent
@@ -246,9 +310,8 @@ export default function AttendanceSection({
 
         {/* Attendance Percentage */}
         <div
-          className={`p-3.5 rounded-2xl border col-span-2 sm:col-span-1 ${
-            isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
-          }`}
+          className={`p-3.5 rounded-2xl border col-span-2 sm:col-span-1 ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+            }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 block mb-1">
             Attendance Rate
@@ -357,7 +420,7 @@ export default function AttendanceSection({
             No student records match your selected filter or search criteria.
           </div>
         ) : (
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full min-w-[680px] text-left border-collapse text-xs">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200 text-zinc-500 font-bold text-[10.5px] uppercase tracking-wider">
                 <th className="py-3 px-3.5">Student</th>
@@ -444,10 +507,210 @@ export default function AttendanceSection({
         </div>
       </div>
 
-      {/* 5. Student Attendance Details Modal */}
+      {/* 5. Session Enrolled Students Roster Popup Modal */}
+      {isStudentsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsStudentsModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Enrolled students attendance roster for ${currentSession?.title || "Live Class"}`}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden text-zinc-900 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-150 flex items-start justify-between gap-3 bg-gray-50/80">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold text-[10.5px]">
+                    {currentSession?.courseCode || "LIVE"}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {sessionRecords.length} Enrolled Students
+                  </span>
+                  <span className="text-xs text-zinc-400">·</span>
+                  <span className="text-xs text-zinc-500 font-medium">
+                    {currentSession?.scheduledDate || "Today"} · {currentSession?.startTime} – {currentSession?.endTime}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-zinc-900 truncate">
+                  {currentSession?.title || "Live Academic Session"}
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Complete attendance verification roster, join/leave timestamps, and duration records.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsStudentsModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-200/80 hover:bg-gray-300 text-zinc-700 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer shrink-0"
+                aria-label="Close students popup"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Internal Search & Status Filter Pills */}
+            <div className="p-3 sm:px-5 sm:py-3 border-b border-gray-150 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="tablist" aria-label="Filter roster by status">
+                {(["All", "Present", "Late", "Left Early", "Absent"] as const).map((st) => {
+                  const count =
+                    st === "All"
+                      ? sessionRecords.length
+                      : sessionRecords.filter((r) => r.status === st).length
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setPopupStatusFilter(st)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${popupStatusFilter === st
+                          ? "bg-purple-600 text-white shadow-2xs"
+                          : "bg-gray-100 hover:bg-gray-200 text-zinc-700"
+                        }`}
+                      aria-selected={popupStatusFilter === st}
+                    >
+                      {st} ({count})
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="search-box !h-8 !w-full sm:!w-64 shrink-0">
+                <Icon name="search" size={13} />
+                <input
+                  type="text"
+                  value={popupSearchQuery}
+                  onChange={(e) => setPopupSearchQuery(e.target.value)}
+                  placeholder="Search student or ID..."
+                  className="text-xs"
+                  aria-label="Filter students in popup"
+                />
+                {popupSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setPopupSearchQuery("")}
+                    className="text-xs text-zinc-400 hover:text-zinc-700 px-1 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable Student List */}
+            <div className="flex-1 overflow-y-auto no-scrollbar p-3 sm:p-5 space-y-2">
+              {modalDisplayedStudents.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-150 my-2">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mx-auto mb-2">
+                    <Icon name="users" size={18} />
+                  </div>
+                  <strong className="text-sm text-zinc-800 block">No students match your filter</strong>
+                  <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+                    No enrolled student records found matching "{popupSearchQuery || popupStatusFilter}".
+                  </p>
+                  {(popupSearchQuery || popupStatusFilter !== "All") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPopupSearchQuery("")
+                        setPopupStatusFilter("All")
+                      }}
+                      className="mt-3 px-3.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors cursor-pointer"
+                    >
+                      Reset Filter
+                    </button>
+                  )}
+                </div>
+              ) : (
+                modalDisplayedStudents.map((st) => (
+                  <div
+                    key={st.id}
+                    onClick={() => setDetailStudent(st)}
+                    className="p-3 sm:p-3.5 rounded-xl border border-gray-150 hover:border-purple-300 hover:bg-purple-50/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setDetailStudent(st)
+                    }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={st.studentAvatar || "/assets/student-1.png"}
+                        alt={st.studentName}
+                        className="w-9 h-9 rounded-xl object-cover border border-gray-200 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <strong className="text-xs sm:text-sm text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
+                            {st.studentName}
+                          </strong>
+                          <span className="font-mono text-[11px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-100">
+                            {st.studentRoll}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-zinc-400 truncate mt-0.5 flex items-center gap-2">
+                          <span>{st.email}</span>
+                          <span>·</span>
+                          <span>Device: {st.deviceUsed || "Desktop"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 text-xs">
+                      <div className="text-right">
+                        <div className="font-mono text-zinc-700 text-[11px]">
+                          {st.joinTime} – {st.leaveTime}
+                        </div>
+                        <div className="text-[10.5px] text-zinc-400">
+                          Duration: {st.durationFormatted}
+                        </div>
+                      </div>
+
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shrink-0 ${getStatusBadge(st.status)}`}>
+                        {st.status}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDetailStudent(st)
+                        }}
+                        className="text-xs text-purple-700 font-semibold hover:underline hidden sm:inline cursor-pointer"
+                      >
+                        Details →
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="p-3 sm:px-5 sm:py-3 border-t border-gray-150 bg-gray-50/80 flex items-center justify-between text-xs text-zinc-500">
+              <span>
+                Showing <strong>{modalDisplayedStudents.length}</strong> of <strong>{sessionRecords.length}</strong> enrolled students
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsStudentsModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl btn-primary text-xs font-bold cursor-pointer"
+              >
+                Close Roster
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Single Student Attendance Details Modal */}
       {detailStudent && (
         <div
           className="modal-overlay z-50"
+          onClick={() => setDetailStudent(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`Attendance details for ${detailStudent.studentName}`}

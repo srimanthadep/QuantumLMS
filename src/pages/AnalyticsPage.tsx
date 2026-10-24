@@ -494,11 +494,10 @@ export default function AnalyticsPage({
         {/* Navigation Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-purple-100/70">
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "overview"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "overview"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("overview")}
           >
             <Icon name="analytics" size={14} />
@@ -506,11 +505,10 @@ export default function AnalyticsPage({
           </button>
 
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "student_activity"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "student_activity"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("student_activity")}
           >
             <Icon name="trend" size={14} />
@@ -521,11 +519,10 @@ export default function AnalyticsPage({
           </button>
 
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "curriculum"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "curriculum"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("curriculum")}
           >
             <Icon name="book" size={14} />
@@ -536,11 +533,10 @@ export default function AnalyticsPage({
           </button>
 
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "assignments"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "assignments"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("assignments")}
           >
             <Icon name="document" size={14} />
@@ -551,11 +547,10 @@ export default function AnalyticsPage({
           </button>
 
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "attendance_live"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "attendance_live"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("attendance_live")}
           >
             <Icon name="video" size={14} />
@@ -566,11 +561,10 @@ export default function AnalyticsPage({
           </button>
 
           <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              activeTab === "ai_intelligence"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "ai_intelligence"
                 ? "bg-purple-600 text-white shadow-sm"
                 : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-            }`}
+              }`}
             onClick={() => setActiveTab("ai_intelligence")}
           >
             <span className="text-lime-500">✦</span>
@@ -1212,13 +1206,12 @@ export default function AnalyticsPage({
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              asg.status === "Graded"
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${asg.status === "Graded"
                                 ? "bg-emerald-100 text-emerald-800"
                                 : asg.status === "In Review"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-purple-100 text-purple-800"
-                            }`}
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-purple-100 text-purple-800"
+                              }`}
                           >
                             {asg.status}
                           </span>
@@ -1403,13 +1396,12 @@ export default function AnalyticsPage({
 
                   <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        session.status === "Completed"
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${session.status === "Completed"
                           ? "bg-emerald-100 text-emerald-800"
                           : session.status === "Live Now"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-purple-100 text-purple-800"
-                      }`}
+                            ? "bg-red-100 text-red-800"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
                     >
                       {session.status}
                     </span>
@@ -1530,13 +1522,12 @@ export default function AnalyticsPage({
                       </td>
                       <td className="py-2 px-3 text-right">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            prop.status === "Accepted"
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${prop.status === "Accepted"
                               ? "bg-emerald-100 text-emerald-800"
                               : prop.status === "Pending Review"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
                         >
                           {prop.status}
                         </span>
@@ -1659,7 +1650,7 @@ export default function AnalyticsPage({
                   .filter((s: StudentModuleSubmission) =>
                     submissionSearch.trim()
                       ? s.studentName.toLowerCase().includes(submissionSearch.toLowerCase()) ||
-                        s.studentRoll.toLowerCase().includes(submissionSearch.toLowerCase())
+                      s.studentRoll.toLowerCase().includes(submissionSearch.toLowerCase())
                       : true
                   )
                   .map((sub: StudentModuleSubmission) => (
@@ -1691,13 +1682,12 @@ export default function AnalyticsPage({
                         )}
 
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            sub.status === "Graded"
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sub.status === "Graded"
                               ? "bg-emerald-100 text-emerald-800"
                               : sub.status === "Submitted"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-zinc-100 text-zinc-500"
-                          }`}
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-zinc-100 text-zinc-500"
+                            }`}
                         >
                           {sub.status}
                         </span>

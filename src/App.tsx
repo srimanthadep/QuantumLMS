@@ -437,12 +437,12 @@ export default function App() {
           targetRole === "Super Admin"
             ? "/super-admin"
             : targetRole === "Admin"
-            ? "/admin"
-            : targetRole === "Student"
-            ? "/student"
-            : targetRole === "Support"
-            ? "/support"
-            : "/"
+              ? "/admin"
+              : targetRole === "Student"
+                ? "/student"
+                : targetRole === "Support"
+                  ? "/support"
+                  : "/"
         window.history.pushState(null, "", path)
       } catch {
         // ignore
@@ -488,12 +488,12 @@ export default function App() {
         user.role === "Super Admin"
           ? "/super-admin"
           : user.role === "Admin"
-          ? "/admin"
-          : user.role === "Student"
-          ? "/student"
-          : user.role === "Support"
-          ? "/support"
-          : "/"
+            ? "/admin"
+            : user.role === "Student"
+              ? "/student"
+              : user.role === "Support"
+                ? "/support"
+                : "/"
       window.history.pushState(null, "", path)
     } catch {
       // ignore
@@ -609,7 +609,7 @@ export default function App() {
 
   return (
     <div
-      className="dashboard-shell"
+      className="dashboard-shell teacher-portal-shell"
       style={{
         backgroundColor: hexColor,
         backgroundImage: isLightBg

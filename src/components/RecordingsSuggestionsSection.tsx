@@ -144,7 +144,7 @@ export default function RecordingsSuggestionsSection({
   const togglePlay = () => {
     if (!videoRef.current) return
     if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {})
+      videoRef.current.play().catch(() => { })
       setIsPlaying(true)
     } else {
       videoRef.current.pause()
@@ -166,7 +166,7 @@ export default function RecordingsSuggestionsSection({
     if (videoRef.current) {
       videoRef.current.currentTime = seconds
       setCurrentTime(seconds)
-      videoRef.current.play().catch(() => {})
+      videoRef.current.play().catch(() => { })
       setIsPlaying(true)
       onToast?.(`Seeked player to ${formatSeconds(seconds)}`)
     } else {
@@ -563,11 +563,10 @@ export default function RecordingsSuggestionsSection({
                           key={spd}
                           type="button"
                           onClick={() => handleSpeedChange(spd)}
-                          className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
-                            playbackSpeed === spd
+                          className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${playbackSpeed === spd
                               ? "bg-purple-600 text-white"
                               : "text-zinc-400 hover:text-white"
-                          }`}
+                            }`}
                         >
                           {spd}x
                         </button>
@@ -782,11 +781,10 @@ export default function RecordingsSuggestionsSection({
                   return (
                     <div
                       key={ch.id}
-                      className={`p-3 rounded-xl border transition-all ${
-                        isActive
+                      className={`p-3 rounded-xl border transition-all ${isActive
                           ? "bg-purple-50/60 border-purple-300 shadow-xs"
                           : "bg-zinc-50/70 hover:bg-zinc-50 border-zinc-150"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="flex items-center gap-2 min-w-0">
@@ -854,15 +852,15 @@ export default function RecordingsSuggestionsSection({
                     sub.type === "Transcript"
                       ? "bg-blue-50 text-blue-700 border-blue-200"
                       : sub.type === "Chapter"
-                      ? "bg-purple-50 text-purple-700 border-purple-200"
-                      : "bg-amber-50 text-amber-800 border-amber-200"
+                        ? "bg-purple-50 text-purple-700 border-purple-200"
+                        : "bg-amber-50 text-amber-800 border-amber-200"
 
                   const statusTone =
                     sub.status === "Accepted"
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                       : sub.status === "Rejected"
-                      ? "bg-rose-50 text-rose-700 border-rose-200"
-                      : "bg-amber-50 text-amber-800 border-amber-200"
+                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                        : "bg-amber-50 text-amber-800 border-amber-200"
 
                   return (
                     <div

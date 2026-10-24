@@ -15,7 +15,7 @@ const DAY_LABELS = [
 
 export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
   const summary = useMemo(() => getStudentActivityHeatmap(student), [student])
-  
+
   // Flatten all days to easily find selected day
   const allDays = useMemo(() => {
     return summary.weeks.flatMap((w) => w.days)
@@ -230,9 +230,8 @@ export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
               {currentSelectedDay ? formatDateDisplay(currentSelectedDay.date) : "Selected Date"}
             </span>
             {currentSelectedDay && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                currentSelectedDay.count > 0 ? "bg-purple-100 text-purple-800" : "bg-zinc-200 text-zinc-600"
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${currentSelectedDay.count > 0 ? "bg-purple-100 text-purple-800" : "bg-zinc-200 text-zinc-600"
+                }`}>
                 {currentSelectedDay.count} {currentSelectedDay.count === 1 ? "Event Recorded" : "Events Recorded"}
               </span>
             )}
@@ -251,21 +250,20 @@ export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
                 className="p-2 rounded-lg bg-white border border-purple-100 flex items-start justify-between gap-2 text-xs hover:border-purple-300 transition-colors"
               >
                 <div className="flex items-start gap-2 min-w-0">
-                  <span className={`w-5 h-5 rounded-md grid place-items-center text-[10px] shrink-0 mt-0.5 ${
-                    ev.type === "assignment_submitted"
+                  <span className={`w-5 h-5 rounded-md grid place-items-center text-[10px] shrink-0 mt-0.5 ${ev.type === "assignment_submitted"
                       ? "bg-emerald-100 text-emerald-800"
                       : ev.type === "quiz_attempted"
-                      ? "bg-amber-100 text-amber-800"
-                      : ev.type === "video_watched"
-                      ? "bg-sky-100 text-sky-800"
-                      : ev.type === "material_opened"
-                      ? "bg-indigo-100 text-indigo-800"
-                      : "bg-purple-100 text-purple-800"
-                  }`}>
+                        ? "bg-amber-100 text-amber-800"
+                        : ev.type === "video_watched"
+                          ? "bg-sky-100 text-sky-800"
+                          : ev.type === "material_opened"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-purple-100 text-purple-800"
+                    }`}>
                     {ev.type === "assignment_submitted" ? "📝" :
-                     ev.type === "quiz_attempted" ? "⚡" :
-                     ev.type === "video_watched" ? "▶" :
-                     ev.type === "material_opened" ? "📄" : "✓"}
+                      ev.type === "quiz_attempted" ? "⚡" :
+                        ev.type === "video_watched" ? "▶" :
+                          ev.type === "material_opened" ? "📄" : "✓"}
                   </span>
                   <div className="min-w-0">
                     <strong className="block text-zinc-900 truncate text-[11px] font-semibold">

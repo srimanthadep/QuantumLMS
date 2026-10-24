@@ -129,6 +129,37 @@ body,
   padding: 0;
 }
 
+/* Universal scrollbar styling: hide visible scrollbar tracks while preserving full mouse, trackpad, touch & keyboard scrolling */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.teacher-portal-shell,
+.teacher-portal-shell *,
+.no-scrollbar,
+.no-scrollbar * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.teacher-portal-shell::-webkit-scrollbar,
+.teacher-portal-shell *::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+.no-scrollbar *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
 body {
   background-color: var(--bg-custom, var(--purple));
   background-image:
@@ -181,6 +212,333 @@ button {
   background-size: 28px 28px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+}
+
+/* ========================================================
+   TEACHER PORTAL - GLOBAL VIEWPORT LOCK (NO WINDOW SCROLL)
+   Completely removes window/body scroll option on teacher pages.
+   Everything fits cleanly in 100vh with seamless internal container scrolling.
+   ======================================================== */
+:root {
+  --teacher-portal-pad-y: 12px;
+  --teacher-portal-pad-x: 16px;
+  --teacher-sidebar-w: 200px;
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --teacher-portal-pad-y: 10px;
+    --teacher-portal-pad-x: 12px;
+    --teacher-sidebar-w: 190px;
+  }
+}
+
+@media (max-height: 850px) {
+  :root {
+    --teacher-portal-pad-y: 10px;
+    --teacher-portal-pad-x: 12px;
+  }
+}
+
+@media (max-height: 720px) {
+  :root {
+    --teacher-portal-pad-y: 8px;
+    --teacher-portal-pad-x: 10px;
+  }
+}
+
+/* Global Viewport Lock: Zero Window / Body Scroll for Teacher Portal */
+html:has(.teacher-portal-shell),
+body:has(.teacher-portal-shell) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.teacher-portal-shell {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  padding: var(--teacher-portal-pad-y) var(--teacher-portal-pad-x) !important;
+  display: grid !important;
+  grid-template-columns: var(--teacher-sidebar-w) minmax(0, 1fr) !important;
+  gap: 12px !important;
+}
+
+/* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */
+.teacher-portal-shell .sidebar {
+  width: var(--teacher-sidebar-w) !important;
+  height: calc(100vh - (var(--teacher-portal-pad-y) * 2)) !important;
+  max-height: calc(100vh - (var(--teacher-portal-pad-y) * 2)) !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  box-sizing: border-box !important;
+}
+
+.teacher-portal-shell .sidebar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Main Dashboard Content Viewport locked to remaining height */
+.teacher-portal-shell .dashboard-content {
+  height: calc(100vh - (var(--teacher-portal-pad-y) * 2)) !important;
+  max-height: calc(100vh - (var(--teacher-portal-pad-y) * 2)) !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+.teacher-portal-shell .dashboard-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
+@media (max-height: 860px) {
+  .teacher-portal-shell .metrics-grid {
+    min-height: 112px !important;
+    height: 112px !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+  }
+  .teacher-portal-shell .metric-card {
+    height: 112px !important;
+  }
+  .teacher-portal-shell .metric-label {
+    top: 22px !important;
+    font-size: 13px !important;
+  }
+  .teacher-portal-shell .metric-icon {
+    top: 14px !important;
+    left: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .teacher-portal-shell .metric-bottom {
+    bottom: 8px !important;
+    left: 14px !important;
+    right: 14px !important;
+  }
+  .teacher-portal-shell .metric-bottom strong {
+    font-size: 24px !important;
+    line-height: 28px !important;
+  }
+  .teacher-portal-shell .metric-bottom span {
+    font-size: 11px !important;
+  }
+  .teacher-portal-shell .dashboard-header {
+    min-height: 44px !important;
+    height: 44px !important;
+    margin-bottom: 6px !important;
+  }
+  .teacher-portal-shell .greeting {
+    font-size: 19px !important;
+    line-height: 23px !important;
+  }
+  .teacher-portal-shell .subtitle {
+    font-size: 11px !important;
+  }
+  .teacher-portal-shell .sidebar {
+    padding: 16px 14px 14px !important;
+  }
+  .teacher-portal-shell .sidebar .teacher {
+    margin-top: 16px !important;
+  }
+  .teacher-portal-shell .sidebar nav {
+    margin-top: 16px !important;
+    gap: 4px !important;
+  }
+  .teacher-portal-shell .nav-item {
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+  .teacher-portal-shell .class-card {
+    height: 190px !important;
+    padding: 14px 18px !important;
+  }
+  .teacher-portal-shell .assignments-card {
+    height: 228px !important;
+    padding: 14px 18px 8px !important;
+  }
+  .teacher-portal-shell .student-card {
+    height: 220px !important;
+    padding: 14px 18px 8px !important;
+  }
+  .teacher-portal-shell .reports-card {
+    height: 185px !important;
+    padding: 14px 18px 8px !important;
+  }
+  .teacher-portal-shell .left-column,
+  .teacher-portal-shell .right-column,
+  .teacher-portal-shell .content-grid {
+    gap: 10px !important;
+  }
+}
+
+@media (max-height: 740px) {
+  .teacher-portal-shell .metrics-grid {
+    min-height: 96px !important;
+    height: 96px !important;
+    gap: 8px !important;
+    margin-bottom: 6px !important;
+  }
+  .teacher-portal-shell .metric-card {
+    height: 96px !important;
+  }
+  .teacher-portal-shell .metric-label {
+    top: 18px !important;
+    left: 50px !important;
+    font-size: 12px !important;
+  }
+  .teacher-portal-shell .metric-icon {
+    top: 10px !important;
+    left: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .teacher-portal-shell .metric-bottom {
+    bottom: 6px !important;
+    left: 10px !important;
+    right: 10px !important;
+  }
+  .teacher-portal-shell .metric-bottom strong {
+    font-size: 20px !important;
+    line-height: 24px !important;
+  }
+  .teacher-portal-shell .dashboard-header {
+    min-height: 38px !important;
+    height: 38px !important;
+    margin-bottom: 4px !important;
+  }
+  .teacher-portal-shell .greeting {
+    font-size: 17px !important;
+    line-height: 20px !important;
+  }
+  .teacher-portal-shell .subtitle {
+    font-size: 10.5px !important;
+  }
+  .teacher-portal-shell .sidebar {
+    padding: 12px 10px 10px !important;
+  }
+  .teacher-portal-shell .sidebar .teacher img {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+  }
+  .teacher-portal-shell .sidebar .teacher {
+    margin-top: 10px !important;
+  }
+  .teacher-portal-shell .sidebar nav {
+    margin-top: 10px !important;
+    gap: 2px !important;
+  }
+  .teacher-portal-shell .nav-item {
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+  }
+  .teacher-portal-shell .class-card {
+    height: 175px !important;
+    padding: 12px 16px !important;
+  }
+  .teacher-portal-shell .assignments-card {
+    height: 208px !important;
+    padding: 12px 16px 6px !important;
+  }
+  .teacher-portal-shell .student-card {
+    height: 200px !important;
+    padding: 12px 16px 6px !important;
+  }
+  .teacher-portal-shell .reports-card {
+    height: 170px !important;
+    padding: 12px 16px 6px !important;
+  }
+  .teacher-portal-shell .left-column,
+  .teacher-portal-shell .right-column,
+  .teacher-portal-shell .content-grid {
+    gap: 8px !important;
+  }
+}
+
+/* ========================================================
+   ASSIGNED COURSES SECTION - DEDICATED INTERNAL SCROLL
+   Scroll strictly isolated to Assigned Courses list while
+   the outer window, sidebar, header, and metrics remain fixed.
+   ======================================================== */
+.assigned-courses-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100vh - 245px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.teacher-portal-shell .assigned-courses-scroll {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-right: 6px;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(152, 96, 233, 0.45) rgba(152, 96, 233, 0.08) !important;
+}
+
+.teacher-portal-shell .assigned-courses-scroll::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.teacher-portal-shell .assigned-courses-scroll::-webkit-scrollbar-track {
+  background: rgba(152, 96, 233, 0.06) !important;
+  border-radius: 999px !important;
+}
+
+.teacher-portal-shell .assigned-courses-scroll::-webkit-scrollbar-thumb {
+  background: rgba(152, 96, 233, 0.4) !important;
+  border-radius: 999px !important;
+}
+
+.teacher-portal-shell .assigned-courses-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(152, 96, 233, 0.7) !important;
+}
+
+@media (max-height: 860px) {
+  .assigned-courses-panel {
+    max-height: calc(100vh - 200px) !important;
+  }
+}
+
+@media (max-height: 740px) {
+  .assigned-courses-panel {
+    max-height: calc(100vh - 170px) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .assigned-courses-panel {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .teacher-portal-shell .assigned-courses-scroll {
+    overflow-y: visible !important;
+    max-height: none !important;
+  }
 }
 
 /* Sidebar */
@@ -357,7 +715,7 @@ button {
 
 /* Dashboard Header */
 .dashboard-header {
-  height: 54px;
+  min-height: 54px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -562,10 +920,11 @@ button {
 
 /* Metrics Grid (Status Cards) */
 .metrics-grid {
-  height: 132px;
+  min-height: 132px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .metric-card {
@@ -645,21 +1004,21 @@ button {
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: 8px;
+  gap: 14px;
   align-items: start;
 }
 
 .left-column {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
 }
 
 .right-column {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -2148,18 +2507,39 @@ select option {
 }
 
 /* ========================================================
-   RESPONSIVE ADAPTATIONS (< 1024px)
+   RESPONSIVE ADAPTATIONS (<= 1024px Tablet & Mobile)
    ======================================================== */
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
+  html:has(.teacher-portal-shell),
+  body:has(.teacher-portal-shell) {
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
   .dashboard-shell {
     width: 100%;
     min-width: 320px;
     height: auto;
     min-height: 100vh;
-    padding: 12px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+  }
+
+  .teacher-portal-shell {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  .teacher-portal-shell .dashboard-content {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .sidebar:not(.student-sidebar-shared) {
@@ -2205,17 +2585,21 @@ select option {
   .header-actions {
     padding-top: 0;
     width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .search-box {
     flex: 1;
+    min-width: 180px;
     width: auto;
   }
 
   .metrics-grid {
     height: auto;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
   .metric-card {
@@ -2224,13 +2608,13 @@ select option {
 
   .content-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 14px;
   }
 
   .left-column,
   .right-column {
     width: 100%;
-    gap: 12px;
+    gap: 14px;
   }
 
   .class-card,
@@ -2267,16 +2651,19 @@ select option {
 @media (max-width: 640px) {
   .dashboard-shell {
     padding: 10px;
+    gap: 12px;
   }
 
   .metrics-grid {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .header-actions {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
 
   .ask-ai {

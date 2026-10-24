@@ -481,11 +481,10 @@ export default function LiveStudioPage({
             {/* Mic Toggle */}
             <button
               onClick={handleToggleMic}
-              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                isMicOn
+              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isMicOn
                   ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
                   : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-950"
-              }`}
+                }`}
               title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
             >
               <Icon name={isMicOn ? "mic" : "mic-off"} size={18} />
@@ -497,11 +496,10 @@ export default function LiveStudioPage({
             {/* Camera Toggle */}
             <button
               onClick={handleToggleCamera}
-              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                isCameraOn
+              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isCameraOn
                   ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
                   : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-950"
-              }`}
+                }`}
               title={isCameraOn ? "Stop Video" : "Start Video"}
             >
               <Icon name={isCameraOn ? "video" : "video-off"} size={18} />
@@ -513,11 +511,10 @@ export default function LiveStudioPage({
             {/* Screen Share Toggle */}
             <button
               onClick={handleToggleScreenShare}
-              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                isScreenSharing
+              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isScreenSharing
                   ? "bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-950"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
             >
               <Icon name="monitor" size={18} />
@@ -533,11 +530,10 @@ export default function LiveStudioPage({
               onClick={() =>
                 setActiveSidePanel(activeSidePanel === "participants" ? null : "participants")
               }
-              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                activeSidePanel === "participants"
+              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "participants"
                   ? "bg-purple-600 text-white"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title="Participants list"
             >
               <Icon name="users" size={18} />
@@ -552,11 +548,10 @@ export default function LiveStudioPage({
               onClick={() =>
                 setActiveSidePanel(activeSidePanel === "chat" ? null : "chat")
               }
-              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                activeSidePanel === "chat"
+              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "chat"
                   ? "bg-purple-600 text-white"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title="Live Chat"
             >
               <Icon name="message-circle" size={18} />
@@ -571,11 +566,10 @@ export default function LiveStudioPage({
               onClick={() =>
                 setActiveSidePanel(activeSidePanel === "monitoring" ? null : "monitoring")
               }
-              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                activeSidePanel === "monitoring"
+              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "monitoring"
                   ? "bg-purple-600 text-white"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title="AI Live Monitoring & Demo Insights"
             >
               <Icon name="sparkles" size={18} />
@@ -590,11 +584,10 @@ export default function LiveStudioPage({
               onClick={() =>
                 setActiveSidePanel(activeSidePanel === "attendance" ? null : "attendance")
               }
-              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                activeSidePanel === "attendance"
+              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "attendance"
                   ? "bg-purple-600 text-white"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title="Class Attendance"
             >
               <Icon name="check" size={18} />
@@ -606,11 +599,10 @@ export default function LiveStudioPage({
               onClick={() =>
                 setActiveSidePanel(activeSidePanel === "info" ? null : "info")
               }
-              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${
-                activeSidePanel === "info"
+              className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "info"
                   ? "bg-purple-600 text-white"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
-              }`}
+                }`}
               title="Class Information & Notes"
             >
               <Icon name="info" size={18} />
@@ -703,11 +695,10 @@ export default function LiveStudioPage({
                     <button
                       key={tab.id}
                       onClick={() => setActiveSidePanel(tab.id as StudioPanelTab)}
-                      className={`px-2 py-1 rounded-md text-[10.5px] font-semibold flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${
-                        isActive
+                      className={`px-2 py-1 rounded-md text-[10.5px] font-semibold flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${isActive
                           ? "bg-purple-600 text-white shadow-sm"
                           : "bg-zinc-800/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-                      }`}
+                        }`}
                     >
                       <Icon name={tab.icon as any} size={11} />
                       <span>{tab.label}</span>
@@ -739,17 +730,15 @@ export default function LiveStudioPage({
                           className="w-7 h-7 rounded-full object-cover border border-zinc-700 shrink-0"
                         />
                         <div
-                          className={`max-w-[78%] p-2.5 rounded-2xl ${
-                            isMe
+                          className={`max-w-[78%] p-2.5 rounded-2xl ${isMe
                               ? "bg-purple-600 text-white rounded-tr-none"
                               : "bg-zinc-800 text-zinc-200 rounded-tl-none border border-zinc-700/60"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <span
-                              className={`text-[10px] font-bold ${
-                                isMe ? "text-purple-200" : "text-purple-400"
-                              }`}
+                              className={`text-[10px] font-bold ${isMe ? "text-purple-200" : "text-purple-400"
+                                }`}
                             >
                               {msg.sender} {isMe && "(You)"}
                             </span>

@@ -35,8 +35,8 @@ export function NewAssignmentModal({
       icon: subject.includes("Math") || subject.includes("Fractions")
         ? "chart"
         : subject.includes("Science")
-        ? "ruler"
-        : "book",
+          ? "ruler"
+          : "book",
       meta: `Year 4 Due ${dueDate}`,
       status: "Assigned",
       tone: "yellow",

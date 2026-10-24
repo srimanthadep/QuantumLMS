@@ -15,27 +15,40 @@ import { ModuleAssignmentSection } from "../components/ModuleAssignmentSection"
 import { getModuleAssignment } from "../data/courseAssignmentsData"
 
 interface CourseRouteState {
-  level: "list" | "course"
+  level: "list" | "course" | "lesson"
   courseId: string | null
   moduleId: string | null
   lessonId: string | null
 }
 
 function parseCourseRoute(pathname: string): CourseRouteState {
-  // Pattern: /teacher/courses/:courseId/modules/:moduleId/lessons/:lessonId
-  const lessonMatch = pathname.match(
-    /(?:teacher\/)?courses\/([^/]+)\/modules\/([^/]+)\/lessons\/([^/]+)/i
+  // Pattern 1: /teacher/courses/:courseId/lessons/:lessonId
+  const directLessonMatch = pathname.match(
+    /(?:teacher\/)?courses\/([^/]+)\/lessons\/([^/]+)/i
   )
-  if (lessonMatch) {
+  if (directLessonMatch) {
     return {
-      level: "course",
-      courseId: lessonMatch[1],
-      moduleId: lessonMatch[2],
-      lessonId: lessonMatch[3],
+      level: "lesson",
+      courseId: directLessonMatch[1],
+      moduleId: null,
+      lessonId: directLessonMatch[2],
     }
   }
 
-  // Pattern: /teacher/courses/:courseId/modules/:moduleId
+  // Pattern 2: /teacher/courses/:courseId/modules/:moduleId/lessons/:lessonId
+  const moduleLessonMatch = pathname.match(
+    /(?:teacher\/)?courses\/([^/]+)\/modules\/([^/]+)\/lessons\/([^/]+)/i
+  )
+  if (moduleLessonMatch) {
+    return {
+      level: "lesson",
+      courseId: moduleLessonMatch[1],
+      moduleId: moduleLessonMatch[2],
+      lessonId: moduleLessonMatch[3],
+    }
+  }
+
+  // Pattern 3: /teacher/courses/:courseId/modules/:moduleId
   const moduleMatch = pathname.match(
     /(?:teacher\/)?courses\/([^/]+)\/modules\/([^/]+)/i
   )
@@ -48,7 +61,7 @@ function parseCourseRoute(pathname: string): CourseRouteState {
     }
   }
 
-  // Pattern: /teacher/courses/:courseId
+  // Pattern 4: /teacher/courses/:courseId
   const courseMatch = pathname.match(/(?:teacher\/)?courses\/([^/]+)/i)
   if (courseMatch && courseMatch[1] !== "all" && courseMatch[1] !== "") {
     return {
@@ -164,13 +177,12 @@ function CourseCard({
           </div>
           <div className="absolute top-2.5 right-2.5">
             <span
-              className={`status ${
-                course.status === "Active"
+              className={`status ${course.status === "Active"
                   ? "green"
                   : course.status === "Completed"
-                  ? "purple"
-                  : "yellow"
-              }`}
+                    ? "purple"
+                    : "yellow"
+                }`}
             >
               {course.status}
             </span>
@@ -275,13 +287,12 @@ function CourseRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <span
-              className={`status ${
-                course.status === "Active"
+              className={`status ${course.status === "Active"
                   ? "green"
                   : course.status === "Completed"
-                  ? "purple"
-                  : "yellow"
-              }`}
+                    ? "purple"
+                    : "yellow"
+                }`}
             >
               {course.status}
             </span>
@@ -397,6 +408,7 @@ function CourseDetailsView({
   initialModuleId,
   initialLessonId,
   onBack,
+  onOpenLesson,
   onSelectStudentDetails,
   onToast,
 }: {
@@ -405,6 +417,7 @@ function CourseDetailsView({
   initialModuleId?: string | null
   initialLessonId?: string | null
   onBack: () => void
+  onOpenLesson?: (lessonId: string, moduleId: string) => void
   onSelectStudentDetails?: (student: StudentItem) => void
   onToast?: (msg: string) => void
 }) {
@@ -510,13 +523,12 @@ function CourseDetailsView({
 
         <div className="flex items-center gap-2">
           <span
-            className={`status ${
-              course.status === "Active"
+            className={`status ${course.status === "Active"
                 ? "green"
                 : course.status === "Completed"
-                ? "purple"
-                : "yellow"
-            }`}
+                  ? "purple"
+                  : "yellow"
+              }`}
           >
             {course.status}
           </span>
@@ -650,11 +662,10 @@ function CourseDetailsView({
             return (
               <div
                 key={mod.id}
-                className={`rounded-2xl border transition-all ${
-                  isModuleExpanded
+                className={`rounded-2xl border transition-all ${isModuleExpanded
                     ? "bg-purple-50/20 border-purple-300 shadow-xs"
                     : "bg-gray-50/70 hover:bg-purple-50/30 border-gray-150"
-                }`}
+                  }`}
               >
                 {/* Module Header Bar (Click to toggle expansion) */}
                 <div
@@ -670,11 +681,10 @@ function CourseDetailsView({
                 >
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <span
-                      className={`w-8 h-8 rounded-full text-xs font-bold grid place-items-center shrink-0 mt-0.5 transition-colors ${
-                        isModuleExpanded
+                      className={`w-8 h-8 rounded-full text-xs font-bold grid place-items-center shrink-0 mt-0.5 transition-colors ${isModuleExpanded
                           ? "bg-purple-700 text-white"
                           : "bg-purple-100 text-purple-800"
-                      }`}
+                        }`}
                     >
                       {index + 1}
                     </span>
@@ -685,11 +695,10 @@ function CourseDetailsView({
                           Module {index + 1}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            mod.completed
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${mod.completed
                               ? "bg-emerald-100 text-emerald-800"
                               : "bg-amber-100 text-amber-800"
-                          }`}
+                            }`}
                         >
                           {mod.completed ? "Completed" : "In Progress"}
                         </span>
@@ -779,101 +788,67 @@ function CourseDetailsView({
                         </span>
                       </div>
 
-                      {mod.lessons.map((lesson, lessonIndex) => {
-                        const isLessonExpanded = expandedLessonIds.has(lesson.id)
+                      {mod.lessons.map((lesson, lessonIndex) => (
+                        <div
+                          key={lesson.id}
+                          className="rounded-xl border border-gray-200 bg-white hover:bg-purple-50/40 hover:border-purple-300 transition-all cursor-pointer group shadow-2xs"
+                          onClick={() => onOpenLesson?.(lesson.id, mod.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              onOpenLesson?.(lesson.id, mod.id)
+                            }
+                          }}
+                          aria-label={`Lesson ${lessonIndex + 1}: ${lesson.title}. Click to open dedicated lesson page`}
+                        >
+                          <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="w-6 h-6 rounded-md text-[11px] font-bold grid place-items-center shrink-0 bg-purple-50 text-purple-700 border border-purple-200 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                {lessonIndex + 1}
+                              </span>
 
-                        return (
-                          <div
-                            key={lesson.id}
-                            className={`rounded-xl border transition-all ${
-                              isLessonExpanded
-                                ? "bg-white border-purple-400 ring-2 ring-purple-100 shadow-xs"
-                                : "bg-white hover:bg-purple-50/40 border-gray-200"
-                            }`}
-                          >
-                            {/* Lesson Row Header */}
-                            <div
-                              className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
-                              onClick={() => toggleLesson(lesson.id)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") toggleLesson(lesson.id)
-                              }}
-                              aria-expanded={isLessonExpanded}
-                              aria-label={`Lesson ${lessonIndex + 1}: ${lesson.title}`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <span
-                                  className={`w-6 h-6 rounded-md text-[11px] font-bold grid place-items-center shrink-0 ${
-                                    isLessonExpanded
-                                      ? "bg-purple-700 text-white"
-                                      : "bg-purple-50 text-purple-700 border border-purple-200"
-                                  }`}
-                                >
-                                  {lessonIndex + 1}
-                                </span>
-
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                    <strong className="text-xs sm:text-sm font-bold text-zinc-900 truncate">
-                                      {lesson.title}
-                                    </strong>
-                                    <span className="px-2 py-0.2 rounded text-[10px] font-semibold bg-gray-100 text-zinc-600">
-                                      {lesson.type}
-                                    </span>
-                                    <span className="text-[10.5px] text-zinc-400 font-mono">
-                                      ⏱ {lesson.duration}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    lesson.completed
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : "bg-amber-100 text-amber-800"
-                                  }`}
-                                >
-                                  {lesson.completed ? "Completed" : "In Progress"}
-                                </span>
-
-                                <button
-                                  type="button"
-                                  className={`px-2.5 h-7 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
-                                    isLessonExpanded
-                                      ? "bg-purple-100 text-purple-900 border border-purple-200"
-                                      : "bg-gray-100 hover:bg-gray-200 text-zinc-700"
-                                  }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleLesson(lesson.id)
-                                  }}
-                                >
-                                  <span>{isLessonExpanded ? "Close" : "Open Lesson"}</span>
-                                  <span className={`text-[9px] transition-transform duration-200 ${isLessonExpanded ? "rotate-180" : ""}`}>
-                                    ▼
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                  <strong className="text-xs sm:text-sm font-bold text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
+                                    {lesson.title}
+                                  </strong>
+                                  <span className="px-2 py-0.2 rounded text-[10px] font-semibold bg-gray-100 text-zinc-600">
+                                    {lesson.type}
                                   </span>
-                                </button>
+                                  <span className="text-[10.5px] text-zinc-400 font-mono">
+                                    ⏱ {lesson.duration}
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
-                            {/* INLINE EXPANDED LESSON VIEWER */}
-                            {isLessonExpanded && (
-                              <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-purple-100">
-                                <LessonContentInlineViewer
-                                  lesson={lesson}
-                                  moduleIndex={index}
-                                  lessonIndex={lessonIndex}
-                                  onToast={onToast}
-                                />
-                              </div>
-                            )}
+                            <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${lesson.completed
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-800"
+                                  }`}
+                              >
+                                {lesson.completed ? "Completed" : "In Progress"}
+                              </span>
+
+                              <button
+                                type="button"
+                                className="px-3 h-7.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onOpenLesson?.(lesson.id, mod.id)
+                                }}
+                                aria-label={`Open dedicated page for ${lesson.title}`}
+                              >
+                                <span>Open Lesson</span>
+                                <span>→</span>
+                              </button>
+                            </div>
                           </div>
-                        )
-                      })}
+                        </div>
+                      ))}
                     </div>
 
                     {/* ASSIGNMENT SECTION (POSITIONED AFTER EVERY MODULE'S LESSONS) */}
@@ -1007,9 +982,8 @@ function ModuleDetailsView({
 
         <div className="flex items-center gap-2 shrink-0">
           <span
-            className={`status ${
-              moduleItem.completed || calculatedProgress === 100 ? "green" : "yellow"
-            }`}
+            className={`status ${moduleItem.completed || calculatedProgress === 100 ? "green" : "yellow"
+              }`}
           >
             {moduleItem.completed || calculatedProgress === 100 ? "Completed" : "In Progress"}
           </span>
@@ -1164,11 +1138,10 @@ function ModuleDetailsView({
                           ⏱ {lesson.duration}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            lesson.completed
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${lesson.completed
                               ? "bg-emerald-100 text-emerald-800"
                               : "bg-amber-100 text-amber-800"
-                          }`}
+                            }`}
                         >
                           {lesson.completed ? "✓ Completed" : "In Progress"}
                         </span>
@@ -1272,51 +1245,28 @@ function LessonDetailsView({
   }
 
   return (
-    <div className="space-y-4" aria-label="Lesson Details Container">
-      {/* 1. Breadcrumb Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs">
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <button
-            onClick={onBackToModule}
-            className="flex items-center gap-1.5 font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer group mr-1"
-          >
-            <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
-            <span>Back to Module</span>
-          </button>
-          <span className="text-zinc-300">|</span>
-          <button
-            onClick={onBackToCourses}
-            className="text-zinc-500 hover:text-purple-700 transition-colors cursor-pointer font-medium"
-          >
-            My Courses
-          </button>
-          <span className="text-zinc-300">›</span>
-          <button
-            onClick={onBackToCourse}
-            className="text-zinc-700 hover:text-purple-700 transition-colors cursor-pointer font-semibold max-w-[150px] truncate"
-            title={course.name}
-          >
-            {course.name}
-          </button>
-          <span className="text-zinc-300">›</span>
-          <button
-            onClick={onBackToModule}
-            className="text-zinc-700 hover:text-purple-700 transition-colors cursor-pointer font-semibold max-w-[150px] truncate"
-            title={moduleItem.title}
-          >
-            Module {modIndex >= 0 ? modIndex + 1 : 1}
-          </button>
-          <span className="text-zinc-300">›</span>
-          <span className="font-bold text-purple-900 bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-100 truncate max-w-[240px]">
-            {lesson.title}
-          </span>
-        </div>
+    <div className="space-y-4" aria-label="Dedicated Lesson Details Container">
+      {/* 1. Clean Navigation Bar (No breadcrumb trail) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-gray-150 shadow-xs">
+        <button
+          onClick={onBackToCourse}
+          className="flex items-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer group"
+          aria-label={`Back to ${course.name}`}
+        >
+          <span className="group-hover:-translate-x-0.5 transition-transform font-bold text-sm">←</span>
+          <span>Back to {course.name}</span>
+        </button>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-bold bg-purple-100 text-purple-800">
+            {course.code}
+          </span>
+          <span className="px-2.5 py-0.5 rounded text-[10.5px] font-semibold bg-gray-100 text-zinc-600">
+            Module {modIndex >= 0 ? modIndex + 1 : 1}: {moduleItem.title}
+          </span>
           <span
-            className={`status ${
-              lesson.completed ? "green" : "yellow"
-            }`}
+            className={`status ${lesson.completed ? "green" : "yellow"
+              }`}
           >
             {lesson.completed ? "Completed" : "In Progress"}
           </span>
@@ -1352,10 +1302,18 @@ function LessonDetailsView({
         )}
       </div>
 
+      {/* 3. Interactive Resource Viewer (Video player / PDF reader / Audio player / Document preview) */}
+      <LessonContentInlineViewer
+        lesson={lesson}
+        moduleIndex={modIndex}
+        lessonIndex={lessonIndexInModule}
+        onToast={onToast}
+      />
+
       {/* 3. Main Content Grid: 70% Content (Left) + 30% Sidebar (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
         {/* Left Column (Main Lesson Content - 8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-2">
+        <div className="lg:col-span-8 flex flex-col gap-4 sm:gap-5">
           {/* A. Curriculum Content & Teaching Notes */}
           <div className="panel p-5 bg-white">
             <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-2.5 flex items-center gap-2">
@@ -1467,9 +1425,9 @@ function LessonDetailsView({
         </div>
 
         {/* Right Column (Secondary Info & Persistent Module Lesson Navigation - 4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-2">
+        <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-5">
           {/* Quick Module Context Card */}
-          <div className="panel p-4 sm:p-5 bg-white flex flex-col gap-2">
+          <div className="panel p-4 sm:p-5 bg-white flex flex-col gap-3">
             <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
               Course & Cohort Context
             </h3>
@@ -1518,22 +1476,20 @@ function LessonDetailsView({
                   <button
                     key={les.id}
                     onClick={() => onNavigateLesson(les, moduleItem)}
-                    className={`w-full p-2.5 rounded-xl text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                      isCurrent
+                    className={`w-full p-2.5 rounded-xl text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${isCurrent
                         ? "bg-purple-100/80 text-purple-950 font-bold border border-purple-300 shadow-2xs"
                         : "hover:bg-gray-100 text-zinc-700 border border-transparent"
-                    }`}
+                      }`}
                     aria-label={`Jump to lesson: ${les.title}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className={`w-5 h-5 rounded-full text-[10px] grid place-items-center shrink-0 font-bold ${
-                          isCurrent
+                        className={`w-5 h-5 rounded-full text-[10px] grid place-items-center shrink-0 font-bold ${isCurrent
                             ? "bg-purple-600 text-white"
                             : les.completed
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-gray-200 text-zinc-600"
-                        }`}
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-gray-200 text-zinc-600"
+                          }`}
                       >
                         {les.completed ? "✓" : lIndex + 1}
                       </span>
@@ -1724,12 +1680,12 @@ export default function CoursesPage({
     moduleId: string,
     lessonId: string
   ) => {
-    const path = `/teacher/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`
+    const path = `/teacher/courses/${courseId}/lessons/${lessonId}`
     if (window.location.pathname !== path) {
       window.history.pushState(null, "", path)
     }
     setRouteState({
-      level: "course",
+      level: "lesson",
       courseId,
       moduleId,
       lessonId,
@@ -1753,19 +1709,35 @@ export default function CoursesPage({
     })
   }, [courses, activeStatusFilter, searchQuery])
 
-  // Resolve currently active course if navigating inside course
+  // Resolve currently active course if navigating inside course or lesson
   const activeCourse = useMemo(() => {
     if (!routeState.courseId) return null
     return courses.find((c) => c.id === routeState.courseId) || null
   }, [courses, routeState.courseId])
 
+  // Resolve active lesson and module if navigating dedicated lesson page
+  const activeLessonData = useMemo(() => {
+    if (!activeCourse || !routeState.lessonId) return null
+    for (let mIdx = 0; mIdx < activeCourse.modules.length; mIdx++) {
+      const mod = activeCourse.modules[mIdx]
+      const foundLesson = mod.lessons.find((l) => l.id === routeState.lessonId)
+      if (foundLesson) {
+        return { module: mod, lesson: foundLesson, moduleIndex: mIdx }
+      }
+    }
+    return null
+  }, [activeCourse, routeState.lessonId])
+
   // Generate subtitle for header depending on active depth
   const headerSubtitle = useMemo(() => {
+    if (routeState.level === "lesson" && activeLessonData && activeCourse) {
+      return `${activeCourse.name} · ${activeLessonData.lesson.title}`
+    }
     if (routeState.level === "course" && activeCourse) {
       return `Course Curriculum & Roster: ${activeCourse.name}`
     }
     return undefined
-  }, [routeState.level, activeCourse])
+  }, [routeState.level, activeCourse, activeLessonData])
 
   return (
     <>
@@ -1786,7 +1758,35 @@ export default function CoursesPage({
         ))}
       </div>
 
-      {/* UNIFIED CONTINUOUS COURSE LEARNING PAGE (Modules, Lessons, Resources & Assignments) */}
+      {/* LEVEL 3: DEDICATED LESSON PAGE */}
+      {routeState.level === "lesson" && (
+        <div aria-label="Dedicated Lesson Learning Page">
+          {activeCourse && activeLessonData ? (
+            <LessonDetailsView
+              course={activeCourse}
+              moduleItem={activeLessonData.module}
+              lesson={activeLessonData.lesson}
+              onBackToCourse={() => navigateToCourse(activeCourse.id)}
+              onBackToModule={() => navigateToCourse(activeCourse.id)}
+              onNavigateLesson={(targetLesson, targetModule) =>
+                navigateToLesson(activeCourse.id, targetModule.id, targetLesson.id)
+              }
+              onToast={onToast}
+            />
+          ) : (
+            <NotFoundFallback
+              title="Lesson Not Found"
+              message={`We could not locate the lesson matching ID "${routeState.lessonId}". It may have been relocated or updated.`}
+              onReset={() =>
+                activeCourse ? navigateToCourse(activeCourse.id) : navigateToCourses()
+              }
+              buttonLabel={activeCourse ? `Back to ${activeCourse.name}` : "Back to All Courses"}
+            />
+          )}
+        </div>
+      )}
+
+      {/* LEVEL 2: UNIFIED CONTINUOUS COURSE LEARNING PAGE (Modules, Lessons, Resources & Assignments) */}
       {routeState.level === "course" && (
         <div aria-label="Course Learning Section">
           {activeCourse ? (
@@ -1796,6 +1796,9 @@ export default function CoursesPage({
               initialModuleId={routeState.moduleId}
               initialLessonId={routeState.lessonId}
               onBack={navigateToCourses}
+              onOpenLesson={(lessonId, moduleId) =>
+                navigateToLesson(activeCourse.id, moduleId, lessonId)
+              }
               onSelectStudentDetails={onSelectStudentDetails}
               onToast={onToast}
             />
@@ -1812,9 +1815,9 @@ export default function CoursesPage({
 
       {/* LEVEL 1: ALL COURSES LIST (GRID & LIST VIEW) */}
       {routeState.level === "list" && (
-        <div className="panel p-5" aria-label="Assigned Courses Section">
+        <div className="panel p-5 assigned-courses-panel flex flex-col" aria-label="Assigned Courses Section">
           {/* Top Header, Filters & View Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
             <div>
               <h3 className="card-title">Assigned Courses</h3>
               <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
@@ -1831,18 +1834,16 @@ export default function CoursesPage({
                 aria-label="Filter courses by status"
               >
                 <button
-                  className={`filter-pill ${
-                    activeStatusFilter === "All" ? "active" : ""
-                  }`}
+                  className={`filter-pill ${activeStatusFilter === "All" ? "active" : ""
+                    }`}
                   onClick={() => setActiveStatusFilter("All")}
                   aria-selected={activeStatusFilter === "All"}
                 >
                   All Courses ({courses.length})
                 </button>
                 <button
-                  className={`filter-pill ${
-                    activeStatusFilter === "Active" ? "active" : ""
-                  }`}
+                  className={`filter-pill ${activeStatusFilter === "Active" ? "active" : ""
+                    }`}
                   onClick={() => setActiveStatusFilter("Active")}
                   aria-selected={activeStatusFilter === "Active"}
                 >
@@ -1869,11 +1870,10 @@ export default function CoursesPage({
                 <button
                   type="button"
                   onClick={() => handleViewModeChange("grid")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    viewMode === "grid"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "grid"
                       ? "bg-white text-purple-700 shadow-xs border border-gray-200"
                       : "text-zinc-500 hover:text-zinc-800"
-                  }`}
+                    }`}
                   aria-pressed={viewMode === "grid"}
                   title="Grid View"
                 >
@@ -1883,11 +1883,10 @@ export default function CoursesPage({
                 <button
                   type="button"
                   onClick={() => handleViewModeChange("list")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    viewMode === "list"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "list"
                       ? "bg-white text-purple-700 shadow-xs border border-gray-200"
                       : "text-zinc-500 hover:text-zinc-800"
-                  }`}
+                    }`}
                   aria-pressed={viewMode === "list"}
                   title="List View"
                 >
@@ -1898,50 +1897,52 @@ export default function CoursesPage({
             </div>
           </div>
 
-          {/* Courses List Content (Grid or List presentation) */}
-          {filteredCourses.length === 0 ? (
-            <div className="roster-empty-state">
-              <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mb-1">
-                <Icon name="book" size={20} />
+          {/* Courses List Content (Grid or List presentation) - Scroll strictly isolated to this section */}
+          <div className="assigned-courses-scroll flex-1 overflow-y-auto pr-1">
+            {filteredCourses.length === 0 ? (
+              <div className="roster-empty-state">
+                <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mb-1">
+                  <Icon name="book" size={20} />
+                </div>
+                <strong className="text-sm text-zinc-800">
+                  No matching courses found
+                </strong>
+                <p className="text-xs text-zinc-500 max-w-sm">
+                  {courses.length === 0
+                    ? "There are currently no courses assigned to your teacher account."
+                    : "No courses matched your current search criteria."}
+                </p>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="mt-2 px-4 h-8 rounded-full btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  >
+                    Reset Search
+                  </button>
+                )}
               </div>
-              <strong className="text-sm text-zinc-800">
-                No matching courses found
-              </strong>
-              <p className="text-xs text-zinc-500 max-w-sm">
-                {courses.length === 0
-                  ? "There are currently no courses assigned to your teacher account."
-                  : "No courses matched your current search criteria."}
-              </p>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="mt-2 px-4 h-8 rounded-full btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
-                >
-                  Reset Search
-                </button>
-              )}
-            </div>
-          ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
-              {filteredCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  onViewCourse={(c) => navigateToCourse(c.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {filteredCourses.map((course) => (
-                <CourseRow
-                  key={course.id}
-                  course={course}
-                  onViewCourse={(c) => navigateToCourse(c.id)}
-                />
-              ))}
-            </div>
-          )}
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 pb-2">
+                {filteredCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onViewCourse={(c) => navigateToCourse(c.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3.5 pb-2">
+                {filteredCourses.map((course) => (
+                  <CourseRow
+                    key={course.id}
+                    course={course}
+                    onViewCourse={(c) => navigateToCourse(c.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

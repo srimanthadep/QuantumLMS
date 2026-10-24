@@ -155,18 +155,18 @@ function ReportsArchiveCard({
                         report.tone === "green"
                           ? "var(--lime-soft)"
                           : report.tone === "purple"
-                          ? "rgba(152, 96, 233, 0.12)"
-                          : report.tone === "yellow"
-                          ? "var(--yellow-soft)"
-                          : "#f3f0ff",
+                            ? "rgba(152, 96, 233, 0.12)"
+                            : report.tone === "yellow"
+                              ? "var(--yellow-soft)"
+                              : "#f3f0ff",
                       color:
                         report.tone === "green"
                           ? "#659000"
                           : report.tone === "purple"
-                          ? "var(--purple-dark)"
-                          : report.tone === "yellow"
-                          ? "#9b7200"
-                          : "#7f4ee3",
+                            ? "var(--purple-dark)"
+                            : report.tone === "yellow"
+                              ? "#9b7200"
+                              : "#7f4ee3",
                     }}
                   >
                     <Icon name="document" size={18} />

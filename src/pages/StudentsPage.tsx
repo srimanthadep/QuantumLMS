@@ -109,8 +109,8 @@ function StudentDetailsModal({
     (student.attendance ?? 0) >= 95
       ? "Excellent - High Attendance"
       : (student.attendance ?? 0) >= 90
-      ? "Good - Regular Attendance"
-      : "Needs Attention - Below 90%"
+        ? "Good - Regular Attendance"
+        : "Needs Attention - Below 90%"
 
   const modulesCompleted =
     student.modulesCompleted ??
@@ -155,20 +155,19 @@ function StudentDetailsModal({
             alt={student.name}
             className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm shrink-0"
             onError={(e) => {
-              ;(e.target as HTMLImageElement).src = "/assets/student-1.png"
+              ; (e.target as HTMLImageElement).src = "/assets/student-1.png"
             }}
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-bold text-black">{student.name}</h3>
               <span
-                className={`status ${
-                  student.status === "Excelling"
-                    ? "purple"
-                    : student.status === "On Track"
+                className={`status ${student.status === "Excelling"
+                  ? "purple"
+                  : student.status === "On Track"
                     ? "green"
                     : "yellow"
-                }`}
+                  }`}
               >
                 {student.status}
               </span>
@@ -217,14 +216,14 @@ function StudentDetailsModal({
               {modulesCompleted}/{totalModules}
             </strong>
             <span className="text-[9.5px] text-yellow-800">Units Cleared</span>
+          </div>
         </div>
-      </div>
 
-      {/* Individual Student Activity Heatmap (12-Week Rolling Matrix) */}
-      <StudentActivityHeatmap student={student} />
+        {/* Individual Student Activity Heatmap (12-Week Rolling Matrix) */}
+        <StudentActivityHeatmap student={student} />
 
-      {/* Subject Breakdown */}
-      <div className="mt-3.5 p-3.5 rounded-2xl bg-white border border-gray-150">
+        {/* Subject Breakdown */}
+        <div className="mt-3.5 p-3.5 rounded-2xl bg-white border border-gray-150">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-zinc-900">
               Subject Mastery Breakdown
@@ -567,27 +566,24 @@ function StudentRosterCard({
             All Students ({counts.all})
           </button>
           <button
-            className={`filter-pill ${
-              statusFilter === "Excelling" ? "active" : ""
-            }`}
+            className={`filter-pill ${statusFilter === "Excelling" ? "active" : ""
+              }`}
             onClick={() => setStatusFilter("Excelling")}
             aria-selected={statusFilter === "Excelling"}
           >
             Excelling ({counts.excelling})
           </button>
           <button
-            className={`filter-pill ${
-              statusFilter === "On Track" ? "active" : ""
-            }`}
+            className={`filter-pill ${statusFilter === "On Track" ? "active" : ""
+              }`}
             onClick={() => setStatusFilter("On Track")}
             aria-selected={statusFilter === "On Track"}
           >
             On Track ({counts.onTrack})
           </button>
           <button
-            className={`filter-pill ${
-              statusFilter === "Needs Attention" ? "active" : ""
-            }`}
+            className={`filter-pill ${statusFilter === "Needs Attention" ? "active" : ""
+              }`}
             onClick={() => setStatusFilter("Needs Attention")}
             aria-selected={statusFilter === "Needs Attention"}
           >
@@ -748,7 +744,7 @@ function StudentRosterCard({
                         alt={student.name}
                         className="w-8 h-8 rounded-full object-cover border border-purple-200 shrink-0"
                         onError={(e) => {
-                          ;(e.target as HTMLImageElement).src =
+                          ; (e.target as HTMLImageElement).src =
                             "/assets/student-1.png"
                         }}
                       />
@@ -793,30 +789,28 @@ function StudentRosterCard({
                           {student.attendance ?? 0}%
                         </strong>
                         <span
-                          className={`text-[9.5px] font-semibold ${
-                            (student.attendance ?? 0) >= 95
-                              ? "text-emerald-700"
-                              : (student.attendance ?? 0) >= 90
+                          className={`text-[9.5px] font-semibold ${(student.attendance ?? 0) >= 95
+                            ? "text-emerald-700"
+                            : (student.attendance ?? 0) >= 90
                               ? "text-purple-700"
                               : "text-amber-700"
-                          }`}
+                            }`}
                         >
                           {(student.attendance ?? 0) >= 95
                             ? "High"
                             : (student.attendance ?? 0) >= 90
-                            ? "Good"
-                            : "Low"}
+                              ? "Good"
+                              : "Low"}
                         </span>
                       </div>
                       <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className={`h-1.5 rounded-full ${
-                            (student.attendance ?? 0) >= 95
-                              ? "bg-emerald-500"
-                              : (student.attendance ?? 0) >= 90
+                          className={`h-1.5 rounded-full ${(student.attendance ?? 0) >= 95
+                            ? "bg-emerald-500"
+                            : (student.attendance ?? 0) >= 90
                               ? "bg-purple-600"
                               : "bg-amber-500"
-                          }`}
+                            }`}
                           style={{
                             width: `${Math.min(
                               100,
@@ -833,15 +827,14 @@ function StudentRosterCard({
                         {student.average ?? 0}%
                       </strong>
                       <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                          grade.startsWith("A")
-                            ? "bg-purple-100 text-purple-800 border border-purple-200"
-                            : grade.startsWith("B")
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${grade.startsWith("A")
+                          ? "bg-purple-100 text-purple-800 border border-purple-200"
+                          : grade.startsWith("B")
                             ? "bg-lime-100 text-lime-900 border border-lime-200"
                             : grade.startsWith("C")
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-rose-100 text-rose-800 border border-rose-200"
-                        }`}
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-rose-100 text-rose-800 border border-rose-200"
+                          }`}
                       >
                         {grade}
                       </span>
@@ -851,11 +844,10 @@ function StudentRosterCard({
                     <div className="pr-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            pendingCount > 0
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-800"
-                          }`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pendingCount > 0
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800"
+                            }`}
                         >
                           {pendingCount > 0
                             ? `${pendingCount} Pending`
@@ -896,65 +888,6 @@ function StudentRosterCard({
             </div>
           )}
         </div>
-      </div>
-    </section>
-  )
-}
-
-function ClassDistributionCard() {
-  return (
-    <section
-      className="distribution-card panel w-full bg-white p-5"
-      aria-label="Class Grade Distribution"
-    >
-      <div className="card-header flex items-center justify-between mb-3">
-        <div>
-          <div className="card-title text-sm sm:text-base">
-            Class Grade Distribution
-          </div>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
-            Cohort academic mastery spread across Year 4 STEM & AI students
-          </p>
-        </div>
-        <span className="text-[10.5px] font-semibold text-zinc-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
-          Term 1 (2026)
-        </span>
-      </div>
-
-      <div className="distribution-segment-bar h-3 rounded-full overflow-hidden flex bg-gray-100">
-        <div
-          style={{ width: "42%", background: "var(--purple)" }}
-          title="Grade A: 42%"
-        />
-        <div
-          style={{ width: "42%", background: "var(--lime)" }}
-          title="Grade B: 42%"
-        />
-        <div
-          style={{ width: "16%", background: "#f8dc70" }}
-          title="Grade C & D: 16%"
-        />
-      </div>
-
-      <div className="distribution-legend flex items-center gap-4 mt-3 text-xs text-zinc-600 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[var(--purple)]" />
-          <span>Grade A (5 Students · 42%)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[var(--lime)]" />
-          <span>Grade B (5 Students · 42%)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#f8dc70]" />
-          <span>Grade C/D (2 Students · 16%)</span>
-        </div>
-      </div>
-
-      <div className="mt-3.5 p-3 rounded-xl bg-purple-50/70 border border-purple-100 text-[11px] font-normal text-purple-950 leading-relaxed">
-        💡 <strong>Teacher Note:</strong> Liam Brooks and Ava Patel have shown
-        +6% progress this week and are steadily closing the gap to Grade B
-        proficiency.
       </div>
     </section>
   )
@@ -1016,20 +949,15 @@ export default function StudentsPage({
         ))}
       </div>
 
-      {/* Full-width Content Layout: Student Spotlight completely removed so the student list reclaims the available page area */}
-      <div className="flex flex-col gap-2">
-        <StudentRosterCard
-          students={students}
-          selectedStudentId={selectedStudentId}
-          onSelectStudent={(s) => setSelectedStudentId(s.id)}
-          onViewDetails={handleOpenDetails}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
-
-        {/* Grade Distribution Summary preserved below */}
-        <ClassDistributionCard />
-      </div>
+      {/* Full-width Content Layout: Student Spotlight and Grade Distribution removed so the student list reclaims the full available page area */}
+      <StudentRosterCard
+        students={students}
+        selectedStudentId={selectedStudentId}
+        onSelectStudent={(s) => setSelectedStudentId(s.id)}
+        onViewDetails={handleOpenDetails}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       {/* Comprehensive Student Details Modal / Popup */}
       <StudentDetailsModal
