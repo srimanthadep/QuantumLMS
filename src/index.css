@@ -347,6 +347,7 @@ button {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 /* Top bar hidden on Desktop */
@@ -360,7 +361,7 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 0;
   color: var(--header-text-color, #fff);
   transition: color 0.2s ease;
 }
@@ -2189,6 +2190,7 @@ select option {
   .dashboard-content {
     width: 100%;
     min-width: 0;
+    gap: 12px;
   }
 
   .dashboard-header {
@@ -2197,7 +2199,7 @@ select option {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .header-actions {
@@ -3050,6 +3052,7 @@ select option {
   width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 /* Student Header */
@@ -3057,7 +3060,7 @@ select option {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 2px 4px;
 }
 
