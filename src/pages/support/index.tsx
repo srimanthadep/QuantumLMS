@@ -263,6 +263,7 @@ function SupportLayout({
   const navigate = useNavigate()
   const location = useLocation()
 
+<<<<<<< HEAD
   const allTickets = useRef<SupportTicket[]>(getAllSupportTickets()).current
   const cleanSearchQuery = headerSearchQuery.trim().toLowerCase()
 
@@ -328,17 +329,29 @@ function SupportLayout({
   }, [])
 
   // Lock window and document scroll while in Support Portal
+=======
+  // Lock window and document scroll while in Support Portal on desktop
+>>>>>>> e9c7a658d3b4399a2d38e3ff0e20adbd7451c62e
   useEffect(() => {
-    const originalHtmlOverflow = document.documentElement.style.overflow
-    const originalBodyOverflow = document.body.style.overflow
-    const originalBodyHeight = document.body.style.height
-    document.documentElement.style.overflow = "hidden"
-    document.body.style.overflow = "hidden"
-    document.body.style.height = "100vh"
+    const applyScrollLock = () => {
+      if (typeof window !== "undefined" && window.innerWidth > 960) {
+        document.documentElement.style.overflow = "hidden"
+        document.body.style.overflow = "hidden"
+        document.body.style.height = "100vh"
+      } else {
+        document.documentElement.style.overflow = ""
+        document.body.style.overflow = ""
+        document.body.style.height = ""
+      }
+    }
+
+    applyScrollLock()
+    window.addEventListener("resize", applyScrollLock)
     return () => {
-      document.documentElement.style.overflow = originalHtmlOverflow
-      document.body.style.overflow = originalBodyOverflow
-      document.body.style.height = originalBodyHeight
+      window.removeEventListener("resize", applyScrollLock)
+      document.documentElement.style.overflow = ""
+      document.body.style.overflow = ""
+      document.body.style.height = ""
     }
   }, [])
 

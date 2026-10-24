@@ -46,6 +46,7 @@ export function SettingsHeader({
               ×
             </button>
           )}
+          
         </div>
         <HexColorField
           hexColor={hexColor}

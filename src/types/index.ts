@@ -33,6 +33,8 @@ export type IconName =
   | "bookmark"
   | "play"
   | "chevron-right"
+  | "message"
+  | "chat"
   | "chevron-left"
   | "grid"
   | "list"
