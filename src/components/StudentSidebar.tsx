@@ -1,18 +1,8 @@
 import type { IconName } from "../types"
 import { Icon } from "./Icon"
+import type { StudentNavPage } from "../pages/student/studentTypes"
 
-export type StudentNavPage =
-  | "Home"
-  | "My Learning"
-  | "Explore Courses"
-  | "Live Classes"
-  | "Schedule"
-  | "Assignments"
-  | "My Progress"
-  | "My Notes"
-  | "Certificates"
-  | "Community"
-  | "Help & Support"
+export type { StudentNavPage } from "../pages/student/studentTypes"
 
 interface StudentSidebarProps {
   activeTab: StudentNavPage
@@ -29,58 +19,89 @@ export function StudentSidebar({
   onSwitchToTeacher,
   onLogout,
 }: StudentSidebarProps) {
-  const navItems: { label: StudentNavPage; icon: IconName }[] = [
-    { label: "Home", icon: "home" },
-    { label: "My Learning", icon: "book" },
-    { label: "Explore Courses", icon: "compass" },
-    { label: "Live Classes", icon: "radio" },
-    { label: "Schedule", icon: "calendar" },
-    { label: "Assignments", icon: "document" },
-    { label: "My Progress", icon: "chart" },
-    { label: "My Notes", icon: "note" },
-    { label: "Certificates", icon: "award" },
-    { label: "Community", icon: "users" },
-    { label: "Help & Support", icon: "help" },
+  const navCategories: {
+    category: string
+    items: { label: StudentNavPage; icon: IconName }[]
+  }[] = [
+    {
+      category: "Daily Academic Activities and Learning",
+      items: [
+        { label: "Dashboard", icon: "home" },
+        { label: "My Courses", icon: "book" },
+        { label: "Timetable", icon: "calendar" },
+        { label: "Attendance", icon: "check" },
+        { label: "Grades", icon: "trend" },
+        { label: "Communication", icon: "chat" },
+        { label: "Discussions", icon: "message" },
+        { label: "Events & Notices", icon: "bell" },
+      ],
+    },
+    {
+      category: "Mentorship & Career Tools",
+      items: [
+        { label: "Mentor Details", icon: "users" },
+        { label: "My Notes", icon: "note" },
+        { label: "Certificates", icon: "award" },
+        { label: "Profile", icon: "users" },
+        { label: "Settings", icon: "settings" },
+        { label: "Support & Help", icon: "help" },
+      ],
+    },
   ]
 
   return (
-    <aside className="sidebar student-sidebar-shared" aria-label="Student Navigation">
+    <aside
+      className="sidebar student-sidebar-shared h-full max-h-full flex flex-col justify-between box-border min-h-0"
+      aria-label="Student Navigation"
+    >
       {/* Brand Logo - identical to Teacher sidebar */}
-      <div className="logo" aria-label="Quantum School of AI">
-        <img
-          src="/logo.png"
-          alt="Quantum School of AI"
-          className="logo-img"
-        />
+      <div
+        className="logo cursor-pointer shrink-0"
+        onClick={() => setActiveTab("Dashboard")}
+        aria-label="Quantum School of AI"
+      >
+        <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
       </div>
 
-      {/* Student Profile - identical to Teacher Profile card */}
-      <div className="teacher">
+      {/* Student Profile Card - clicking opens Profile page */}
+      <div
+        className="teacher cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+        onClick={() => setActiveTab("Profile")}
+        title="View Student Profile"
+      >
         <img src="/assets/srimanth.png" alt="Srimanth" />
         <strong>Srimanth</strong>
         <span>Student · Year 4</span>
       </div>
 
-      {/* 11 Navigation Pages - identical nav-item styling */}
-      <nav className="student-shared-nav" aria-label="Student main navigation">
-        {navItems.map((item) => {
-          const isActive = activeTab === item.label
-          return (
-            <button
-              key={item.label}
-              className={isActive ? "nav-item active" : "nav-item"}
-              onClick={() => setActiveTab(item.label)}
-              title={item.label}
-            >
-              <Icon name={item.icon} size={16} />
-              <span className="truncate">{item.label}</span>
-            </button>
-          )
-        })}
+      {/* Navigation Pages matching LMS Student Portal */}
+      <nav className="student-shared-nav flex-1 min-h-0 overflow-y-auto" aria-label="Student main navigation">
+        {navCategories.map((group, groupIdx) => (
+          <div key={group.category} className="student-nav-group shrink-0">
+            {groupIdx > 0 && <hr className="student-nav-divider" />}
+            <div className="student-nav-category">{group.category}</div>
+            {group.items.map((item) => {
+              const isActive =
+                activeTab === item.label ||
+                (item.label === "My Courses" && activeTab === "Course Details")
+              return (
+                <button
+                  key={item.label}
+                  className={isActive ? "nav-item active" : "nav-item"}
+                  onClick={() => setActiveTab(item.label)}
+                  title={item.label}
+                >
+                  <Icon name={item.icon} size={15} />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Sidebar Action Buttons */}
-      <div className="student-sidebar-actions">
+      <div className="student-sidebar-actions shrink-0 mt-auto">
         {/* Ask AI Pill Button */}
         <button
           className="student-action-ai-btn"
