@@ -419,10 +419,15 @@
 .support-portal-root .support-sleek-scroll,
 .support-sleek-scroll,
 .support-portal-root .support-card-scroll,
-.support-card-scroll,
+.support-card-scroll {
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
+  scrollbar-width: thin !important;
+  scrollbar-color: #905FEB #f4f2ff !important;
+}
+
 .support-portal-root .sleek-scrollbar,
 .sleek-scrollbar {
-  overflow-y: auto !important;
   scroll-behavior: smooth;
   scrollbar-width: thin !important;
   scrollbar-color: #905FEB #f4f2ff !important;
@@ -508,65 +513,109 @@
   }
 }
 
-/* Global Viewport Lock: Zero Window / Body Scroll for Support Portal */
-html:has(.support-portal-root),
-body:has(.support-portal-root) {
-  overflow: hidden !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
+/* Desktop / Laptop Viewport Lock: Zero Window / Body Scroll for Support Portal on desktop */
+@media (min-width: 961px) {
+  html:has(.support-portal-root),
+  body:has(.support-portal-root) {
+    overflow: hidden !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .support-portal-root {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: var(--support-portal-pad-y) var(--support-portal-pad-x) !important;
+    display: grid !important;
+    grid-template-columns: var(--support-sidebar-w) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */
+  .support-portal-root .sidebar {
+    width: var(--support-sidebar-w) !important;
+    height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .support-portal-root .sidebar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Main Dashboard Content Viewport locked to remaining height */
+  .support-portal-root .dashboard-content {
+    height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Support view container fills full remaining space without bottom overflow */
+  .support-portal-root .support-view-container {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
 }
 
-.support-portal-root {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  min-height: 100vh !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  padding: var(--support-portal-pad-y) var(--support-portal-pad-x) !important;
-  display: grid !important;
-  grid-template-columns: var(--support-sidebar-w) minmax(0, 1fr) !important;
-  gap: 12px !important;
-}
+/* Mobile & Tablet Adaptation (<= 960px): allow natural vertical scrolling and full-width layout */
+@media (max-width: 960px) {
+  html:has(.support-portal-root),
+  body:has(.support-portal-root) {
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
 
-/* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */
-.support-portal-root .sidebar {
-  width: var(--support-sidebar-w) !important;
-  height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
-  max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-  box-sizing: border-box !important;
-}
+  .support-portal-root {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    padding: 12px !important;
+    gap: 12px !important;
+  }
 
-.support-portal-root .sidebar::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
+  .support-portal-root > .sidebar {
+    display: none !important;
+  }
 
-/* Main Dashboard Content Viewport locked to remaining height */
-.support-portal-root .dashboard-content {
-  height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
-  max-height: calc(100vh - (var(--support-portal-pad-y) * 2)) !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  box-sizing: border-box !important;
-}
+  .support-portal-root .dashboard-content {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
 
-/* Support view container fills full remaining space without bottom overflow */
-.support-portal-root .support-view-container {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  padding-bottom: 0 !important;
+  .support-portal-root .support-view-container {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
 }
 
 /* Global design alignment for support containers and card panels */

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react"
 import { Link } from "react-router-dom"
+import { ChevronsUpDown } from "lucide-react"
 import type { MetricItem } from "@/types"
 import { Icon } from "@/components/Icon"
 import { MetricCard } from "@/components/MetricCard"
@@ -134,10 +135,10 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                 <div className="flex items-center gap-2">
                   <h3 className="card-title">Active Support Queue</h3>
                   <span
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
                     title="Support Tickets Queue is scrollable"
                   >
-                    <span className="text-[11px] text-[#905FEB]">↕</span>
+                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
                     <span>Scroll Queue</span>
                   </span>
                 </div>
