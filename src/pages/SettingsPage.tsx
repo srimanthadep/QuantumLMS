@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Icon } from "../components/Icon"
+import type { IconName } from "../types"
 import { HexColorField } from "../components/HexColorField"
 
 export function SettingsHeader({
@@ -74,17 +75,17 @@ type SettingsCategory =
 interface CategoryTab {
   id: SettingsCategory
   label: string
-  icon: string
+  icon: IconName
   badge?: string
 }
 
 const CATEGORIES: CategoryTab[] = [
-  { id: "profile", label: "Profile", icon: "user" },
+  { id: "profile", label: "Profile", icon: "users" },
   { id: "preferences", label: "Account Preferences", icon: "settings" },
   { id: "notifications", label: "Notifications", icon: "bell", badge: "5 active" },
   { id: "appearance", label: "Appearance", icon: "sparkles" },
   { id: "security", label: "Privacy & Security", icon: "check" },
-  { id: "accessibility", label: "Accessibility", icon: "eye" },
+  { id: "accessibility", label: "Accessibility", icon: "activity" },
 ]
 
 export default function SettingsPage({
