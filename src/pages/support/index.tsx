@@ -262,8 +262,6 @@ function SupportLayout({
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const location = useLocation()
-
-<<<<<<< HEAD
   const allTickets = useRef<SupportTicket[]>(getAllSupportTickets()).current
   const cleanSearchQuery = headerSearchQuery.trim().toLowerCase()
 
@@ -328,10 +326,7 @@ function SupportLayout({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Lock window and document scroll while in Support Portal
-=======
   // Lock window and document scroll while in Support Portal on desktop
->>>>>>> e9c7a658d3b4399a2d38e3ff0e20adbd7451c62e
   useEffect(() => {
     const applyScrollLock = () => {
       if (typeof window !== "undefined" && window.innerWidth > 960) {

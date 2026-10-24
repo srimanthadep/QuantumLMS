@@ -1,10 +1,6 @@
 import React, { useState, useRef } from "react"
-<<<<<<< HEAD
 import { Link, useSearchParams } from "react-router-dom"
-=======
-import { Link } from "react-router-dom"
 import { ChevronsUpDown } from "lucide-react"
->>>>>>> e9c7a658d3b4399a2d38e3ff0e20adbd7451c62e
 import type { MetricItem } from "@/types"
 import { Icon } from "@/components/Icon"
 import { MetricCard } from "@/components/MetricCard"
@@ -149,15 +145,12 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="card-title">Active Support Queue</h3>
-<<<<<<< HEAD
-
                   {searchParam && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold">
                       <span>Search: &ldquo;{searchParam}&rdquo;</span>
                       <Link to="/support" className="text-purple-600 hover:text-purple-900 cursor-pointer font-bold ml-0.5">✕</Link>
                     </span>
                   )}
-=======
                   <span
                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
                     title="Support Tickets Queue is scrollable"
@@ -165,7 +158,6 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                     <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
                     <span>Scroll Queue</span>
                   </span>
->>>>>>> e9c7a658d3b4399a2d38e3ff0e20adbd7451c62e
                 </div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">
                   Urgent tickets, cohort transfer inquiries, and mentor triage requests
