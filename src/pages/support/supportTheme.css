@@ -137,7 +137,6 @@
 
 .btn-support-primary:hover {
   background-color: #7D46E7;
-  transform: translateY(-0.5px);
   box-shadow: 0 4px 12px rgba(144, 95, 235, 0.3);
 }
 
@@ -181,7 +180,6 @@
 
 .btn-support-inverted:hover {
   background-color: #000000;
-  transform: translateY(-0.5px);
 }
 
 .btn-support-outlined {
@@ -223,7 +221,6 @@
 
 .btn-support-icon:hover {
   background-color: #7D46E7;
-  transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(144, 95, 235, 0.38);
 }
 
@@ -301,7 +298,6 @@
 
 .action-icon-purple:hover {
   background-color: #7D46E7;
-  transform: scale(1.06);
 }
 
 .action-icon-lime {
@@ -313,14 +309,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out;
   cursor: pointer;
   border: none;
 }
 
 .action-icon-lime:hover {
   filter: brightness(1.08);
-  transform: scale(1.06);
 }
 
 .action-icon-lavender {
@@ -333,13 +328,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out;
   cursor: pointer;
 }
 
 .action-icon-lavender:hover {
   background-color: #E2DBFC;
-  transform: scale(1.06);
 }
 
 .action-icon-danger {
@@ -351,14 +345,37 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out;
   cursor: pointer;
   border: none;
 }
 
 .action-icon-danger:hover {
   background-color: #B91C1C;
-  transform: scale(1.06);
+}
+
+/* Zero bouncy/jumping effect on all buttons and tabs */
+.support-portal-root button,
+.support-portal-root [role="tab"],
+.support-portal-root .btn-support-primary,
+.support-portal-root .btn-support-secondary,
+.support-portal-root .btn-support-inverted,
+.support-portal-root .btn-support-outlined,
+.support-portal-root .btn-support-icon,
+.support-portal-root [class*="action-icon"] {
+  transform: none !important;
+  transition-property: color, background-color, border-color, box-shadow, opacity !important;
+  transition-duration: 120ms !important;
+  transition-timing-function: ease-in-out !important;
+}
+
+.support-portal-root button:active,
+.support-portal-root button:hover,
+.support-portal-root [role="tab"]:active,
+.support-portal-root [role="tab"]:hover,
+.support-portal-root .btn-support-primary:active,
+.support-portal-root .btn-support-secondary:active {
+  transform: none !important;
 }
 
 /* Progress Bars from Figma */
@@ -445,8 +462,6 @@
 .support-queue-scrollbar::-webkit-scrollbar-track,
 .support-portal-root .support-sleek-scroll::-webkit-scrollbar-track,
 .support-sleek-scroll::-webkit-scrollbar-track,
-.support-portal-root .support-card-scroll::-webkit-scrollbar-track,
-.support-card-scroll::-webkit-scrollbar-track,
 .support-portal-root .sleek-scrollbar::-webkit-scrollbar-track,
 .sleek-scrollbar::-webkit-scrollbar-track {
   display: block !important;
@@ -459,8 +474,6 @@
 .support-queue-scrollbar::-webkit-scrollbar-thumb,
 .support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb,
 .support-sleek-scroll::-webkit-scrollbar-thumb,
-.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb,
-.support-card-scroll::-webkit-scrollbar-thumb,
 .support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb,
 .sleek-scrollbar::-webkit-scrollbar-thumb {
   display: block !important;
@@ -472,8 +485,6 @@
 .support-queue-scrollbar::-webkit-scrollbar-thumb:hover,
 .support-portal-root .support-sleek-scroll::-webkit-scrollbar-thumb:hover,
 .support-sleek-scroll::-webkit-scrollbar-thumb:hover,
-.support-portal-root .support-card-scroll::-webkit-scrollbar-thumb:hover,
-.support-card-scroll::-webkit-scrollbar-thumb:hover,
 .support-portal-root .sleek-scrollbar::-webkit-scrollbar-thumb:hover,
 .sleek-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #7D46E7 !important;
@@ -707,4 +718,39 @@ body:has(.support-portal-root) {
     font-size: 11px !important;
     padding: 0 6px !important;
   }
+}
+
+/* Modern Telegram/Slack Live Chat Aesthetics */
+@keyframes waveformBarPulse {
+  0%, 100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.waveform-bar-active {
+  animation: waveformBarPulse 0.85s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.chat-bubble-incoming {
+  background-color: #F4F3F8;
+  color: #111111;
+  border-radius: 22px 22px 22px 6px;
+}
+
+.chat-bubble-outgoing {
+  background-color: #7042D2;
+  color: #ffffff;
+  border-radius: 22px 22px 6px 22px;
+}
+
+.reaction-pill {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reaction-pill:hover {
+  transform: scale(1.08);
 }

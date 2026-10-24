@@ -39,7 +39,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles, Eye, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowRight, Sparkles, Eye, Check } from "lucide-react";
 
 interface SupportAgent {
   id: string;
@@ -358,13 +358,6 @@ export const SupportAgentsPage: React.FC = () => {
                   );
                 })}
               </div>
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
-                title="Agents directory is scrollable"
-              >
-                <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-                <span>Scroll Directory</span>
-              </span>
             </div>
           </div>
         </div>
@@ -380,139 +373,139 @@ export const SupportAgentsPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {filteredAgents.map((agt) => {
-            return (
-              <div
-                key={agt.id}
-                onClick={() => setSelectedAgent(agt)}
-                className="panel relative bg-white border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
-              >
-                {/* Top Colorful Category Gradient Strip */}
+            {filteredAgents.map((agt) => {
+              return (
                 <div
-                  className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs"
-                />
+                  key={agt.id}
+                  onClick={() => setSelectedAgent(agt)}
+                  className="panel relative bg-white border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
+                >
+                  {/* Top Colorful Category Gradient Strip */}
+                  <div
+                    className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs"
+                  />
 
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-white">
-                  <div className="space-y-3">
-                    {/* Header: Avatar, Name & Status Badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="h-11 w-11 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-sm shadow-xs">
-                            {agt.avatar}
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-white">
+                    <div className="space-y-3">
+                      {/* Header: Avatar, Name & Status Badge */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="h-11 w-11 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-sm shadow-xs">
+                              {agt.avatar}
+                            </div>
+                            <span
+                              className={cn(
+                                "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white",
+                                agt.status === "online" ? "bg-[#AEEB00] animate-pulse" :
+                                  agt.status === "in_chat" ? "bg-[#905FEB] animate-pulse" :
+                                    agt.status === "away" ? "bg-amber-400" : "bg-zinc-400"
+                              )}
+                            />
                           </div>
-                          <span
-                            className={cn(
-                              "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white",
-                              agt.status === "online" ? "bg-[#AEEB00] animate-pulse" :
-                                agt.status === "in_chat" ? "bg-[#905FEB] animate-pulse" :
-                                  agt.status === "away" ? "bg-amber-400" : "bg-zinc-400"
-                            )}
-                          />
+                          <div>
+                            <h3 className="text-sm font-bold text-[#111111] leading-snug hover:text-[#905FEB] transition-colors">
+                              {agt.name}
+                            </h3>
+                            <p className="text-[11px] text-zinc-500 font-mono">{agt.email}</p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-2.5 py-0.5",
+                            agt.status === "online" ? "badge-status-completed" :
+                              agt.status === "in_chat" ? "badge-status-in-progress" :
+                                agt.status === "away" ? "badge-status-assigned" : "badge-status-not-started"
+                          )}
+                        >
+                          {agt.status === "online" ? "Online" :
+                            agt.status === "in_chat" ? "In Chat" :
+                              agt.status === "away" ? "Away" : "Offline"}
+                        </span>
+                      </div>
+
+                      {/* Role Tier and Shift */}
+                      <div className="flex items-center justify-between text-xs pt-0.5">
+                        <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
+                          {agt.roleTier}
+                        </span>
+                        <span className="flex items-center gap-1 text-amber-500 font-bold text-xs">
+                          <Star className="h-3.5 w-3.5 fill-current" /> {agt.csatScore}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-zinc-500 flex items-center gap-1 font-medium">
+                        <Clock className="h-3 w-3 text-zinc-400" /> Shift: {agt.currentShift}
+                      </p>
+
+                      {/* Metrics Box */}
+                      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-[#FAF9FF] border border-[#E5DEFF] text-center">
+                        <div>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Active</p>
+                          <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.activeTickets}</p>
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-[#111111] leading-snug hover:text-[#905FEB] transition-colors">
-                            {agt.name}
-                          </h3>
-                          <p className="text-[11px] text-zinc-500 font-mono">{agt.email}</p>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Solved</p>
+                          <p className="text-sm font-bold text-[#3B6600] mt-0.5">{agt.solvedToday}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Response</p>
+                          <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.avgResponseTime}</p>
                         </div>
                       </div>
 
-                      <span
-                        className={cn(
-                          "text-[10px] font-bold px-2.5 py-0.5",
-                          agt.status === "online" ? "badge-status-completed" :
-                            agt.status === "in_chat" ? "badge-status-in-progress" :
-                              agt.status === "away" ? "badge-status-assigned" : "badge-status-not-started"
-                        )}
-                      >
-                        {agt.status === "online" ? "Online" :
-                          agt.status === "in_chat" ? "In Chat" :
-                            agt.status === "away" ? "Away" : "Offline"}
-                      </span>
-                    </div>
-
-                    {/* Role Tier and Shift */}
-                    <div className="flex items-center justify-between text-xs pt-0.5">
-                      <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
-                        {agt.roleTier}
-                      </span>
-                      <span className="flex items-center gap-1 text-amber-500 font-bold text-xs">
-                        <Star className="h-3.5 w-3.5 fill-current" /> {agt.csatScore}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-zinc-500 flex items-center gap-1 font-medium">
-                      <Clock className="h-3 w-3 text-zinc-400" /> Shift: {agt.currentShift}
-                    </p>
-
-                    {/* Metrics Box */}
-                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-[#FAF9FF] border border-[#E5DEFF] text-center">
-                      <div>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Active</p>
-                        <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.activeTickets}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Solved</p>
-                        <p className="text-sm font-bold text-[#3B6600] mt-0.5">{agt.solvedToday}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Response</p>
-                        <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.avgResponseTime}</p>
+                      {/* Specialties Tags */}
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          Specialties &amp; Coverage
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {agt.specialties.map((spec, i) => (
+                            <span
+                              key={i}
+                              className="text-[10px] py-0.5 px-2.5 bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/20 rounded-full font-medium"
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Specialties Tags */}
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                        Specialties &amp; Coverage
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {agt.specialties.map((spec, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] py-0.5 px-2.5 bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/20 rounded-full font-medium"
-                          >
-                            {spec}
-                          </span>
-                        ))}
+                    {/* Bottom Meta & Action Area like KnowledgeBasePage */}
+                    <div className="space-y-2 pt-2.5 border-t border-[#F0EDFF]">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="btn-support-primary flex-1 text-xs h-8 gap-1.5 font-bold cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert(`Direct ticket delegation queue initiated for ${agt.name}.`);
+                          }}
+                        >
+                          <LifeBuoy className="h-3.5 w-3.5" />
+                          <span>Delegate Tickets</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+
+                        <button
+                          className="action-icon-lavender w-8 h-8 rounded-full cursor-pointer shrink-0"
+                          title="Open direct live chat"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert(`Direct internal chat with ${agt.name} opened.`);
+                          }}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Meta & Action Area like KnowledgeBasePage */}
-                  <div className="space-y-2 pt-2.5 border-t border-[#F0EDFF]">
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="btn-support-primary flex-1 text-xs h-8 gap-1.5 font-bold cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          alert(`Direct ticket delegation queue initiated for ${agt.name}.`);
-                        }}
-                      >
-                        <LifeBuoy className="h-3.5 w-3.5" />
-                        <span>Delegate Tickets</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button
-                        className="action-icon-lavender w-8 h-8 rounded-full cursor-pointer shrink-0"
-                        title="Open direct live chat"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          alert(`Direct internal chat with ${agt.name} opened.`);
-                        }}
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Agent Detail Modal like KnowledgeBasePage */}

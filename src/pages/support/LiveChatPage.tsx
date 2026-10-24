@@ -3,49 +3,69 @@ import {
   MessageSquare,
   Search,
   Send,
-  Sparkles,
-  Bot,
-  User,
+  MoreVertical,
   Paperclip,
-  Smile,
-  PhoneCall,
-  Video,
+  Mic,
   CheckCheck,
-  Clock,
-  ArrowRightLeft,
-  CheckCircle2,
-  Flame,
-  ShieldCheck,
-  RefreshCw,
-  ExternalLink,
-  Award,
+  Check,
+  Play,
+  Pause,
+  Eye,
+  Smile,
   X,
   UserCheck,
-  AlertCircle,
-  ArrowRight,
-  TrendingUp,
+  Sparkles,
+  Bot,
+  Clock,
+  Award,
+  ChevronRight,
   ChevronsUpDown,
+  ExternalLink,
+  ArrowRightLeft,
+  Flame,
+  Image as ImageIcon,
+  CheckCircle2,
+  RefreshCw,
+  ShieldCheck,
+  User,
+  Heart,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Student360Drawer } from "@/components/shared/Student360Drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import "./supportTheme.css";
 
-interface ChatMessage {
-  id: string;
-  sender: "student" | "agent" | "bot" | "system";
-  text: string;
-  time: string;
-  isAiSuggested?: boolean;
+// Reaction Interface
+interface Reaction {
+  emoji: string;
+  count: number;
+  userReacted?: boolean;
 }
 
+// Chat Message Interface
+interface ChatMessage {
+  id: string;
+  sender: "student" | "agent" | "system";
+  senderName?: string;
+  senderAvatar?: string;
+  senderPhoto?: string;
+  text?: string;
+  time: string;
+  views?: number;
+  reactions?: Reaction[];
+  type?: "text" | "voice" | "image";
+  voiceDuration?: string;
+  imageUrl?: string;
+  imageCaption?: string;
+}
+
+// Conversation Session Interface
 interface ChatSession {
   id: string;
   studentId: string;
   studentName: string;
-  avatar: string;
+  avatarText?: string;
+  avatarBg?: string;
+  photoUrl?: string;
   email: string;
   courseTitle: string;
   batchName: string;
@@ -55,18 +75,25 @@ interface ChatSession {
   priority: "urgent" | "normal";
   lastMessage: string;
   lastMessageTime: string;
+  lastMessageSender?: "you" | "them";
+  isVoiceMessage?: boolean;
   unreadCount: number;
   isOnline: boolean;
+  isPinned?: boolean;
+  isRead?: boolean;
   slaMinutesLeft: number;
+  verified?: boolean;
   messages: ChatMessage[];
 }
 
-const INITIAL_CHATS: ChatSession[] = [
+const INITIAL_SESSIONS: ChatSession[] = [
   {
-    id: "chat-1",
+    id: "chat-arjun",
     studentId: "usr-student-1",
     studentName: "Arjun Mehta",
-    avatar: "AM",
+    avatarText: "AM",
+    avatarBg: "#F0EDFF",
+    photoUrl: "/assets/student-1.png",
     email: "arjun.m@learner.ai",
     courseTitle: "Full-Stack AI & LLM Systems Engineering",
     batchName: "Cohort 7 (Live + Replay)",
@@ -75,42 +102,53 @@ const INITIAL_CHATS: ChatSession[] = [
     status: "active",
     priority: "urgent",
     slaMinutesLeft: 3,
-    lastMessage: "Can someone confirm if my batch change request to Weekend Bootcamp was approved?",
+    lastMessage: "Can someone confirm if my batch change request to Weekend Bootcamp was approved by the academic admin?",
     lastMessageTime: "2m ago",
+    lastMessageSender: "them",
     unreadCount: 0,
     isOnline: true,
+    isPinned: false,
+    verified: true,
     messages: [
       {
-        id: "m-1",
+        id: "m-sys-1",
         sender: "system",
         text: "Arjun Mehta joined the live support channel. Connected to Support Desk Agent.",
         time: "10:18 AM",
       },
       {
-        id: "m-2",
+        id: "m-1",
         sender: "student",
+        senderName: "Arjun Mehta",
         text: "Hi support team! I submitted ticket #TKT-1082 this morning regarding moving from Weekday Evening to Weekend Cohort.",
         time: "10:19 AM",
+        type: "text",
+      },
+      {
+        id: "m-2",
+        sender: "agent",
+        senderName: "Srimanth",
+        text: "Hello Arjun! I see your request in the queue. You’re at 78% progress with 92% attendance, so you easily qualify for the cohort shift policy.",
+        time: "10:20 AM",
+        type: "text",
       },
       {
         id: "m-3",
-        sender: "agent",
-        text: "Hello Arjun! I see your request in the queue. You're at 78% progress with 92% attendance, so you easily qualify for the cohort shift policy.",
-        time: "10:20 AM",
-      },
-      {
-        id: "m-4",
         sender: "student",
+        senderName: "Arjun Mehta",
         text: "Can someone confirm if my batch change request to Weekend Bootcamp was approved by the academic admin?",
         time: "10:22 AM",
+        type: "text",
       },
     ],
   },
   {
-    id: "chat-2",
+    id: "chat-simran",
     studentId: "usr-student-5",
     studentName: "Simran Kaur",
-    avatar: "SK",
+    avatarText: "SK",
+    avatarBg: "#FFF0F5",
+    photoUrl: "/assets/student-5.png",
     email: "simran.k@example.com",
     courseTitle: "Full-Stack AI & LLM Systems Engineering",
     batchName: "Cohort 8 (Replay Only)",
@@ -121,28 +159,51 @@ const INITIAL_CHATS: ChatSession[] = [
     slaMinutesLeft: 6,
     lastMessage: "I need to share my medical certificate for the 30-day course validity extension.",
     lastMessageTime: "8m ago",
+    lastMessageSender: "them",
     unreadCount: 2,
     isOnline: true,
+    isPinned: false,
+    verified: true,
     messages: [
       {
-        id: "m-201",
-        sender: "student",
-        text: "Hello, I was hospitalized last week with severe dengue and missed two modules.",
-        time: "10:10 AM",
+        id: "m-sk-sys",
+        sender: "system",
+        text: "Simran Kaur joined the live support channel. Connected to Support Desk Agent.",
+        time: "10:08 AM",
       },
       {
-        id: "m-202",
+        id: "m-sk-1",
         sender: "student",
+        senderName: "Simran Kaur",
+        text: "Hello support team! I was hospitalized last week with severe dengue and missed two live lab sessions.",
+        time: "10:10 AM",
+        type: "text",
+      },
+      {
+        id: "m-sk-2",
+        sender: "student",
+        senderName: "Simran Kaur",
         text: "I need to share my medical certificate for the 30-day course validity extension.",
         time: "10:14 AM",
+        type: "text",
+      },
+      {
+        id: "m-sk-3",
+        sender: "agent",
+        senderName: "Srimanth",
+        text: "Hello Simran! Glad to hear you are recovering well. Under our Medical Extension Policy, I can grant you a 30-day course validity extension so you have plenty of time to complete the modules.",
+        time: "10:16 AM",
+        type: "text",
       },
     ],
   },
   {
-    id: "chat-3",
+    id: "chat-pooja",
     studentId: "usr-student-2",
     studentName: "Pooja Hegde",
-    avatar: "PH",
+    avatarText: "PH",
+    avatarBg: "#F0EDFF",
+    photoUrl: "/assets/student-2.png",
     email: "pooja.h@example.com",
     courseTitle: "Autonomous Multi-Agent Architectures",
     batchName: "Agentic Systems Bootcamp",
@@ -150,25 +211,45 @@ const INITIAL_CHATS: ChatSession[] = [
     attendancePercent: 88,
     status: "queued",
     priority: "normal",
-    slaMinutesLeft: 14,
+    slaMinutesLeft: 15,
     lastMessage: "Quick query about GPU server credits for the autonomous swarm project.",
     lastMessageTime: "15m ago",
+    lastMessageSender: "them",
     unreadCount: 0,
     isOnline: false,
+    verified: true,
     messages: [
       {
-        id: "m-301",
+        id: "m-ph-sys",
+        sender: "system",
+        text: "Pooja Hegde joined the live support channel. Connected to Support Desk Agent.",
+        time: "10:02 AM",
+      },
+      {
+        id: "m-ph-1",
         sender: "student",
-        text: "Quick query about GPU server credits for the autonomous swarm project.",
+        senderName: "Pooja Hegde",
+        text: "Quick query about GPU server credits for the autonomous swarm project. Our team is running low on A10G compute hours for our benchmark simulation.",
         time: "10:05 AM",
+        type: "text",
+      },
+      {
+        id: "m-ph-2",
+        sender: "agent",
+        senderName: "Srimanth",
+        text: "Hi Pooja! I checked your project milestone score (96%). I've topped up your sandbox GPU quota with 50 compute credits for your team. Ticket marked as resolved.",
+        time: "10:08 AM",
+        type: "text",
       },
     ],
   },
   {
-    id: "chat-4",
+    id: "chat-rohan",
     studentId: "usr-student-3",
     studentName: "Rohan Nair",
-    avatar: "RN",
+    avatarText: "RN",
+    avatarBg: "#E5DEFF",
+    photoUrl: "/assets/student-3.png",
     email: "rohan.n@tech.io",
     courseTitle: "Full-Stack AI & LLM Systems Engineering",
     batchName: "Cohort 7 (Live + Replay)",
@@ -179,334 +260,357 @@ const INITIAL_CHATS: ChatSession[] = [
     slaMinutesLeft: 0,
     lastMessage: "Thanks a lot for the replay link! That worked perfectly.",
     lastMessageTime: "1h ago",
+    lastMessageSender: "them",
     unreadCount: 0,
     isOnline: false,
+    isRead: true,
+    verified: true,
     messages: [
       {
-        id: "m-401",
+        id: "m-rn-sys",
+        sender: "system",
+        text: "Rohan Nair joined the live support channel. Connected to Support Desk Agent.",
+        time: "09:10 AM",
+      },
+      {
+        id: "m-rn-1",
         sender: "student",
-        text: "Lecture 6 replay player showed a buffering error.",
+        senderName: "Rohan Nair",
+        text: "Lecture 6 replay player showed a buffering error and wouldn't load past minute 42.",
         time: "09:15 AM",
+        type: "text",
       },
       {
-        id: "m-402",
+        id: "m-rn-2",
         sender: "agent",
-        text: "I've flushed the CDN edge cache for your stream token. Please try refreshing now.",
+        senderName: "Srimanth",
+        text: "I've flushed the CDN edge cache for your stream token and updated your player endpoint. Please try refreshing now.",
         time: "09:20 AM",
+        type: "text",
       },
       {
-        id: "m-403",
+        id: "m-rn-3",
         sender: "student",
+        senderName: "Rohan Nair",
         text: "Thanks a lot for the replay link! That worked perfectly.",
-        time: "09:22 AM",
+        time: "09:25 AM",
+        type: "text",
       },
     ],
   },
 ];
 
+// Sample Canned Macros from Image 1
 const CANNED_MACROS = [
-  {
-    label: "Batch Shift SOP",
-    tag: "#batch",
-    text: "Your batch shift request has been verified against our attendance policy and routed to Academic Admin for final roster sync. You will receive an email confirmation within 2 hours.",
-  },
-  {
-    label: "Validity Extension Policy",
-    tag: "#validity",
-    text: "We have received your document. The 30-day medical validity extension proposal has been flagged for prioritized approval so you can continue seamless access.",
-  },
-  {
-    label: "CDN & Stream Flush",
-    tag: "#cdn",
-    text: "We have regenerated your secure LMS streaming tokens and flushed edge CDN caches. Please clear browser cookies and reload the lecture player.",
-  },
-  {
-    label: "GPU Compute Credits",
-    tag: "#gpu",
-    text: "Your modal/cloud sandbox workspace quota has been augmented with 50 bonus GPU compute minutes for this milestone.",
-  },
+  { tag: "#batch", label: "Batch Shift SOP", text: "We have reviewed your attendance and course progress. Your request to shift cohorts is approved." },
+  { tag: "#validity", label: "Validity Extension Policy", text: "A 30-day course access extension has been applied to your learner portal per medical policy." },
+  { tag: "#cdn", label: "CDN & Stream Flush", text: "I have re-synchronized your stream token and flushed the CDN edge cache. Please refresh your browser." },
+  { tag: "#gpu", label: "GPU Server Quota", text: "Your cloud sandbox GPU server quota has been topped up with 50 compute credits for the bootcamp project." },
 ];
 
 export const LiveChatPage: React.FC = () => {
-  const [chats, setChats] = useState<ChatSession[]>(INITIAL_CHATS);
-  const [selectedChatId, setSelectedChatId] = useState<string>("chat-1");
+  const [chats, setChats] = useState<ChatSession[]>(INITIAL_SESSIONS);
+  const [selectedChatId, setSelectedChatId] = useState<string>("chat-arjun");
   const [searchQuery, setSearchQuery] = useState("");
+  const [inputText, setInputText] = useState("");
   const [statusTab, setStatusTab] = useState<"all" | "active" | "queued" | "resolved">("all");
   const [urgentOnly, setUrgentOnly] = useState(false);
-  const [inputText, setInputText] = useState("");
-  const [isCopilotThinking, setIsCopilotThinking] = useState(false);
-  const [isStudentTyping, setIsStudentTyping] = useState(false);
+  const [agentPresence, setAgentPresence] = useState<"online" | "in_chat" | "away">("online");
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [voiceSecondsLeft, setVoiceSecondsLeft] = useState(15);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [is360DrawerOpen, setIs360DrawerOpen] = useState(false);
-  const [agentStatus, setAgentStatus] = useState<"online" | "busy" | "away">("online");
-  const [workflowToast, setWorkflowToast] = useState<string | null>(null);
+  const [showTelemetryPanel, setShowTelemetryPanel] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const voiceTimerRef = useRef<number | null>(null);
+  const recordTimerRef = useRef<number | null>(null);
 
   const selectedChat = chats.find((c) => c.id === selectedChatId) || chats[0];
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedChat?.messages, isStudentTyping]);
-
-  // When a chat is clicked or viewed, its unread notification badge is cleared immediately
-  const handleSelectChat = (chatId: string) => {
-    setSelectedChatId(chatId);
-    setChats((prev) =>
-      prev.map((c) => (c.id === chatId ? { ...c, unreadCount: 0 } : c))
-    );
-  };
-
-  // Automatically clear unread notification badge for the active seen chat
-  useEffect(() => {
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === selectedChatId && c.unreadCount > 0
-          ? { ...c, unreadCount: 0 }
-          : c
-      )
-    );
-  }, [selectedChatId]);
-
+  // Counts from Image 1
   const activeCount = chats.filter((c) => c.status === "active").length;
   const queuedCount = chats.filter((c) => c.status === "queued").length;
   const resolvedCount = chats.filter((c) => c.status === "resolved").length;
-  const urgentCount = chats.filter((c) => c.priority === "urgent" && c.status !== "resolved").length;
+  const urgentCount = chats.filter((c) => c.priority === "urgent" && c.status === "active").length;
 
+  // Auto-scroll messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedChat.messages, isRecordingVoice]);
+
+  // Handle Voice Playback Countdown
+  const handleToggleVoice = () => {
+    if (isVoicePlaying) {
+      if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+      setIsVoicePlaying(false);
+    } else {
+      setIsVoicePlaying(true);
+      if (voiceSecondsLeft <= 0) setVoiceSecondsLeft(15);
+      voiceTimerRef.current = window.setInterval(() => {
+        setVoiceSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(voiceTimerRef.current!);
+            setIsVoicePlaying(false);
+            return 15;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    };
+  }, []);
+
+  // Handle Reactions toggle
+  const handleToggleReaction = (messageId: string, emoji: string) => {
+    setChats((prev) =>
+      prev.map((c) => {
+        if (c.id !== selectedChatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map((m) => {
+            if (m.id !== messageId) return m;
+            const existing = m.reactions || [];
+            const found = existing.find((r) => r.emoji === emoji);
+            let updated: Reaction[];
+            if (found) {
+              updated = existing
+                .map((r) =>
+                  r.emoji === emoji
+                    ? {
+                        ...r,
+                        count: r.userReacted ? r.count - 1 : r.count + 1,
+                        userReacted: !r.userReacted,
+                      }
+                    : r
+                )
+                .filter((r) => r.count > 0);
+            } else {
+              updated = [...existing, { emoji, count: 1, userReacted: true }];
+            }
+            return { ...m, reactions: updated };
+          }),
+        };
+      })
+    );
+  };
+
+  // Notification Toast Helper
+  const showToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3200);
+  };
+
+  // Send Message
+  const handleSendMessage = () => {
+    if (!inputText.trim()) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const newMsg: ChatMessage = {
+      id: `agent-${Date.now()}`,
+      sender: "agent",
+      senderName: "Srimanth",
+      senderPhoto: "/assets/srimanth.png",
+      text: inputText.trim(),
+      time: timeStr,
+      views: 1,
+      type: "text",
+    };
+
+    setChats((prev) =>
+      prev.map((c) => {
+        if (c.id !== selectedChatId) return c;
+        return {
+          ...c,
+          lastMessage: `You: ${inputText.trim()}`,
+          lastMessageTime: "Just now",
+          lastMessageSender: "you",
+          messages: [...c.messages, newMsg],
+        };
+      })
+    );
+
+    setInputText("");
+    showToast("Reply dispatched to student.");
+  };
+
+  // Voice Recording Toggle
+  const handleToggleRecord = () => {
+    if (isRecordingVoice) {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      setIsRecordingVoice(false);
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const durationSec = recordingSeconds || 4;
+      const durationStr = `0:${durationSec < 10 ? "0" : ""}${durationSec}`;
+
+      const newVoiceMsg: ChatMessage = {
+        id: `voice-${Date.now()}`,
+        sender: "agent",
+        senderName: "Srimanth",
+        senderPhoto: "/assets/srimanth.png",
+        type: "voice",
+        voiceDuration: durationStr,
+        time: timeStr,
+        views: 1,
+      };
+
+      setChats((prev) =>
+        prev.map((c) => {
+          if (c.id !== selectedChatId) return c;
+          return {
+            ...c,
+            lastMessage: "You sent a voice message",
+            lastMessageTime: "Just now",
+            lastMessageSender: "you",
+            messages: [...c.messages, newVoiceMsg],
+          };
+        })
+      );
+
+      setRecordingSeconds(0);
+      showToast("Voice message sent!");
+    } else {
+      setIsRecordingVoice(true);
+      setRecordingSeconds(1);
+      recordTimerRef.current = window.setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+  };
+
+  // Resolve Session Action from Image 1
+  const handleResolveSession = () => {
+    setChats((prev) =>
+      prev.map((c) =>
+        c.id === selectedChatId
+          ? {
+              ...c,
+              status: "resolved",
+              lastMessage: "Session marked as resolved",
+              lastMessageTime: "Just now",
+            }
+          : c
+      )
+    );
+    showToast(`Session with ${selectedChat.studentName} marked as Resolved.`);
+  };
+
+  // Filtered Chats
   const filteredChats = chats.filter((c) => {
     const matchesSearch =
       c.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.courseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+      c.courseTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
-    if (statusTab !== "all" && c.status !== statusTab) return false;
     if (urgentOnly && c.priority !== "urgent") return false;
+    if (statusTab !== "all" && c.status !== statusTab) return false;
     return true;
   });
 
-  const showNotification = (msg: string) => {
-    setWorkflowToast(msg);
-    setTimeout(() => setWorkflowToast(null), 3500);
-  };
-
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-    const newMsg: ChatMessage = {
-      id: `m-${Date.now()}`,
-      sender: "agent",
-      text: inputText.trim(),
-      time: "Just now",
-    };
-
-    setChats((prev) =>
-      prev.map((chat) => {
-        if (chat.id === selectedChatId) {
-          return {
-            ...chat,
-            lastMessage: newMsg.text,
-            lastMessageTime: "Just now",
-            messages: [...chat.messages, newMsg],
-          };
-        }
-        return chat;
-      })
-    );
-    setInputText("");
-
-    // Simulate student typing indicator then response
-    setTimeout(() => {
-      setIsStudentTyping(true);
-    }, 1200);
-
-    setTimeout(() => {
-      setIsStudentTyping(false);
-      const studentReply: ChatMessage = {
-        id: `m-${Date.now() + 1}`,
-        sender: "student",
-        text: "Thank you so much! That really clarifies everything. Appreciate the fast help!",
-        time: "Just now",
-      };
-      setChats((prev) =>
-        prev.map((chat) => {
-          if (chat.id === selectedChatId) {
-            return {
-              ...chat,
-              messages: [...chat.messages, studentReply],
-              lastMessage: studentReply.text,
-              lastMessageTime: "Just now",
-            };
-          }
-          return chat;
-        })
-      );
-    }, 3200);
-  };
-
-  const handleApplyMacro = (text: string) => {
-    setInputText(text);
-    textareaRef.current?.focus();
-  };
-
-  const handleAiCopilotGenerate = (type: "general" | "batch" | "validity" | "empathy") => {
-    setIsCopilotThinking(true);
-    setTimeout(() => {
-      setIsCopilotThinking(false);
-      let draft = "";
-      if (type === "batch") {
-        draft = `Hi ${selectedChat.studentName.split(" ")[0]}, I checked ticket #TKT-1082 and can confirm your request to move to the Weekend Intensive Cohort has been approved by the academic committee. Your dashboard timetable and live class invitations will reflect the weekend slot starting this Saturday.`;
-      } else if (type === "validity") {
-        draft = `Hi ${selectedChat.studentName.split(" ")[0]}, I have received your medical documentation. We have approved a 30-day extension to your course validity so you can recover without any study pressure. Your new expiry is marked in your portal.`;
-      } else if (type === "empathy") {
-        draft = `Hi ${selectedChat.studentName.split(" ")[0]}, I completely understand how frustrating this must be. Rest assured, I am personally taking ownership of this and expediting resolution with the senior engineering mentors right now.`;
-      } else {
-        draft = `Hi ${selectedChat.studentName.split(" ")[0]}, I've reviewed your active request for ${selectedChat.courseTitle}. Everything looks in order, and I've processed the approval on your LMS record.`;
-      }
-      setInputText(draft);
-      textareaRef.current?.focus();
-    }, 600);
-  };
-
-  const handleResolveChat = () => {
-    setChats((prev) =>
-      prev.map((c) => (c.id === selectedChatId ? { ...c, status: "resolved", unreadCount: 0 } : c))
-    );
-    showNotification(`Chat session with ${selectedChat.studentName} marked as resolved.`);
-  };
-
-  const handleQuickBatchApproval = () => {
-    const sysMsg: ChatMessage = {
-      id: `sys-${Date.now()}`,
-      sender: "system",
-      text: `Academic Admin verified: ${selectedChat.studentName} moved from ${selectedChat.batchName} to Weekend Intensive Batch.`,
-      time: "Just now",
-    };
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === selectedChatId
-          ? {
-            ...c,
-            batchName: "Weekend Intensive Bootcamp (Approved)",
-            messages: [...c.messages, sysMsg],
-          }
-          : c
-      )
-    );
-    showNotification(`Batch shift approved for ${selectedChat.studentName}. Timetable synced.`);
-  };
-
-  const handleQuickValidityExtension = () => {
-    const sysMsg: ChatMessage = {
-      id: `sys-${Date.now()}`,
-      sender: "system",
-      text: `Medical exception logged: 30-day validity extension granted to ${selectedChat.studentName}.`,
-      time: "Just now",
-    };
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === selectedChatId
-          ? {
-            ...c,
-            messages: [...c.messages, sysMsg],
-          }
-          : c
-      )
-    );
-    showNotification(`30-day course validity extension granted to ${selectedChat.studentName}.`);
-  };
-
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
-      {/* Toast Notification Alert */}
-      {workflowToast && (
-        <div className="fixed top-5 right-5 z-50 animate-fadeIn">
-          <div className="bg-[#111111] text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold border border-[#905FEB]/40">
-            <CheckCircle2 className="h-4 w-4 text-[#AEEB00] shrink-0" />
-            <span>{workflowToast}</span>
-            <button
-              onClick={() => setWorkflowToast(null)}
-              className="ml-2 text-zinc-400 hover:text-white cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+    <div className="flex-1 min-h-0 flex flex-col gap-2 h-full support-page-font">
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 bg-[#111111] text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in slide-in-from-top-3">
+          <Sparkles className="h-4 w-4 text-[#AEEB00]" />
+          <span>{notification}</span>
         </div>
       )}
 
-      {/* Control Header matching canonical design */}
-      <div className="panel shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-zinc-150">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-9 w-9 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold shadow-2xs shrink-0">
-            <MessageSquare className="h-4.5 w-4.5 text-[#905FEB]" />
-          </div>
-          <div className="min-w-0 flex items-center gap-2.5">
-            <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111111] truncate">
-              Live Chat Operations Desk
-            </h1>
-            <span className="hidden sm:inline text-zinc-300">•</span>
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5 flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#3B6600] animate-pulse" />
-                Live Desk
-              </span>
-              <span className="text-zinc-500 font-semibold">{activeCount} Active</span>
-              <span className="text-zinc-300">•</span>
-              <span className="text-[#7042D2] font-bold">{urgentCount} Urgent SLA</span>
-              <span className="text-zinc-300">•</span>
-              <span className="text-zinc-400 font-mono text-[11px]">Avg First Reply: 42s</span>
+      {/* =========================================================
+          FEATURE BAR FROM IMAGE 1 (With Image 2's sleek rounded UI)
+         ========================================================= */}
+      <div className="panel px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white border border-zinc-150 rounded-2xl shadow-2xs">
+        {/* Left Side: Operations Desk Info & Status Badges */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-[#F0EDFF] text-[#7042D2] flex items-center justify-center font-bold">
+              <MessageSquare className="h-4 w-4" />
             </div>
+            <h2 className="text-sm font-bold text-[#111111] tracking-tight">
+              Live Chat Operations Desk
+            </h2>
           </div>
+
+          <div className="h-4 w-px bg-zinc-200 hidden sm:block" />
+
+          {/* Lime Live Desk Indicator */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBFDCE] text-[#345C00] border border-[#AEEB00]/40 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#AEEB00] animate-pulse" />
+            <span>Live Desk</span>
+          </span>
+
+          <span className="text-xs font-bold text-zinc-600 bg-zinc-100 px-2.5 py-0.5 rounded-full">
+            {activeCount} Active
+          </span>
+
+          <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200/60 flex items-center gap-1">
+            <Flame className="h-3 w-3 text-amber-500 animate-pulse" />
+            <span>{urgentCount} Urgent SLA</span>
+          </span>
+
+          <span className="text-[11px] text-zinc-400 font-mono hidden md:inline">
+            Avg First Reply: 42s
+          </span>
         </div>
 
-        {/* Global Desk Actions matching Figma UI Kit */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center rounded-full border border-[#E5DEFF] p-0.5 bg-[#FAF9FF] text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setAgentStatus("online")}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${agentStatus === "online"
-                  ? "bg-[#EAFCC7] text-[#3B6600] shadow-xs"
-                  : "text-zinc-500 hover:text-[#111111]"
+        {/* Right Side: Agent Presence & Instant Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Agent Presence Pill */}
+          <div className="flex items-center rounded-full border border-[#E5DEFF] p-0.5 bg-[#FAF9FF] text-xs">
+            {(["online", "in_chat", "away"] as const).map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => {
+                  setAgentPresence(st);
+                  showToast(`Agent presence set to ${st.replace("_", " ")}.`);
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
+                  agentPresence === st
+                    ? st === "online"
+                      ? "bg-emerald-600 text-white shadow-2xs"
+                      : st === "in_chat"
+                      ? "bg-[#7042D2] text-white shadow-2xs"
+                      : "bg-amber-500 text-white shadow-2xs"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
-            >
-              Online
-            </button>
-            <button
-              type="button"
-              onClick={() => setAgentStatus("busy")}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${agentStatus === "busy"
-                  ? "bg-[#FFF3E0] text-[#B45309] shadow-xs"
-                  : "text-zinc-500 hover:text-[#111111]"
-                }`}
-            >
-              In Chat
-            </button>
-            <button
-              type="button"
-              onClick={() => setAgentStatus("away")}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${agentStatus === "away"
-                  ? "bg-[#F3F4F6] text-[#4B5563] shadow-xs"
-                  : "text-zinc-500 hover:text-[#111111]"
-                }`}
-            >
-              Away
-            </button>
+              >
+                {st.replace("_", " ")}
+              </button>
+            ))}
           </div>
 
+          {/* Student 360 Full Modal Button */}
           <button
             type="button"
             onClick={() => setIs360DrawerOpen(true)}
-            className="btn-support-secondary text-xs h-8 px-3.5 font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs"
-            title="Inspect Student 360° Profile"
+            className="px-3 h-8 rounded-full border border-[#E5DEFF] text-[#7042D2] bg-[#FAF9FF] hover:bg-[#F0EDFF] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Inspect Full Student 360"
           >
-            <User className="h-3.5 w-3.5 text-[#7042D2]" />
-            <span>Student 360°</span>
+            <User className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Student 360°</span>
           </button>
 
+          {/* Resolve Session Button */}
           <button
             type="button"
-            onClick={handleResolveChat}
-            disabled={selectedChat?.status === "resolved"}
-            className="btn-support-primary text-xs h-8 px-3.5 font-bold cursor-pointer disabled:opacity-50"
+            onClick={handleResolveSession}
+            disabled={selectedChat.status === "resolved"}
+            className="px-3.5 h-8 rounded-full bg-[#7042D2] hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            title="Mark session as resolved"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span>Resolve Session</span>
@@ -514,21 +618,24 @@ export const LiveChatPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main 3-Column Workspace */}
+      {/* =========================================================
+          MAIN 3-COLUMN WORKSPACE: FEATURES FROM 1 + UI FROM 2
+         ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
-        {/* =========================================
-            COLUMN 1: Conversation Queue (4 cols)
-           ========================================= */}
-        <div className="lg:col-span-4 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
-          {/* Search & Filter Header */}
-          <div className="p-3 border-b border-[#F0EDFF] space-y-2 bg-[#FAF9FF] shrink-0">
+        {/* =========================================================
+            COLUMN 1: Conversation Queue (4 cols / 3.5 cols)
+           ========================================================= */}
+        <div className="lg:col-span-4 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs">
+          {/* Search Bar + Filters (Image 2 UI + Image 1 Tabs) */}
+          <div className="p-3 pb-2 border-b border-[#F0EDFF] space-y-2.5 bg-white shrink-0">
+            {/* Search Pill */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-2.5 h-3.5 w-3.5 text-[#905FEB]" />
+              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400" />
               <input
                 placeholder="Search conversations or students..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 h-8.5 text-xs bg-white rounded-full border border-[#E5DEFF] text-[#111111] placeholder:text-zinc-400 focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20 focus:outline-none transition-all"
+                className="w-full pl-10 pr-8 h-9 text-xs sm:text-sm bg-[#F0EDFF] rounded-full border border-transparent focus:border-[#905FEB] text-[#111111] placeholder:text-zinc-500 focus:outline-none transition-all"
               />
               {searchQuery && (
                 <button
@@ -536,231 +643,247 @@ export const LiveChatPage: React.FC = () => {
                   onClick={() => setSearchQuery("")}
                   className="absolute right-3 top-2.5 text-zinc-400 hover:text-zinc-700 cursor-pointer"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
 
-            {/* Filter Tabs matching Figma Pills */}
-            <div className="flex items-center justify-between gap-1">
-              <div className="flex items-center gap-1 p-0.5 rounded-full bg-white border border-[#E5DEFF] text-xs flex-1">
+            {/* Filter Tabs matching Image 1 & 2 */}
+            <div className="flex items-center justify-between gap-1 text-xs">
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
                 {(["all", "active", "queued", "resolved"] as const).map((tab) => {
                   const count =
                     tab === "all"
                       ? chats.length
                       : tab === "active"
-                        ? activeCount
-                        : tab === "queued"
-                          ? queuedCount
-                          : resolvedCount;
+                      ? activeCount
+                      : tab === "queued"
+                      ? queuedCount
+                      : resolvedCount;
                   const isTabActive = statusTab === tab;
                   return (
                     <button
                       key={tab}
                       type="button"
                       onClick={() => setStatusTab(tab)}
-                      className={`flex-1 py-1 text-[11px] font-bold rounded-full capitalize transition-all flex items-center justify-center gap-1 cursor-pointer ${isTabActive
-                          ? "bg-[#905FEB] text-white shadow-xs"
-                          : "text-zinc-500 hover:text-[#7042D2]"
-                        }`}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize transition-all cursor-pointer whitespace-nowrap ${
+                        isTabActive
+                          ? "bg-[#7042D2] text-white shadow-2xs"
+                          : "text-zinc-500 hover:text-[#7042D2] hover:bg-[#F0EDFF]"
+                      }`}
                     >
-                      <span>{tab}</span>
-                      <span className="text-[10px] opacity-80 font-mono">({count})</span>
+                      {tab} ({count})
                     </button>
                   );
                 })}
               </div>
 
-              {/* Urgent SLA Flame Toggle */}
+              {/* Urgent SLA Flame Toggle Button */}
               <button
                 type="button"
-                onClick={() => setUrgentOnly((prev) => !prev)}
-                title="Filter by Urgent SLA"
-                className={`h-8 px-2.5 rounded-full border transition-all text-xs flex items-center gap-1 shrink-0 cursor-pointer ${urgentOnly
-                    ? "bg-[#FFF3E0] text-[#B45309] border-[#F59E0B]/50 font-bold shadow-xs"
+                onClick={() => setUrgentOnly(!urgentOnly)}
+                title="Filter Urgent SLA"
+                className={`h-7 px-2.5 rounded-full border transition-all text-xs flex items-center gap-1 shrink-0 cursor-pointer ${
+                  urgentOnly
+                    ? "bg-[#FFF3E0] text-[#B45309] border-[#F59E0B]/50 font-bold shadow-2xs"
                     : "bg-white border-[#E5DEFF] text-zinc-500 hover:border-[#905FEB]"
-                  }`}
+                }`}
               >
                 <Flame className={`h-3.5 w-3.5 ${urgentOnly ? "text-amber-600 animate-pulse" : "text-zinc-400"}`} />
               </button>
             </div>
-
-            {/* Scroll Indicator Sub-bar */}
-            <div className="flex items-center justify-between px-1 pt-0.5 text-[11px]">
-              <span className="font-semibold text-zinc-500">Queue ({filteredChats.length})</span>
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                title="Live conversation queue is scrollable"
-              >
-                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
-                <span>Scroll Queue</span>
-              </span>
-            </div>
           </div>
 
-          {/* Conversation Cards List with Visible Custom Scrollbar */}
-          <div className="p-1 flex-1 min-h-0 overflow-y-auto space-y-1 support-queue-scrollbar">
-            {filteredChats.length === 0 ? (
-              <div className="p-8 text-center text-xs text-zinc-500 space-y-1">
-                <AlertCircle className="h-6 w-6 mx-auto text-zinc-300 mb-1" />
-                <p className="font-bold text-[#111111]">No conversations found</p>
-                <p className="text-[11px]">Adjust your search query or status filter.</p>
-              </div>
-            ) : (
-              filteredChats.map((chat) => {
-                const isSelected = chat.id === selectedChatId;
-                return (
-                  <button
-                    key={chat.id}
-                    type="button"
-                    onClick={() => handleSelectChat(chat.id)}
-                    className={`w-full text-left p-3 rounded-xl flex items-start gap-3 transition-all relative cursor-pointer border ${isSelected
-                        ? "bg-[#FAF9FF] border-[#905FEB] shadow-xs"
-                        : "bg-white border-transparent hover:bg-[#FAF9FF]/60 hover:border-[#E5DEFF]"
-                      }`}
-                  >
-                    {/* Student Avatar + Online indicator */}
-                    <div className="relative shrink-0 mt-0.5">
-                      <div className="h-9 w-9 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-xs shadow-2xs">
-                        {chat.avatar}
+          {/* Conversations Scrollable List with Image 2's Squircle UI */}
+          <div className="p-2 flex-1 min-h-0 overflow-y-auto space-y-1.5 support-queue-scrollbar">
+            {filteredChats.map((chat) => {
+              const isSelected = chat.id === selectedChatId;
+
+              return (
+                <div
+                  key={chat.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedChatId(chat.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedChatId(chat.id);
+                    }
+                  }}
+                  className={`w-full p-3 rounded-2xl flex items-start gap-3 transition-all cursor-pointer text-left select-none border ${
+                    isSelected
+                      ? "bg-[#F0EDFF] border-[#905FEB] text-[#111111] shadow-2xs"
+                      : "bg-white border-transparent hover:bg-[#FAF9FF]"
+                  }`}
+                >
+                  {/* Squircle Avatar with Image or Initial Pill */}
+                  <div className="relative shrink-0 mt-0.5">
+                    {chat.photoUrl ? (
+                      <img
+                        src={chat.photoUrl}
+                        alt={chat.studentName}
+                        className="w-11 h-11 rounded-2xl object-cover shadow-2xs border border-[#E5DEFF]"
+                      />
+                    ) : (
+                      <div
+                        className="w-11 h-11 rounded-2xl font-bold text-sm flex items-center justify-center text-white shadow-xs"
+                        style={{ backgroundColor: chat.avatarBg || "#1C1C1E" }}
+                      >
+                        {chat.avatarText || chat.studentName.slice(0, 2).toUpperCase()}
                       </div>
-                      {chat.isOnline ? (
-                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#AEEB00] ring-2 ring-white" />
-                      ) : (
-                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-zinc-300 ring-2 ring-white" />
-                      )}
+                    )}
+                    {chat.isOnline && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#AEEB00] ring-2 ring-white" />
+                    )}
+                  </div>
+
+                  {/* Conversation Meta */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <h4 className="text-sm font-bold text-[#111111] truncate">
+                        {chat.studentName}
+                      </h4>
+                      <span className="text-[11px] text-zinc-400 font-medium shrink-0 ml-1">
+                        {chat.lastMessageTime}
+                      </span>
                     </div>
 
-                    {/* Chat Content Snippet */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-bold text-[#111111] truncate">
-                          {chat.studentName}
+                    <p className="text-xs text-zinc-500 truncate leading-snug">
+                      {chat.isVoiceMessage ? (
+                        <span className="text-[#7042D2] font-semibold flex items-center gap-1">
+                          <Mic className="h-3 w-3" /> Voice message
                         </span>
-                        <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
-                          {chat.lastMessageTime}
+                      ) : chat.lastMessageSender === "you" ? (
+                        <span>
+                          <span className="text-[#905FEB] font-medium">You: </span>
+                          {chat.lastMessage.replace("You: ", "")}
                         </span>
-                      </div>
+                      ) : (
+                        chat.lastMessage
+                      )}
+                    </p>
 
-                      <p className="text-[11px] text-zinc-500 truncate leading-snug">
-                        {chat.lastMessage}
-                      </p>
+                    {/* Features from Image 1: Badges row */}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {chat.status === "active" ? (
+                        <span className="badge-status-in-progress text-[9px] font-bold px-2 py-0.5">
+                          Active
+                        </span>
+                      ) : chat.status === "queued" ? (
+                        <span className="badge-status-assigned text-[9px] font-bold px-2 py-0.5">
+                          Queued
+                        </span>
+                      ) : (
+                        <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
+                          Resolved
+                        </span>
+                      )}
 
-                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                        {chat.status === "active" ? (
-                          <span className="badge-status-in-progress text-[9px] font-bold px-2 py-0.5">
-                            Active
-                          </span>
-                        ) : chat.status === "queued" ? (
-                          <span className="badge-status-assigned text-[9px] font-bold px-2 py-0.5">
-                            Queued
-                          </span>
-                        ) : (
-                          <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
-                            Resolved
-                          </span>
+                      {chat.priority === "urgent" && (
+                        <span className="bg-[#FFF3E0] text-[#B45309] border border-[#F59E0B]/40 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Flame className="h-2.5 w-2.5 text-amber-600 animate-pulse" />
+                          <span>&lt;{chat.slaMinutesLeft}m SLA</span>
+                        </span>
+                      )}
+
+                      {/* Right Indicators: Unread Pill or Double Checkmarks */}
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        {chat.isRead && (
+                          <CheckCheck className="h-3.5 w-3.5 text-[#7042D2]" />
                         )}
-
-                        {chat.priority === "urgent" && (
-                          <span className="badge-status-assigned text-[9px] font-bold px-2 py-0.5 flex items-center gap-1">
-                            <Flame className="h-2.5 w-2.5 text-amber-600 animate-pulse" />
-                            <span>&lt;{chat.slaMinutesLeft}m SLA</span>
-                          </span>
-                        )}
-
                         {chat.unreadCount > 0 && (
-                          <span className="ml-auto h-4.5 min-w-[18px] px-1.5 rounded-full bg-[#905FEB] text-white text-[10px] font-bold flex items-center justify-center shadow-xs transition-all duration-200 scale-100">
+                          <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-[#7042D2] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
                             {chat.unreadCount}
                           </span>
                         )}
                       </div>
                     </div>
-                  </button>
-                );
-              })
-            )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* =========================================
-            COLUMN 2: Chat Stream Console (5 cols)
-           ========================================= */}
-        <div className="lg:col-span-5 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
-          {/* Active Conversation Header */}
-          <div className="p-3 border-b border-[#F0EDFF] flex items-center justify-between bg-[#FAF9FF] shrink-0">
+        {/* =========================================================
+            COLUMN 2: Chat Stream Console (5 cols if telemetry open, else 8)
+           ========================================================= */}
+        <div
+          className={`${
+            showTelemetryPanel ? "lg:col-span-5" : "lg:col-span-8"
+          } h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs transition-all`}
+        >
+          {/* Active Conversation Header (Image 2 UI + Image 1 verified/SLA badges) */}
+          <div className="px-5 py-3 border-b border-[#F0EDFF] flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-3 min-w-0">
+              {/* Header Avatar Circle with Initials matching screenshot */}
               <div className="relative shrink-0">
-                <div className="h-9 w-9 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-xs shadow-2xs">
-                  {selectedChat.avatar}
+                <div className="w-10 h-10 rounded-full font-bold text-xs flex items-center justify-center border border-[#E5DEFF] text-[#7042D2] bg-[#F0EDFF] shadow-2xs">
+                  {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
                 </div>
                 {selectedChat.isOnline && (
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#AEEB00] ring-2 ring-white" />
+                  <span className="absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full bg-[#AEEB00] ring-2 ring-white" />
                 )}
               </div>
+
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs sm:text-sm font-extrabold text-[#111111] truncate">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight leading-tight truncate">
                     {selectedChat.studentName}
                   </h3>
-                  <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
-                    Verified
-                  </span>
+                  {selectedChat.verified && (
+                    <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
+                      Verified
+                    </span>
+                  )}
                   {selectedChat.priority === "urgent" && (
-                    <span className="badge-status-assigned text-[9px] font-bold px-1.5 py-0 flex items-center gap-0.5">
+                    <span className="bg-[#FFF3E0] text-[#B45309] border border-[#F59E0B]/40 text-[9px] font-bold px-1.5 py-0 rounded-full flex items-center gap-0.5">
                       <Flame className="h-2.5 w-2.5 text-amber-600" />
-                      Urgent SLA
+                      <span>Urgent SLA</span>
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#7042D2] font-semibold truncate max-w-[260px]">
+                <p className="text-xs text-[#7042D2] font-semibold truncate max-w-[280px]">
                   {selectedChat.courseTitle}
                 </p>
               </div>
             </div>
 
-            {/* Quick Action Tools using Figma Action Icons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                title="Conversation messages are scrollable"
-              >
-                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
-                <span>Scroll Chat</span>
-              </span>
+            {/* Header Action Tools matching screenshot */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                className="action-icon-lavender"
-                title="Initiate Voice Callback"
-                onClick={() => showNotification(`Initiating voice link with ${selectedChat.studentName}...`)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer shadow-2xs hover:shadow-xs ${
+                  showTelemetryPanel
+                    ? "bg-[#7042D2] text-white shadow-xs"
+                    : "bg-[#F0EDFF] text-[#7042D2] hover:bg-[#E5DEFF]"
+                }`}
+                title={showTelemetryPanel ? 'Close "Learner 360° Telemetry" block' : 'Open "Learner 360° Telemetry" block'}
+                onClick={() => {
+                  setShowTelemetryPanel((prev) => !prev);
+                }}
               >
-                <PhoneCall className="h-3.5 w-3.5" />
+                <User className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                className="action-icon-lavender"
-                title="Open Video & Screen Share"
-                onClick={() => showNotification(`Screen share room created for ${selectedChat.studentName}.`)}
-              >
-                <Video className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                className="action-icon-lavender"
+                className="w-9 h-9 rounded-full bg-[#F0EDFF] text-[#7042D2] hover:bg-[#E5DEFF] flex items-center justify-center transition-colors cursor-pointer shadow-2xs hover:shadow-xs"
                 title="Refresh Thread"
-                onClick={() => showNotification("Thread refreshed.")}
+                onClick={() => showToast("Chat stream refreshed.")}
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          {/* Messages Stream */}
-          <div className="flex-1 min-h-0 p-3.5 overflow-y-auto space-y-3 support-queue-scrollbar bg-[#FAF9FF]/40">
+          {/* Messages Stream Viewport: Pure Query and Resolve */}
+          <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto space-y-4 support-queue-scrollbar bg-[#FAF9FF]/30">
             {selectedChat.messages.map((msg) => {
               if (msg.sender === "system") {
                 return (
                   <div key={msg.id} className="flex justify-center my-2">
-                    <span className="text-[10px] text-[#7042D2] bg-[#F0EDFF] border border-[#905FEB]/30 px-3 py-1 rounded-full font-bold shadow-2xs flex items-center gap-1.5">
+                    <span className="text-[11px] text-[#7042D2] bg-[#F0EDFF] border border-[#905FEB]/30 px-3.5 py-1.5 rounded-full font-bold shadow-2xs flex items-center gap-1.5">
                       <ShieldCheck className="h-3.5 w-3.5 text-[#905FEB]" />
                       {msg.text}
                     </span>
@@ -768,102 +891,75 @@ export const LiveChatPage: React.FC = () => {
                 );
               }
 
-              const isAgent = msg.sender === "agent";
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-end gap-2 ${isAgent ? "justify-end" : "justify-start"}`}
-                >
-                  {!isAgent && (
-                    <div className="h-7 w-7 rounded-xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      {selectedChat.avatar}
+              if (msg.sender === "agent") {
+                return (
+                  <div key={msg.id} className="flex items-end justify-end">
+                    <div className="bg-[#7042D2] text-white rounded-[22px] rounded-br-sm p-4 text-xs sm:text-sm font-medium leading-relaxed max-w-[85%] sm:max-w-[78%] shadow-2xs">
+                      <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                      <div className="text-[11px] text-white/80 mt-2 flex items-center gap-1.5 justify-end font-medium">
+                        <span>{msg.time}</span>
+                        <CheckCheck className="h-3.5 w-3.5 text-[#AEEB00]" />
+                      </div>
                     </div>
-                  )}
+                  </div>
+                );
+              }
 
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs shadow-xs space-y-1 ${isAgent
-                        ? "bg-[#905FEB] text-white rounded-br-xs shadow-md"
-                        : "bg-white text-[#111111] border border-[#E5DEFF] rounded-bl-xs shadow-xs"
-                      }`}
-                  >
-                    <p className="leading-relaxed whitespace-pre-wrap text-xs font-medium">{msg.text}</p>
-                    <div
-                      className={`flex items-center gap-1 text-[9px] ${isAgent ? "text-white/80 justify-end" : "text-zinc-400"
-                        }`}
-                    >
-                      <span>{msg.time}</span>
-                      {isAgent && <CheckCheck className="h-3 w-3 text-[#AEEB00]" />}
-                    </div>
+              // Student Query message
+              return (
+                <div key={msg.id} className="flex items-start gap-3 justify-start max-w-[85%] sm:max-w-[78%]">
+                  <div className="w-8.5 h-8.5 rounded-full bg-[#F0EDFF] text-[#7042D2] font-bold text-xs flex items-center justify-center border border-[#E5DEFF] shrink-0 mt-0.5 select-none shadow-2xs">
+                    {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="bg-white border border-[#E5DEFF] rounded-[22px] rounded-tl-sm p-4 text-[#111111] text-xs sm:text-sm font-medium leading-relaxed shadow-2xs">
+                    <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <div className="text-[11px] text-zinc-400 mt-2 font-medium">{msg.time}</div>
                   </div>
                 </div>
               );
             })}
-
-            {/* Live Typing Simulation */}
-            {isStudentTyping && (
-              <div className="flex items-end gap-2 justify-start animate-fadeIn">
-                <div className="h-7 w-7 rounded-xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center text-[10px] font-bold shrink-0">
-                  {selectedChat.avatar}
-                </div>
-                <div className="bg-white text-zinc-500 border border-[#E5DEFF] rounded-2xl rounded-bl-xs px-3.5 py-2 text-xs flex items-center gap-2 shadow-xs">
-                  <span className="text-[11px] font-medium">{selectedChat.studentName.split(" ")[0]} is typing</span>
-                  <span className="flex gap-1 items-center">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#905FEB] animate-bounce [animation-delay:-0.3s]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#905FEB] animate-bounce [animation-delay:-0.15s]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#905FEB] animate-bounce" />
-                  </span>
-                </div>
-              </div>
-            )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* AI Copilot & Macro Acceleration Bar */}
-          <div className="p-2.5 border-t border-[#F0EDFF] bg-[#FAF9FF] space-y-2 shrink-0">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-bold text-[#111111] flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-[#905FEB]" />
+          {/* AI COPILOT & MACRO ACCELERATION BAR (From Image 1) */}
+          <div className="px-4 py-2 border-t border-[#F0EDFF] bg-[#FAF9FF] space-y-1.5 shrink-0">
+            {/* Top row: AI Draft Proposals */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-zinc-600 flex items-center gap-1 shrink-0 mr-1">
+                <Sparkles className="h-3.5 w-3.5 text-[#7042D2]" />
                 <span>AI Draft Proposals:</span>
               </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("batch")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2.5 font-bold cursor-pointer"
-                >
-                  <Bot className="h-3 w-3" />
-                  <span>Batch Shift SOP</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("validity")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2.5 font-bold cursor-pointer"
-                >
-                  <Clock className="h-3 w-3" />
-                  <span>Medical Policy</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("empathy")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2.5 font-bold cursor-pointer"
-                >
-                  <Award className="h-3 w-3" />
-                  <span>Empathetic</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setInputText("Hello! I reviewed your attendance (92%) and course progress (78%). You meet all eligibility criteria, so your cohort transfer is approved.")}
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+              >
+                <span>💼 Batch Shift SOP</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputText("We have reviewed your request under our medical policy guidelines and granted a 30-day course validity extension.")}
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+              >
+                <span>🕒 Medical Policy</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputText("I completely understand your situation and am prioritizing your request right away so your learning progress remains smooth.")}
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+              >
+                <span>🤝 Empathetic</span>
+              </button>
             </div>
 
-            {/* Quick Canned Macros Pills */}
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5 support-card-scroll">
+            {/* Bottom row: Canned Macro Pills from Image 1 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {CANNED_MACROS.map((macro, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => handleApplyMacro(macro.text)}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold border border-[#E5DEFF] bg-white hover:bg-[#F0EDFF] hover:border-[#905FEB] text-[#111111] shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                  onClick={() => setInputText(macro.text)}
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-[#E5DEFF] bg-white hover:bg-[#F0EDFF] hover:border-[#905FEB] text-[#111111] shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                 >
                   <span className="font-mono text-[#7042D2]">{macro.tag}</span>
                   <span>{macro.label}</span>
@@ -872,192 +968,254 @@ export const LiveChatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Compact Composer */}
-          <div className="p-2.5 border-t border-[#F0EDFF] bg-white space-y-2 shrink-0">
-            <textarea
-              ref={textareaRef}
-              rows={2}
-              placeholder="Type your response to student... (Enter to send, Shift+Enter for newline)"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              className="w-full text-xs p-2.5 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] text-[#111111] resize-none focus:outline-none focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20 font-sans leading-relaxed"
-            />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
+          {/* SLEEK PILL COMPOSER (From Image 2 with Image 1 shortcuts) */}
+          <div className="p-3 sm:p-4 bg-white border-t border-[#F0EDFF] shrink-0">
+            {isRecordingVoice ? (
+              /* Voice Recording Bar */
+              <div className="rounded-full bg-rose-50 border border-rose-200 p-2 px-4 flex items-center justify-between shadow-xs animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-rose-600 animate-ping" />
+                  <span className="text-xs font-bold text-rose-700">
+                    Recording audio message... 0:0{recordingSeconds}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  className="action-icon-lavender h-7 w-7"
-                  title="Attach File"
-                  onClick={() => showNotification("File upload attachment dialog ready.")}
+                  onClick={handleToggleRecord}
+                  className="px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors cursor-pointer"
                 >
-                  <Paperclip className="h-3.5 w-3.5" />
+                  Done &amp; Send
                 </button>
+              </div>
+            ) : (
+              /* Modern Pill Input Bar */
+              <div className="rounded-full bg-[#F4F3F8] p-1.5 sm:p-2 pl-4 pr-2 flex items-center gap-3 border border-[#E5DEFF] shadow-xs">
+                {/* Attachment Icon */}
                 <button
                   type="button"
-                  className="action-icon-lavender h-7 w-7"
-                  title="Insert Quick Emoji"
+                  onClick={() => showToast("Attachment dialog ready. You can attach PDFs or diagrams.")}
+                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  title="Attach file"
+                >
+                  <Paperclip className="h-4.5 w-4.5" />
+                </button>
+
+                {/* Quick Emoji Icon */}
+                <button
+                  type="button"
                   onClick={() => setInputText((prev) => prev + " 👍 ")}
+                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  title="Insert emoji"
                 >
-                  <Smile className="h-3.5 w-3.5" />
+                  <Smile className="h-4.5 w-4.5" />
                 </button>
-                <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline ml-1">
-                  ↵ Enter to dispatch
-                </span>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                disabled={!inputText.trim()}
-                className="btn-support-primary text-xs h-8 px-4 font-bold disabled:opacity-50 cursor-pointer shadow-sm hover:shadow-md"
-              >
-                <span>Send Reply</span>
-                <Send className="h-3 w-3 ml-0.5" />
-              </button>
-            </div>
-          </div>
-        </div>
+                {/* Input Text Box */}
+                <input
+                  type="text"
+                  placeholder="Type your response to student... (Enter to send, Shift+Enter for newline)"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="flex-1 bg-transparent border-0 outline-none text-xs sm:text-sm text-[#111111] placeholder:text-zinc-400"
+                />
 
-        {/* =========================================
-            COLUMN 3: Telemetry & Instant Actions (3 cols)
-           ========================================= */}
-        <div className="lg:col-span-3 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150">
-          <div className="p-3 border-b border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-between shrink-0">
-            <span className="text-xs font-extrabold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
-              <UserCheck className="h-4 w-4 text-[#905FEB]" />
-              Learner 360° Telemetry
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                title="Telemetry details are scrollable"
-              >
-                <ChevronsUpDown className="h-3 w-3 text-[#905FEB] animate-pulse" />
-                <span>Scroll Telemetry</span>
-              </span>
-              <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
-                Verified
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3.5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
-            {/* Student ID Card */}
-            <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] text-center space-y-1.5 shadow-2xs">
-              <div className="h-12 w-12 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 font-extrabold text-sm mx-auto flex items-center justify-center shadow-xs">
-                {selectedChat.avatar}
-              </div>
-              <h4 className="font-extrabold text-[#111111] text-sm leading-tight">
-                {selectedChat.studentName}
-              </h4>
-              <p className="text-[11px] text-zinc-500 font-mono truncate">
-                {selectedChat.email}
-              </p>
-              <div className="flex items-center justify-center gap-1.5 mt-1">
-                <span className="badge-status-in-progress text-[10px] font-mono font-bold px-2 py-0.5">
-                  #{selectedChat.studentId.toUpperCase()}
-                </span>
-                <span
-                  className={
-                    selectedChat.isOnline
-                      ? "badge-status-completed text-[10px] font-bold px-2 py-0.5"
-                      : "badge-status-not-started text-[10px] font-bold px-2 py-0.5"
-                  }
+                {/* Voice Record Mic */}
+                <button
+                  type="button"
+                  onClick={handleToggleRecord}
+                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  title="Record Voice Message"
                 >
-                  {selectedChat.isOnline ? "Active Online" : "Offline"}
-                </span>
+                  <Mic className="h-4.5 w-4.5" />
+                </button>
+
+                {/* Send Button */}
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={!inputText.trim()}
+                  className="px-3.5 h-8 rounded-full bg-[#7042D2] hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40 transition-colors"
+                  title="Send reply"
+                >
+                  <span>Send Reply</span>
+                  <Send className="h-3 w-3" />
+                </button>
               </div>
-            </div>
-
-            {/* Course & Progress Gauges using Figma Progress Bars */}
-            <div className="space-y-2.5 p-3.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
-              <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">
-                Enrolled Curriculum
-              </span>
-              <p className="font-bold text-[#111111] text-xs leading-snug">
-                {selectedChat.courseTitle}
-              </p>
-              <p className="text-[11px] text-[#7042D2] font-semibold">
-                {selectedChat.batchName}
-              </p>
-
-              {/* Course Progress */}
-              <div className="space-y-1 pt-1.5 border-t border-[#F0EDFF]">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-zinc-500">Course Completion</span>
-                  <span className="font-bold text-[#111111] font-mono">
-                    {selectedChat.progressPercent}%
-                  </span>
-                </div>
-                <div className="progress-bar-track">
-                  <div
-                    className="progress-bar-fill-purple"
-                    style={{ width: `${selectedChat.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Attendance Progress */}
-              <div className="space-y-1 pt-1">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-zinc-500">Attendance Telemetry</span>
-                  <span className="font-bold font-mono text-[#3B6600]">
-                    {selectedChat.attendancePercent}%
-                  </span>
-                </div>
-                <div className="progress-bar-track">
-                  <div
-                    className="progress-bar-fill-lime"
-                    style={{ width: `${selectedChat.attendancePercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* One-Click Rapid Resolutions matching Figma Buttons */}
-            <div className="space-y-2 pt-1">
-              <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">
-                One-Click Mentor Actions
-              </span>
-
-              <button
-                type="button"
-                onClick={handleQuickBatchApproval}
-                className="btn-support-secondary w-full text-xs justify-start gap-2 h-8.5 font-bold cursor-pointer"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5 text-[#7042D2]" />
-                <span>Approve Batch Shift</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleQuickValidityExtension}
-                className="btn-support-secondary w-full text-xs justify-start gap-2 h-8.5 font-bold cursor-pointer"
-              >
-                <Clock className="h-3.5 w-3.5 text-[#7042D2]" />
-                <span>Grant 30-Day Extension</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIs360DrawerOpen(true)}
-                className="btn-support-outlined w-full text-xs justify-start gap-2 h-8.5 font-bold cursor-pointer"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                <span>Inspect Full 360° Profile</span>
-              </button>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* =========================================================
+            COLUMN 3: LEARNER 360° TELEMETRY (FEATURES FROM IMAGE 1 + UI FROM IMAGE 2)
+           ========================================================= */}
+        {showTelemetryPanel && (
+          <div className="lg:col-span-3 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs animate-in slide-in-from-right-4 duration-200">
+            {/* Header */}
+            <div className="p-3 border-b border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-between shrink-0">
+              <span className="text-xs font-extrabold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
+                <UserCheck className="h-4 w-4 text-[#7042D2]" />
+                Learner 360° Telemetry
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
+                  Verified
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowTelemetryPanel(false)}
+                  className="text-zinc-400 hover:text-zinc-700 cursor-pointer ml-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Telemetry Cards */}
+            <div className="p-3.5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
+              {/* Student ID Card */}
+              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] text-center space-y-1.5 shadow-2xs">
+                {selectedChat.photoUrl ? (
+                  <img
+                    src={selectedChat.photoUrl}
+                    alt={selectedChat.studentName}
+                    className="w-12 h-12 rounded-2xl object-cover mx-auto shadow-xs border border-[#E5DEFF]"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-2xl font-bold text-sm mx-auto flex items-center justify-center text-white shadow-xs"
+                    style={{ backgroundColor: selectedChat.avatarBg || "#1C1C1E" }}
+                  >
+                    {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <h4 className="font-extrabold text-[#111111] text-sm leading-tight mt-1">
+                  {selectedChat.studentName}
+                </h4>
+                <p className="text-[11px] text-zinc-500 font-mono truncate">
+                  {selectedChat.email}
+                </p>
+                <div className="flex items-center justify-center gap-1.5 mt-1">
+                  <span className="badge-status-in-progress text-[10px] font-mono font-bold px-2 py-0.5">
+                    #{selectedChat.studentId.toUpperCase()}
+                  </span>
+                  <span
+                    className={
+                      selectedChat.isOnline
+                        ? "badge-status-completed text-[10px] font-bold px-2 py-0.5"
+                        : "badge-status-not-started text-[10px] font-bold px-2 py-0.5"
+                    }
+                  >
+                    {selectedChat.isOnline ? "Active Online" : "Offline"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Course & Progress Gauges */}
+              <div className="space-y-2.5 p-3.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
+                <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">
+                  Enrolled Curriculum
+                </span>
+                <p className="font-bold text-[#111111] text-xs leading-snug">
+                  {selectedChat.courseTitle}
+                </p>
+                <p className="text-[11px] text-[#7042D2] font-semibold">
+                  {selectedChat.batchName}
+                </p>
+
+                <div className="space-y-1 pt-1.5 border-t border-[#F0EDFF]">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-zinc-500">Course Completion</span>
+                    <span className="font-bold text-[#111111] font-mono">
+                      {selectedChat.progressPercent}%
+                    </span>
+                  </div>
+                  <div className="progress-bar-track">
+                    <div
+                      className="progress-bar-fill-purple"
+                      style={{ width: `${selectedChat.progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-zinc-500">Attendance Telemetry</span>
+                    <span className="font-bold font-mono text-[#3B6600]">
+                      {selectedChat.attendancePercent}%
+                    </span>
+                  </div>
+                  <div className="progress-bar-track">
+                    <div
+                      className="progress-bar-fill-lime"
+                      style={{ width: `${selectedChat.attendancePercent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* One-Click Rapid Resolutions from Image 1 */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">
+                  One-Click Mentor Actions
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => showToast("Cohort transfer approved for " + selectedChat.studentName)}
+                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <span>Approve Batch Shift</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => showToast("30-Day extension granted for " + selectedChat.studentName)}
+                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                >
+                  <Clock className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <span>Grant 30-Day Extension</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIs360DrawerOpen(true)}
+                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <span>Inspect Full 360° Profile</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Image Preview Lightbox Dialog */}
+      {previewImage && (
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+          <DialogContent className="max-w-3xl p-2 bg-black/90 border border-white/20 rounded-2xl shadow-2xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Image Attachment Preview</DialogTitle>
+            </DialogHeader>
+            <div className="relative">
+              <img
+                src={previewImage}
+                alt="Attachment Preview"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-xl"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Full Student 360 Drawer */}
       <Student360Drawer
         open={is360DrawerOpen}
         onOpenChange={setIs360DrawerOpen}

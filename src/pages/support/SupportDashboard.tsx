@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import type { MetricItem } from "@/types"
 import { Icon } from "@/components/Icon"
 import { MetricCard } from "@/components/MetricCard"
@@ -21,14 +21,25 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
   }
 
   const [selectedCard, setSelectedCard] = useState<"open" | "pending" | "resolved" | null>(null)
+  const [searchParams] = useSearchParams()
+  const searchParam = searchParams.get("search")?.toLowerCase().trim() || ""
 
   const openCount = tickets.filter((t) => t.status === "open").length
   const pendingCount = tickets.filter((t) => t.status === "pending").length
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length
 
   const filteredTickets = tickets.filter((tkt) => {
-    if (!selectedCard) return true
-    return tkt.status === selectedCard
+    if (selectedCard && tkt.status !== selectedCard) return false
+    if (searchParam) {
+      const matches =
+        tkt.ticketNumber.toLowerCase().includes(searchParam) ||
+        tkt.subject.toLowerCase().includes(searchParam) ||
+        tkt.studentName.toLowerCase().includes(searchParam) ||
+        tkt.studentBatch.toLowerCase().includes(searchParam) ||
+        (tkt.assignedAgent && tkt.assignedAgent.toLowerCase().includes(searchParam))
+      if (!matches) return false
+    }
+    return true
   })
 
   // 4 Canonical Folder-Tab Metric Cards matching Teacher & Admin
@@ -133,13 +144,13 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="card-title">Active Support Queue</h3>
-                  <span
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[10px] font-bold shadow-2xs"
-                    title="Support Tickets Queue is scrollable"
-                  >
-                    <span className="text-[11px] text-[#905FEB]">↕</span>
-                    <span>Scroll Queue</span>
-                  </span>
+
+                  {searchParam && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold">
+                      <span>Search: &ldquo;{searchParam}&rdquo;</span>
+                      <Link to="/support" className="text-purple-600 hover:text-purple-900 cursor-pointer font-bold ml-0.5">✕</Link>
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">
                   Urgent tickets, cohort transfer inquiries, and mentor triage requests
@@ -231,13 +242,25 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
             {/* Queue Footer */}
             <div className="pt-3 mt-auto border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
               <span>Showing {filteredTickets.length} tickets in active queue</span>
-              {selectedCard && (
-                <button
-                  onClick={() => setSelectedCard(null)}
-                  className="text-purple-700 font-bold hover:underline cursor-pointer"
-                >
-                  Clear filter
-                </button>
+              {(selectedCard || searchParam) && (
+                <div className="flex items-center gap-2">
+                  {selectedCard && (
+                    <button
+                      onClick={() => setSelectedCard(null)}
+                      className="text-purple-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Clear status filter
+                    </button>
+                  )}
+                  {searchParam && (
+                    <Link
+                      to="/support"
+                      className="text-purple-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Clear search
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           </div>

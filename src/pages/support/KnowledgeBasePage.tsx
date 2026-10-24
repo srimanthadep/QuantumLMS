@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   Layers,
   Zap,
-  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -302,13 +301,7 @@ export const KnowledgeBasePage: React.FC = () => {
                 );
               })}
             </div>
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs shrink-0"
-              title="Articles catalog is scrollable"
-            >
-              <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
-              <span>Scroll Articles</span>
-            </span>
+
           </div>
         </div>
       </div>
@@ -507,7 +500,7 @@ export const KnowledgeBasePage: React.FC = () => {
                 Close SOP
               </Button>
               <Button
-                className="text-xs font-bold h-9 px-4 rounded-xl bg-[#905FEB] hover:bg-[#7D46E7] text-white shadow-xs gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="text-xs font-bold h-9 px-4 rounded-xl bg-[#905FEB] hover:bg-[#7D46E7] text-white shadow-xs gap-1.5 transition-colors"
                 onClick={() => handleCopyMacro(activeArticle)}
               >
                 <Copy className="h-3.5 w-3.5" /> Copy Snippet
