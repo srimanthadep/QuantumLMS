@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
 import { MetricCard } from "../../components/MetricCard"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type { AttendanceSubject } from "./studentTypes"
 import { attendanceData } from "./studentMockData"
 
@@ -376,22 +377,16 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                 <label className="font-bold text-zinc-700 block mb-1">
                   Reason for Absence
                 </label>
-                <select
+                <StudentDropdown
                   value={leaveReason}
-                  onChange={(e) => setLeaveReason(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
-                >
-                  <option value="Medical Appointment">
-                    Medical Appointment / Illness
-                  </option>
-                  <option value="Academic Conference">
-                    Academic Conference / Hackathon
-                  </option>
-                  <option value="Family Emergency">
-                    Family / Personal Emergency
-                  </option>
-                  <option value="Other">Other Permitted Leave</option>
-                </select>
+                  onChange={(val) => setLeaveReason(val)}
+                  options={[
+                    { value: "Medical Appointment", label: "Medical Appointment / Illness" },
+                    { value: "Academic Conference", label: "Academic Conference / Hackathon" },
+                    { value: "Family Emergency", label: "Family / Personal Emergency" },
+                    { value: "Other", label: "Other Permitted Leave" },
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

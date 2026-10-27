@@ -1,6 +1,5 @@
 import { useState } from "react"
-import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
+import { StudentHeader } from "../../components/StudentHeader"
 import type {
   StudentNavPage,
   CourseItem,
@@ -23,6 +22,8 @@ import { MentorDetailsPage } from "./MentorDetailsPage"
 import { SupportHelpPage } from "./SupportHelpPage"
 import { MyNotesPage } from "./MyNotesPage"
 import { CertificatesPage } from "./CertificatesPage"
+import { ResumeBuildingPage } from "./ResumeBuildingPage"
+import { MockInterviewPage } from "./MockInterviewPage"
 import { CommunityPage } from "./CommunityPage"
 import { StudentCommunicationPage } from "./StudentCommunicationPage"
 import { StudentDiscussionsPage } from "./StudentDiscussionsPage"
@@ -99,6 +100,10 @@ export function StudentOtherPage({
         return "Lecture annotations, mathematical formulas, and executable code snippets."
       case "Certificates":
         return "Verified diplomas, graduation credentials, and specializations."
+      case "Resume Building":
+        return "Craft and live-preview your professional A4 PDF resume with Google Drive viewer style and instant vector PDF export."
+      case "Mock Interview":
+        return "Practice interviews, improve your confidence, and prepare for your dream job."
       case "Events & Notices":
         return "Join upcoming AI hackathons, research seminars, and student colloquiums."
       case "Announcements":
@@ -110,7 +115,7 @@ export function StudentOtherPage({
       case "Profile":
         return "Student identity, academic standing, verified credentials, and emergency contact details."
       case "Settings":
-        return "Account preferences, notification alerts, two-factor authentication, and canvas theme color."
+        return "Manage your account, preferences, and security settings for a better learning experience."
       case "Support & Help":
       case "Support":
       case "Help Center":
@@ -122,59 +127,32 @@ export function StudentOtherPage({
 
   return (
     <div className="student-dashboard-content w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border">
-      {/* Shared Dashboard Header - Stationary */}
-      <header className="dashboard-header shrink-0 h-auto min-h-[54px] flex flex-wrap xl:flex-nowrap items-center justify-between gap-3 mb-3 w-full max-w-full min-w-0 box-border pl-12 lg:pl-0">
-        <div className="min-w-0 py-0.5">
-          <div className="greeting">
-            <span>{page}</span>
-          </div>
-          <div className="subtitle text-xs text-white/90 leading-tight">
-            {getSub()}
-          </div>
-        </div>
-
-        <div className="header-actions flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          <div className="search-box shrink-0">
-            <Icon name="search" size={15} />
-            <input
-              type="text"
-              value={headerSearch}
-              onChange={(e) => setHeaderSearch(e.target.value)}
-              placeholder={`Search in ${page.toLowerCase()}...`}
-              aria-label={`Search ${page}`}
-            />
-            {headerSearch && (
-              <button
-                onClick={() => setHeaderSearch("")}
-                className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1"
-              >
-                ×
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={onSwitchToTeacher}
-            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            title="Switch to Teacher View"
-          >
-            <span>👨‍🏫 Teacher Portal</span>
-          </button>
-
-          <div className="shrink-0">
-            <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-          </div>
-
-          <button
-            className="ask-ai shrink-0"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI Assistant"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        </div>
-      </header>
+      {/* Shared Dashboard Header - Stationary with Profile & Notifications */}
+      <StudentHeader
+        title={
+          page === "Resume Building" || page === "Mock Interview" ? "" : page
+        }
+        subtitle={
+          page === "Resume Building" || page === "Mock Interview"
+            ? ""
+            : getSub()
+        }
+        searchQuery={headerSearch}
+        onSearchChange={setHeaderSearch}
+        searchPlaceholder={
+          page === "Resume Building" || page === "Mock Interview"
+            ? "Search for courses, announcements, events..."
+            : page === "Settings"
+            ? "Search settings..."
+            : `Search in ${page.toLowerCase()}...`
+        }
+        onSwitchToTeacher={onSwitchToTeacher}
+        hexColor={hexColor}
+        onChangeHexColor={onChangeHexColor}
+        onOpenAiModal={onOpenAiModal}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      />
 
       {/* Main Page Viewport Switcher - Independently Scrollable Body */}
       <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 box-border">
@@ -257,6 +235,22 @@ export function StudentOtherPage({
         {page === "My Notes" && <MyNotesPage onToast={onToast} />}
 
         {page === "Certificates" && <CertificatesPage onToast={onToast} />}
+
+        {page === "Resume Building" && (
+          <ResumeBuildingPage
+            onToast={onToast}
+            onNavigate={onNavigate}
+            onOpenAiModal={onOpenAiModal}
+          />
+        )}
+
+        {page === "Mock Interview" && (
+          <MockInterviewPage
+            onToast={onToast}
+            onNavigate={onNavigate}
+            onOpenAiModal={onOpenAiModal}
+          />
+        )}
 
         {page === "Events & Notices" && <EventsPage onToast={onToast} />}
 

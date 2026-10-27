@@ -474,16 +474,10 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
       <section className="student-shared-panel p-5 sm:p-6 mb-0" aria-label="Communication Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="card-title flex items-center gap-2 text-lg">
-                <MessageSquareIcon size={20} className="text-[#905FEB]" />
-                Communication Support & Evaluation
-              </h3>
-              <Badge variant="default">Phonetic AI Engine</Badge>
-            </div>
-            <p className="text-xs text-[#514B68] mt-1">
-              Structured verbal communication assessments, interactive speaking drills, and faculty feedback analytics.
-            </p>
+            <h3 className="text-lg sm:text-xl font-bold text-[#171526] flex items-center gap-2 tracking-tight m-0 no-underline">
+              <MessageSquareIcon size={20} className="text-[#905FEB]" />
+              Communication Support & Evaluation
+            </h3>
           </div>
 
           {/* Tab Navigation Pill Group */}
@@ -521,16 +515,6 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
           </div>
         </div>
       </section>
-
-      {/* Information & Disclaimer Banner */}
-      <div className="bg-[#F0EDFF]/70 border border-[#E2DCEE] rounded-[18px] p-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-[#905FEB]/10 flex items-center justify-center shrink-0">
-          <InfoIcon size={18} className="text-[#905FEB]" />
-        </div>
-        <p className="text-xs text-[#514B68] leading-relaxed">
-          <strong className="text-[#171526] font-bold">Official Note:</strong> In-browser speech evaluation and automated phonetic analysis in this module represent frontend interactive diagnostic simulations. Official accredited evaluations are conducted via scheduled faculty viva.
-        </p>
-      </div>
 
       {/* Section C: Workflow Visualizer Banner */}
       <Card className="p-5 bg-gradient-to-r from-[#F0EDFF]/40 via-white to-white">

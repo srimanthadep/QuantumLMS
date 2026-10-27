@@ -93,6 +93,22 @@ function parseInitialTab(): StudentNavPage {
       return "My Notes"
     if (target === "certificates") return "Certificates"
     if (
+      target === "resume-building" ||
+      target === "resume building" ||
+      target === "resume" ||
+      target === "cv" ||
+      target === "cv-builder"
+    )
+      return "Resume Building"
+    if (
+      target === "mock-interview" ||
+      target === "mock interview" ||
+      target === "mockinterview" ||
+      target === "interview" ||
+      target === "interviews"
+    )
+      return "Mock Interview"
+    if (
       target === "events" ||
       target === "notices" ||
       target === "events & notices" ||
@@ -339,6 +355,7 @@ export default function StudentPortal({
             onNavigate={navigateTo}
             onOpenAiModal={onOpenAiModal}
             onSwitchToTeacher={onSwitchToTeacher}
+            onLogout={onLogout}
             onToast={onToast}
             hexColor={hexColor}
             onChangeHexColor={onChangeHexColor}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react"
 import { Icon } from "../../components/Icon"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type { CourseItem, StudentNavPage } from "./studentTypes"
 
 interface MyCoursesPageProps {
@@ -209,15 +210,18 @@ export function MyCoursesPage({
               <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap min-w-0">
                 <div className="flex items-center gap-2 text-xs text-zinc-600 shrink-0">
                   <span className="font-semibold text-zinc-500 whitespace-nowrap">Sort by:</span>
-                  <select
+                  <StudentDropdown
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as CourseSort)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-50 border border-zinc-200 text-zinc-800 focus:outline-none focus:border-[#905FEB] cursor-pointer"
-                  >
-                    <option value="recent">Recently Accessed</option>
-                    <option value="name">Course Name (A–Z)</option>
-                    <option value="progress">Highest Progress</option>
-                  </select>
+                    onChange={(val) => setSortBy(val as CourseSort)}
+                    options={[
+                      { value: "recent", label: "Recently Accessed" },
+                      { value: "name", label: "Course Name (A–Z)" },
+                      { value: "progress", label: "Highest Progress" },
+                    ]}
+                    size="sm"
+                    fullWidth={false}
+                    triggerClassName="min-w-[170px] rounded-full bg-zinc-50"
+                  />
                 </div>
 
                 <span className="text-xs text-zinc-400 font-medium whitespace-nowrap hidden sm:inline">
@@ -243,12 +247,12 @@ export function MyCoursesPage({
               return (
                 <div
                   key={course.id}
-                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3.5 sm:p-4 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
+                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
                 >
                   <div className="flex-1 flex flex-col min-w-0">
                     {/* A. Course Cover Image with Category & Status Badges */}
                     <div
-                      className="relative rounded-xl overflow-hidden h-28 sm:h-32 mb-2.5 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
+                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
                       onClick={() => handleOpenCourse(course.id)}
                     >
                       <img
@@ -259,12 +263,12 @@ export function MyCoursesPage({
                       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/25" />
 
                       {/* Overlaid Badges */}
-                      <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-center gap-2 pointer-events-none min-w-0">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
+                      <div className="absolute top-2 left-2 right-2 flex justify-between items-center gap-1.5 pointer-events-none min-w-0">
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
                           {course.category}
                         </span>
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase backdrop-blur-md shadow-xs shrink-0 ${
+                          className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase backdrop-blur-md shadow-xs shrink-0 ${
                             isCompleted
                               ? "bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]"
                               : "bg-[#905FEB] text-white"
@@ -276,7 +280,7 @@ export function MyCoursesPage({
                     </div>
 
                     {/* B. Course Title & Instructor Details */}
-                    <div className="mb-2 min-w-0">
+                    <div className="mb-1.5 min-w-0">
                       <h3
                         className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-[#905FEB] transition-colors line-clamp-2 cursor-pointer break-words"
                         onClick={() => handleOpenCourse(course.id)}
@@ -285,7 +289,7 @@ export function MyCoursesPage({
                         {course.title}
                       </h3>
 
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-0.5 min-w-0">
                         <span className="truncate max-w-full">
                           Instructor: <strong className="text-zinc-800 font-bold">{course.instructor}</strong>
                         </span>
@@ -299,7 +303,7 @@ export function MyCoursesPage({
                     </div>
 
                     {/* C. Course Description with View More */}
-                    <div className="mb-2.5 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
+                    <div className="mb-2 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
                       <p className={`break-words ${isExpanded ? "" : "line-clamp-2"}`}>
                         {course.description}
                       </p>
@@ -318,8 +322,8 @@ export function MyCoursesPage({
                     </div>
 
                     {/* D. Module Completion & Progress Section */}
-                    <div className="mb-2.5 bg-zinc-50/90 p-2.5 sm:p-3 rounded-xl border border-zinc-100 mt-auto min-w-0">
-                      <div className="flex justify-between items-center text-[11.5px] sm:text-xs mb-1.5 font-bold min-w-0 gap-2">
+                    <div className="mb-2 bg-zinc-50/90 p-2 sm:p-2.5 rounded-xl border border-zinc-100 mt-auto min-w-0">
+                      <div className="flex justify-between items-center text-[11.5px] sm:text-xs mb-1 font-bold min-w-0 gap-2">
                         <span className="text-zinc-700 truncate">
                           {course.completedModules} of {course.totalModules} Modules Completed
                         </span>
@@ -333,7 +337,7 @@ export function MyCoursesPage({
                       </div>
 
                       {/* Capsule Progress Bar */}
-                      <div className="w-full bg-zinc-200 rounded-full h-1.5 overflow-hidden mb-1.5">
+                      <div className="w-full bg-zinc-200 rounded-full h-1.5 overflow-hidden mb-1">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -364,7 +368,7 @@ export function MyCoursesPage({
                   </div>
 
                   {/* E. Bottom Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-zinc-100 gap-2 mt-auto min-w-0">
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-zinc-100 gap-1.5 mt-auto min-w-0">
                     {/* Course Rating */}
                     {course.rating ? (
                       <div className="flex items-center gap-1 text-[11.5px] font-bold text-amber-500 shrink-0">
@@ -429,7 +433,7 @@ export function MyCoursesPage({
                 ===================================================================== */}
             <div
               onClick={() => setViewMode("catalogue")}
-              className="bg-gradient-to-b from-[#F0EDFF]/70 via-white to-white rounded-2xl border-2 border-dashed border-purple-200 hover:border-[#905FEB] shadow-sm hover:shadow-md transition-all p-3.5 sm:p-4 flex flex-col justify-between h-full cursor-pointer group min-w-0 max-w-full box-border overflow-hidden"
+              className="bg-gradient-to-b from-[#F0EDFF]/70 via-white to-white rounded-2xl border-2 border-dashed border-purple-200 hover:border-[#905FEB] shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full cursor-pointer group min-w-0 max-w-full box-border overflow-hidden"
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
@@ -442,32 +446,32 @@ export function MyCoursesPage({
             >
               <div className="flex-1 flex flex-col min-w-0">
                 {/* Visual Exploration Banner matching card image height */}
-                <div className="relative rounded-xl overflow-hidden h-28 sm:h-32 mb-2.5 bg-gradient-to-br from-[#905FEB] via-[#8048DE] to-[#5F2BC0] p-2.5 sm:p-3 flex flex-col justify-between text-white flex-shrink-0 shadow-xs group-hover:scale-[1.01] transition-transform min-w-0">
-                  <div className="flex justify-between items-center gap-2 min-w-0">
-                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wide uppercase bg-black/30 backdrop-blur-md text-white border border-white/20 truncate">
+                <div className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-gradient-to-br from-[#905FEB] via-[#8048DE] to-[#5F2BC0] p-2 flex flex-col justify-between text-white flex-shrink-0 shadow-xs group-hover:scale-[1.01] transition-transform min-w-0">
+                  <div className="flex justify-between items-center gap-1.5 min-w-0">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-black/30 backdrop-blur-md text-white border border-white/20 truncate">
                       Curriculum Catalogue
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase bg-[#E7FF9C] text-[#385000] shrink-0">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase bg-[#E7FF9C] text-[#385000] shrink-0">
                       {catalogCount} Available
                     </span>
                   </div>
 
                   {/* Centered Exploration Icon */}
-                  <div className="flex items-center gap-2.5 my-auto min-w-0">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-lg sm:text-xl shadow-inner border border-white/30 group-hover:rotate-6 transition-transform shrink-0">
+                  <div className="flex items-center gap-2 my-auto min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-sm sm:text-base shadow-inner border border-white/30 group-hover:rotate-6 transition-transform shrink-0">
                       🧭
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[10px] font-semibold text-purple-200 uppercase tracking-wider truncate">
+                      <div className="text-[9.5px] font-semibold text-purple-200 uppercase tracking-wider truncate">
                         Expand Your Skills
                       </div>
-                      <div className="text-[13.5px] sm:text-[15px] font-black text-white leading-tight truncate">
+                      <div className="text-[12.5px] sm:text-[13.5px] font-black text-white leading-tight truncate">
                         New Specializations
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/85 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1 text-[9.5px] text-white/85 min-w-0">
                     <span className="whitespace-nowrap">✦ LLMs & Prompts</span>
                     <span>•</span>
                     <span className="whitespace-nowrap">✦ Computer Vision</span>
@@ -477,20 +481,20 @@ export function MyCoursesPage({
                 </div>
 
                 {/* Heading & Mandatory Description */}
-                <div className="mb-2 min-w-0">
+                <div className="mb-1.5 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 group-hover:text-[#905FEB] transition-colors leading-snug break-words">
                       Explore Courses
                     </h3>
                     <span className="w-2 h-2 rounded-full bg-[#AEEB00] shrink-0" />
                   </div>
-                  <p className="text-[11px] sm:text-xs text-zinc-600 leading-snug mt-1 font-normal break-words">
+                  <p className="text-[11px] sm:text-xs text-zinc-600 leading-snug mt-0.5 font-normal break-words">
                     Discover new skills and explore courses available to you.
                   </p>
                 </div>
 
                 {/* Benefits / Curriculum Box */}
-                <div className="mb-2.5 bg-[#F0EDFF]/60 p-2 sm:p-2.5 rounded-xl border border-purple-100 mt-auto text-[10.5px] sm:text-[11px] text-zinc-700 space-y-1 min-w-0">
+                <div className="mb-2 bg-[#F0EDFF]/60 p-1.5 sm:p-2 rounded-xl border border-purple-100 mt-auto text-[10.5px] sm:text-[11px] text-zinc-700 space-y-0.5 min-w-0">
                   <div className="flex items-start gap-1.5 font-medium min-w-0">
                     <span className="text-[#905FEB] font-bold shrink-0">✓</span>
                     <span className="break-words">Accredited curriculum with verified faculty credits</span>
@@ -503,14 +507,14 @@ export function MyCoursesPage({
               </div>
 
               {/* Prominent Explore Courses Action Button */}
-              <div className="pt-2.5 border-t border-zinc-100 mt-auto min-w-0">
+              <div className="pt-2 border-t border-zinc-100 mt-auto min-w-0">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
                     setViewMode("catalogue")
                   }}
-                  className="w-full py-1.5 sm:py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-[11.5px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer group-hover:shadow-md hover:scale-[1.01]"
+                  className="w-full py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-[11.5px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer group-hover:shadow-md hover:scale-[1.01]"
                 >
                   <Icon name="compass" size={13} />
                   <span>Explore Courses</span>
@@ -615,12 +619,12 @@ export function MyCoursesPage({
               return (
                 <div
                   key={course.id}
-                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3.5 sm:p-4 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
+                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
                 >
                   <div className="flex-1 flex flex-col min-w-0">
                     {/* Cover Image with Category & Catalog Badges */}
                     <div
-                      className="relative rounded-xl overflow-hidden h-28 sm:h-32 mb-2.5 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
+                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
                       onClick={() => handleOpenCourse(course.id)}
                     >
                       <img
@@ -630,18 +634,18 @@ export function MyCoursesPage({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/25" />
 
-                      <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-center gap-2 pointer-events-none min-w-0">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
+                      <div className="absolute top-2 left-2 right-2 flex justify-between items-center gap-1.5 pointer-events-none min-w-0">
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
                           {course.category}
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-amber-500 text-white shadow-xs shrink-0">
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase bg-amber-500 text-white shadow-xs shrink-0">
                           Catalog
                         </span>
                       </div>
                     </div>
 
                     {/* Title & Instructor Details */}
-                    <div className="mb-2 min-w-0">
+                    <div className="mb-1.5 min-w-0">
                       <h3
                         className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-[#905FEB] transition-colors line-clamp-2 cursor-pointer break-words"
                         onClick={() => handleOpenCourse(course.id)}
@@ -650,7 +654,7 @@ export function MyCoursesPage({
                         {course.title}
                       </h3>
 
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-0.5 min-w-0">
                         <span className="truncate max-w-full">
                           Instructor: <strong className="text-zinc-800 font-bold">{course.instructor}</strong>
                         </span>
@@ -664,7 +668,7 @@ export function MyCoursesPage({
                     </div>
 
                     {/* Course Description with View More */}
-                    <div className="mb-2.5 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
+                    <div className="mb-2 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
                       <p className={`break-words ${isExpanded ? "" : "line-clamp-2"}`}>
                         {course.description}
                       </p>
@@ -683,7 +687,7 @@ export function MyCoursesPage({
                     </div>
 
                     {/* Catalogue Metadata Box */}
-                    <div className="mb-2.5 bg-zinc-50/90 p-2.5 sm:p-3 rounded-xl border border-zinc-100 mt-auto flex flex-col gap-1.5 min-w-0">
+                    <div className="mb-2 bg-zinc-50/90 p-2 sm:p-2.5 rounded-xl border border-zinc-100 mt-auto flex flex-col gap-1.5 min-w-0">
                       <div className="flex flex-wrap items-center justify-between text-xs text-zinc-800 font-semibold gap-1.5 min-w-0">
                         <span className="flex items-center gap-1.5 shrink-0 text-[11px] sm:text-xs">
                           <span>⏱</span>
@@ -704,7 +708,7 @@ export function MyCoursesPage({
                   </div>
 
                   {/* Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-zinc-100 gap-2 mt-auto min-w-0">
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-zinc-100 gap-1.5 mt-auto min-w-0">
                     {/* Course Rating */}
                     {course.rating ? (
                       <div className="flex items-center gap-1 text-[11.5px] font-bold text-amber-500 shrink-0">

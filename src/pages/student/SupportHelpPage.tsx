@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { Icon } from "../../components/Icon"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type {
   FaqItem,
   SupportTicket,
@@ -43,14 +44,17 @@ export function SupportHelpPage({
   // Create Ticket Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newSubject, setNewSubject] = useState("")
-  const [newCategory, setNewCategory] = useState<TicketCategory>("Technical Issue")
+  const [newCategory, setNewCategory] = useState<TicketCategory>("Select Issue Category")
   const [newPriority, setNewPriority] = useState<TicketPriority>("Medium")
   const [newDescription, setNewDescription] = useState("")
   const [newAttachment, setNewAttachment] = useState<{ name: string; size: string } | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
 
   // Validation Errors
   const [formErrors, setFormErrors] = useState<{
     subject?: string
+    category?: string
     description?: string
   }>({})
 
@@ -61,19 +65,24 @@ export function SupportHelpPage({
   const [replyText, setReplyText] = useState("")
   const [replyAttachment, setReplyAttachment] = useState<{ name: string; size: string } | null>(null)
 
-  // Category options requested by user
-  const categoryOptions: TicketCategory[] = [
-    "Technical Issue",
-    "Course/Content",
-    "Attendance",
-    "Assignment",
-    "Timetable",
-    "Account/Profile",
-    "Mentor",
-    "Other",
+  // The 7 official issue categories
+  const issueCategories: TicketCategory[] = [
+    "Account & Access Management",
+    "Course & Content Management",
+    "Assignments & Assessments",
+    "Live Classes & Attendance",
+    "Technical Support",
+    "Communication & Notifications",
+    "General Help & Feedback",
   ]
 
-  // Priority options requested by user
+  // Category options for filter
+  const categoryOptions: TicketCategory[] = [
+    "All Categories",
+    ...issueCategories,
+  ]
+
+  // Priority options (preserved for ticket listing and replies)
   const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
 
   // Active selected ticket for details view
@@ -87,7 +96,13 @@ export function SupportHelpPage({
       // Status filter
       if (statusFilter !== "All" && t.status !== statusFilter) return false
       // Category filter
-      if (categoryFilter !== "All" && t.category !== categoryFilter) return false
+      if (
+        categoryFilter !== "All" &&
+        categoryFilter !== "All Categories" &&
+        t.category !== categoryFilter
+      ) {
+        return false
+      }
       // Search query (matches Subject, ID, Description, or Category)
       if (ticketSearch.trim()) {
         const q = ticketSearch.toLowerCase()
@@ -119,20 +134,79 @@ export function SupportHelpPage({
   // ==================== TICKET CREATION LOGIC ====================
   const handleOpenCreateModal = () => {
     setNewSubject("")
-    setNewCategory("Technical Issue")
+    setNewCategory("Select Issue Category")
     setNewPriority("Medium")
     setNewDescription("")
     setNewAttachment(null)
+    setAttachmentError(null)
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = ""
+    }
     setFormErrors({})
     setIsCreateModalOpen(true)
   }
 
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const allowedExtensions = [
+      "png",
+      "jpg",
+      "jpeg",
+      "webp",
+      "gif",
+      "pdf",
+      "doc",
+      "docx",
+      "txt",
+      "log",
+      "zip",
+    ]
+    const ext = file.name.split(".").pop()?.toLowerCase() || ""
+    if (!allowedExtensions.includes(ext)) {
+      setAttachmentError(
+        `File format ".${ext}" is not supported. Please upload an image (.png, .jpg), document (.pdf, .docx, .txt), or archive (.zip).`,
+      )
+      return
+    }
+
+    const MAX_SIZE = 25 * 1024 * 1024 // 25 MB limit
+    if (file.size > MAX_SIZE) {
+      setAttachmentError("File size exceeds the 25 MB limit.")
+      return
+    }
+
+    const formattedSize =
+      file.size < 1024 * 1024
+        ? `${Math.round(file.size / 1024)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+
+    setNewAttachment({
+      name: file.name,
+      size: formattedSize,
+    })
+    setAttachmentError(null)
+    onToast(`Attached ${file.name} (${formattedSize})`)
+  }
+
+  const handleRemoveAttachment = () => {
+    setNewAttachment(null)
+    setAttachmentError(null)
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = ""
+    }
+  }
+
   const handleCreateTicketSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const errors: { subject?: string; description?: string } = {}
+    const errors: { subject?: string; category?: string; description?: string } = {}
 
     if (!newSubject.trim()) {
       errors.subject = "Please enter a subject describing your issue."
+    }
+    if (!newCategory || newCategory === "Select Issue Category" || newCategory === "All Categories") {
+      errors.category = "Please select an issue category."
     }
     if (!newDescription.trim()) {
       errors.description = "Please provide detailed information about your issue."
@@ -168,7 +242,7 @@ export function SupportHelpPage({
       id: uniqueId,
       subject: newSubject.trim(),
       category: newCategory,
-      priority: newPriority,
+      priority: "Medium",
       status: "Open",
       createdDate: dateFormatted,
       lastUpdate: "Just now by Student",
@@ -407,55 +481,33 @@ export function SupportHelpPage({
         aria-label="Support & Help Header"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-8 h-8 rounded-full bg-[#F0E7FF] text-[#5F2BC0] flex items-center justify-center font-bold text-sm">
-                🎧
-              </span>
-              <h2 className="text-xl font-black text-zinc-900 tracking-tight">
-                Support & Help Center
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0]">
-                24/7 Student Desk
-              </span>
-            </div>
-            <p className="text-xs text-zinc-500 max-w-2xl">
-              Raise and track support tickets, submit administrative requests, and
-              explore official portal handbook guides.
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-[#F0E7FF] text-[#5F2BC0] flex items-center justify-center font-bold text-sm">
+              🎧
+            </span>
+            <h2 className="text-xl font-black text-zinc-900 tracking-tight">
+              Support & Help Center
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0]">
+              24/7 Student Desk
+            </span>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Section Switcher Tabs */}
-            <div className="flex items-center p-1 bg-[#F1F0F3] rounded-full border border-zinc-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveSection("tickets")
-                  setActiveTicketId(null)
-                }}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${activeSection === "tickets"
-                  ? "bg-[#905FEB] text-white shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-              >
-                <span>🎧 My Tickets & Requests</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeSection === "tickets" ? "bg-white/20 text-white" : "bg-zinc-200 text-zinc-700"
-                  }`}>
-                  {tickets.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSection("help")}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${activeSection === "help"
-                  ? "bg-[#905FEB] text-white shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
-                  }`}
-              >
-                <span>💡 Help Center & FAQs</span>
-              </button>
-            </div>
+            {/* My Tickets & Requests */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSection("tickets")
+                setActiveTicketId(null)
+              }}
+              className="px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-[#905FEB] text-white shadow-sm"
+            >
+              <span>🎧 My Tickets & Requests</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white">
+                {tickets.length}
+              </span>
+            </button>
 
             {/* Create Ticket Primary CTA */}
             <button
@@ -797,21 +849,17 @@ export function SupportHelpPage({
                     <span className="text-xs text-zinc-500 font-medium hidden sm:inline">
                       Category:
                     </span>
-                    <select
+                    <StudentDropdown
                       value={categoryFilter}
-                      onChange={(e) => {
-                        setCategoryFilter(e.target.value as "All" | TicketCategory)
+                      onChange={(val) => {
+                        setCategoryFilter(val as "All" | TicketCategory)
                         setCurrentPage(1)
                       }}
-                      className="px-3 py-1.5 rounded-full border border-zinc-200 bg-[#F1F0F3] text-xs font-semibold text-zinc-700 focus:outline-none focus:border-[#905FEB] cursor-pointer"
-                    >
-                      <option value="All">All Categories</option>
-                      {categoryOptions.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
+                      options={categoryOptions.map((c) => ({ value: c, label: c }))}
+                      size="sm"
+                      fullWidth={false}
+                      triggerClassName="min-w-[170px] rounded-full bg-[#F1F0F3]"
+                    />
                   </div>
                 </div>
 
@@ -846,20 +894,19 @@ export function SupportHelpPage({
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-zinc-100 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                        <th className="py-3 px-3">Ticket ID</th>
-                        <th className="py-3 px-3">Subject</th>
-                        <th className="py-3 px-3">Category</th>
-                        <th className="py-3 px-3">Priority</th>
-                        <th className="py-3 px-3">Status</th>
-                        <th className="py-3 px-3">Date Created</th>
-                        <th className="py-3 px-3">Last Updated</th>
-                        <th className="py-3 px-3 text-right">Action</th>
+                        <th className="py-3 px-3 w-[120px]">Ticket ID</th>
+                        <th className="py-3 px-3 min-w-[220px]">Subject</th>
+                        <th className="py-3 px-3 w-[190px]">Category</th>
+                        <th className="py-3 px-3 w-[120px]">Status</th>
+                        <th className="py-3 px-3 w-[130px]">Date Created</th>
+                        <th className="py-3 px-3 w-[130px]">Last Updated</th>
+                        <th className="py-3 px-3 w-[130px] text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {paginatedTickets.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="py-12 text-center text-zinc-500">
+                          <td colSpan={7} className="py-12 text-center text-zinc-500">
                             <div className="flex flex-col items-center justify-center gap-2">
                               <span className="text-3xl">🎫</span>
                               <p className="font-bold text-zinc-700 text-sm">
@@ -904,12 +951,9 @@ export function SupportHelpPage({
                               </div>
                             </td>
                             <td className="py-3.5 px-3 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-700">
                                 {ticket.category}
                               </span>
-                            </td>
-                            <td className="py-3.5 px-3 whitespace-nowrap">
-                              {renderPriorityBadge(ticket.priority)}
                             </td>
                             <td className="py-3.5 px-3 whitespace-nowrap">
                               {renderStatusBadge(ticket.status)}
@@ -924,7 +968,7 @@ export function SupportHelpPage({
                               <button
                                 type="button"
                                 onClick={() => setActiveTicketId(ticket.id)}
-                                className="px-3 py-1 rounded-full bg-[#F0E7FF] text-[#5F2BC0] text-xs font-bold hover:bg-[#905FEB] hover:text-white transition-all cursor-pointer shadow-xs"
+                                className="px-3.5 py-1.5 rounded-full bg-[#F0E7FF] text-[#5F2BC0] text-xs font-bold hover:bg-[#905FEB] hover:text-white transition-all cursor-pointer shadow-xs"
                               >
                                 View Details →
                               </button>
@@ -1256,9 +1300,10 @@ export function SupportHelpPage({
                       setFormErrors((prev) => ({ ...prev, subject: undefined }))
                     }
                   }}
-                  placeholder="e.g. GPU quota exceeded on node slurm-h100-04"
-                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] ${formErrors.subject ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
-                    }`}
+                  placeholder="e.g. Account credentials issue or course access error"
+                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] ${
+                    formErrors.subject ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
+                  }`}
                 />
                 {formErrors.subject && (
                   <span className="text-[11px] font-bold text-rose-500 mt-1 block">
@@ -1267,62 +1312,27 @@ export function SupportHelpPage({
                 )}
               </div>
 
-              {/* Issue Category (All 8 user requested categories) */}
+              {/* Issue Category with "Select Issue Category" placeholder */}
               <div>
                 <label className="font-bold text-zinc-800 block mb-1">
                   Issue Category <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as TicketCategory)}
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] cursor-pointer"
-                >
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                <StudentDropdown
+                  value={newCategory === "Select Issue Category" ? "" : newCategory}
+                  onChange={(val) => {
+                    setNewCategory(val as TicketCategory)
+                    if (formErrors.category) {
+                      setFormErrors((prev) => ({ ...prev, category: undefined }))
+                    }
+                  }}
+                  placeholder="Select Issue Category"
+                  options={issueCategories.map((cat) => ({ value: cat, label: cat }))}
+                  error={Boolean(formErrors.category)}
+                  errorText={formErrors.category}
+                />
                 <span className="text-[10px] text-zinc-400 mt-1 block">
-                  Select the department or subject area responsible for this request.
+                  Select the category that best describes your issue.
                 </span>
-              </div>
-
-              {/* Priority Level */}
-              <div>
-                <label className="font-bold text-zinc-800 block mb-1">
-                  Priority <span className="text-rose-500">*</span>
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {priorityOptions.map((p) => {
-                    const isSelected = newPriority === p
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setNewPriority(p)}
-                        className={`py-2 px-2 rounded-xl text-center text-xs font-bold border transition-all cursor-pointer ${isSelected
-                          ? p === "Urgent"
-                            ? "bg-rose-50 border-rose-500 text-rose-700 shadow-xs"
-                            : p === "High"
-                              ? "bg-amber-50 border-amber-500 text-amber-800 shadow-xs"
-                              : p === "Medium"
-                                ? "bg-yellow-50 border-yellow-500 text-yellow-800 shadow-xs"
-                                : "bg-[#F0E7FF] border-[#905FEB] text-[#5F2BC0] shadow-xs"
-                          : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                          }`}
-                      >
-                        {p === "Urgent"
-                          ? "🔥 Urgent"
-                          : p === "High"
-                            ? "⚡ High"
-                            : p === "Medium"
-                              ? "Medium"
-                              : "Low"}
-                      </button>
-                    )
-                  })}
-                </div>
               </div>
 
               {/* Description */}
@@ -1340,8 +1350,9 @@ export function SupportHelpPage({
                     }
                   }}
                   placeholder="Provide precise details, steps to reproduce, course codes, error traces, or student ID..."
-                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] leading-relaxed ${formErrors.description ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
-                    }`}
+                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] leading-relaxed ${
+                    formErrors.description ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
+                  }`}
                 />
                 {formErrors.description && (
                   <span className="text-[11px] font-bold text-rose-500 mt-1 block">
@@ -1350,47 +1361,81 @@ export function SupportHelpPage({
                 )}
               </div>
 
-              {/* Attachment Upload */}
+              {/* Attachment Upload (Optional) */}
               <div>
-                <label className="font-bold text-zinc-800 block mb-1">
-                  Attachment Upload (Optional)
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewAttachment({
-                        name: "quantum_cluster_diagnostics.txt",
-                        size: "32 KB",
-                      })
-                      onToast("Simulated diagnostics log attached.")
-                    }}
-                    className="px-3.5 py-2 rounded-xl border border-dashed border-zinc-300 text-zinc-600 text-xs font-semibold hover:bg-zinc-50 cursor-pointer flex items-center gap-1.5"
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-zinc-800 block">
+                    Attachment Upload (Optional)
+                  </label>
+                  <span className="text-[10px] text-zinc-400">
+                    Max 25 MB
+                  </span>
+                </div>
+
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleAttachmentChange}
+                  accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.doc,.docx,.txt,.log,.zip"
+                />
+
+                {!newAttachment ? (
+                  <div
+                    onClick={() => attachmentInputRef.current?.click()}
+                    className="p-3.5 rounded-2xl border border-dashed border-zinc-300 hover:border-[#905FEB] bg-zinc-50/70 hover:bg-[#F0E7FF]/20 cursor-pointer transition-colors flex items-center justify-between gap-3 group"
                   >
-                    <Icon name="document" size={13} />
-                    <span>
-                      {newAttachment ? newAttachment.name : "+ Attach screenshot / file"}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#5F2BC0] flex items-center justify-center text-sm group-hover:scale-105 transition-transform">
+                        📎
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-zinc-800 block">
+                          Click to attach screenshot or file
+                        </span>
+                        <span className="text-[10px] text-zinc-400 block">
+                          PNG, JPG, PDF, DOCX, TXT, ZIP up to 25 MB
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-zinc-200 text-zinc-600 text-[11px] font-bold shadow-2xs group-hover:border-[#905FEB] group-hover:text-[#5F2BC0]">
+                      Browse
                     </span>
-                  </button>
-                  {newAttachment && (
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm shrink-0">
+                        ✓
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-zinc-900 block truncate">
+                          {newAttachment.name}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-semibold block">
+                          {newAttachment.size} • Attached
+                        </span>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setNewAttachment(null)}
-                      className="text-xs text-rose-500 hover:underline cursor-pointer font-bold"
+                      onClick={handleRemoveAttachment}
+                      className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold cursor-pointer transition-colors shrink-0"
                     >
                       Remove
                     </button>
-                  )}
-                </div>
-                {newAttachment && (
-                  <span className="text-[10px] text-zinc-400 mt-1 block">
-                    Attached: {newAttachment.name} ({newAttachment.size})
+                  </div>
+                )}
+
+                {attachmentError && (
+                  <span className="text-[11px] font-bold text-rose-500 mt-1.5 block">
+                    {attachmentError}
                   </span>
                 )}
               </div>
 
               {/* Action Buttons: Submit Ticket and Cancel */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 mt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 mt-1">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
