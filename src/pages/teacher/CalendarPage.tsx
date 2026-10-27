@@ -488,7 +488,6 @@ export default function CalendarPage({
   hexColor: string
   onChangeHexColor: (color: string) => void
   onOpenAiModal?: () => void
-  courses: CourseItem[]
   onToast?: (msg: string) => void
 }) {
   // Calendar Events State with localStorage persistence
@@ -513,11 +512,33 @@ export default function CalendarPage({
     return initialCalendarEvents
   })
 
-  // Calendar View Mode: month | week | day | agenda
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("month")
+  // Calendar View Mode: timeline (default matching user UI) | month | week | day | agenda
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("timeline")
 
-  // Current anchor date (defaults to Oct 22, 2026 to match academic term)
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date(2026, 9, 22))
+  // Current anchor date (defaults to August 9, 2025 to match user design)
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date(2025, 7, 9))
+
+  // Reminders State with localStorage persistence
+  const [reminders, setReminders] = useState<{ id: string; title: string; date: string; tag: "Meetings" | "Appointment" | "Evaluation" | "Class" | "Deadline" }[]>(() => {
+    try {
+      const saved = localStorage.getItem("quantum_calendar_reminders_v1")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    return [
+      { id: "rem-1", title: "Client Strategy Call", date: "12 August 2025", tag: "Meetings" },
+      { id: "rem-2", title: "Project Kickoff", date: "17 August 2025", tag: "Appointment" },
+      { id: "rem-3", title: "Team Check-in", date: "19 August 2025", tag: "Evaluation" },
+      { id: "rem-4", title: "Stakeholder Meeting", date: "24 August 2025", tag: "Meetings" },
+      { id: "rem-5", title: "Sprint Review", date: "26 August 2025", tag: "Meetings" },
+      { id: "rem-6", title: "Performance Review", date: "31 August 2025", tag: "Evaluation" },
+      { id: "rem-7", title: "Curriculum Planning", date: "02 September 2025", tag: "Meetings" },
+      { id: "rem-8", title: "Midterm Grading Review", date: "05 September 2025", tag: "Evaluation" },
+      { id: "rem-9", title: "Parent-Teacher Q&A", date: "08 September 2025", tag: "Appointment" },
+    ]
+  })
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
@@ -538,6 +559,16 @@ export default function CalendarPage({
     }
   }
 
+  // Save reminders helper
+  const saveReminders = (updated: typeof reminders) => {
+    setReminders(updated)
+    try {
+      localStorage.setItem("quantum_calendar_reminders_v1", JSON.stringify(updated))
+    } catch {
+      // ignore
+    }
+  }
+
   const handleCreateReminder = (newEvent: Omit<CalendarEventItem, "id" | "isReadOnly">) => {
     const item: CalendarEventItem = {
       ...newEvent,
@@ -546,6 +577,16 @@ export default function CalendarPage({
     }
     const updated = [item, ...events]
     saveEvents(updated)
+
+    // Also add to reminders list
+    const newRem = {
+      id: `rem-${Date.now()}`,
+      title: newEvent.title,
+      date: newEvent.startDate,
+      tag: (newEvent.category as any) || "Meetings",
+    }
+    saveReminders([newRem, ...reminders])
+
     onToast?.(`Reminder "${item.title}" added to your calendar!`)
   }
 
@@ -557,7 +598,7 @@ export default function CalendarPage({
 
   // Navigation handlers
   const handleToday = () => {
-    setCurrentDate(new Date(2026, 9, 22))
+    setCurrentDate(new Date(2025, 7, 9))
   }
 
   const handlePrev = () => {
@@ -584,6 +625,19 @@ export default function CalendarPage({
     setCurrentDate(next)
   }
 
+  // Mini calendar month navigation
+  const handleMiniPrev = () => {
+    const next = new Date(currentDate)
+    next.setMonth(next.getMonth() - 1)
+    setCurrentDate(next)
+  }
+
+  const handleMiniNext = () => {
+    const next = new Date(currentDate)
+    next.setMonth(next.getMonth() + 1)
+    setCurrentDate(next)
+  }
+
   // Format header title dynamically
   const headerDateTitle = useMemo(() => {
     const months = [
@@ -596,9 +650,9 @@ export default function CalendarPage({
     if (viewMode === "month") {
       return `${month} ${year}`
     }
-    if (viewMode === "day") {
+    if (viewMode === "day" || viewMode === "timeline") {
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-      return `${days[currentDate.getDay()]}, ${month} ${currentDate.getDate()}, ${year}`
+      return `${days[currentDate.getDay()]}, ${currentDate.getDate()} ${month} ${year}`
     }
     if (viewMode === "week") {
       const curr = new Date(currentDate)
@@ -663,6 +717,23 @@ export default function CalendarPage({
     }
   }
 
+  const getReminderTagBadgeClass = (tag: string) => {
+    switch (tag) {
+      case "Meetings":
+        return "bg-blue-50 text-blue-700 border-blue-200"
+      case "Appointment":
+        return "bg-purple-50 text-purple-700 border-purple-200"
+      case "Evaluation":
+        return "bg-rose-50 text-rose-700 border-rose-200"
+      case "Class":
+        return "bg-teal-50 text-teal-700 border-teal-200"
+      case "Deadline":
+        return "bg-amber-50 text-amber-700 border-amber-200"
+      default:
+        return "bg-gray-50 text-zinc-700 border-gray-200"
+    }
+  }
+
   const handleOpenEvent = (ev: CalendarEventItem) => {
     setSelectedEvent(ev)
     setIsDetailsModalOpen(true)
@@ -673,7 +744,56 @@ export default function CalendarPage({
     setCurrentDate(new Date(y, m - 1, d))
   }
 
-  // Month Grid Calculation
+  // Mini Calendar Month Grid (Monday to Sunday)
+  const miniCalendarDays = useMemo(() => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const totalDays = getDaysInMonth(year, month)
+    const firstDayRaw = new Date(year, month, 1).getDay()
+    const firstDayMonday = (firstDayRaw + 6) % 7
+
+    const prevMonthDays = getDaysInMonth(year, month - 1)
+    const cells = []
+
+    // Leading days
+    for (let i = firstDayMonday - 1; i >= 0; i--) {
+      const dayNum = prevMonthDays - i
+      const prevDate = new Date(year, month - 1, dayNum)
+      cells.push({
+        dateStr: formatDateString(prevDate),
+        dayNum,
+        isCurrentMonth: false,
+        isSelected: false,
+      })
+    }
+
+    // Current month days
+    for (let d = 1; d <= totalDays; d++) {
+      const thisDate = new Date(year, month, d)
+      cells.push({
+        dateStr: formatDateString(thisDate),
+        dayNum: d,
+        isCurrentMonth: true,
+        isSelected: d === currentDate.getDate(),
+      })
+    }
+
+    // Trailing days to complete weeks (35 or 42 cells)
+    const remaining = (7 - (cells.length % 7)) % 7
+    for (let t = 1; t <= remaining; t++) {
+      const nextDate = new Date(year, month + 1, t)
+      cells.push({
+        dateStr: formatDateString(nextDate),
+        dayNum: t,
+        isCurrentMonth: false,
+        isSelected: false,
+      })
+    }
+
+    return cells
+  }, [currentDate])
+
+  // Full Month Grid Calculation
   const monthGridDays = useMemo(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -735,6 +855,126 @@ export default function CalendarPage({
     return days
   }, [currentDate])
 
+  // Timeline Hours (07:00 AM to 07:00 PM)
+  const timelineHours = [
+    { label: "07:00 AM", hour: 7 },
+    { label: "08:00 AM", hour: 8 },
+    { label: "09:00 AM", hour: 9 },
+    { label: "10:00 AM", hour: 10 },
+    { label: "11:00 AM", hour: 11 },
+    { label: "12:00 PM", hour: 12 },
+    { label: "01:00 PM", hour: 13 },
+    { label: "02:00 PM", hour: 14 },
+    { label: "03:00 PM", hour: 15 },
+    { label: "04:00 PM", hour: 16 },
+    { label: "05:00 PM", hour: 17 },
+    { label: "06:00 PM", hour: 18 },
+    { label: "07:00 PM", hour: 19 },
+  ]
+
+  // Timeline Event Cards matching reference screenshot
+  const timelineCards = [
+    {
+      id: "tl-1",
+      name: "Jane Cooper",
+      title: "Strategic Client Consultation & Review",
+      time: "07.00 AM",
+      hour: 7,
+      minute: 0,
+      status: "Done",
+      avatar: "/assets/student-1.png",
+      row: 0,
+    },
+    {
+      id: "tl-2",
+      name: "Jenny Wilson",
+      title: "Neural Networks Lab Sync",
+      time: "07.15 AM",
+      hour: 7,
+      minute: 15,
+      status: "Done",
+      avatar: "/assets/student-2.png",
+      row: 3,
+    },
+    {
+      id: "tl-3",
+      name: "Brooklyn Simmons",
+      title: "Computer Vision Model Training",
+      time: "07.35 AM",
+      hour: 7,
+      minute: 35,
+      status: "Done",
+      avatar: "/assets/student-3.png",
+      row: 1,
+    },
+    {
+      id: "tl-4",
+      name: "Courtney Henry",
+      title: "Python Assessment Feedback",
+      time: "08.35 AM",
+      hour: 8,
+      minute: 35,
+      status: "Done",
+      avatar: "/assets/student-4.png",
+      row: 2,
+    },
+    {
+      id: "tl-5",
+      name: "Guy Hawkins",
+      title: "Quantum AI Capstone Critique",
+      time: "09.00 AM",
+      hour: 9,
+      minute: 0,
+      status: "Join",
+      avatar: "/assets/student-5.png",
+      row: 0,
+    },
+    {
+      id: "tl-6",
+      name: "Kristin Watson",
+      title: "Deep Learning Office Hours",
+      time: "09.45 AM",
+      hour: 9,
+      minute: 45,
+      status: "Start",
+      avatar: "/assets/student-7.png",
+      row: 4,
+    },
+    {
+      id: "tl-7",
+      name: "Robert Fox",
+      title: "Robotics Sensor Integration",
+      time: "10.30 AM",
+      hour: 10,
+      minute: 30,
+      status: "Start",
+      avatar: "/assets/student-6.png",
+      row: 2,
+    },
+    {
+      id: "tl-8",
+      name: "Jacob Jones",
+      title: "Prompt Engineering Workshop",
+      time: "11.15 AM",
+      hour: 11,
+      minute: 15,
+      status: "Start",
+      avatar: "/assets/student-8.png",
+      row: 1,
+    },
+    {
+      id: "tl-9",
+      name: "Cameron Williamson",
+      title: "Applied Machine Learning Tutorial",
+      time: "11.45 AM",
+      hour: 11,
+      minute: 45,
+      status: "Start",
+      avatar: "/assets/teacher.png",
+      row: 3,
+    },
+  ]
+
   const todayStr = "2026-10-22"
 
   return (
@@ -748,97 +988,333 @@ export default function CalendarPage({
         onOpenCreateReminder={() => setIsCreateModalOpen(true)}
       />
 
-      {/* Main Calendar Panel */}
-      <div className="panel p-4 sm:p-5" aria-label="Academic Calendar Workspace">
-        {/* Google Calendar Style Controls Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-gray-150">
-          {/* Navigation Controls: Today, Prev, Next, Month Heading */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <button
-              onClick={handleToday}
-              className="px-3.5 h-8 rounded-lg border border-gray-300 text-xs font-bold text-zinc-700 hover:bg-gray-100 transition-colors cursor-pointer"
-              title="Return to today"
-            >
-              Today
-            </button>
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-              <button
-                onClick={handlePrev}
-                className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-zinc-700 transition-colors cursor-pointer"
-                aria-label="Previous time period"
-              >
-                <Icon name="chevron-left" size={16} />
-              </button>
-              <button
-                onClick={handleNext}
-                className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-zinc-700 transition-colors cursor-pointer border-l border-gray-200"
-                aria-label="Next time period"
-              >
-                <Icon name="chevron-right" size={16} />
-              </button>
+      {/* Global Scoped Scrollbar Style for Calendar Sections */}
+      <style>{`
+        .live-class-scroll-section {
+          scrollbar-width: thin !important;
+          scrollbar-color: #9333ea #f4f3fa !important;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
+        .live-class-scroll-section::-webkit-scrollbar {
+          display: block !important;
+          width: 7px !important;
+          height: 7px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
+        .live-class-scroll-section::-webkit-scrollbar-track {
+          background: #f4f3fa !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
+        .live-class-scroll-section::-webkit-scrollbar-thumb {
+          background: #9333ea !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
+        .live-class-scroll-section::-webkit-scrollbar-thumb:hover {
+          background: #7e22ce !important;
+        }
+      `}</style>
+
+      {/* Main Calendar 2-Column Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-3.5 mt-1 items-start">
+        {/* LEFT COLUMN: Mini Calendar + Reminders */}
+        <div className="flex flex-col gap-3.5">
+          {/* 1. Mini Calendar Card */}
+          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+            {/* Header: Month & Year with Chevrons */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h4 className="text-sm font-bold text-zinc-900">
+                {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </h4>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleMiniPrev}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 hover:bg-gray-100 transition-colors cursor-pointer"
+                  aria-label="Previous month"
+                >
+                  <Icon name="chevron-left" size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMiniNext}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 hover:bg-gray-100 transition-colors cursor-pointer"
+                  aria-label="Next month"
+                >
+                  <Icon name="chevron-right" size={14} />
+                </button>
+              </div>
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-zinc-900 pl-1.5">
-              {headerDateTitle}
-            </h3>
+
+            {/* Weekdays Row: Mo Tu We Th Fr Sa Su */}
+            <div className="grid grid-cols-7 text-center text-[11px] font-medium text-zinc-400 mb-2">
+              <span>Mo</span>
+              <span>Tu</span>
+              <span>We</span>
+              <span>Th</span>
+              <span>Fr</span>
+              <span>Sa</span>
+              <span>Su</span>
+            </div>
+
+            {/* Month Days Grid */}
+            <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
+              {miniCalendarDays.map((cell, idx) => (
+                <div key={idx} className="py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDateAndJump(cell.dateStr)}
+                    className={`w-7 h-7 text-xs flex items-center justify-center mx-auto transition-all cursor-pointer ${
+                      cell.isSelected
+                        ? "bg-[#1d63ed] text-white font-bold rounded-lg shadow-xs scale-105"
+                        : cell.isCurrentMonth
+                        ? "text-zinc-700 hover:bg-gray-100 font-normal rounded-md"
+                        : "text-zinc-300 hover:text-zinc-500 font-normal rounded-md"
+                    }`}
+                  >
+                    {cell.dayNum}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* View Switcher: Month, Week, Day, Agenda */}
-          <div className="flex items-center gap-2.5 flex-wrap justify-between lg:justify-end">
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="roster-select"
-              aria-label="Filter events by category"
-            >
-              <option value="All">All Categories</option>
-              <option value="Class">Classes & Labs</option>
-              <option value="Deadline">Deadlines</option>
-              <option value="Quiz">Quizzes & Exams</option>
-              <option value="Meeting">Meetings</option>
-              <option value="Office Hours">Office Hours</option>
-              <option value="Reminder">Personal Reminders</option>
-            </select>
+          {/* 2. Reminders Card with Scrollbar */}
+          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col">
+            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+              <h4 className="text-sm font-bold text-zinc-900">Reminder</h4>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="text-zinc-400 hover:text-purple-700 transition-colors cursor-pointer text-xs font-bold px-1 tracking-widest"
+                title="Add Reminder"
+                aria-label="Add reminder"
+              >
+                •••
+              </button>
+            </div>
 
-            {/* Course Filter */}
-            <select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              className="roster-select"
-              aria-label="Filter events by course"
-            >
-              <option value="All">All Courses</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.code}
-                </option>
-              ))}
-            </select>
-
-            {/* View Selector Buttons */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-gray-100 border border-gray-200" role="group">
-              {(["month", "week", "day", "agenda"] as CalendarViewMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${viewMode === mode
-                      ? "bg-white text-purple-700 shadow-xs border border-gray-200"
-                      : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                  aria-pressed={viewMode === mode}
+            {/* Scrollable Reminders List */}
+            <div className="space-y-2 mt-2.5 max-h-[330px] overflow-y-auto live-class-scroll-section pr-1.5">
+              {reminders.map((r) => (
+                <div
+                  key={r.id}
+                  onClick={() => onToast?.(`Reminder: ${r.title} (${r.date})`)}
+                  className="p-2.5 rounded-xl bg-white hover:bg-gray-50/70 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 >
-                  {mode}
-                </button>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block text-xs font-semibold text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
+                      {r.title}
+                    </strong>
+                    <span className="text-[10.5px] text-zinc-400 block mt-0.5">
+                      {r.date}
+                    </span>
+                  </div>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-medium border shrink-0 ${getReminderTagBadgeClass(
+                      r.tag
+                    )}`}
+                  >
+                    {r.tag}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Calendar Body: Dynamic Views */}
-        <div className="mt-4">
-          {/* VIEW 1: MONTH VIEW */}
+        {/* RIGHT COLUMN: Date Header + Filter Dropdowns + Dynamic Views */}
+        <div className="bg-white rounded-2xl border border-gray-150 p-4 sm:p-5 shadow-xs flex flex-col flex-1 min-h-0">
+          {/* Top Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-150">
+            {/* Dynamic Date Heading: e.g. Saturday, 9 August 2025 */}
+            <div className="flex items-center gap-3">
+              <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
+                {headerDateTitle}
+              </h3>
+            </div>
+
+            {/* Right Actions: All Event dropdown & View Switcher */}
+            <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+              {/* Category Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="h-8.5 px-3 pr-8 rounded-lg bg-white border border-gray-200 text-xs font-medium text-zinc-700 hover:border-gray-300 transition-colors cursor-pointer appearance-none shadow-2xs"
+                  aria-label="Filter events by category"
+                >
+                  <option value="All">All Event</option>
+                  <option value="Meetings">Meetings</option>
+                  <option value="Appointment">Appointment</option>
+                  <option value="Evaluation">Evaluation</option>
+                  <option value="Class">Class</option>
+                  <option value="Deadline">Deadline</option>
+                  <option value="Quiz">Quiz</option>
+                  <option value="Office Hours">Office Hours</option>
+                  <option value="Reminder">Reminder</option>
+                </select>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 text-[10px]">
+                  ▼
+                </span>
+              </div>
+
+              {/* View Switcher: Timeline | Month | Week | Agenda */}
+              <div className="inline-flex items-center p-1 rounded-xl bg-gray-100 border border-gray-200" role="group">
+                {(["timeline", "month", "week", "agenda"] as CalendarViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+                      viewMode === mode
+                        ? "bg-white text-purple-700 shadow-xs border border-gray-200 font-bold"
+                        : "text-zinc-500 hover:text-zinc-800"
+                    }`}
+                    aria-pressed={viewMode === mode}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* VIEW 1: HORIZONTAL TIMELINE VIEW (Reference Screenshot) */}
+          {viewMode === "timeline" && (
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[520px] overflow-x-auto overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-white shadow-2xs">
+              <div
+                style={{
+                  width: `${timelineHours.length * 150}px`,
+                  minHeight: "460px",
+                  backgroundImage: "radial-gradient(#e5e7eb 1.2px, transparent 1.2px)",
+                  backgroundSize: "20px 20px",
+                }}
+                className="relative"
+              >
+                {/* 1. Sticky Time Header Row */}
+                <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10">
+                  {timelineHours.map((th) => (
+                    <div
+                      key={th.hour}
+                      style={{ width: "150px" }}
+                      className="text-left pl-3 text-[11px] font-semibold text-zinc-400 shrink-0"
+                    >
+                      {th.label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* 2. Dashed Vertical Grid Lines down each hour */}
+                <div className="absolute top-10 bottom-0 left-0 right-0 flex pointer-events-none">
+                  {timelineHours.map((th) => (
+                    <div
+                      key={th.hour}
+                      style={{ width: "150px" }}
+                      className="border-r border-dashed border-gray-200/90 h-full shrink-0"
+                    />
+                  ))}
+                </div>
+
+                {/* 3. Current Time Indicator Marker (09:30 AM) with Blue Pill Badge */}
+                <div
+                  className="absolute top-0 bottom-0 pointer-events-none z-40 flex flex-col items-center"
+                  style={{ left: `${(9 - 7 + 0.5) * 150}px` }}
+                >
+                  <div className="bg-[#1d63ed] text-white text-[11px] font-bold px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap mt-1.5 -translate-x-1/2">
+                    09:30 AM
+                  </div>
+                  <div className="w-[1.5px] bg-[#1d63ed] flex-1 -translate-x-1/2" />
+                </div>
+
+                {/* 4. Timeline Event Cards */}
+                <div className="relative pt-6 pb-6">
+                  {timelineCards.map((card) => {
+                    const cardLeft = (card.hour - 7 + card.minute / 60) * 150 + 10
+                    const cardTop = card.row * 70 + 20
+
+                    return (
+                      <div
+                        key={card.id}
+                        onClick={() => {
+                          if (card.status === "Join") {
+                            onToast?.(`Connecting to live academic room with ${card.name}...`)
+                          } else {
+                            handleOpenEvent({
+                              id: card.id,
+                              title: `${card.name} – ${card.title}`,
+                              startDate: formatDateString(currentDate),
+                              startTime: card.time,
+                              endTime: "10:00 AM",
+                              category: "Meeting",
+                              courseName: card.title,
+                              location: "Quantum Classroom & Faculty Studio",
+                              isReadOnly: false,
+                            })
+                          }
+                        }}
+                        style={{
+                          position: "absolute",
+                          left: `${cardLeft}px`,
+                          top: `${cardTop}px`,
+                          width: "185px",
+                          zIndex: 15,
+                        }}
+                        className={`p-2 pr-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-md ${
+                          card.status === "Join"
+                            ? "bg-[#eff6ff] border-[#bfdbfe] ring-1 ring-blue-200/70"
+                            : "bg-white border-gray-200/90 hover:border-purple-300"
+                        }`}
+                      >
+                        <img
+                          src={card.avatar}
+                          alt={card.name}
+                          className="w-9 h-9 rounded-md object-cover shrink-0 border border-gray-100"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <strong className="block text-xs font-semibold text-zinc-900 truncate leading-snug">
+                            {card.name}
+                          </strong>
+                          <div className="text-[10px] text-zinc-400 flex items-center gap-1 mt-0.5 truncate">
+                            <span>{card.time}</span>
+                            {card.status === "Join" ? (
+                              <>
+                                <span>·</span>
+                                <span className="text-[#1d63ed] font-semibold hover:underline">Join</span>
+                              </>
+                            ) : card.status === "Start" ? (
+                              <>
+                                <span>•</span>
+                                <span className="text-[#1d63ed] font-semibold hover:underline">Start</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>•</span>
+                                <span className="text-zinc-400">Done</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 2: MONTH VIEW */}
           {viewMode === "month" && (
-            <div className="w-full overflow-x-auto">
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-x-auto overflow-y-auto live-class-scroll-section">
               <div style={{ minWidth: "720px" }}>
                 {/* Weekday Headings */}
                 <div className="grid grid-cols-7 border-b border-gray-200 text-center text-xs font-bold text-zinc-500 pb-2">
@@ -861,18 +1337,21 @@ export default function CalendarPage({
                         key={cell.dateStr}
                         onClick={() => {
                           handleSelectDateAndJump(cell.dateStr)
+                          setViewMode("timeline")
                         }}
-                        className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${cell.isCurrentMonth ? "bg-white" : "bg-gray-50/60 text-zinc-400"
-                          } hover:bg-purple-50/20 cursor-pointer`}
+                        className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${
+                          cell.isCurrentMonth ? "bg-white" : "bg-gray-50/60 text-zinc-400"
+                        } hover:bg-purple-50/20 cursor-pointer`}
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${isToday
+                            className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
+                              isToday
                                 ? "bg-purple-600 text-white shadow-xs"
                                 : cell.isCurrentMonth
-                                  ? "text-zinc-800"
-                                  : "text-zinc-400"
-                              }`}
+                                ? "text-zinc-800"
+                                : "text-zinc-400"
+                            }`}
                           >
                             {cell.dayNum}
                           </span>
@@ -906,7 +1385,7 @@ export default function CalendarPage({
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleSelectDateAndJump(cell.dateStr)
-                                setViewMode("day")
+                                setViewMode("timeline")
                               }}
                               className="text-[10px] font-bold text-purple-700 hover:underline px-1 cursor-pointer"
                             >
@@ -922,9 +1401,9 @@ export default function CalendarPage({
             </div>
           )}
 
-          {/* VIEW 2: WEEK VIEW */}
+          {/* VIEW 3: WEEK VIEW */}
           {viewMode === "week" && (
-            <div className="w-full overflow-x-auto">
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-x-auto overflow-y-auto live-class-scroll-section">
               <div style={{ minWidth: "760px" }}>
                 {/* 7 Day Headers */}
                 <div className="grid grid-cols-7 border-b border-gray-200 pb-2 text-center">
@@ -935,6 +1414,7 @@ export default function CalendarPage({
                         key={d.dateStr}
                         onClick={() => {
                           handleSelectDateAndJump(d.dateStr)
+                          setViewMode("timeline")
                         }}
                         className="cursor-pointer"
                       >
@@ -942,8 +1422,9 @@ export default function CalendarPage({
                           {d.dayName}
                         </span>
                         <span
-                          className={`inline-block mt-0.5 text-sm font-bold w-7 h-7 rounded-full leading-7 ${isToday ? "bg-purple-600 text-white" : "text-zinc-800"
-                            }`}
+                          className={`inline-block mt-0.5 text-sm font-bold w-7 h-7 rounded-full leading-7 ${
+                            isToday ? "bg-purple-600 text-white" : "text-zinc-800"
+                          }`}
                         >
                           {d.dayNum}
                         </span>
@@ -996,86 +1477,9 @@ export default function CalendarPage({
             </div>
           )}
 
-          {/* VIEW 3: DAY VIEW */}
-          {viewMode === "day" && (
-            <div className="max-w-2xl mx-auto space-y-3">
-              <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 flex items-center justify-between">
-                <div>
-                  <strong className="text-sm font-bold text-purple-950">
-                    Schedule for {formatDateString(currentDate)}
-                  </strong>
-                  <span className="block text-xs text-purple-700">
-                    {(eventsByDate.get(formatDateString(currentDate)) || []).length} scheduled events
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="px-3 h-8 rounded-lg btn-primary text-xs font-bold cursor-pointer"
-                >
-                  + Add Event
-                </button>
-              </div>
-
-              {(eventsByDate.get(formatDateString(currentDate)) || []).length === 0 ? (
-                <div className="p-8 text-center text-xs text-zinc-400 bg-gray-50 rounded-xl border border-gray-200">
-                  No scheduled academic sessions or reminders for this date.
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {(eventsByDate.get(formatDateString(currentDate)) || []).map((ev) => (
-                    <div
-                      key={ev.id}
-                      onClick={() => handleOpenEvent(ev)}
-                      className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:shadow-xs transition-all ${getEventBadgeClass(
-                        ev.category
-                      )}`}
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider">
-                            {ev.category}
-                          </span>
-                          <span className="text-zinc-400">·</span>
-                          <span className="text-xs font-semibold">
-                            {ev.startTime} – {ev.endTime}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-bold text-zinc-900 leading-snug">
-                          {ev.title}
-                        </h4>
-                        {ev.description && (
-                          <p className="text-xs text-zinc-600 line-clamp-1">
-                            {ev.description}
-                          </p>
-                        )}
-                        {ev.location && (
-                          <div className="text-[11px] text-zinc-500 flex items-center gap-1">
-                            <span>📍</span>
-                            <span>{ev.location}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        className="view-details-btn self-end sm:self-center shrink-0 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleOpenEvent(ev)
-                        }}
-                      >
-                        <span>View Details →</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* VIEW 4: AGENDA VIEW */}
           {viewMode === "agenda" && (
-            <div className="max-w-3xl mx-auto space-y-4">
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-y-auto live-class-scroll-section max-w-3xl space-y-3">
               {filteredEvents.length === 0 ? (
                 <div className="p-8 text-center text-xs text-zinc-400 bg-gray-50 rounded-xl border border-gray-200">
                   No events match your search or filter criteria.
@@ -1143,60 +1547,6 @@ export default function CalendarPage({
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Upcoming Events Bottom Panel */}
-      <div className="panel p-5 mt-2">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h4 className="card-title text-sm sm:text-base">
-              Upcoming Schedule & Reminders
-            </h4>
-            <p className="text-[11px] text-zinc-500 mt-0.5">
-              Next scheduled academic lectures, assessment deadlines, and office hours
-            </p>
-          </div>
-          <button
-            onClick={() => setViewMode("agenda")}
-            className="text-xs font-bold text-purple-700 hover:underline cursor-pointer"
-          >
-            View Full Agenda →
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {upcomingEvents.map((ev) => (
-            <div
-              key={ev.id}
-              onClick={() => {
-                handleSelectDateAndJump(ev.startDate)
-                handleOpenEvent(ev)
-              }}
-              className="p-3 rounded-xl bg-gray-50 hover:bg-purple-50/50 border border-gray-150 hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span
-                    className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold border ${getEventBadgeClass(
-                      ev.category
-                    )}`}
-                  >
-                    {ev.category}
-                  </span>
-                  <span className="text-[10px] text-zinc-500 font-semibold">
-                    {ev.startDate}
-                  </span>
-                </div>
-                <strong className="block text-xs font-bold text-zinc-800 line-clamp-1 mt-1">
-                  {ev.title}
-                </strong>
-                <span className="text-[10.5px] text-zinc-500 block truncate mt-0.5">
-                  ⏱ {ev.startTime} – {ev.endTime}
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

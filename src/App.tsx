@@ -52,9 +52,11 @@ import {
   LiveStudioPage,
   AnalyticsPage,
   SettingsPage,
+  SupportPage,
 } from "./pages/teacher"
 import { lazy, Suspense } from "react"
 const SupportPortal = lazy(() => import("./pages/support"))
+const EvaluatorPortal = lazy(() => import("./pages/evaluator/EvaluatorPortal"))
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -76,6 +78,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole | "Support">(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname.toLowerCase()
+      if (p.includes("/evaluator")) return "Evaluator"
       if (p.includes("/support")) return "Support"
       if (p.includes("/super-admin")) return "Super Admin"
       if (p.includes("/admin")) return "Admin"
@@ -122,6 +125,7 @@ export default function App() {
       }
       if (p.includes("/analytics")) return "Analytics"
       if (p.includes("/settings")) return "Settings"
+      if (p.includes("/teacher/support") || p.includes("/teacher/help")) return "Help & Support"
     }
     return "Dashboard"
   })
@@ -179,7 +183,9 @@ export default function App() {
         if (auth !== "false") {
           setIsAuthenticated(true)
         }
-        if (p.includes("/support")) {
+        if (p.includes("/evaluator")) {
+          setUserRole("Evaluator")
+        } else if (p.includes("/support")) {
           setUserRole("Support")
         } else if (p.includes("/super-admin")) {
           setUserRole("Super Admin")
@@ -218,6 +224,9 @@ export default function App() {
             window.history.replaceState(null, "", "/teacher/analytics")
           } else if (p.includes("/analytics")) {
             setActiveTab("Analytics")
+            setStudioSession(null)
+          } else if (p.includes("/teacher/support") || p.includes("/teacher/help") || p.includes("/support")) {
+            setActiveTab("Help & Support")
             setStudioSession(null)
           } else if (p.includes("/settings")) {
             setActiveTab("Settings")
@@ -422,6 +431,26 @@ export default function App() {
 
   const handleSwitchRole = (targetRole: UserRole) => {
     setUserRole(targetRole)
+    if (targetRole === "Evaluator") {
+      const evalUser: CurrentUser = {
+        id: "eval-01",
+        name: "Dr. Alistair Vance",
+        role: "Evaluator",
+        email: "a.vance@quantum-lms.edu",
+        avatar: "/assets/srimanth.png",
+        title: "Senior Academic Assessor & Exam Board Fellow",
+      }
+      setCurrentUser(evalUser)
+      try {
+        localStorage.setItem("quantum_user_role", "Evaluator")
+        localStorage.setItem("quantum_current_user", JSON.stringify(evalUser))
+        window.history.pushState(null, "", "/evaluator/dashboard")
+      } catch {
+        // ignore
+      }
+      setToastMessage("Switched active perspective to: Combined Evaluator")
+      return
+    }
     const acc = demoAccounts.find((d) => d.role === targetRole)
     if (acc) {
       const updatedUser: CurrentUser = {
@@ -600,6 +629,30 @@ export default function App() {
           isOpen={isAiModalOpen}
           onClose={() => setIsAiModalOpen(false)}
         />
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+      </>
+    )
+  }
+
+  if (userRole === "Evaluator") {
+    return (
+      <>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-zinc-500">Loading Evaluator Portal...</div>}>
+          <EvaluatorPortal
+            currentUser={currentUser}
+            onSwitchRole={handleSwitchRole}
+            onLogout={handleLogout}
+            onToast={(msg) => setToastMessage(msg)}
+            hexColor={hexColor}
+            onChangeHexColor={handleHexColorChange}
+            isLightBg={isLightBg}
+          />
+        </Suspense>
         {toastMessage && (
           <Toast
             message={toastMessage}
@@ -790,6 +843,20 @@ export default function App() {
             hexColor={hexColor}
             onChangeHexColor={handleHexColorChange}
             onSave={() => setToastMessage("Settings and preferences saved successfully!")}
+          />
+        )}
+
+        {(activeTab === "Help & Support" || activeTab === "Support") && (
+          <SupportPage
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            hexColor={hexColor}
+            onChangeHexColor={handleHexColorChange}
+            onNavigateTab={(tab) => {
+              setActiveTab(tab)
+              setStudioSession(null)
+            }}
+            onToast={(msg) => setToastMessage(msg)}
           />
         )}
       </main>

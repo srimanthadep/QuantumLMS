@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
+import { createPortal } from "react-dom"
 import type { LiveAttendanceRecord, AttendanceStatus, LiveSessionItem } from "../types"
 import { Icon } from "./Icon"
 
@@ -508,324 +509,339 @@ export default function AttendanceSection({
       </div>
 
       {/* 5. Session Enrolled Students Roster Popup Modal */}
-      {isStudentsModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setIsStudentsModalOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Enrolled students attendance roster for ${currentSession?.title || "Live Class"}`}
-        >
+      {isStudentsModalOpen &&
+        createPortal(
           <div
-            className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden text-zinc-900 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setIsStudentsModalOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Enrolled students attendance roster for ${currentSession?.title || "Live Class"}`}
           >
-            {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-gray-150 flex items-start justify-between gap-3 bg-gray-50/80">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold text-[10.5px]">
-                    {currentSession?.courseCode || "LIVE"}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    {sessionRecords.length} Enrolled Students
-                  </span>
-                  <span className="text-xs text-zinc-400">·</span>
-                  <span className="text-xs text-zinc-500 font-medium">
-                    {currentSession?.scheduledDate || "Today"} · {currentSession?.startTime} – {currentSession?.endTime}
-                  </span>
-                </div>
-                <h3 className="text-base sm:text-lg font-bold text-zinc-900 truncate">
-                  {currentSession?.title || "Live Academic Session"}
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Complete attendance verification roster, join/leave timestamps, and duration records.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsStudentsModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-gray-200/80 hover:bg-gray-300 text-zinc-700 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer shrink-0"
-                aria-label="Close students popup"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Internal Search & Status Filter Pills */}
-            <div className="p-3 sm:px-5 sm:py-3 border-b border-gray-150 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="tablist" aria-label="Filter roster by status">
-                {(["All", "Present", "Late", "Left Early", "Absent"] as const).map((st) => {
-                  const count =
-                    st === "All"
-                      ? sessionRecords.length
-                      : sessionRecords.filter((r) => r.status === st).length
-                  return (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => setPopupStatusFilter(st)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${popupStatusFilter === st
-                          ? "bg-purple-600 text-white shadow-2xs"
-                          : "bg-gray-100 hover:bg-gray-200 text-zinc-700"
-                        }`}
-                      aria-selected={popupStatusFilter === st}
-                    >
-                      {st} ({count})
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="search-box !h-8 !w-full sm:!w-64 shrink-0">
-                <Icon name="search" size={13} />
-                <input
-                  type="text"
-                  value={popupSearchQuery}
-                  onChange={(e) => setPopupSearchQuery(e.target.value)}
-                  placeholder="Search student or ID..."
-                  className="text-xs"
-                  aria-label="Filter students in popup"
-                />
-                {popupSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setPopupSearchQuery("")}
-                    className="text-xs text-zinc-400 hover:text-zinc-700 px-1 cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Scrollable Student List */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-3 sm:p-5 space-y-2">
-              {modalDisplayedStudents.length === 0 ? (
-                <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-150 my-2">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mx-auto mb-2">
-                    <Icon name="users" size={18} />
+            <div
+              className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden text-zinc-900 animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-gray-150 flex items-start justify-between gap-3 bg-gray-50/80">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold text-[10.5px]">
+                      {currentSession?.courseCode || "LIVE"}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      {sessionRecords.length} Enrolled Students
+                    </span>
+                    <span className="text-xs text-zinc-400">·</span>
+                    <span className="text-xs text-zinc-500 font-medium">
+                      {currentSession?.scheduledDate || "Today"} · {currentSession?.startTime} – {currentSession?.endTime}
+                    </span>
                   </div>
-                  <strong className="text-sm text-zinc-800 block">No students match your filter</strong>
-                  <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
-                    No enrolled student records found matching "{popupSearchQuery || popupStatusFilter}".
+                  <h3 className="text-base sm:text-lg font-bold text-zinc-900 truncate">
+                    {currentSession?.title || "Live Academic Session"}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Complete attendance verification roster, join/leave timestamps, and duration records.
                   </p>
-                  {(popupSearchQuery || popupStatusFilter !== "All") && (
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsStudentsModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-200/80 hover:bg-gray-300 text-zinc-700 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer shrink-0"
+                  aria-label="Close students popup"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Internal Search & Status Filter Pills */}
+              <div className="p-3 sm:px-5 sm:py-3 border-b border-gray-150 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="tablist" aria-label="Filter roster by status">
+                  {(["All", "Present", "Late", "Left Early", "Absent"] as const).map((st) => {
+                    const count =
+                      st === "All"
+                        ? sessionRecords.length
+                        : sessionRecords.filter((r) => r.status === st).length
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setPopupStatusFilter(st)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                          popupStatusFilter === st
+                            ? "bg-purple-600 text-white shadow-2xs"
+                            : "bg-gray-100 hover:bg-gray-200 text-zinc-700"
+                        }`}
+                        aria-selected={popupStatusFilter === st}
+                      >
+                        {st} ({count})
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="search-box !h-8 !w-full sm:!w-64 shrink-0">
+                  <Icon name="search" size={13} />
+                  <input
+                    type="text"
+                    value={popupSearchQuery}
+                    onChange={(e) => setPopupSearchQuery(e.target.value)}
+                    placeholder="Search student or ID..."
+                    className="text-xs"
+                    aria-label="Filter students in popup"
+                  />
+                  {popupSearchQuery && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setPopupSearchQuery("")
-                        setPopupStatusFilter("All")
-                      }}
-                      className="mt-3 px-3.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors cursor-pointer"
+                      onClick={() => setPopupSearchQuery("")}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 px-1 cursor-pointer"
                     >
-                      Reset Filter
+                      ✕
                     </button>
                   )}
                 </div>
-              ) : (
-                modalDisplayedStudents.map((st) => (
-                  <div
-                    key={st.id}
-                    onClick={() => setDetailStudent(st)}
-                    className="p-3 sm:p-3.5 rounded-xl border border-gray-150 hover:border-purple-300 hover:bg-purple-50/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setDetailStudent(st)
-                    }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={st.studentAvatar || "/assets/student-1.png"}
-                        alt={st.studentName}
-                        className="w-9 h-9 rounded-xl object-cover border border-gray-200 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <strong className="text-xs sm:text-sm text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
-                            {st.studentName}
-                          </strong>
-                          <span className="font-mono text-[11px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-100">
-                            {st.studentRoll}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-zinc-400 truncate mt-0.5 flex items-center gap-2">
-                          <span>{st.email}</span>
-                          <span>·</span>
-                          <span>Device: {st.deviceUsed || "Desktop"}</span>
-                        </div>
-                      </div>
+              </div>
+
+              {/* Scrollable Student List */}
+              <div className="flex-1 overflow-y-auto no-scrollbar p-3 sm:p-5 space-y-2">
+                {modalDisplayedStudents.length === 0 ? (
+                  <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-150 my-2">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mx-auto mb-2">
+                      <Icon name="users" size={18} />
                     </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 text-xs">
-                      <div className="text-right">
-                        <div className="font-mono text-zinc-700 text-[11px]">
-                          {st.joinTime} – {st.leaveTime}
-                        </div>
-                        <div className="text-[10.5px] text-zinc-400">
-                          Duration: {st.durationFormatted}
-                        </div>
-                      </div>
-
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shrink-0 ${getStatusBadge(st.status)}`}>
-                        {st.status}
-                      </span>
-
+                    <strong className="text-sm text-zinc-800 block">No students match your filter</strong>
+                    <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+                      No enrolled student records found matching "{popupSearchQuery || popupStatusFilter}".
+                    </p>
+                    {(popupSearchQuery || popupStatusFilter !== "All") && (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDetailStudent(st)
+                        onClick={() => {
+                          setPopupSearchQuery("")
+                          setPopupStatusFilter("All")
                         }}
-                        className="text-xs text-purple-700 font-semibold hover:underline hidden sm:inline cursor-pointer"
+                        className="mt-3 px-3.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors cursor-pointer"
                       >
-                        Details →
+                        Reset Filter
                       </button>
+                    )}
+                  </div>
+                ) : (
+                  modalDisplayedStudents.map((st) => (
+                    <div
+                      key={st.id}
+                      onClick={() => setDetailStudent(st)}
+                      className="p-3 sm:p-3.5 rounded-xl border border-gray-150 hover:border-purple-300 hover:bg-purple-50/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setDetailStudent(st)
+                      }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={st.studentAvatar || "/assets/student-1.png"}
+                          alt={st.studentName}
+                          className="w-9 h-9 rounded-xl object-cover border border-gray-200 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <strong className="text-xs sm:text-sm text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
+                              {st.studentName}
+                            </strong>
+                            <span className="font-mono text-[11px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-100">
+                              {st.studentRoll}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-zinc-400 truncate mt-0.5 flex items-center gap-2">
+                            <span>{st.email}</span>
+                            <span>·</span>
+                            <span>Device: {st.deviceUsed || "Desktop"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 text-xs">
+                        <div className="text-right">
+                          <div className="font-mono text-zinc-700 text-[11px]">
+                            {st.joinTime} – {st.leaveTime}
+                          </div>
+                          <div className="text-[10.5px] text-zinc-400">
+                            Duration: {st.durationFormatted}
+                          </div>
+                        </div>
+
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shrink-0 ${getStatusBadge(st.status)}`}>
+                          {st.status}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDetailStudent(st)
+                          }}
+                          className="text-xs text-purple-700 font-semibold hover:underline hidden sm:inline cursor-pointer"
+                        >
+                          Details →
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="p-3 sm:px-5 sm:py-3 border-t border-gray-150 bg-gray-50/80 flex items-center justify-between text-xs text-zinc-500">
+                <span>
+                  Showing <strong>{modalDisplayedStudents.length}</strong> of <strong>{sessionRecords.length}</strong> enrolled students
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsStudentsModalOpen(false)}
+                  className="px-4 py-1.5 rounded-xl btn-primary text-xs font-bold cursor-pointer"
+                >
+                  Close Roster
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* 6. Single Student Attendance Details Modal - Portaled to document.body outside section */}
+      {detailStudent &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setDetailStudent(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Attendance details for ${detailStudent.studentName}`}
+          >
+            <div
+              className="bg-white rounded-3xl shadow-2xl border border-gray-150 w-full max-w-lg p-6 sm:p-7 relative text-zinc-900 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3.5 border-b border-gray-150">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={detailStudent.studentAvatar || "/assets/student-1.png"}
+                    alt={detailStudent.studentName}
+                    className="w-11 h-11 rounded-xl object-cover border border-purple-200 shrink-0"
+                  />
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-900 leading-tight">
+                      {detailStudent.studentName}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
+                      <span className="font-mono font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                        {detailStudent.studentRoll}
+                      </span>
+                      <span>·</span>
+                      <span className="truncate max-w-[200px]">{detailStudent.email}</span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
 
-            {/* Sticky Footer */}
-            <div className="p-3 sm:px-5 sm:py-3 border-t border-gray-150 bg-gray-50/80 flex items-center justify-between text-xs text-zinc-500">
-              <span>
-                Showing <strong>{modalDisplayedStudents.length}</strong> of <strong>{sessionRecords.length}</strong> enrolled students
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsStudentsModalOpen(false)}
-                className="px-4 py-1.5 rounded-xl btn-primary text-xs font-bold cursor-pointer"
-              >
-                Close Roster
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <button
+                  type="button"
+                  onClick={() => setDetailStudent(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-zinc-600 flex items-center justify-center text-sm font-bold cursor-pointer transition-colors"
+                  aria-label="Close details"
+                >
+                  ✕
+                </button>
+              </div>
 
-      {/* 6. Single Student Attendance Details Modal */}
-      {detailStudent && (
-        <div
-          className="modal-overlay z-50"
-          onClick={() => setDetailStudent(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Attendance details for ${detailStudent.studentName}`}
-        >
-          <div
-            className="modal-content text-zinc-900"
-            style={{ maxWidth: "500px", padding: "24px" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-gray-150">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src={detailStudent.studentAvatar || "/assets/student-1.png"}
-                  alt={detailStudent.studentName}
-                  className="w-10 h-10 rounded-xl object-cover border border-purple-200"
-                />
-                <div>
-                  <h3 className="text-sm font-bold text-zinc-900">
-                    {detailStudent.studentName}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-zinc-500">
-                    <span className="font-mono font-bold text-purple-700">{detailStudent.studentRoll}</span>
-                    <span>·</span>
-                    <span>{detailStudent.email}</span>
-                  </div>
+              {/* Attendance Details Grid */}
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-150">
+                  <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-1">
+                    Attendance Status
+                  </span>
+                  <span
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadge(
+                      detailStudent.status
+                    )}`}
+                  >
+                    {detailStudent.status}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-150">
+                  <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-1">
+                    Duration Attended
+                  </span>
+                  <strong className="text-sm text-zinc-900 block">
+                    {detailStudent.durationFormatted} ({detailStudent.durationMinutes} mins)
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-150">
+                  <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-1">
+                    Join Timestamp
+                  </span>
+                  <span className="font-mono text-zinc-800 text-xs font-semibold block">
+                    {detailStudent.joinTime}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-150">
+                  <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-1">
+                    Leave Timestamp
+                  </span>
+                  <span className="font-mono text-zinc-800 text-xs font-semibold block">
+                    {detailStudent.leaveTime}
+                  </span>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setDetailStudent(null)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-zinc-600 flex items-center justify-center text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Attendance Details Grid */}
-            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-150">
-                <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-0.5">
-                  Attendance Status
-                </span>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border mt-0.5 ${getStatusBadge(detailStudent.status)}`}>
-                  {detailStudent.status}
-                </span>
+              {/* Device & Engagement */}
+              <div className="mt-3 p-3.5 rounded-xl bg-gray-50 border border-gray-150 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">Connected Device / Browser:</span>
+                  <span className="font-semibold text-zinc-800">
+                    {detailStudent.deviceUsed || "Desktop (Chrome)"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">In-Session Hand Raises:</span>
+                  <span className="font-semibold text-purple-700">
+                    {detailStudent.handRaisesCount ?? 1} times
+                  </span>
+                </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-150">
-                <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-0.5">
-                  Duration Attended
-                </span>
-                <strong className="text-sm text-zinc-900 block mt-0.5">
-                  {detailStudent.durationFormatted} ({detailStudent.durationMinutes} minutes)
-                </strong>
-              </div>
+              {/* Attendance Notes */}
+              {detailStudent.notes && (
+                <div className="mt-3 p-3.5 rounded-xl bg-purple-50/50 border border-purple-200 text-xs">
+                  <span className="text-purple-900 font-bold block mb-1">
+                    Teacher & System Notes:
+                  </span>
+                  <p className="text-purple-800/90 leading-relaxed">
+                    {detailStudent.notes}
+                  </p>
+                </div>
+              )}
 
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-150">
-                <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-0.5">
-                  Join Timestamp
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-150">
+                <span className="text-[11px] text-zinc-400">
+                  Verified attendance log · Autumn Term 2026
                 </span>
-                <span className="font-mono text-zinc-800 text-xs font-semibold block mt-0.5">
-                  {detailStudent.joinTime}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-150">
-                <span className="text-zinc-400 uppercase font-bold text-[10px] block mb-0.5">
-                  Leave Timestamp
-                </span>
-                <span className="font-mono text-zinc-800 text-xs font-semibold block mt-0.5">
-                  {detailStudent.leaveTime}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setDetailStudent(null)}
+                  className="px-5 h-9 rounded-xl btn-primary text-xs font-bold cursor-pointer transition-all shadow-xs"
+                >
+                  Close Details
+                </button>
               </div>
             </div>
-
-            {/* Device & Engagement */}
-            <div className="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-150 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-500">Connected Device / Browser:</span>
-                <span className="font-semibold text-zinc-800">{detailStudent.deviceUsed || "Desktop (Chrome)"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-500">In-Session Hand Raises:</span>
-                <span className="font-semibold text-purple-700">{detailStudent.handRaisesCount ?? 1} times</span>
-              </div>
-            </div>
-
-            {/* Attendance Notes */}
-            {detailStudent.notes && (
-              <div className="mt-3 p-3 rounded-xl bg-purple-50/50 border border-purple-200 text-xs">
-                <span className="text-purple-900 font-bold block mb-1">
-                  Teacher & System Notes:
-                </span>
-                <p className="text-purple-800/90 leading-relaxed">
-                  {detailStudent.notes}
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-150">
-              <span className="text-[11px] text-zinc-400">
-                Verified attendance log · Autumn Term 2026
-              </span>
-              <button
-                type="button"
-                onClick={() => setDetailStudent(null)}
-                className="px-4 h-8.5 rounded-xl btn-primary text-xs font-bold cursor-pointer"
-              >
-                Close Details
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

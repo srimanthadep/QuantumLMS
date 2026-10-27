@@ -100,6 +100,16 @@ export function TeacherProfile({
           >
             <span>🎧 Support Desk</span>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchRole("Evaluator")
+              setShowRoleSwitcher(false)
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+          >
+            <span>⚖️ Evaluator Portal</span>
+          </button>
         </div>
       )}
     </div>
@@ -124,6 +134,7 @@ export function NavigationList({
     { icon: "video" as IconName, label: "Live Class" },
     { icon: "analytics" as IconName, label: "Analytics" },
     { icon: "settings" as IconName, label: "Settings" },
+    { icon: "help" as IconName, label: "Help & Support" },
   ]
 
   return (
@@ -132,7 +143,8 @@ export function NavigationList({
         const isActive =
           activeTab === item.label ||
           (item.label === "Dashboard" && activeTab === "Class") ||
-          (item.label === "My Students" && activeTab === "Students")
+          (item.label === "My Students" && activeTab === "Students") ||
+          (item.label === "Help & Support" && (activeTab === "Support" || activeTab === "Help"))
         return (
           <button
             key={item.label}

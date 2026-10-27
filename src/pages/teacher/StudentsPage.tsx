@@ -383,26 +383,6 @@ function StudentDetailsModal({
           </div>
         </div>
 
-        {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2.5 mt-5 pt-3 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 h-9 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-          >
-            Back to List
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClose()
-              onOpenReportModal(student.name)
-            }}
-            className="px-5 h-9 rounded-xl btn-primary text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>Send Parent Report</span>
-          </button>
-        </div>
       </div>
     </div>
   )

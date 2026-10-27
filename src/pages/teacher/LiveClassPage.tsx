@@ -545,7 +545,7 @@ export function LiveClassPage({
       </div>
 
       {/* 4 Feature Tabs Bar */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs overflow-x-auto" role="tablist" aria-label="Live Class features navigation">
+      <div className="inline-flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-xs rounded-full border border-gray-200 shadow-xs max-w-full overflow-x-auto" role="tablist" aria-label="Live Class features navigation">
         <button
           type="button"
           onClick={() => {
@@ -553,9 +553,9 @@ export function LiveClassPage({
             onClearReviewSessionId?.()
             window.history.pushState(null, "", "/teacher/live-class")
           }}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "schedule"
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "schedule"
               ? "bg-purple-600 text-white shadow-xs"
-              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/50"
+              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/60"
             }`}
           aria-selected={viewMode === "schedule"}
         >
@@ -564,20 +564,23 @@ export function LiveClassPage({
           {summaryCounts.liveNow > 0 && (
             <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
           )}
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${viewMode === "schedule" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
+            {sessions.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setViewMode("monitoring")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "monitoring"
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "monitoring"
               ? "bg-purple-600 text-white shadow-xs"
-              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/50"
+              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/60"
             }`}
           aria-selected={viewMode === "monitoring"}
         >
           <Icon name="sparkles" size={14} />
           <span>AI Live Monitoring</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold ${viewMode === "monitoring" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${viewMode === "monitoring" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
             92% Score
           </span>
         </button>
@@ -585,15 +588,15 @@ export function LiveClassPage({
         <button
           type="button"
           onClick={() => setViewMode("recordings")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "recordings"
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "recordings"
               ? "bg-purple-600 text-white shadow-xs"
-              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/50"
+              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/60"
             }`}
           aria-selected={viewMode === "recordings"}
         >
           <Icon name="play" size={14} />
           <span>Lecture Recording & AI Review</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold ${viewMode === "recordings" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${viewMode === "recordings" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
             {recordings.length}
           </span>
         </button>
@@ -601,23 +604,61 @@ export function LiveClassPage({
         <button
           type="button"
           onClick={() => setViewMode("attendance")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "attendance"
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${viewMode === "attendance"
               ? "bg-purple-600 text-white shadow-xs"
-              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/50"
+              : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/60"
             }`}
           aria-selected={viewMode === "attendance"}
         >
           <Icon name="users" size={14} />
           <span>Attendance</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold ${viewMode === "attendance" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${viewMode === "attendance" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"}`}>
             92% Rate
           </span>
         </button>
       </div>
 
       {/* Main Content Area Based on viewMode */}
+      <style>{`
+        .live-class-scroll-section {
+          max-height: calc(100vh - 250px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: #9333ea #f3e8ff !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
+        .live-class-scroll-section::-webkit-scrollbar {
+          display: block !important;
+          width: 7px !important;
+          height: 7px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
+        .live-class-scroll-section::-webkit-scrollbar-track {
+          background: #f4f3fa !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
+        .live-class-scroll-section::-webkit-scrollbar-thumb {
+          background: #9333ea !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
+        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
+        .live-class-scroll-section::-webkit-scrollbar-thumb:hover {
+          background: #7e22ce !important;
+        }
+      `}</style>
+
       {viewMode === "schedule" && (
-        <section className="panel p-5 mt-2" aria-label="Live Sessions Dashboard">
+        <section className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section" aria-label="Live Sessions Dashboard">
           {/* Top Header & Status Filter Pills */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div>
@@ -984,7 +1025,7 @@ export function LiveClassPage({
       {/* VIEW 2: AI LIVE MONITORING */}
       {viewMode === "monitoring" && (
         <section
-          className="panel p-5 mt-2"
+          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="AI Live Monitoring Section"
         >
           <AIMonitoringSection
@@ -997,7 +1038,7 @@ export function LiveClassPage({
       {/* VIEW 3: LECTURE RECORDING & AI INTELLIGENCE REVIEW */}
       {viewMode === "recordings" && (
         <section
-          className="panel p-5 mt-2"
+          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="Lecture Recording & AI Intelligence Review Section"
         >
           <RecordingsSuggestionsSection
@@ -1015,7 +1056,7 @@ export function LiveClassPage({
       {/* VIEW 4: ATTENDANCE */}
       {viewMode === "attendance" && (
         <section
-          className="panel p-5 mt-2"
+          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="Live Class Attendance Section"
         >
           <AttendanceSection
