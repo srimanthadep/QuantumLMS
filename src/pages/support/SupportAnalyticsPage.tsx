@@ -120,6 +120,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "Live Classes & Attendance": Activity,
   "Technical Support": Cpu,
   "Communication & Notifications": Bell,
+  "Others": HelpCircle,
   "General Help & Feedback": HelpCircle,
 };
 
