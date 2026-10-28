@@ -112,8 +112,12 @@ function SupportSidebar({
     <aside className="sidebar" aria-label="Support sidebar">
       {/* Brand Logo - identical to teacher and admin sidebar */}
       <div className="logo" aria-label="Quantum School of AI">
-        <Link to="/support/dashboard" onClick={onCloseDrawer}>
-          <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+        <Link to="/support/dashboard" onClick={onCloseDrawer} className="flex items-center gap-2.5">
+          <img src="/assets/logo.png" alt="Quantum School of AI" className="h-7 w-auto object-contain" />
+          <div className="flex flex-col text-left leading-none">
+            <span className="font-extrabold text-sm tracking-tight text-zinc-900">Quantum</span>
+            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">School of AI</span>
+          </div>
         </Link>
       </div>
 
@@ -374,8 +378,9 @@ function SupportLayout({
           >
             <Icon name="menu" size={20} />
           </button>
-          <div className="logo">
-            <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+          <div className="logo flex items-center gap-2">
+            <img src="/assets/logo.png" alt="Quantum School of AI" className="h-6 w-auto object-contain" />
+            <span className="font-extrabold text-xs tracking-tight text-zinc-900">Quantum</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -403,8 +408,9 @@ function SupportLayout({
             aria-label="Support Navigation drawer"
           >
             <div className="flex items-center justify-between pb-2 border-b border-purple-200/50">
-              <div className="logo">
-                <img src="/logo.png" alt="Quantum School of AI" className="logo-img" />
+              <div className="logo flex items-center gap-2">
+                <img src="/assets/logo.png" alt="Quantum School of AI" className="h-6 w-auto object-contain" />
+                <span className="font-extrabold text-xs tracking-tight text-zinc-900">Quantum</span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}

@@ -69,7 +69,7 @@ export function Logo({ collapsed }: { collapsed?: boolean }) {
   return (
     <div className={`logo flex items-center ${collapsed ? "justify-center p-2" : "gap-3 px-4 py-3"}`} aria-label="Quantum School of AI">
       <img
-        src="/logo.png"
+        src="/assets/logo.png"
         alt="Quantum School of AI"
         className={`${collapsed ? "w-8 h-8 object-contain" : "h-7 w-auto object-contain"}`}
       />

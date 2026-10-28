@@ -88,12 +88,16 @@ export default function AuthPage({
       <div className="auth-container">
         {/* Top brand header with Hex Color Customizer */}
         <header className="auth-top-nav">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
+              src="/assets/logo.png"
               alt="Quantum School of AI"
-              className="h-9 w-auto object-contain drop-shadow-sm"
+              className="h-8 w-auto object-contain drop-shadow-sm"
             />
+            <div className="flex flex-col text-left leading-none">
+              <span className="font-extrabold text-sm tracking-tight text-zinc-900">Quantum</span>
+              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">School of AI</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <ThemeAccentPicker />
