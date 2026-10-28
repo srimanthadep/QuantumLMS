@@ -8,8 +8,8 @@ import type {
   LessonMaterial,
 } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
-import { MetricCard } from "../../components/MetricCard"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
+import { StatCard } from "../../components/ui/StatCard"
 import { LessonContentInlineViewer } from "../../components/LessonContentInlineViewer"
 import { ModuleAssignmentSection } from "../../components/ModuleAssignmentSection"
 import { getModuleAssignment } from "../../data/courseAssignmentsData"
@@ -128,7 +128,7 @@ export function CoursesHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+        <ThemeAccentPicker />
         {onOpenAiModal && (
           <button
             className="ask-ai"
@@ -1754,7 +1754,7 @@ export default function CoursesPage({
       {/* Metrics Grid (4 Status Cards for Courses) */}
       <div className="metrics-grid">
         {metrics.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

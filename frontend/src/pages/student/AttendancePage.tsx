@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
-import { MetricCard } from "../../components/MetricCard"
+import { StatCard } from "../../components/ui/StatCard"
 import { StudentDropdown } from "../../components/StudentDropdown"
 import type { AttendanceSubject } from "./studentTypes"
 import { attendanceData } from "./studentMockData"
@@ -96,7 +96,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
 
       {/* 4 Metric Cards */}
       <section className="metrics-grid" aria-label="Attendance Metrics">
-        <MetricCard
+        <StatCard
           item={{
             label: "Overall Attendance",
             value: `${attendanceData.overallPercentage}%`,
@@ -105,7 +105,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
             icon: "check",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Classes Attended",
             value: `${attendanceData.attendedClasses} / ${attendanceData.totalClasses}`,
@@ -114,7 +114,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
             icon: "calendar",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Late Arrivals",
             value: `${attendanceData.lateClasses}`,
@@ -123,7 +123,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
             icon: "clock",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Excused Absences",
             value: `${attendanceData.absentClasses}`,

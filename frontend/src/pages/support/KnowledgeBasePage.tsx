@@ -23,8 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { MetricItem } from "@/types";
-import { MetricCard } from "@/components/MetricCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -263,7 +262,7 @@ export const KnowledgeBasePage: React.FC = () => {
       {/* 1. KPI Stats Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

@@ -1,5 +1,11 @@
 import type { UserRole, CurrentUser, IconName } from "../../types"
 
+export type EvaluatorTab =
+  | "Dashboard"
+  | "Submissions"
+  | "Reports"
+  | "Settings"
+
 export type AssessmentType =
   | "Assignment"
   | "Quiz"

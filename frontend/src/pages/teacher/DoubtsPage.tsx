@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react"
 import type { DoubtItem, DoubtResponse, MetricItem, CourseItem, StudentItem } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
-import { MetricCard } from "../../components/MetricCard"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
+import { StatCard } from "../../components/ui/StatCard"
 import { initialDoubts } from "../../data/mockData"
 
 export function DoubtsHeader({
@@ -50,7 +50,7 @@ export function DoubtsHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+        <ThemeAccentPicker />
         {onOpenAiModal && (
           <button
             className="ask-ai"
@@ -579,7 +579,7 @@ export default function DoubtsPage({
       {/* 4 Summary Cards */}
       <div className="metrics-grid">
         {metrics.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

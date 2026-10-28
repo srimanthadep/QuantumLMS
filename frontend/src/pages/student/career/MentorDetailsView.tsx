@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { Icon } from "../../components/Icon"
-import type { MentorProfile, StudentNavPage } from "./studentTypes"
-import { assignedMentorData, secondaryMentorData } from "./studentMockData"
+import { Icon } from "../../../components/Icon"
+import type { MentorProfile, StudentNavPage } from "../studentTypes"
+import { assignedMentorData, secondaryMentorData } from "../studentMockData"
 
 interface MentorDetailsPageProps {
   onToast: (msg: string) => void
@@ -9,7 +9,7 @@ interface MentorDetailsPageProps {
   onOpenAiModal: () => void
 }
 
-export function MentorDetailsPage({
+export function MentorDetailsView({
   onToast,
   onNavigate,
   onOpenAiModal,

@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react"
 import type { MetricItem, StudentItem } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
-import { MetricCard } from "../../components/MetricCard"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
+import { StatCard } from "../../components/ui/StatCard"
 import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
 
 export function getStudentGrade(average: number): string {
@@ -62,7 +62,7 @@ export function StudentsHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+        <ThemeAccentPicker />
         {onOpenAiModal && (
           <button
             className="ask-ai"
@@ -925,7 +925,7 @@ export default function StudentsPage({
       {/* Metrics Grid (4 Status Cards for Students) */}
       <div className="metrics-grid">
         {metrics.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

@@ -31,11 +31,9 @@ import {
   Bell,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { MetricItem } from "@/types";
-import { MetricCard } from "@/components/MetricCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { cn } from "@/lib/utils";
 import { getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
-import "./supportTheme.css";
 
 interface MentorPerformance {
   id: string;
@@ -199,7 +197,7 @@ export const SupportAnalyticsPage: React.FC = () => {
       {/* 1. KPI Stats Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

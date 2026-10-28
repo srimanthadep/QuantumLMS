@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { Icon } from "../../components/Icon"
 import { StudentHeader } from "../../components/StudentHeader"
-import { MetricCard } from "../../components/MetricCard"
+import { StatCard } from "../../components/ui/StatCard"
 import { StudentDropdown } from "../../components/StudentDropdown"
 import type {
   StudentNavPage,
@@ -114,7 +114,7 @@ export default function StudentDashboardPage({
       <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 box-border">
         {/* Top Metric Cards (4) - Square Status Cards */}
         <section className="metrics-grid" aria-label="Student Learning Metrics">
-          <MetricCard
+          <StatCard
             item={{
               label: "Active Courses",
               value: `${courses.length}`,
@@ -124,7 +124,7 @@ export default function StudentDashboardPage({
             }}
             onClick={() => onNavigate("My Courses")}
           />
-          <MetricCard
+          <StatCard
             item={{
               label: "Attendance Rate",
               value: "96.2%",
@@ -134,7 +134,7 @@ export default function StudentDashboardPage({
             }}
             onClick={() => onNavigate("Attendance")}
           />
-          <MetricCard
+          <StatCard
             item={{
               label: "Pending Tasks",
               value: "3 Due",
@@ -144,7 +144,7 @@ export default function StudentDashboardPage({
             }}
             onClick={() => onNavigate("Assignments")}
           />
-          <MetricCard
+          <StatCard
             item={{
               label: "Current GPA",
               value: "3.88 / 4.0",

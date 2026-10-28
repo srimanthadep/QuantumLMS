@@ -36,7 +36,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/ui/StatCard";
-import "./supportTheme.css";
 
 export const SupportSettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("general");

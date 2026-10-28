@@ -10,9 +10,8 @@ import {
 } from "react-router-dom"
 import type { UserRole, CurrentUser, IconName } from "@/types"
 import { Icon } from "@/components/Icon"
-import { HexColorField } from "@/components/HexColorField"
+import { ThemeAccentPicker } from "@/components/ui/ThemeAccentPicker"
 import { NotificationProvider } from "@/context/NotificationContext"
-import "./supportTheme.css"
 
 // Import all Support sub-pages
 import { SupportDashboard } from "./SupportDashboard"
@@ -20,10 +19,8 @@ import { TicketsInboxPage } from "./TicketsInboxPage"
 import { TicketDetailPage } from "./TicketDetailPage"
 import { LiveChatPage } from "./LiveChatPage"
 import { KnowledgeBasePage } from "./KnowledgeBasePage"
-import { SlaEscalationsPage } from "./SlaEscalationsPage"
 import { SupportAgentsPage } from "./SupportAgentsPage"
 import { SupportAnalyticsPage } from "./SupportAnalyticsPage"
-import { Student360Page } from "./Student360Page"
 import { SupportSettingsPage } from "./SupportSettingsPage"
 import { getAllSupportTickets, SupportTicket } from "./supportTicketsData"
 
@@ -54,10 +51,8 @@ type SupportTab =
   | "inbox"
   | "live-chat"
   | "knowledge-base"
-  | "sla-escalations"
   | "agents"
   | "analytics"
-  | "student-360"
   | "settings"
 
 interface NavItem {
@@ -72,10 +67,8 @@ const NAV_ITEMS: NavItem[] = [
   { key: "inbox", label: "Tickets Inbox", path: "/support/inbox", icon: "mail" },
   { key: "live-chat", label: "Live Chat", path: "/support/live-chat", icon: "message-circle" },
   { key: "knowledge-base", label: "Knowledge Base", path: "/support/knowledge-base", icon: "book" },
-  { key: "sla-escalations", label: "SLA & Escalations", path: "/support/sla-escalations", icon: "fire" },
   { key: "agents", label: "Support Agents", path: "/support/agents", icon: "users" },
   { key: "analytics", label: "Analytics", path: "/support/analytics", icon: "analytics" },
-  { key: "student-360", label: "Student 360", path: "/support/student-360", icon: "compass" },
   { key: "settings", label: "Settings", path: "/support/settings", icon: "settings" },
 ]
 
@@ -386,14 +379,7 @@ function SupportLayout({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {onChangeHexColor && (
-            <div className="scale-90">
-              <HexColorField
-                hexColor={hexColor || "#F8FAFC"}
-                onChangeHex={onChangeHexColor}
-              />
-            </div>
-          )}
+          <ThemeAccentPicker />
           <img
             src={currentUser?.avatar || "/assets/student-3.png"}
             alt={currentUser?.name || "Support"}
@@ -710,13 +696,10 @@ function SupportLayout({
               </div>
             )}
 
-            {/* Hex Color Field */}
-            {onChangeHexColor && (
-              <HexColorField
-                hexColor={hexColor || "#F8FAFC"}
-                onChangeHex={onChangeHexColor}
-              />
-            )}
+            {/* Curated Theme Accent Picker */}
+            <div className="hidden sm:block">
+              <ThemeAccentPicker />
+            </div>
 
             {/* Ask AI Pill */}
             {onOpenAiModal && (
@@ -756,10 +739,10 @@ export function SupportPortal(props: SupportPortalProps) {
             <Route path="/support/tickets/:ticketId" element={<TicketDetailPage />} />
             <Route path="/support/live-chat" element={<LiveChatPage />} />
             <Route path="/support/knowledge-base" element={<KnowledgeBasePage />} />
-            <Route path="/support/sla-escalations" element={<SlaEscalationsPage />} />
+            <Route path="/support/sla-escalations" element={<Navigate to="/support/inbox?filter=escalated" replace />} />
             <Route path="/support/agents" element={<SupportAgentsPage />} />
             <Route path="/support/analytics" element={<SupportAnalyticsPage />} />
-            <Route path="/support/student-360" element={<Student360Page />} />
+            <Route path="/support/student-360" element={<Navigate to="/support/inbox" replace />} />
             <Route path="/support/settings" element={<SupportSettingsPage />} />
             <Route path="*" element={<Navigate to="/support" replace />} />
           </Routes>

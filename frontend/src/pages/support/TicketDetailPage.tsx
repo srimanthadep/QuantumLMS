@@ -30,7 +30,6 @@ import { getAllSupportTickets, getSupportTicketById } from "./supportTicketsData
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Student360Drawer } from "@/components/shared/Student360Drawer";
 import { mockDataService } from "@/services/mockDataService";
-import "./supportTheme.css";
 
 export const TicketDetailPage: React.FC = () => {
   const { ticketId } = useParams<{ ticketId?: string }>();

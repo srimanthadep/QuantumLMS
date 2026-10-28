@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
-import { Icon } from "../../components/Icon"
-import { StudentDropdown } from "../../components/StudentDropdown"
+import { Icon } from "../../../components/Icon"
+import { StudentDropdown } from "../../../components/StudentDropdown"
 import type {
   ResumeData,
   EducationEntry,
@@ -8,7 +8,7 @@ import type {
   ProjectEntry,
   CertificationEntry,
   AchievementEntry,
-} from "./studentTypes"
+} from "../studentTypes"
 
 interface ResumeBuildingPageProps {
   onToast: (msg: string) => void
@@ -144,8 +144,9 @@ type SectionKey =
   | "certifications"
   | "achievements"
 
-export function ResumeBuildingPage({
+export function ResumeBuilderView({
   onToast,
+  onNavigate,
   onOpenAiModal,
 }: ResumeBuildingPageProps) {
   const [resume, setResume] = useState<ResumeData>(() => {
@@ -2265,4 +2266,4 @@ export function ResumeBuildingPage({
   )
 }
 
-export default ResumeBuildingPage
+export default ResumeBuilderView

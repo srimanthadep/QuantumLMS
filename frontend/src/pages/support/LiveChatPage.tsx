@@ -32,7 +32,6 @@ import {
 } from "lucide-react";
 import { Student360Drawer } from "@/components/shared/Student360Drawer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import "./supportTheme.css";
 
 // Reaction Interface
 interface Reaction {

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import { ChevronsUpDown } from "lucide-react"
 import type { MetricItem } from "@/types"
 import { Icon } from "@/components/Icon"
-import { MetricCard } from "@/components/MetricCard"
+import { StatCard } from "@/components/ui/StatCard"
 import { getAllSupportTickets, SupportTicket } from "./supportTicketsData"
 
 export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onOpenAiModal }) => {
@@ -80,7 +80,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
       {/* 1. Metric Cards Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 

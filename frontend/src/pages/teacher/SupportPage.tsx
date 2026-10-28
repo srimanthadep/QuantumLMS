@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Icon } from "../../components/Icon"
 import type { IconName } from "../../types"
-import { HexColorField } from "../../components/HexColorField"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 
 export type TeacherTicketCategory =
   | "Account & Access Management"
@@ -499,7 +499,7 @@ export function SupportHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+        <ThemeAccentPicker />
         <button
           className="ask-ai"
           onClick={onOpenCreateModal}

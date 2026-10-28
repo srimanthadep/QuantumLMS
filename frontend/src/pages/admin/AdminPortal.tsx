@@ -8,9 +8,9 @@ import type {
   ClassRoomInfo,
 } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
-import { MetricCard } from "../../components/MetricCard"
-import { AdminSidebar } from "../../components/AdminSidebar"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
+import { StatCard as MetricCard } from "../../components/ui/StatCard"
+import { AppSidebar as AdminSidebar } from "../../components/Sidebar"
 import {
   AddFacultyModal,
   SchoolAnnouncementModal,
@@ -394,7 +394,7 @@ export default function AdminPortal({
               </select>
             )}
 
-            <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+            <ThemeAccentPicker />
 
             <button
               type="button"

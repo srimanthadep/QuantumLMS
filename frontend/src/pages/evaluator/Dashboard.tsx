@@ -14,8 +14,7 @@ import {
 import type { EvaluatorState } from "./data/evaluatorStorage"
 import { getDashboardMetrics } from "./data/evaluatorStorage"
 import { StatusBadge, TypeBadge } from "./components/StatusBadge"
-import type { EvaluatorTab } from "./components/EvaluatorSidebar"
-import type { StudentSubmission, EvaluatorAssessment } from "./types"
+import type { EvaluatorTab, StudentSubmission, EvaluatorAssessment } from "./types"
 
 interface DashboardProps {
   state: EvaluatorState

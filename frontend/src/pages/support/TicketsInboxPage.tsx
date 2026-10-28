@@ -16,8 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { MetricItem } from "@/types";
-import { MetricCard } from "@/components/MetricCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -31,15 +30,20 @@ export const TicketsInboxPage: React.FC = () => {
   const [tickets] = useState<SupportTicket[]>(getAllSupportTickets());
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
+  const urlFilter = searchParams.get("filter") || searchParams.get("status") || "all";
   const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [statusFilter, setStatusFilter] = useState(urlFilter === "escalated" ? "escalated" : "all");
 
   useEffect(() => {
     const q = searchParams.get("search");
     if (q !== null) {
       setSearchQuery(q);
     }
+    const f = searchParams.get("filter") || searchParams.get("status");
+    if (f) {
+      setStatusFilter(f);
+    }
   }, [searchParams]);
-  const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
@@ -49,6 +53,7 @@ export const TicketsInboxPage: React.FC = () => {
   const openCount = tickets.filter((t) => t.status === "open").length;
   const pendingCount = tickets.filter((t) => t.status === "pending").length;
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
+  const escalatedCount = tickets.filter((t) => t.priority === "high" || t.status === "open").length;
 
   const filteredTickets = tickets.filter((tkt) => {
     const query = searchQuery.toLowerCase().trim();
@@ -61,7 +66,11 @@ export const TicketsInboxPage: React.FC = () => {
       (tkt.assignedAgent && tkt.assignedAgent.toLowerCase().includes(query));
 
     if (!matchesSearch) return false;
-    if (statusFilter !== "all" && tkt.status !== statusFilter) return false;
+    if (statusFilter === "escalated") {
+      if (tkt.priority !== "high") return false;
+    } else if (statusFilter !== "all" && tkt.status !== statusFilter) {
+      return false;
+    }
 
     if (categoryFilter !== "all" && tkt.category !== categoryFilter) return false;
 
@@ -154,7 +163,7 @@ export const TicketsInboxPage: React.FC = () => {
       {/* 1. KPI Stats Cards */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 
@@ -200,14 +209,20 @@ export const TicketsInboxPage: React.FC = () => {
               </SelectContent>
             </Select>
 
-            {/* Status Tabs */}
+            {/* Status Tabs with Escalated Filter */}
             <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
-              <TabsList className="grid grid-cols-4 w-full sm:w-auto rounded-full bg-[#F0EDFF] p-1 border border-[#905FEB]/20">
+              <TabsList className="grid grid-cols-5 w-full sm:w-auto rounded-full bg-[#F0EDFF] p-1 border border-[#905FEB]/20">
                 <TabsTrigger value="all" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
                   All
                 </TabsTrigger>
                 <TabsTrigger value="open" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
                   Open
+                </TabsTrigger>
+                <TabsTrigger value="escalated" className="text-xs rounded-full font-semibold data-[state=active]:bg-rose-600 data-[state=active]:text-white flex items-center gap-1">
+                  <span>Escalated</span>
+                  <span className="text-[10px] bg-rose-200/50 text-rose-900 rounded-full px-1.5 py-0.2">
+                    {escalatedCount}
+                  </span>
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
                   Pending

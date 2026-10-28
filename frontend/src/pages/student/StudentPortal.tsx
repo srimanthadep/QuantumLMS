@@ -1,16 +1,25 @@
-import { useState, useEffect, useCallback } from "react"
-import {
-  StudentSidebar,
-  type StudentNavPage,
-} from "../../components/StudentSidebar"
-import StudentDashboardPage from "./StudentDashboardPage"
-import { StudentOtherPage } from "./StudentOtherPages"
+import React, { useState, useEffect, useCallback } from "react"
+import { AppSidebar } from "../../components/Sidebar"
+import { StudentHeader } from "../../components/StudentHeader"
 import type {
+  StudentNavPage,
   CourseItem,
   AssignmentData,
   QuizData,
   AssessmentAttempt,
 } from "./studentTypes"
+import StudentDashboardPage from "./StudentDashboardPage"
+import { MyCoursesPage } from "./MyCoursesPage"
+import { CourseDetailsPage } from "./CourseDetailsPage"
+import { TimetablePage } from "./TimetablePage"
+import { AttendancePage } from "./AttendancePage"
+import { AssignmentsPage } from "./AssignmentsPage"
+import { GradesPage } from "./GradesPage"
+import { CommunityPage } from "./CommunityPage"
+import { CareerHubPage } from "./CareerHubPage"
+import { StudentSettingsPage } from "./StudentSettingsPage"
+import { SupportHelpPage } from "./SupportHelpPage"
+import { MyNotesPage } from "./MyNotesPage"
 import {
   initialStudentCourses,
   catalogCourses,
@@ -42,17 +51,17 @@ function parseInitialTab(): StudentNavPage {
       target === "timetable" ||
       target === "schedule" ||
       target === "live-classes" ||
-      target === "live classes"
+      target === "live classes" ||
+      target === "events" ||
+      target === "announcements"
     )
-      return "Timetable"
+      return "Schedule"
     if (target === "attendance") return "Attendance"
     if (
       target === "my-courses" ||
       target === "courses" ||
       target === "my courses" ||
       target === "my-learning" ||
-      target === "my learning" ||
-      target === "explore courses" ||
       target === "explore-courses"
     )
       return "My Courses"
@@ -62,85 +71,51 @@ function parseInitialTab(): StudentNavPage {
       target === "materials"
     )
       return "Course Details"
-    if (target === "assignments" || target === "submissions")
-      return "Assignments"
-    if (target === "quizzes" || target === "tests" || target === "assessments")
-      return "Quizzes"
     if (
+      target === "assessments" ||
+      target === "assignments" ||
+      target === "quizzes" ||
+      target === "tests" ||
+      target === "submissions"
+    )
+      return "Assessments"
+    if (
+      target === "grades-and-certificates" ||
       target === "grades" ||
-      target === "performance" ||
-      target === "gpa" ||
-      target === "my-progress" ||
-      target === "my progress"
+      target === "certificates" ||
+      target === "credentials" ||
+      target === "gpa"
     )
-      return "Grades"
+      return "Grades & Certificates"
     if (
+      target === "community" ||
       target === "communication" ||
-      target === "communications" ||
-      target === "speech" ||
-      target === "verbal"
-    )
-      return "Communication"
-    if (
       target === "discussions" ||
-      target === "discussion" ||
-      target === "forum" ||
-      target === "study-groups" ||
-      target === "study groups"
+      target === "forums" ||
+      target === "study-groups"
     )
-      return "Discussions"
-    if (target === "my-notes" || target === "notes" || target === "my notes")
-      return "My Notes"
-    if (target === "certificates") return "Certificates"
+      return "Community"
     if (
-      target === "resume-building" ||
-      target === "resume building" ||
-      target === "resume" ||
-      target === "cv" ||
-      target === "cv-builder"
-    )
-      return "Resume Building"
-    if (
+      target === "career-hub" ||
+      target === "career hub" ||
+      target === "career" ||
       target === "mock-interview" ||
       target === "mock interview" ||
-      target === "mockinterview" ||
-      target === "interview" ||
-      target === "interviews"
-    )
-      return "Mock Interview"
-    if (
-      target === "events" ||
-      target === "notices" ||
-      target === "events & notices" ||
-      target === "events-and-notices"
-    )
-      return "Events & Notices"
-    if (target === "announcements") return "Announcements"
-    if (target === "community") return "Community"
-    if (
+      target === "resume-building" ||
+      target === "resume" ||
       target === "mentor-details" ||
-      target === "mentor" ||
-      target === "mentor details" ||
-      target === "advisor" ||
-      target === "faculty"
+      target === "mentor"
     )
-      return "Mentor Details"
+      return "Career Hub"
+    if (target === "my-notes" || target === "notes") return "My Notes"
     if (target === "profile") return "Profile"
     if (target === "settings") return "Settings"
     if (
       target === "support-help" ||
-      target === "support-and-help" ||
       target === "support & help" ||
-      target === "help-and-support" ||
-      target === "help-support" ||
       target === "support" ||
-      target === "tickets" ||
-      target === "ticket" ||
-      target === "help-center" ||
-      target === "help center" ||
       target === "help" ||
-      target === "faq" ||
-      target === "faqs"
+      target === "help-center"
     )
       return "Support & Help"
     if (target === "dashboard" || target === "home") return "Dashboard"
@@ -157,7 +132,6 @@ export default function StudentPortal({
   onToast,
   hexColor,
   onChangeHexColor,
-  isLightBg,
 }: StudentPortalProps) {
   const [activeTab, setActiveTabState] = useState<StudentNavPage>(() =>
     parseInitialTab(),
@@ -182,6 +156,7 @@ export default function StudentPortal({
     return initialQuizAttempts
   })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [headerSearch, setHeaderSearch] = useState("")
 
   // Navigate helper that updates URL history cleanly
   const navigateTo = useCallback(
@@ -192,7 +167,6 @@ export default function StudentPortal({
       }
       setIsMobileMenuOpen(false)
 
-      // Sync URL query without page reload
       if (typeof window !== "undefined") {
         try {
           const slug = page
@@ -210,7 +184,6 @@ export default function StudentPortal({
     [],
   )
 
-  // Sync route on popstate (browser back/forward button)
   useEffect(() => {
     const handlePopState = () => {
       setActiveTabState(parseInitialTab())
@@ -219,7 +192,6 @@ export default function StudentPortal({
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  // Enroll in new catalog course
   const handleEnrollCourse = (newCourse: CourseItem) => {
     const enrolledItem: CourseItem = {
       ...newCourse,
@@ -235,7 +207,6 @@ export default function StudentPortal({
     navigateTo("Course Details", enrolledItem.id)
   }
 
-  // Submit assignment
   const handleSubmitAssignment = (
     id: string,
     repoUrl: string,
@@ -256,9 +227,9 @@ export default function StudentPortal({
         return a
       }),
     )
+    onToast("Assignment submitted successfully for evaluation! 🚀")
   }
 
-  // Complete quiz
   const handleCompleteQuiz = (
     id: string,
     scoreStr: string,
@@ -300,9 +271,50 @@ export default function StudentPortal({
     }
   }
 
+  const getSubHeader = () => {
+    switch (activeTab) {
+      case "My Courses":
+        return "Continue ongoing coursework, review syllabus progress, and explore catalogs."
+      case "Course Details":
+        return "Full module curriculum, video lectures, downloadable lab code, and course Q&A."
+      case "Schedule":
+      case "Timetable":
+        return "Daily and weekly lecture periods, campus events, and academic bulletins."
+      case "Attendance":
+        return "Semester regularity percentage, subject-wise attendance logs, and leave requests."
+      case "Assessments":
+      case "Assignments":
+      case "Quizzes":
+        return "Upload GitHub code solutions, timed quiz evaluations, and grading rubrics."
+      case "Grades & Certificates":
+      case "Grades":
+      case "Certificates":
+        return "Cumulative GPA performance, official semester gradebooks, and verifiable credentials."
+      case "Community":
+      case "Communication":
+      case "Discussions":
+        return "Squad study channels, course discussions, technical Q&A, and speech verbal lab."
+      case "Career Hub":
+      case "Mock Interview":
+      case "Resume Building":
+      case "Mentor Details":
+        return "AI-driven interview practice, ATS-compliant resume builder, and 1:1 faculty meetings."
+      case "My Notes":
+        return "Lecture annotations, mathematical formulas, and executable code snippets."
+      case "Profile":
+      case "Settings":
+        return "Student identity credentials, theme preferences, and security passwords."
+      case "Support & Help":
+      case "Support":
+        return "Help desk ticketing, live faculty support, and frequently asked questions."
+      default:
+        return "Academic progress, active classes, upcoming tasks, and quick actions."
+    }
+  }
+
   return (
     <div
-      className="dashboard-shell student-dashboard-shell relative w-full max-w-full min-w-0 box-border h-screen max-h-screen overflow-hidden"
+      className="dashboard-shell student-dashboard-shell relative w-full max-w-full min-w-0 box-border h-screen max-h-screen overflow-hidden flex"
       style={{
         backgroundColor: hexColor,
       }}
@@ -310,6 +322,7 @@ export default function StudentPortal({
       {/* Mobile Drawer Toggle */}
       <div className="lg:hidden fixed top-3 left-3 z-50">
         <button
+          type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-zinc-800 border border-zinc-200 cursor-pointer"
           aria-label="Toggle navigation drawer"
@@ -328,25 +341,28 @@ export default function StudentPortal({
         />
       )}
 
-      {/* Student Persistent Sidebar (Hidden on small screens unless drawer is open) */}
+      {/* Unified AppSidebar for Student Portal */}
       <div
-        className={`lg:block ${
+        className={`lg:block shrink-0 ${
           isMobileMenuOpen
-            ? "fixed inset-y-0 left-0 z-50 w-64 shadow-2xl block animate-in slide-in-from-left"
+            ? "fixed inset-y-0 left-0 z-50 shadow-2xl block animate-in slide-in-from-left"
             : "hidden lg:block h-full min-h-0"
         }`}
       >
-        <StudentSidebar
-          activeTab={activeTab}
-          setActiveTab={(tab) => navigateTo(tab)}
+        <AppSidebar
+          role="Student"
+          activeItem={activeTab}
+          onNavigate={(id) => navigateTo(id)}
           onOpenAiModal={onOpenAiModal}
-          onSwitchToTeacher={onSwitchToTeacher}
+          onSwitchRole={(r) => {
+            if (r === "Teacher") onSwitchToTeacher()
+          }}
           onLogout={onLogout}
         />
       </div>
 
       {/* Main Student Content Viewport */}
-      <main className="dashboard-content w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border">
+      <main className="dashboard-content flex-1 w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border bg-slate-50/60">
         {activeTab === "Dashboard" ? (
           <StudentDashboardPage
             onNavigate={navigateTo}
@@ -361,26 +377,137 @@ export default function StudentPortal({
             quizzes={quizzes}
           />
         ) : (
-          <StudentOtherPage
-            page={activeTab}
-            onNavigate={navigateTo}
-            onToast={onToast}
-            onSwitchToTeacher={onSwitchToTeacher}
-            onLogout={onLogout}
-            hexColor={hexColor}
-            onChangeHexColor={onChangeHexColor}
-            onOpenAiModal={onOpenAiModal}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={setSelectedCourseId}
-            courses={courses}
-            catalog={catalog}
-            onEnrollCourse={handleEnrollCourse}
-            assignments={assignments}
-            onSubmitAssignment={handleSubmitAssignment}
-            quizzes={quizzes}
-            onCompleteQuiz={handleCompleteQuiz}
-            quizAttempts={quizAttempts}
-          />
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto w-full">
+            {/* Standard Header Banner */}
+            <StudentHeader
+              title={
+                activeTab === "Schedule"
+                  ? "Schedule & Timetable"
+                  : activeTab === "Assessments"
+                  ? "Assessments & Quizzes"
+                  : activeTab === "Grades & Certificates"
+                  ? "Grades & Certificates"
+                  : activeTab === "Career Hub"
+                  ? "Career Hub"
+                  : activeTab
+              }
+              subtitle={getSubHeader()}
+              onOpenAiModal={onOpenAiModal}
+              onSwitchToTeacher={onSwitchToTeacher}
+              onLogout={onLogout}
+              hexColor={hexColor}
+              onChangeHexColor={onChangeHexColor}
+              onNavigate={navigateTo}
+              searchQuery={headerSearch}
+              onSearchChange={setHeaderSearch}
+            />
+
+            {/* Direct Page Router without proxy */}
+            <div className="mt-4 flex-1 min-h-0">
+              {activeTab === "My Courses" && (
+                <MyCoursesPage
+                  onNavigate={navigateTo}
+                  onToast={onToast}
+                  onOpenAiModal={onOpenAiModal}
+                  onEnrollCourse={handleEnrollCourse}
+                  courses={courses}
+                  catalog={catalog}
+                />
+              )}
+
+              {activeTab === "Course Details" && (
+                <CourseDetailsPage
+                  selectedCourseId={selectedCourseId}
+                  courses={[...courses, ...catalog]}
+                  onSelectCourse={setSelectedCourseId}
+                  onBackToCourses={() => navigateTo("My Courses")}
+                  onNavigate={navigateTo}
+                  onToast={onToast}
+                  onOpenAiModal={onOpenAiModal}
+                  onEnrollCourse={handleEnrollCourse}
+                  assignments={assignments}
+                  onSubmitAssignment={handleSubmitAssignment}
+                  quizzes={quizzes}
+                  onCompleteQuiz={handleCompleteQuiz}
+                  quizAttempts={quizAttempts}
+                />
+              )}
+
+              {(activeTab === "Schedule" || activeTab === "Timetable") && (
+                <TimetablePage onToast={onToast} />
+              )}
+
+              {activeTab === "Attendance" && (
+                <AttendancePage onToast={onToast} />
+              )}
+
+              {(activeTab === "Assessments" || activeTab === "Assignments" || activeTab === "Quizzes") && (
+                <AssignmentsPage
+                  assignments={assignments}
+                  onSubmitAssignment={handleSubmitAssignment}
+                  quizzes={quizzes}
+                  onCompleteQuiz={handleCompleteQuiz}
+                  quizAttempts={quizAttempts}
+                  onToast={onToast}
+                  initialTab={activeTab === "Quizzes" ? "quizzes" : "assignments"}
+                />
+              )}
+
+              {(activeTab === "Grades & Certificates" || activeTab === "Grades" || activeTab === "Certificates") && (
+                <GradesPage
+                  onToast={onToast}
+                  initialTab={activeTab === "Certificates" ? "credentials" : "grades"}
+                />
+              )}
+
+              {(activeTab === "Community" || activeTab === "Communication" || activeTab === "Discussions") && (
+                <CommunityPage
+                  onToast={onToast}
+                  initialTab={
+                    activeTab === "Communication"
+                      ? "speech"
+                      : activeTab === "Discussions"
+                      ? "discussions"
+                      : "squads"
+                  }
+                />
+              )}
+
+              {(activeTab === "Career Hub" || activeTab === "Mock Interview" || activeTab === "Resume Building" || activeTab === "Mentor Details") && (
+                <CareerHubPage
+                  onToast={onToast}
+                  onNavigate={navigateTo}
+                  onOpenAiModal={onOpenAiModal}
+                  initialTab={
+                    activeTab === "Resume Building"
+                      ? "resume"
+                      : activeTab === "Mentor Details"
+                      ? "mentorship"
+                      : "interviews"
+                  }
+                />
+              )}
+
+              {(activeTab === "Settings" || activeTab === "Profile") && (
+                <StudentSettingsPage
+                  onToast={onToast}
+                  onNavigate={navigateTo}
+                  onLogout={onLogout}
+                  hexColor={hexColor}
+                  onChangeHexColor={onChangeHexColor}
+                  initialTab={activeTab === "Profile" ? "profile" : "appearance"}
+                />
+              )}
+
+              {(activeTab === "Support & Help" || activeTab === "Support" || activeTab === "Help Center") && (
+                <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} />
+              )}
+
+              {activeTab === "My Notes" && (
+                <MyNotesPage onToast={onToast} />
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>

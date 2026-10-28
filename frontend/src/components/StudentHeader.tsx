@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Icon } from "./Icon"
-import { HexColorField } from "./HexColorField"
+import { ThemeAccentPicker } from "./ui/ThemeAccentPicker"
 import type { StudentNavPage } from "../pages/student/studentTypes"
 
 export interface StudentHeaderProps {
@@ -197,7 +197,7 @@ export function StudentHeader({
 
         {/* Background Hex Color Picker */}
         <div className="shrink-0">
-          <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+          <ThemeAccentPicker />
         </div>
 
         {/* Ask AI Black Pill Button */}

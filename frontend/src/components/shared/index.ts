@@ -8,8 +8,8 @@ export { GroundedAiTutor } from "./GroundedAiTutor"
 export { RubricGrader } from "./RubricGrader"
 export { SmartVideoPlayer } from "./SmartVideoPlayer"
 export { Student360Drawer } from "./Student360Drawer"
-export { MetricCard } from "../MetricCard"
-export { HexColorField } from "../HexColorField"
+export { StatCard as MetricCard } from "../ui/StatCard"
+export { ThemeAccentPicker as HexColorField } from "../ui/ThemeAccentPicker"
 export { Icon } from "../Icon"
 export {
   NewAssignmentModal,

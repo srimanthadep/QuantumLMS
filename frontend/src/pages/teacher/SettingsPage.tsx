@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Icon } from "../../components/Icon"
 import type { IconName } from "../../types"
-import { HexColorField } from "../../components/HexColorField"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 
 export function SettingsHeader({
   searchQuery,
@@ -47,10 +47,7 @@ export function SettingsHeader({
           )}
           
         </div>
-        <HexColorField
-          hexColor={hexColor}
-          onChangeHex={onChangeHexColor}
-        />
+        <ThemeAccentPicker />
         <button
           className="ask-ai"
           onClick={onSavePreferences}

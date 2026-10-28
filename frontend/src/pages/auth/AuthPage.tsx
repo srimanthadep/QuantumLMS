@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { demoAccounts } from "../../data/adminMockData"
 import type { UserRole } from "../../types"
 
@@ -96,10 +96,7 @@ export default function AuthPage({
             />
           </div>
           <div className="flex items-center gap-3">
-            <HexColorField
-              hexColor={hexColor}
-              onChangeHex={onChangeHexColor}
-            />
+            <ThemeAccentPicker />
           </div>
         </header>
 

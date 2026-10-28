@@ -43,12 +43,10 @@ import AuthPage from "./pages/auth/AuthPage"
 import AdminPortal from "./pages/admin/AdminPortal"
 import StudentPortal from "./pages/student/StudentPortal"
 import {
-  ClassPage,
   CoursesPage,
   StudentsPage,
   DoubtsPage,
   CalendarPage,
-  LiveClassPage,
   LiveStudioPage,
   AnalyticsPage,
   SettingsPage,
@@ -700,32 +698,7 @@ export default function App() {
           onOpenNewAssignment={handleOpenNewAssignment}
         />
 
-        {(activeTab === "Dashboard" || activeTab === "Class") && (
-          <ClassPage
-            metrics={initialClassMetrics}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            hexColor={hexColor}
-            onChangeHexColor={handleHexColorChange}
-            onOpenAiModal={() => setIsAiModalOpen(true)}
-            students={filteredStudents}
-            assignments={filteredAssignments}
-            reports={reports}
-            onOpenNewAssignment={handleOpenNewAssignment}
-            onOpenReportModal={() => {
-              setReportTargetStudent(undefined)
-              setIsReportModalOpen(true)
-            }}
-            onSelectStudent={(s) => {
-              setSelectedStudentId(s.id)
-              setActiveTab("My Students")
-            }}
-            onShowAllStudents={() => setActiveTab("My Students")}
-            onSwitchToStudent={() => handleSwitchRole("Student")}
-          />
-        )}
-
-        {activeTab === "My Courses" && (
+        {(activeTab === "Dashboard" || activeTab === "Class" || activeTab === "My Courses") && (
           <CoursesPage
             metrics={initialCourseMetrics}
             courses={courses}
@@ -786,30 +759,15 @@ export default function App() {
           />
         )}
 
-        {activeTab === "Live Class" &&
-          (studioSession ? (
-            <LiveStudioPage
-              session={studioSession}
-              students={filteredStudents}
-              onLeaveStudio={handleLeaveStudio}
-              onEndClass={handleEndClass}
-              onToast={(msg) => setToastMessage(msg)}
-            />
-          ) : (
-            <LiveClassPage
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              hexColor={hexColor}
-              onChangeHexColor={handleHexColorChange}
-              onOpenAiModal={() => setIsAiModalOpen(true)}
-              courses={courses}
-              sessions={liveSessions}
-              onEnterStudio={handleEnterStudio}
-              reviewSessionId={reviewSessionId}
-              onClearReviewSessionId={() => setReviewSessionId(null)}
-              onToast={(msg) => setToastMessage(msg)}
-            />
-          ))}
+        {(activeTab === "Live Class" || activeTab === "Live Studio") && (
+          <LiveStudioPage
+            session={studioSession || liveSessions[0]}
+            students={filteredStudents}
+            onLeaveStudio={handleLeaveStudio}
+            onEndClass={handleEndClass}
+            onToast={(msg) => setToastMessage(msg)}
+          />
+        )}
 
         {activeTab === "Analytics" && (
           <AnalyticsPage
@@ -822,6 +780,7 @@ export default function App() {
             onAssignSkill={handleOpenAssignWithTopic}
             onSelectStudentForReport={openStudentReportModal}
             onOpenAiAssistant={() => setIsAiModalOpen(true)}
+            reports={reports}
             onShareDigest={() =>
               setToastMessage("Quantum AI Diagnostic Digest dispatched to 24 parent portals!")
             }

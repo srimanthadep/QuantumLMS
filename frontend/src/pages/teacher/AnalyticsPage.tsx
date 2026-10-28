@@ -8,10 +8,11 @@ import type {
   LiveAttendanceRecord,
   SessionRecordingItem,
   CorrectionSubmissionItem,
+  ReportItem,
 } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
-import { MetricCard } from "../../components/MetricCard"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
+import { StatCard } from "../../components/ui/StatCard"
 import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
 import { getStudentActivityHeatmap } from "../../data/studentActivityData"
 import { MODULE_ASSIGNMENTS, type ModuleAssignmentItem, type StudentModuleSubmission } from "../../data/courseAssignmentsData"
@@ -24,6 +25,7 @@ import {
   initialCorrectionSubmissions,
   initialTeachingSuggestions,
   initialAIMonitoringData,
+  initialReports,
 } from "../../data/mockData"
 
 function getStudentActivityStats(student: StudentItem) {
@@ -97,10 +99,7 @@ export function AnalyticsHeader({
             </button>
           )}
         </div>
-        <HexColorField
-          hexColor={hexColor}
-          onChangeHex={onChangeHexColor}
-        />
+        <ThemeAccentPicker />
         {onOpenAiDiagnostic && (
           <button
             className="ask-ai"
@@ -141,6 +140,11 @@ interface AnalyticsPageProps {
   students?: StudentItem[]
   liveSessions?: LiveSessionItem[]
   assignments?: AssignmentItem[]
+  reports?: ReportItem[]
+  onOpenReportModal?: () => void
+  onDownloadPdf?: () => void
+  onResendAlert?: () => void
+  onAddSchedule?: () => void
   onToast?: (msg: string) => void
 }
 
@@ -157,17 +161,28 @@ export default function AnalyticsPage({
   courses: propCourses,
   students: propStudents,
   liveSessions: propLiveSessions,
+  reports: propReports,
+  onOpenReportModal,
+  onDownloadPdf,
+  onResendAlert,
+  onAddSchedule,
   onToast,
 }: AnalyticsPageProps) {
   // Use real data sources passed from App or fallbacks
   const courses = propCourses && propCourses.length > 0 ? propCourses : initialCourses
   const students = propStudents && propStudents.length > 0 ? propStudents : initialStudents
   const liveSessions = propLiveSessions && propLiveSessions.length > 0 ? propLiveSessions : initialLiveSessions
+  const reportsList = propReports && propReports.length > 0 ? propReports : initialReports
 
   // Active View Tab Filter
   const [activeTab, setActiveTab] = useState<
-    "overview" | "student_activity" | "curriculum" | "assignments" | "attendance_live" | "ai_intelligence"
+    "overview" | "student_activity" | "curriculum" | "assignments" | "attendance_live" | "ai_intelligence" | "reports"
   >("overview")
+
+  // Reports state
+  const [selectedReportId, setSelectedReportId] = useState<string>(reportsList[0]?.id || "rep-1")
+  const [reportFilter, setReportFilter] = useState<string>("All")
+  const selectedReport = useMemo(() => reportsList.find((r) => r.id === selectedReportId) || reportsList[0], [reportsList, selectedReportId])
 
   // Filter Bar State
   const [courseFilter, setCourseFilter] = useState<string>("All")
@@ -485,7 +500,7 @@ export default function AnalyticsPage({
       {/* 2. Top Summary KPI Cards (Section 2.A) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[var(--app-card-gap,14px)]">
         {kpiCards.map((item) => (
-          <MetricCard key={item.label} item={item} />
+          <StatCard key={item.label} item={item} />
         ))}
       </div>
 
@@ -571,6 +586,20 @@ export default function AnalyticsPage({
             <span>AI Live & Recordings</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-lime-100 text-lime-900">
               {recordingReviewStats.totalRecordings}
+            </span>
+          </button>
+
+          <button
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "reports"
+                ? "bg-purple-600 text-white shadow-sm"
+                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
+              }`}
+            onClick={() => setActiveTab("reports")}
+          >
+            <Icon name="reports" size={14} />
+            <span>Exportable Reports</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
+              {reportsList.length}
             </span>
           </button>
         </div>
@@ -1570,7 +1599,7 @@ export default function AnalyticsPage({
           EXISTING VISUAL DIAGNOSTIC CARDS (PRESERVED & INTEGRATED)
           ======================================================== */}
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           <SubjectMasteryChartCard searchQuery={searchQuery} />
           <DiagnosticInterventionCard
             searchQuery={searchQuery}
@@ -1580,7 +1609,7 @@ export default function AnalyticsPage({
       )}
 
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
           <div className="lg:col-span-1">
             <CohortGrowthQuadrantCard
               onSelectStudentForReport={onSelectStudentForReport}
@@ -1594,6 +1623,32 @@ export default function AnalyticsPage({
               onOpenAiAssistant={onOpenAiAssistant}
               onShareDigest={onShareDigest}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          EXPORTABLE REPORTS TAB (MERGED FROM ReportsPage.tsx)
+          ======================================================== */}
+      {activeTab === "reports" && (
+        <div className="content-grid">
+          <div className="left-column">
+            <ReportsArchiveCard
+              reports={reportsList}
+              selectedReportId={selectedReportId}
+              onSelectReport={(r) => setSelectedReportId(r.id)}
+              activeFilter={reportFilter}
+              setActiveFilter={setReportFilter}
+              onOpenNewReport={onOpenReportModal || (() => onToast?.("Create Report modal opened."))}
+            />
+          </div>
+          <div className="right-column">
+            <ReportPreviewCard
+              report={selectedReport}
+              onDownloadPdf={onDownloadPdf || (() => onToast?.("Downloading PDF report summary..."))}
+              onResend={onResendAlert || (() => onToast?.("Report alert dispatched to parent portal."))}
+            />
+            <RecurringSchedulesCard onAddSchedule={onAddSchedule || (() => onToast?.("New automated report schedule created."))} />
           </div>
         </div>
       )}
@@ -2302,6 +2357,302 @@ function AiDiagnosticDigestCard({
             Dispatch to Parents
           </button>
         )}
+      </div>
+    </section>
+  )
+}
+
+export function ReportsArchiveCard({
+  reports,
+  selectedReportId,
+  onSelectReport,
+  activeFilter,
+  setActiveFilter,
+  onOpenNewReport,
+}: {
+  reports: ReportItem[]
+  selectedReportId: string
+  onSelectReport: (report: ReportItem) => void
+  activeFilter: string
+  setActiveFilter: (filter: string) => void
+  onOpenNewReport: () => void
+}) {
+  const counts = useMemo(() => {
+    return {
+      all: reports.length,
+      sent: reports.filter((r) => r.status === "Sent").length,
+      inProgress: reports.filter((r) => r.status === "In Progress").length,
+      scheduled: reports.filter((r) => r.status === "Scheduled").length,
+    }
+  }, [reports])
+
+  const filtered = useMemo(() => {
+    if (activeFilter === "Sent") return reports.filter((r) => r.status === "Sent")
+    if (activeFilter === "In Progress") return reports.filter((r) => r.status === "In Progress")
+    if (activeFilter === "Scheduled") return reports.filter((r) => r.status === "Scheduled")
+    return reports
+  }, [reports, activeFilter])
+
+  return (
+    <section className="reports-archive-card panel" aria-label="Report Archives & Dispatches">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="card-title">Report Archives & Dispatches</div>
+          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
+            Showing {filtered.length} of {reports.length} reports
+          </div>
+        </div>
+
+        <div className="filter-pills">
+          <button
+            className={`filter-pill ${activeFilter === "All" ? "active" : ""}`}
+            onClick={() => setActiveFilter("All")}
+          >
+            All ({counts.all})
+          </button>
+          <button
+            className={`filter-pill ${activeFilter === "Sent" ? "active" : ""}`}
+            onClick={() => setActiveFilter("Sent")}
+          >
+            Sent ({counts.sent})
+          </button>
+          <button
+            className={`filter-pill ${activeFilter === "In Progress" ? "active" : ""}`}
+            onClick={() => setActiveFilter("In Progress")}
+          >
+            In Progress ({counts.inProgress})
+          </button>
+          <button
+            className={`filter-pill ${activeFilter === "Scheduled" ? "active" : ""}`}
+            onClick={() => setActiveFilter("Scheduled")}
+          >
+            Scheduled ({counts.scheduled})
+          </button>
+        </div>
+      </div>
+
+      <div className="report-archive-list mt-3">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs text-zinc-400 font-medium">
+            No reports found matching your criteria.
+          </div>
+        ) : (
+          filtered.map((report) => {
+            const isSelected = report.id === selectedReportId
+            return (
+              <div
+                key={report.id}
+                className={`report-archive-item ${isSelected ? "selected" : ""}`}
+                onClick={() => onSelectReport(report)}
+              >
+                <div className="report-archive-left">
+                  <div
+                    className="report-icon-box"
+                    style={{
+                      background:
+                        report.tone === "green"
+                          ? "var(--lime-soft)"
+                          : report.tone === "purple"
+                            ? "rgba(152, 96, 233, 0.12)"
+                            : report.tone === "yellow"
+                              ? "var(--yellow-soft)"
+                              : "#f3f0ff",
+                      color:
+                        report.tone === "green"
+                          ? "#659000"
+                          : report.tone === "purple"
+                            ? "var(--purple-dark)"
+                            : report.tone === "yellow"
+                              ? "#9b7200"
+                              : "#7f4ee3",
+                    }}
+                  >
+                    <Icon name="document" size={18} />
+                  </div>
+                  <div className="report-meta-box">
+                    <strong>{report.title}</strong>
+                    <span>
+                      {report.date} · {report.recipients}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {report.status === "Sent" && (
+                    <div className="hidden sm:flex flex-col items-end text-right">
+                      <span className="text-[11px] font-bold text-black">
+                        {report.readRate}% Read
+                      </span>
+                      <span className="text-[9.5px] font-normal text-zinc-400">
+                        delivered
+                      </span>
+                    </div>
+                  )}
+                  <span className={`status ${report.tone}`}>{report.status}</span>
+                  <button
+                    className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 text-zinc-400 hover:text-black transition-colors"
+                    aria-label={`Select ${report.title}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectReport(report)
+                    }}
+                  >
+                    <Icon name="dots" size={14} />
+                  </button>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </section>
+  )
+}
+
+export function ReportPreviewCard({
+  report,
+  onDownloadPdf,
+  onResend,
+}: {
+  report?: ReportItem
+  onDownloadPdf: () => void
+  onResend: () => void
+}) {
+  if (!report) {
+    return (
+      <section className="report-preview-panel panel">
+        <div className="text-center py-10 text-xs text-zinc-400 font-medium">
+          Select a report to preview details
+        </div>
+      </section>
+    )
+  }
+
+  const summary = report.summary || {
+    avgScore: 80,
+    attendance: 96,
+    readCount: "All recipients",
+    topGain: "+5% overall progress",
+    notes: "Report dispatched to all enrolled student guardians.",
+  }
+
+  return (
+    <section className="report-preview-panel panel" aria-label="Report Detail & Preview">
+      <div className="card-header">
+        <div className="card-title">Report Detail & Preview</div>
+        <span className={`status ${report.tone}`}>{report.status}</span>
+      </div>
+
+      <div className="report-preview-header">
+        <h3 className="text-[16px] font-bold text-black leading-snug">
+          {report.title}
+        </h3>
+        <div className="text-[11px] font-normal text-zinc-500">
+          {report.type} · Dispatched: {report.date}
+        </div>
+        <div className="text-[10.5px] font-medium text-purple-900 mt-0.5">
+          Audience: {report.recipients}
+        </div>
+      </div>
+
+      <div className="report-preview-stats">
+        <div className="report-preview-stat">
+          <span>Class Average</span>
+          <strong>{summary.avgScore}%</strong>
+        </div>
+        <div className="report-preview-stat">
+          <span>Attendance</span>
+          <strong>{summary.attendance}%</strong>
+        </div>
+        <div className="report-preview-stat">
+          <span>Parent Engagement</span>
+          <strong>{report.readRate}%</strong>
+        </div>
+      </div>
+
+      <div className="report-notes-box">
+        <div className="font-medium mb-1 flex items-center gap-1.5 text-purple-950">
+          <span>✦</span>
+          <span>Teacher & AI Synthesis:</span>
+        </div>
+        {summary.notes}
+        <div className="mt-2 text-[10px] font-medium text-purple-800 flex items-center gap-1">
+          <span>📈</span>
+          <span>Key Milestone: {summary.topGain}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+        <button
+          className="flex-1 h-8 rounded-full btn-primary text-xs font-bold transition-colors shadow-sm cursor-pointer"
+          onClick={onDownloadPdf}
+        >
+          Download PDF
+        </button>
+        <button
+          className="flex-1 h-8 rounded-full btn-secondary text-xs font-medium transition-colors cursor-pointer"
+          onClick={onResend}
+        >
+          {report.status === "Scheduled" ? "Dispatch Now" : "Resend Alert"}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+export function RecurringSchedulesCard({
+  onAddSchedule,
+}: {
+  onAddSchedule: () => void
+}) {
+  const schedules = [
+    {
+      title: "Weekly Performance Digest",
+      cadence: "Every Friday at 4:00 PM · 24 Parents",
+      active: true,
+    },
+    {
+      title: "Bi-weekly STEM & Fractions",
+      cadence: "Alternate Mondays at 9:00 AM · 24 Parents",
+      active: true,
+    },
+    {
+      title: "Monthly Attendance & Honor Roll",
+      cadence: "1st of each month · All Guardians",
+      active: true,
+    },
+    {
+      title: "At-Risk Grade Alert Trigger",
+      cadence: "Automated real-time on score dip < 70%",
+      active: true,
+    },
+  ]
+
+  return (
+    <section className="schedules-card panel" aria-label="Automated Report Schedules">
+      <div className="card-header">
+        <div className="card-title">Automated Schedules</div>
+        <button
+          onClick={onAddSchedule}
+          className="text-[11px] font-medium text-[var(--purple-dark)] hover:underline cursor-pointer"
+        >
+          + Add Schedule
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {schedules.map((item) => (
+          <div key={item.title} className="schedule-row">
+            <div>
+              <strong>{item.title}</strong>
+              <span>{item.cadence}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-lime-600 animate-pulse" />
+              Active
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   )

@@ -1,41 +1,86 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
-import { StudentDropdown } from "../../components/StudentDropdown"
 import type { CommunityPost } from "./studentTypes"
 import { initialCommunityPosts } from "./studentMockData"
 
 interface CommunityPageProps {
   onToast: (msg: string) => void
+  initialTab?: "squads" | "discussions" | "speech"
 }
 
-export function CommunityPage({ onToast }: CommunityPageProps) {
+interface ForumTopic {
+  id: string
+  course: string
+  title: string
+  author: string
+  avatar: string
+  replies: number
+  upvotes: number
+  isSolved: boolean
+  lastActive: string
+  tags: string[]
+}
+
+const initialForumTopics: ForumTopic[] = [
+  {
+    id: "ft-1",
+    course: "Generative AI Masterclass",
+    title: "How to tune temperature vs top_p in multi-turn agent tool-calling?",
+    author: "Arjun Mehta",
+    avatar: "/assets/student-1.png",
+    replies: 7,
+    upvotes: 19,
+    isSolved: true,
+    lastActive: "15 mins ago",
+    tags: ["RAG", "Tool Calling", "Agents"],
+  },
+  {
+    id: "ft-2",
+    course: "Python for AI",
+    title: "Best practice for vectorized embeddings indexing in pgvector vs Qdrant?",
+    author: "Srimanth",
+    avatar: "/assets/srimanth.png",
+    replies: 12,
+    upvotes: 34,
+    isSolved: true,
+    lastActive: "1 hour ago",
+    tags: ["Vector DB", "Embeddings", "FastAPI"],
+  },
+  {
+    id: "ft-3",
+    course: "Machine Learning Foundations",
+    title: "Gradient vanishing in deep RNNs vs LSTM forget gate dynamics",
+    author: "Priya Patel",
+    avatar: "/assets/student-2.png",
+    replies: 4,
+    upvotes: 8,
+    isSolved: false,
+    lastActive: "3 hours ago",
+    tags: ["Neural Nets", "Backprop"],
+  },
+]
+
+export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageProps) {
+  const [activeTab, setActiveTab] = useState<"squads" | "discussions" | "speech">(initialTab)
+
+  // SQUADS & POSTS STATE
   const [posts, setPosts] = useState<CommunityPost[]>(initialCommunityPosts)
   const [selectedChannel, setSelectedChannel] = useState<string>("All Channels")
   const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false)
-  const [activeThreadPost, setActiveThreadPost] = useState<CommunityPost | null>(null)
   const [newReplyText, setNewReplyText] = useState("")
-  const [threadReplies, setThreadReplies] = useState<Record<string, { id: string; user: string; text: string; time: string }[]>>({
-    "post-1": [
-      { id: "r-1", user: "Rohan V.", text: "Hey Srimanth! I would love to join your squad. I'm focusing on LangGraph multi-agent systems.", time: "1 hour ago" },
-      { id: "r-2", user: "Ananya S.", text: "Count me in for evaluation benchmarks and latency testing on the H100 cluster.", time: "30 mins ago" },
-    ],
-    "post-2": [
-      { id: "r-3", user: "Kabir D.", text: "Great findings! Cross-encoders definitely give higher NDCG@10 on domain-specific corpora.", time: "2 hours ago" },
-    ],
-  })
-
-  // Form state
   const [postTitle, setPostTitle] = useState("")
   const [postChannel, setPostChannel] = useState("🏆 Hackathons")
   const [postContent, setPostContent] = useState("")
 
-  const channels = [
-    "All Channels",
-    "🏆 Hackathons",
-    "🔬 Research & Labs",
-    "📚 Study Groups",
-    "💬 General",
-  ]
+  // DISCUSSIONS STATE
+  const [forumTopics, setForumTopics] = useState<ForumTopic[]>(initialForumTopics)
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState("All Courses")
+  const [discussionSearch, setDiscussionSearch] = useState("")
+
+  // SPEECH LAB STATE
+  const [isRecording, setIsRecording] = useState(false)
+  const [speechTimer, setSpeechTimer] = useState(0)
+  const [selectedSpeechTopic, setSelectedSpeechTopic] = useState("Explain Flash Attention to an AI Architect")
 
   const handleToggleLike = (id: string) => {
     setPosts((prev) =>
@@ -51,25 +96,6 @@ export function CommunityPage({ onToast }: CommunityPageProps) {
         return p
       }),
     )
-  }
-
-  const handleAddReply = (postId: string) => {
-    if (!newReplyText.trim()) return
-    const newRep = {
-      id: `rep-${Date.now()}`,
-      user: "Srimanth",
-      text: newReplyText.trim(),
-      time: "Just now",
-    }
-    setThreadReplies((prev) => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newRep],
-    }))
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, replies: p.replies + 1 } : p)),
-    )
-    setNewReplyText("")
-    onToast("Reply posted to thread! 💬")
   }
 
   const handleCreatePost = (e: React.FormEvent) => {
@@ -95,331 +121,335 @@ export function CommunityPage({ onToast }: CommunityPageProps) {
     onToast("Posted to student community board! 🎉")
   }
 
-  const filtered =
+  const handleUpvoteTopic = (id: string) => {
+    setForumTopics((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, upvotes: t.upvotes + 1 } : t))
+    )
+    onToast("Upvoted discussion question!")
+  }
+
+  const filteredPosts =
     selectedChannel === "All Channels"
       ? posts
       : posts.filter((p) => p.channel === selectedChannel)
 
+  const filteredTopics = forumTopics.filter((t) => {
+    if (selectedCourseFilter !== "All Courses" && t.course !== selectedCourseFilter) return false
+    if (discussionSearch.trim()) {
+      const q = discussionSearch.toLowerCase()
+      return t.title.toLowerCase().includes(q) || t.author.toLowerCase().includes(q)
+    }
+    return true
+  })
+
   return (
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
-      {/* Header Panel */}
+      {/* Top Header Hub */}
       <section className="panel" aria-label="Community Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="card-title">Student AI Community & Collab Hub</h3>
+              <h3 className="card-title">Community & Peer Collaboration Hub</h3>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
-                128 Active Students
+                Cohort 2026
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Connect with classmates, form hackathon squads, share research
-              benchmarks, and organize study sessions.
+              Connect with study squads, ask questions in technical forums, and practice verbal AI communication.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* View Tabs */}
+          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
             <button
-              onClick={() =>
-                onToast(
-                  "Redirecting to Quantum AI official Discord community...",
-                )
-              }
-              className="px-3.5 py-1.5 rounded-full border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 cursor-pointer"
+              type="button"
+              onClick={() => setActiveTab("squads")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "squads"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+              }`}
             >
-              <span>💬 Join Discord</span>
+              Squads & Channels
             </button>
             <button
-              onClick={() => setIsNewPostModalOpen(true)}
-              className="px-4 py-1.5 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              type="button"
+              onClick={() => setActiveTab("discussions")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "discussions"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+              }`}
             >
-              <span>+ New Discussion</span>
+              Course Discussions ({forumTopics.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("speech")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "speech"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+              }`}
+            >
+              Speech & Verbal Lab
             </button>
           </div>
-        </div>
-
-        {/* Channel Filter Pills */}
-        <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-zinc-100 overflow-x-auto pb-1 sm:pb-0">
-          {channels.map((ch) => (
-            <button
-              key={ch}
-              className={`filter-pill ${
-                selectedChannel === ch ? "active" : ""
-              }`}
-              onClick={() => setSelectedChannel(ch)}
-            >
-              {ch}
-            </button>
-          ))}
         </div>
       </section>
 
-      {/* Community Posts Feed */}
-      <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className="panel p-5 flex flex-col justify-between hover:shadow-md transition-shadow border border-zinc-100"
-          >
-            <div>
-              {/* Post Header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.avatar}
-                    alt={item.author}
-                    className="w-9 h-9 rounded-full object-cover border border-purple-200"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-zinc-900">
-                        {item.author}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
-                        {item.badge}
-                      </span>
+      {/* VIEW 1: SQUADS & CHANNELS */}
+      {activeTab === "squads" && (
+        <div className="flex flex-col gap-4">
+          <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {["All Channels", "🏆 Hackathons", "🔬 Research & Labs", "📚 Study Groups", "💬 General"].map(
+                (c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setSelectedChannel(c)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      selectedChannel === c
+                        ? "bg-purple-600 text-white"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                )
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsNewPostModalOpen(true)}
+              className="px-4 py-1.5 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 shadow-xs ml-auto"
+            >
+              + Create Post
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {filteredPosts.map((post) => (
+              <div
+                key={post.id}
+                className="panel p-5 bg-white border border-zinc-100 rounded-2xl shadow-xs"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={post.avatar || "/assets/srimanth.png"}
+                      alt={post.author}
+                      className="w-8 h-8 rounded-full object-cover border border-purple-200"
+                    />
+                    <div>
+                      <strong className="text-xs text-zinc-900 block">{post.author}</strong>
+                      <span className="text-[10px] text-zinc-400">{post.badge} · {post.time}</span>
                     </div>
-                    <span className="text-[10px] text-zinc-400">
-                      {item.time}
-                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                    {post.channel}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-zinc-900 mb-1">{post.title}</h4>
+                <p className="text-xs text-zinc-600 leading-relaxed mb-3">{post.content}</p>
+                <div className="flex items-center gap-4 pt-2 border-t border-zinc-100 text-xs text-zinc-500">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleLike(post.id)}
+                    className={`flex items-center gap-1 font-semibold ${
+                      post.isLiked ? "text-rose-600" : "hover:text-zinc-800"
+                    }`}
+                  >
+                    <span>{post.isLiked ? "❤️" : "🤍"}</span>
+                    <span>{post.likes}</span>
+                  </button>
+                  <span className="flex items-center gap-1">
+                    <span>💬</span>
+                    <span>{post.replies} Replies</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isNewPostModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <form onSubmit={handleCreatePost} className="bg-white rounded-3xl p-6 max-w-lg w-full flex flex-col gap-3">
+                <h3 className="font-bold text-base text-zinc-900 mb-1">Create Community Post</h3>
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 block mb-1">Channel</label>
+                  <select
+                    value={postChannel}
+                    onChange={(e) => setPostChannel(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
+                  >
+                    <option value="🏆 Hackathons">🏆 Hackathons</option>
+                    <option value="🔬 Research & Labs">🔬 Research & Labs</option>
+                    <option value="📚 Study Groups">📚 Study Groups</option>
+                    <option value="💬 General">💬 General</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 block mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={postTitle}
+                    onChange={(e) => setPostTitle(e.target.value)}
+                    placeholder="E.g. Squad forming for Agents Hackathon"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 block mb-1">Content</label>
+                  <textarea
+                    rows={4}
+                    value={postContent}
+                    onChange={(e) => setPostContent(e.target.value)}
+                    placeholder="Details about your squad or research inquiry..."
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewPostModalOpen(false)}
+                    className="px-4 py-2 rounded-full border border-zinc-200 text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800"
+                  >
+                    Publish Post
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: COURSE DISCUSSIONS */}
+      {activeTab === "discussions" && (
+        <div className="flex flex-col gap-4">
+          <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {["All Courses", "Generative AI Masterclass", "Python for AI", "Machine Learning Foundations"].map(
+                (c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setSelectedCourseFilter(c)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      selectedCourseFilter === c
+                        ? "bg-purple-600 text-white"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                )
+              )}
+            </div>
+            <input
+              type="text"
+              placeholder="Search topics..."
+              value={discussionSearch}
+              onChange={(e) => setDiscussionSearch(e.target.value)}
+              className="px-3 py-1 rounded-full border border-zinc-200 text-xs w-48"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            {filteredTopics.map((topic) => (
+              <div
+                key={topic.id}
+                className="panel p-4 bg-white border border-zinc-100 rounded-2xl flex items-center justify-between gap-4 hover:border-purple-200 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleUpvoteTopic(topic.id)}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 min-w-10 text-xs font-bold cursor-pointer"
+                  >
+                    <span>▲</span>
+                    <span>{topic.upvotes}</span>
+                  </button>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold text-zinc-400">{topic.course}</span>
+                      {topic.isSolved && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
+                          ✓ Solved
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-sm font-bold text-zinc-900 line-clamp-1">{topic.title}</h4>
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-1">
+                      <span>Asked by {topic.author}</span>
+                      <span>·</span>
+                      <span>{topic.lastActive}</span>
+                    </div>
                   </div>
                 </div>
-
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
-                  {item.channel}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-zinc-500 font-semibold">💬 {topic.replies}</span>
+                </div>
               </div>
-
-              {/* Title & Content */}
-              <h4 className="font-bold text-sm text-zinc-900 mb-1.5 leading-snug">
-                {item.title}
-              </h4>
-              <p className="text-xs text-zinc-600 leading-relaxed mb-4">
-                {item.content}
-              </p>
-            </div>
-
-            {/* Post Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-zinc-100 text-xs">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleToggleLike(item.id)}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors cursor-pointer ${
-                    item.isLiked
-                      ? "bg-rose-50 text-rose-600 border border-rose-200"
-                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-                  }`}
-                >
-                  <span>{item.isLiked ? "❤️" : "🤍"}</span>
-                  <span>{item.likes}</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveThreadPost(item)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-50 text-zinc-600 hover:bg-zinc-100 font-bold transition-colors cursor-pointer"
-                >
-                  <Icon name="mail" size={12} />
-                  <span>{item.replies} Replies</span>
-                </button>
-              </div>
-
-              <button
-                onClick={() => onToast("Thread link copied to clipboard!")}
-                className="text-zinc-400 hover:text-zinc-700 font-semibold cursor-pointer text-[11px]"
-              >
-                Share
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* New Discussion Modal */}
-      {isNewPostModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setIsNewPostModalOpen(false)}
-        >
-          <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
-              <div>
-                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
-                  Community Collab Board
-                </span>
-                <h3 className="font-bold text-lg text-zinc-900">
-                  Start a Discussion
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsNewPostModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleCreatePost}
-              className="flex flex-col gap-3 text-xs"
-            >
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Select Channel
-                </label>
-                <StudentDropdown
-                  value={postChannel}
-                  onChange={setPostChannel}
-                  options={[
-                    { value: "🏆 Hackathons", label: "🏆 Hackathons & Team Formation" },
-                    { value: "🔬 Research & Labs", label: "🔬 Research & Labs" },
-                    { value: "📚 Study Groups", label: "📚 Study Groups & Midterm Prep" },
-                    { value: "💬 General", label: "💬 General Student Discussion" },
-                  ]}
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Discussion Topic / Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={postTitle}
-                  onChange={(e) => setPostTitle(e.target.value)}
-                  placeholder="e.g. Forming team for Multi-Agent Track at Hackathon"
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Message Body
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                  placeholder="Provide context, required skills, meeting times, or paper links..."
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100">
-                <button
-                  type="button"
-                  onClick={() => setIsNewPostModalOpen(false)}
-                  className="px-4 py-2 rounded-full border border-zinc-200 font-bold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-purple-700 text-white font-bold hover:bg-purple-800 cursor-pointer shadow-sm"
-                >
-                  Post Discussion
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Thread Discussions & Replies Modal */}
-      {activeThreadPost && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setActiveThreadPost(null)}
-        >
-          <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
-              <div>
-                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
-                  {activeThreadPost.channel} • Thread Discussion
-                </span>
-                <h3 className="font-bold text-base text-zinc-900">
-                  {activeThreadPost.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveThreadPost(null)}
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer"
-              >
-                <Icon name="close" size={16} />
-              </button>
+      {/* VIEW 3: SPEECH & VERBAL LAB */}
+      {activeTab === "speech" && (
+        <div className="panel p-6 bg-white border border-zinc-100 rounded-3xl flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+            <div>
+              <h3 className="text-base font-bold text-zinc-900">AI Speech & Presentation Rehearsal Lab</h3>
+              <p className="text-xs text-zinc-500">Record your technical presentation and receive real-time clarity feedback.</p>
             </div>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+              🎙️ Interactive Audio Mode
+            </span>
+          </div>
 
-            {/* Original Post */}
-            <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 text-xs mb-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <img
-                  src={activeThreadPost.avatar}
-                  alt={activeThreadPost.author}
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-                <strong className="text-zinc-900">{activeThreadPost.author}</strong>
-                <span className="text-[10px] text-zinc-400">• {activeThreadPost.time}</span>
-              </div>
-              <p className="text-zinc-700 leading-relaxed">{activeThreadPost.content}</p>
-            </div>
+          <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-100">
+            <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider block mb-1">
+              Active Speaking Prompt:
+            </span>
+            <strong className="text-sm text-zinc-900 block">{selectedSpeechTopic}</strong>
+          </div>
 
-            {/* Replies List */}
-            <div className="flex flex-col gap-2.5 max-h-52 overflow-y-auto mb-4 pr-1">
-              <span className="text-xs font-bold text-zinc-700">
-                Replies ({(threadReplies[activeThreadPost.id] || []).length}):
-              </span>
-              {(threadReplies[activeThreadPost.id] || []).length === 0 ? (
-                <div className="text-xs text-zinc-400 py-3 text-center">
-                  No replies yet. Be the first to join the conversation!
-                </div>
-              ) : (
-                (threadReplies[activeThreadPost.id] || []).map((rep) => (
-                  <div key={rep.id} className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <strong className="text-purple-900 font-bold">{rep.user}</strong>
-                      <span className="text-[10px] text-zinc-400">{rep.time}</span>
-                    </div>
-                    <p className="text-zinc-700 text-[11px] leading-relaxed">{rep.text}</p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Reply Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleAddReply(activeThreadPost.id)
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-purple-200 rounded-2xl bg-zinc-50/50">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isRecording
+                setIsRecording(next)
+                onToast(next ? "Recording session started! Speak clearly into your mic." : "Recording captured! AI analysis completed.")
               }}
-              className="flex flex-col gap-2 pt-3 border-t border-zinc-100"
+              className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-md transition-all cursor-pointer ${
+                isRecording
+                  ? "bg-rose-600 text-white animate-pulse"
+                  : "bg-purple-700 text-white hover:bg-purple-800"
+              }`}
             >
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  required
-                  value={newReplyText}
-                  onChange={(e) => setNewReplyText(e.target.value)}
-                  placeholder="Write a constructive reply to this thread..."
-                  className="flex-1 p-2 rounded-xl border border-zinc-200 text-xs text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-purple-700 text-white font-bold text-xs hover:bg-purple-800 cursor-pointer shadow-sm whitespace-nowrap"
-                >
-                  Send Reply
-                </button>
-              </div>
-            </form>
+              {isRecording ? "⏹" : "🎙️"}
+            </button>
+            <span className="text-xs font-bold text-zinc-700 mt-3">
+              {isRecording ? "Recording in progress... Click to finish" : "Click microphone to start rehearsal"}
+            </span>
+            <span className="text-[11px] text-zinc-400 mt-1">Evaluates cadence, technical depth, and filler words</span>
           </div>
         </div>
       )}
     </div>
   )
 }
+
+export default CommunityPage

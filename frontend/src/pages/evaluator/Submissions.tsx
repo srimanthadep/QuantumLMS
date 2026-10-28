@@ -31,11 +31,22 @@ export function Submissions({
   onOpenWorkspace,
   initialAssessmentFilter,
 }: SubmissionsProps) {
+  const [queueTab, setQueueTab] = useState<"all" | "assigned" | "reassessment" | "published">("all")
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>(
     initialAssessmentFilter || "All"
   )
   const [selectedStatus, setSelectedStatus] = useState<string>("All")
   const [selectedCourse, setSelectedCourse] = useState<string>("All")
+
+  // Counts for unified queue pills
+  const queueCounts = useMemo(() => {
+    return {
+      all: state.submissions.length,
+      assigned: state.submissions.filter((s) => s.status === "In Progress" || s.status === "Submitted" || s.status === "Draft Saved").length,
+      reassessment: state.submissions.filter((s) => s.status.includes("Reassessment")).length,
+      published: state.submissions.filter((s) => s.status === "Evaluated").length,
+    }
+  }, [state.submissions])
 
   // Distinct courses
   const courses = useMemo(() => {
@@ -59,6 +70,15 @@ export function Submissions({
   // Filtered Submissions
   const filteredSubmissions = useMemo(() => {
     return state.submissions.filter((sub) => {
+      // 0. Queue Tab Filter
+      if (queueTab === "assigned") {
+        if (sub.status !== "In Progress" && sub.status !== "Submitted" && sub.status !== "Draft Saved") return false
+      } else if (queueTab === "reassessment") {
+        if (!sub.status.includes("Reassessment")) return false
+      } else if (queueTab === "published") {
+        if (sub.status !== "Evaluated") return false
+      }
+
       // 1. Text Search (Student Name, Roll, Assessment Title)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
@@ -91,6 +111,7 @@ export function Submissions({
     })
   }, [
     state.submissions,
+    queueTab,
     searchQuery,
     selectedAssessmentId,
     selectedCourse,
@@ -99,6 +120,75 @@ export function Submissions({
 
   return (
     <div className="evaluator-submissions app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
+      {/* Unified Queue Pills Header */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" role="tablist" aria-label="Grading queue tabs">
+          <button
+            type="button"
+            onClick={() => setQueueTab("all")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              queueTab === "all"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200"
+            }`}
+          >
+            <span>All Submissions</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${queueTab === "all" ? "bg-white/20 text-white" : "bg-zinc-200 text-zinc-700"}`}>
+              {queueCounts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQueueTab("assigned")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              queueTab === "assigned"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200"
+            }`}
+          >
+            <span>Assigned to Me</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${queueTab === "assigned" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-700"}`}>
+              {queueCounts.assigned}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQueueTab("reassessment")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              queueTab === "reassessment"
+                ? "bg-rose-600 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:text-rose-700 hover:bg-rose-50"
+            }`}
+          >
+            <span>Reassessment Requests</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${queueTab === "reassessment" ? "bg-white/20 text-white" : "bg-rose-100 text-rose-700"}`}>
+              {queueCounts.reassessment}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQueueTab("published")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              queueTab === "published"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:text-emerald-700 hover:bg-emerald-50"
+            }`}
+          >
+            <span>Published Feedback</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${queueTab === "published" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+              {queueCounts.published}
+            </span>
+          </button>
+        </div>
+
+        <div className="text-xs font-semibold text-zinc-500 shrink-0 text-right">
+          Showing <span className="text-purple-700 font-bold">{filteredSubmissions.length}</span> results
+        </div>
+      </div>
+
       {/* Search and Filters Toolbar */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap flex-1">

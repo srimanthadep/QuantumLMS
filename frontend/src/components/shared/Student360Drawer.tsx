@@ -20,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import { useNotifications } from "@/context/NotificationContext";
-import "@/pages/support/supportTheme.css";
 
 interface StudentProfile {
   studentId: string;

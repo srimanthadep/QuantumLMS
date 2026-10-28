@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react"
 import type { CalendarEventItem, CourseItem } from "../../types"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
+import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { initialCalendarEvents } from "../../data/mockData"
 
 type CalendarViewMode = "timeline" | "month" | "week" | "day" | "agenda"
@@ -67,7 +67,7 @@ export function CalendarHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
+        <ThemeAccentPicker />
         <button
           onClick={onOpenCreateReminder}
           className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"

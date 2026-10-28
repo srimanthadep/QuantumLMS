@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react"
 import { Icon } from "../../components/Icon"
-import { MetricCard } from "../../components/MetricCard"
-import { studentGrades } from "./studentMockData"
+import { StatCard } from "@/components/ui/StatCard"
+import { studentGrades, initialCertificatesList } from "./studentMockData"
+import type { CertificateItem } from "./studentTypes"
 
 interface GradesPageProps {
   onToast: (msg: string) => void
+  initialView?: "grades" | "certificates"
 }
 
 // Cohort benchmarks for academic comparison (sample cohort baseline)
@@ -20,7 +22,13 @@ const courseBenchmarks: Record<
   "MATH-201": { classAvg: 85.4, top10: 97.0, shortTitle: "Math AI" },
 }
 
-export function GradesPage({ onToast }: GradesPageProps) {
+export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps) {
+  const [activeTab, setActiveTab] = useState<"grades" | "certificates">(initialView)
+  const [certificates] = useState<CertificateItem[]>(initialCertificatesList)
+  const [selectedCert, setSelectedCert] = useState<CertificateItem | null>(null)
+  const earned = certificates.filter((c) => c.status === "Earned")
+  const inProgress = certificates.filter((c) => c.status === "In Progress")
+
   const [selectedSemester, setSelectedSemester] = useState<
     "All Semesters" | "Fall 2026" | "Spring 2026"
   >("Fall 2026")
@@ -150,15 +158,33 @@ export function GradesPage({ onToast }: GradesPageProps) {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setIsCertModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-full border border-[#B6AEC8] text-xs font-bold text-[#171526] hover:bg-[#F0EDFF]/50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Icon name="award" size={13} />
-              <span>Verified Certificate</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* View Mode Tabs */}
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+              <button
+                type="button"
+                onClick={() => setActiveTab("grades")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "grades"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                }`}
+              >
+                Academic Grades & GPA
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("certificates")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "certificates"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                }`}
+              >
+                Credentials & Certificates ({earned.length})
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={handleDownloadTranscript}
@@ -173,7 +199,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
 
       {/* 2. Four Academic Summary Cards */}
       <section className="metrics-grid" aria-label="Academic Metrics">
-        <MetricCard
+        <StatCard
           item={{
             label: "Cumulative GPA",
             value: "3.88 / 4.0",
@@ -182,7 +208,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
             icon: "trend",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Term GPA (Fall 2026)",
             value: "3.92",
@@ -191,7 +217,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
             icon: "chart",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Credits Completed",
             value: "42 / 60",
@@ -200,7 +226,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
             icon: "book",
           }}
         />
-        <MetricCard
+        <StatCard
           item={{
             label: "Academic Average",
             value: `${currentAverage}%`,
@@ -210,6 +236,9 @@ export function GradesPage({ onToast }: GradesPageProps) {
           }}
         />
       </section>
+
+      {activeTab === "grades" && (
+        <>
 
       {/* 3. Upper Section: Gradebook Table & Performance Overview Graph */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
@@ -1138,6 +1167,168 @@ export function GradesPage({ onToast }: GradesPageProps) {
           </div>
         </section>
       </div>
+      </>
+      )}
+
+      {/* VIEW 2: CERTIFICATES & CREDENTIALS */}
+      {activeTab === "certificates" && (
+        <div className="flex flex-col gap-[var(--app-card-gap,14px)]">
+          {/* Earned Certificates Section */}
+          <section className="panel" aria-label="Earned Credentials">
+            <div className="card-header mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="card-title text-base font-bold text-zinc-900 dark:text-zinc-100">
+                  Earned Diplomas & Specializations ({earned.length})
+                </h3>
+                <span className="text-xs text-emerald-700 font-bold">
+                  ✓ 100% Cryptographically Verified
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText?.(
+                    "https://verify.quantumschool.ai/student/QS-2024-8821/credentials"
+                  )
+                  onToast("Quantum verified credential portfolio link copied for LinkedIn! 🔗")
+                }}
+                className="px-3.5 py-1.5 rounded-full bg-zinc-900 text-white text-xs font-bold hover:bg-zinc-800 transition-colors shadow-xs"
+              >
+                Sync to LinkedIn
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
+              {earned.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="p-5 rounded-2xl border border-purple-100 dark:border-purple-900/40 bg-purple-50/30 dark:bg-purple-950/20 flex flex-col justify-between hover:shadow-xs transition-shadow"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold">
+                        <Icon name="award" size={20} />
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200">
+                        Verified Credential
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-base text-zinc-900 dark:text-zinc-100 mb-1">
+                      {cert.title}
+                    </h4>
+                    <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">
+                      {cert.grade}
+                    </div>
+
+                    <div className="text-xs text-zinc-500 mb-4 flex flex-col gap-1">
+                      <span>
+                        Issued: <strong className="text-zinc-800 dark:text-zinc-200">{cert.issueDate}</strong>
+                      </span>
+                      <span>
+                        Credential ID: <strong className="font-mono text-zinc-700 dark:text-zinc-300">{cert.credentialId}</strong>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {cert.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-purple-100 dark:border-purple-900/40">
+                    <button
+                      type="button"
+                      onClick={() => setIsCertModalOpen(true)}
+                      className="flex-1 py-1.5 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors cursor-pointer text-center"
+                    >
+                      View Credential
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const certDoc =
+                          "===========================================================\n" +
+                          "       QUANTUM SCHOOL OF AI - CERTIFICATE OF COMPLETION   \n" +
+                          "===========================================================\n" +
+                          `Student Name: Srimanth (QS-2024-8821)\n` +
+                          `Specialization: ${cert.title}\n` +
+                          `Grade Awarded: ${cert.grade}\n` +
+                          `Credential ID: ${cert.credentialId}\n` +
+                          `Date Issued: ${cert.issueDate}\n` +
+                          `Verified Skills: ${cert.skills.join(", ")}\n` +
+                          `Blockchain Hash: 0x98A1B2C3D4E5F67890ABCDEF\n` +
+                          "Status: Verified & Accredited\n"
+                        const blob = new Blob([certDoc], { type: "text/plain;charset=utf-8;" })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement("a")
+                        a.href = url
+                        a.download = `Quantum_Certificate_${cert.id}.txt`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        onToast(`Downloaded verified diploma for ${cert.title}! 🎓`)
+                      }}
+                      className="px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-white dark:bg-zinc-800 text-xs font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                    >
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* In-Progress Tracks */}
+          <section className="panel" aria-label="In Progress Certificates">
+            <div className="card-header mb-4">
+              <h3 className="card-title text-base font-bold text-zinc-900 dark:text-zinc-100">
+                Certificates in Progress ({inProgress.length})
+              </h3>
+              <span className="text-xs text-zinc-500">
+                Unlocks upon 100% course and lab completion
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
+              {inProgress.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center font-bold">
+                        <Icon name="award" size={20} />
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+                        {cert.progress}% Complete
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-1">
+                      {cert.title}
+                    </h4>
+                    <div className="text-xs text-zinc-500 mb-3">{cert.grade}</div>
+
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 h-2 rounded-full overflow-hidden mb-2">
+                      <div
+                        className="bg-purple-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${cert.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* 5. Official Certificate Modal */}
       {isCertModalOpen && (
