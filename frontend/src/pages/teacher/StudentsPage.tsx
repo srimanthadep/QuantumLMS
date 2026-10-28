@@ -922,7 +922,7 @@ export default function StudentsPage({
         totalCount={students.length}
       />
 
-      {/* Metrics Grid (4 folder tab status cards for Students) */}
+      {/* Metrics Grid (4 Status Cards for Students) */}
       <div className="metrics-grid">
         {metrics.map((item) => (
           <MetricCard key={item.label} item={item} />

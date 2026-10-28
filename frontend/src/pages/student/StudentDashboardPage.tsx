@@ -112,7 +112,7 @@ export default function StudentDashboardPage({
 
       {/* 2. Independently Scrollable Dashboard Body */}
       <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 box-border">
-        {/* Top Metric Cards (4) - Folder Tab Cut Cards */}
+        {/* Top Metric Cards (4) - Square Status Cards */}
         <section className="metrics-grid" aria-label="Student Learning Metrics">
           <MetricCard
             item={{

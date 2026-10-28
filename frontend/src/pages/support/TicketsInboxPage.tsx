@@ -151,7 +151,7 @@ export const TicketsInboxPage: React.FC = () => {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
-      {/* 1. KPI Stats (Canonical 132px Folder-Tab Cards with 8px Gap) */}
+      {/* 1. KPI Stats Cards */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />

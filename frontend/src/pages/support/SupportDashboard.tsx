@@ -43,7 +43,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
     return true
   })
 
-  // 4 Canonical Folder-Tab Metric Cards matching Teacher & Admin
+  // 4 Canonical Metric Cards matching Teacher & Admin
   const kpis: MetricItem[] = [
     {
       icon: "mail",
@@ -77,7 +77,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-2 h-full">
-      {/* 1. Metric Cards Grid - identical 132px folder tabs and 8px gap */}
+      {/* 1. Metric Cards Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
           <MetricCard key={item.label} item={item} />

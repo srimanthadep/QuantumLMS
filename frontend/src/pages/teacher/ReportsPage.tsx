@@ -403,7 +403,7 @@ export default function ReportsPage({
         onChangeHexColor={onChangeHexColor}
       />
 
-      {/* Metrics Grid (4 folder tab status cards for Reports) */}
+      {/* Metrics Grid (4 Status Cards for Reports) */}
       <div className="metrics-grid">
         {metrics.map((item) => (
           <MetricCard key={item.label} item={item} />

@@ -1751,7 +1751,7 @@ export default function CoursesPage({
         breadcrumbSubtitle={headerSubtitle}
       />
 
-      {/* Metrics Grid (4 folder tab status cards for Courses) */}
+      {/* Metrics Grid (4 Status Cards for Courses) */}
       <div className="metrics-grid">
         {metrics.map((item) => (
           <MetricCard key={item.label} item={item} />
