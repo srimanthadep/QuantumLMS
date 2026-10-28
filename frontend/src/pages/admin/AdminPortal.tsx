@@ -256,9 +256,6 @@ export default function AdminPortal({
       className="dashboard-shell"
       style={{
         backgroundColor: hexColor,
-        backgroundImage: isLightBg
-          ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
-          : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
       }}
     >
       {/* Admin Sidebar - matches teacher sidebar design, fonts, avatar, and navigation */}

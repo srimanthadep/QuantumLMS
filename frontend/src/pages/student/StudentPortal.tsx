@@ -305,9 +305,6 @@ export default function StudentPortal({
       className="dashboard-shell student-dashboard-shell relative w-full max-w-full min-w-0 box-border h-screen max-h-screen overflow-hidden"
       style={{
         backgroundColor: hexColor,
-        backgroundImage: isLightBg
-          ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
-          : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
       }}
     >
       {/* Mobile Drawer Toggle */}

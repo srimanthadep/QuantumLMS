@@ -362,9 +362,6 @@ function SupportLayout({
       className="dashboard-shell support-portal-root"
       style={{
         backgroundColor: hexColor || "var(--bg-custom, #F8FAFC)",
-        backgroundImage: isLightBg
-          ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
-          : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
       }}
     >
       {/* Desktop Persistent Sidebar */}

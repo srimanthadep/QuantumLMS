@@ -284,12 +284,11 @@ export default function App() {
   useEffect(() => {
     document.body.style.backgroundColor = hexColor
     document.documentElement.style.setProperty("--bg-custom", hexColor)
+    document.documentElement.style.setProperty("--bg-grid-line", "transparent")
     if (isLightBg) {
-      document.documentElement.style.setProperty("--bg-grid-line", "rgba(23, 32, 51, 0.05)")
       document.documentElement.style.setProperty("--header-text-color", "#172033")
       document.documentElement.style.setProperty("--header-subtitle-color", "#64748B")
     } else {
-      document.documentElement.style.setProperty("--bg-grid-line", "rgba(255, 255, 255, 0.15)")
       document.documentElement.style.setProperty("--header-text-color", "#ffffff")
       document.documentElement.style.setProperty("--header-subtitle-color", "rgba(255, 255, 255, 0.95)")
     }
@@ -543,9 +542,6 @@ export default function App() {
         className="auth-shell"
         style={{
           backgroundColor: hexColor,
-          backgroundImage: isLightBg
-            ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
-            : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
         }}
       >
         <AuthPage
@@ -672,9 +668,6 @@ export default function App() {
       className="dashboard-shell teacher-portal-shell"
       style={{
         backgroundColor: hexColor,
-        backgroundImage: isLightBg
-          ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
-          : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
       }}
     >
       {/* Desktop Persistent Sidebar */}

@@ -194,7 +194,7 @@
 
   /* Dynamic Canvas Background & Header Contrast */
   --bg-custom: #f8fafc;
-  --bg-grid-line: rgba(23, 32, 51, 0.05);
+  --bg-grid-line: transparent;
   --header-text-color: #172033;
   --header-subtitle-color: #64748b;
 
@@ -264,10 +264,6 @@ body::-webkit-scrollbar {
 
 body {
   background-color: var(--bg-custom, #f8fafc);
-  background-image:
-    radial-gradient(circle at 1px 1px, var(--bg-grid-line, rgba(23, 32, 51, 0.05)) 1.25px, transparent 0);
-  background-size: 24px 24px;
-  background-attachment: fixed;
   color: var(--text-primary, #172033);
   font-family: "Sassoon Sans Std", "Sassoon Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -307,9 +303,6 @@ button {
   grid-template-columns: 200px minmax(0, 1fr);
   gap: 16px;
   background-color: var(--bg-custom, #f8fafc);
-  background-image:
-    radial-gradient(circle at 1px 1px, var(--bg-grid-line, rgba(23, 32, 51, 0.05)) 1.25px, transparent 0);
-  background-size: 24px 24px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
 }
@@ -3003,11 +2996,6 @@ select option {
   align-items: center;
   box-sizing: border-box;
   background-color: var(--bg-custom, var(--purple));
-  background-image:
-    linear-gradient(var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px);
-  background-size: 28px 28px;
-  background-attachment: fixed;
   transition: background-color 0.2s ease;
 }
 
@@ -3503,8 +3491,6 @@ select option {
   grid-template-columns: 215px minmax(0, 1fr);
   gap: 14px;
   box-sizing: border-box;
-  background-size: 28px 28px;
-  background-attachment: fixed;
   transition: background-color 0.2s ease;
 }
 
