@@ -1,0 +1,14 @@
+{
+  "title": "Quantum School of AI",
+  "description": "Quantum School of AI dashboard application provides teachers with a pixel-perfect interface to manage student progress, assignments, and reports.",
+  "icons": {
+    "icon": "/favicon.png"
+  },
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
