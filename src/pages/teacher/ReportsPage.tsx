@@ -3,6 +3,7 @@ import type { MetricItem, ReportItem } from "../../types"
 import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 export function ReportsHeader({
   searchQuery,
@@ -47,18 +48,20 @@ export function ReportsHeader({
             </button>
           )}
         </div>
-        <HexColorField
+        <TeacherHeaderActions
           hexColor={hexColor}
-          onChangeHex={onChangeHexColor}
-        />
-        <button
-          className="ask-ai"
-          onClick={onOpenReportModal}
-          aria-label="Generate Report"
+          onChangeHexColor={onChangeHexColor}
+          showPortalSwitch={true}
         >
-          <span>+</span>
-          New Report
-        </button>
+          <button
+            className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+            onClick={onOpenReportModal}
+            aria-label="Generate Report"
+          >
+            <span>+</span>
+            New Report
+          </button>
+        </TeacherHeaderActions>
       </div>
     </header>
   )

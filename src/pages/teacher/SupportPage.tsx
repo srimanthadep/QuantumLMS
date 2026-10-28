@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import { Icon } from "../../components/Icon"
 import type { IconName } from "../../types"
 import { HexColorField } from "../../components/HexColorField"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 export type TeacherTicketCategory =
   | "Account & Access Management"
@@ -499,16 +500,20 @@ export function SupportHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        <button
-          className="ask-ai"
-          onClick={onOpenCreateModal}
-          aria-label="Create Support Request"
-          style={{ gap: "6px" }}
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          showPortalSwitch={true}
         >
-          <span>+</span>
-          New Request
-        </button>
+          <button
+            className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+            onClick={onOpenCreateModal}
+            aria-label="Create Support Request"
+          >
+            <span>+</span>
+            New Request
+          </button>
+        </TeacherHeaderActions>
       </div>
     </header>
   )

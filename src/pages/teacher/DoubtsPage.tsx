@@ -4,6 +4,7 @@ import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
 import { initialDoubts } from "../../data/mockData"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 export function DoubtsHeader({
   searchQuery,
@@ -50,17 +51,12 @@ export function DoubtsHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about student doubts"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        )}
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          showPortalSwitch={true}
+        />
       </div>
     </header>
   )
@@ -583,8 +579,43 @@ export default function DoubtsPage({
         ))}
       </div>
 
+      <style>{`
+        .doubts-scroll-section {
+          scrollbar-width: thin !important;
+          scrollbar-color: #9333ea #f3e8ff !important;
+        }
+
+        html body .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar,
+        .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar,
+        .doubts-scroll-section::-webkit-scrollbar {
+          display: block !important;
+          width: 7px !important;
+          height: 7px !important;
+        }
+
+        html body .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-track,
+        .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-track,
+        .doubts-scroll-section::-webkit-scrollbar-track {
+          background: #f4f3fa !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-thumb,
+        .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-thumb,
+        .doubts-scroll-section::-webkit-scrollbar-thumb {
+          background: #9333ea !important;
+          border-radius: 9999px !important;
+        }
+
+        html body .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-thumb:hover,
+        .teacher-portal-shell .doubts-scroll-section::-webkit-scrollbar-thumb:hover,
+        .doubts-scroll-section::-webkit-scrollbar-thumb:hover {
+          background: #7e22ce !important;
+        }
+      `}</style>
+
       {/* Doubts Main Panel */}
-      <section className="panel p-5" aria-label="Student Doubts Roster">
+      <section className="panel p-5 mb-4 flex flex-col flex-1 min-h-0" aria-label="Student Doubts Roster">
         {/* Top Header & Status Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
@@ -721,7 +752,7 @@ export default function DoubtsPage({
                 )}
               </div>
             ) : (
-              <div className="roster-list">
+              <div className="roster-list doubts-scroll-section max-h-[calc(100vh-365px)] min-h-[220px] overflow-y-auto pr-1">
                 {displayedDoubts.map((doubt) => (
                   <div
                     key={doubt.id}
@@ -836,6 +867,12 @@ export default function DoubtsPage({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Doubts Footer Summary */}
+        <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-zinc-400 shrink-0">
+          <span className="font-medium text-zinc-600">Showing {displayedDoubts.length} student inquiry tickets</span>
+          <span className="text-[11px] text-zinc-400">Scroll to view all inquiries · Responses update student records in real time</span>
         </div>
       </section>
 

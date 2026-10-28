@@ -13,6 +13,16 @@ import { MetricCard } from "../../components/MetricCard"
 import { LessonContentInlineViewer } from "../../components/LessonContentInlineViewer"
 import { ModuleAssignmentSection } from "../../components/ModuleAssignmentSection"
 import { getModuleAssignment } from "../../data/courseAssignmentsData"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
+import { TeacherSubmissionsPanel } from "./TeacherSubmissionsPanel"
+import {
+  CreateAssignmentModal,
+  CreateQuizModal,
+  UploadMaterialModal,
+  ViewSubmissionDetailsModal,
+} from "./TeacherContentCreationModals"
+import { getContentSubmissions } from "./teacherContentWorkflowStorage"
+import type { ContentSubmissionRecord } from "./teacherContentWorkflowTypes"
 
 interface CourseRouteState {
   level: "list" | "course" | "lesson"
@@ -108,7 +118,7 @@ export function CoursesHeader({
             `${totalCount} assigned teaching courses · Year 4 STEM & AI cohorts`}
         </div>
       </div>
-      <div className="header-actions">
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
         <div className="search-box">
           <Icon name="search" size={15} />
           <input
@@ -128,17 +138,12 @@ export function CoursesHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about courses"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        )}
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          showPortalSwitch={true}
+        />
       </div>
     </header>
   )
@@ -407,20 +412,41 @@ function CourseDetailsView({
   allStudents,
   initialModuleId,
   initialLessonId,
+  submissions,
   onBack,
   onOpenLesson,
   onSelectStudentDetails,
+  onOpenCreateAssignment,
+  onOpenCreateQuiz,
+  onOpenUploadMaterial,
+  onViewSubmissionDetails,
+  onEditSubmission,
   onToast,
 }: {
   course: CourseItem
   allStudents: StudentItem[]
   initialModuleId?: string | null
   initialLessonId?: string | null
+  submissions: ContentSubmissionRecord[]
   onBack: () => void
   onOpenLesson?: (lessonId: string, moduleId: string) => void
   onSelectStudentDetails?: (student: StudentItem) => void
+  onOpenCreateAssignment: (courseId?: string, moduleId?: string, lessonId?: string) => void
+  onOpenCreateQuiz: (courseId?: string, moduleId?: string, lessonId?: string) => void
+  onOpenUploadMaterial: (courseId?: string, moduleId?: string, lessonId?: string) => void
+  onViewSubmissionDetails: (sub: ContentSubmissionRecord) => void
+  onEditSubmission: (sub: ContentSubmissionRecord) => void
   onToast?: (msg: string) => void
 }) {
+  const [courseSubTab, setCourseSubTab] = useState<"curriculum" | "submissions" | "students">("curriculum")
+  const courseSubmissions = useMemo(
+    () => submissions.filter((s) => s.courseId === course.id),
+    [submissions, course.id]
+  )
+  const pendingOrChangesCount = courseSubmissions.filter(
+    (s) => s.status === "changes_requested" || s.status === "pending_approval"
+  ).length
+
   const enrolledStudents = allStudents.filter((s) =>
     course.enrolledStudentIds.includes(s.id)
   )
@@ -572,10 +598,10 @@ function CourseDetailsView({
             <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-zinc-500 flex-wrap gap-2">
               <div className="flex items-center gap-1.5 text-purple-800 bg-purple-50 px-2.5 py-1 rounded-lg font-medium text-[11px]">
                 <Icon name="sparkles" size={13} />
-                <span>Admin-Verified Curriculum · Continuous Learning Experience</span>
+                <span>Teacher Content Workflow: Assignments, Quizzes & Materials Queue for Admin Approval</span>
               </div>
               <span className="text-[11px] text-zinc-400">
-                Curriculum Content Managed by School Administration (Read Only)
+                School Governance: Teacher submissions publish to cohort upon Admin verification
               </span>
             </div>
           </div>
@@ -621,8 +647,95 @@ function CourseDetailsView({
         </div>
       </div>
 
-      {/* 3. Combined Modules & Lessons Continuous Section */}
-      <div className="panel p-5 bg-white">
+      {/* 3. Sub-Tab Switcher & Course Content Creation Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-gray-150 shadow-xs">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setCourseSubTab("curriculum")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${courseSubTab === "curriculum"
+                ? "bg-white text-zinc-900 shadow-xs"
+                : "text-zinc-600 hover:text-zinc-900"
+              }`}
+          >
+            Curriculum & Modules ({course.modules.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setCourseSubTab("submissions")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${courseSubTab === "submissions"
+                ? "bg-white text-zinc-900 shadow-xs"
+                : "text-zinc-600 hover:text-zinc-900"
+              }`}
+          >
+            <span>Submissions & Approvals</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+              {courseSubmissions.length}
+            </span>
+            {pendingOrChangesCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCourseSubTab("students")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${courseSubTab === "students"
+                ? "bg-white text-zinc-900 shadow-xs"
+                : "text-zinc-600 hover:text-zinc-900"
+              }`}
+          >
+            Enrolled Students ({enrolledStudents.length})
+          </button>
+        </div>
+
+        {/* Content Creation Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => onOpenCreateAssignment(course.id)}
+            className="px-3 h-8.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+          >
+            <Icon name="plus" size={13} />
+            <span>Add Assignment</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenCreateQuiz(course.id)}
+            className="px-3 h-8.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Icon name="sparkles" size={13} />
+            <span>Create Quiz</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenUploadMaterial(course.id)}
+            className="px-3 h-8.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Icon name="document" size={13} />
+            <span>Upload Material</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Submissions Tab Panel */}
+      {courseSubTab === "submissions" && (
+        <TeacherSubmissionsPanel
+          submissions={submissions}
+          courseId={course.id}
+          courseName={course.name}
+          onOpenCreateAssignment={() => onOpenCreateAssignment(course.id)}
+          onOpenCreateQuiz={() => onOpenCreateQuiz(course.id)}
+          onOpenUploadMaterial={() => onOpenUploadMaterial(course.id)}
+          onViewDetails={onViewSubmissionDetails}
+          onEditSubmission={onEditSubmission}
+          onToast={onToast}
+        />
+      )}
+
+      {/* 4. Combined Modules & Lessons Continuous Section (Rendered when curriculum tab is active) */}
+      {courseSubTab === "curriculum" && (
+        <div className="panel p-5 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h3 className="card-title text-sm sm:text-base">
@@ -781,11 +894,45 @@ function CourseDetailsView({
 
                     {/* SEQUENTIAL LESSONS SECTION */}
                     <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-zinc-900 mb-1">
-                        <span>Lessons in Module {index + 1} ({mod.lessons.length})</span>
-                        <span className="text-[11px] font-normal text-zinc-500">
-                          {completedLessons} of {mod.lessons.length} completed
-                        </span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-zinc-900 mb-1">
+                        <div className="flex items-center gap-2">
+                          <span>Lessons in Module {index + 1} ({mod.lessons.length})</span>
+                          <span className="text-[11px] font-normal text-zinc-500">
+                            · {completedLessons} completed
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onOpenCreateAssignment(course.id, mod.id)
+                            }}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 transition-colors cursor-pointer"
+                          >
+                            + Assignment
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onOpenCreateQuiz(course.id, mod.id)
+                            }}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-colors cursor-pointer"
+                          >
+                            + Quiz
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onOpenUploadMaterial(course.id, mod.id)
+                            }}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
+                          >
+                            + Material
+                          </button>
+                        </div>
                       </div>
 
                       {mod.lessons.map((lesson, lessonIndex) => (
@@ -867,57 +1014,60 @@ function CourseDetailsView({
           })}
         </div>
       </div>
+      )}
 
       {/* 4. Enrolled Students Roster */}
-      <div className="panel p-5 bg-white">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div>
-            <h3 className="card-title text-sm sm:text-base">
-              Enrolled Students ({enrolledStudents.length})
-            </h3>
-            <p className="text-[11.5px] text-zinc-500 mt-0.5">
-              Active student cohort for {course.name}. Click any student card to view comprehensive student analytics and their activity heatmap.
-            </p>
+      {(courseSubTab === "curriculum" || courseSubTab === "students") && (
+        <div className="panel p-5 bg-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="card-title text-sm sm:text-base">
+                Enrolled Students ({enrolledStudents.length})
+              </h3>
+              <p className="text-[11.5px] text-zinc-500 mt-0.5">
+                Active student cohort for {course.name}. Click any student card to view comprehensive student analytics and their activity heatmap.
+              </p>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-medium">
+              Cohort Class: <strong>{course.assignedClass}</strong>
+            </span>
           </div>
-          <span className="text-[11px] text-zinc-500 font-medium">
-            Cohort Class: <strong>{course.assignedClass}</strong>
-          </span>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {enrolledStudents.map((st) => (
-            <div
-              key={st.id}
-              className="p-2.5 rounded-xl bg-gray-50 hover:bg-purple-50/50 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2.5 cursor-pointer group"
-              onClick={() => onSelectStudentDetails?.(st)}
-              title={`View ${st.name}'s profile and activity heatmap`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={st.image || "/assets/student-1.png"}
-                  alt={st.name}
-                  className="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0"
-                />
-                <div className="min-w-0">
-                  <strong className="block text-xs text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
-                    {st.name}
-                  </strong>
-                  <span className="text-[10px] text-zinc-500">
-                    {st.rollNumber}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {enrolledStudents.map((st) => (
+              <div
+                key={st.id}
+                className="p-2.5 rounded-xl bg-gray-50 hover:bg-purple-50/50 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2.5 cursor-pointer group"
+                onClick={() => onSelectStudentDetails?.(st)}
+                title={`View ${st.name}'s profile and activity heatmap`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={st.image || "/assets/student-1.png"}
+                    alt={st.name}
+                    className="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <strong className="block text-xs text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
+                      {st.name}
+                    </strong>
+                    <span className="text-[10px] text-zinc-500">
+                      {st.rollNumber}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-bold text-purple-700">
+                    {st.completion}%
                   </span>
+                  <span className="block text-[9.5px] text-zinc-400">Progress</span>
                 </div>
               </div>
-
-              <div className="text-right shrink-0">
-                <span className="text-xs font-bold text-purple-700">
-                  {st.completion}%
-                </span>
-                <span className="block text-[9.5px] text-zinc-400">Progress</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -1199,23 +1349,41 @@ function LessonDetailsView({
   course,
   moduleItem,
   lesson,
+  submissions = [],
   onBackToCourses,
   onBackToCourse,
   onBackToModule,
   onNavigateLesson,
+  onOpenUploadMaterial,
+  onOpenCreateAssignment,
+  onViewSubmissionDetails,
+  onEditSubmission,
   onToast,
 }: {
   course: CourseItem
   moduleItem: CourseModuleItem
   lesson: LessonItem
+  submissions?: ContentSubmissionRecord[]
   onBackToCourses?: () => void
   onBackToCourse?: () => void
   onBackToModule: () => void
   onNavigateLesson: (targetLesson: LessonItem, targetModule: CourseModuleItem) => void
+  onOpenUploadMaterial?: (courseId: string, moduleId: string, lessonId: string) => void
+  onOpenCreateAssignment?: (courseId: string, moduleId: string, lessonId: string) => void
+  onViewSubmissionDetails?: (sub: ContentSubmissionRecord) => void
+  onEditSubmission?: (sub: ContentSubmissionRecord) => void
   onToast?: (msg: string) => void
 }) {
   const modIndex = course.modules.findIndex((m) => m.id === moduleItem.id)
   const lessonIndexInModule = moduleItem.lessons.findIndex((l) => l.id === lesson.id)
+
+  const lessonSubmissions = useMemo(() => {
+    return submissions.filter(
+      (s) =>
+        s.courseId === course.id &&
+        (s.lessonId === lesson.id || (s.moduleId === moduleItem.id && !s.lessonId))
+    )
+  }, [submissions, course.id, moduleItem.id, lesson.id])
 
   // Flatten all course lessons to support intuitive previous & next navigation across the entire course
   const allCurriculumLessons = useMemo(() => {
@@ -1422,6 +1590,119 @@ function LessonDetailsView({
               </div>
             )}
           </div>
+
+          {/* D. Teacher-Submitted Lesson Content (Admin Approval Workflow) */}
+          <div className="panel p-5 bg-white border border-purple-100 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div>
+                <h2 className="card-title text-sm sm:text-base flex items-center gap-2">
+                  <span>Teacher-Submitted Content</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                    Admin Approval Workflow
+                  </span>
+                </h2>
+                <p className="text-[11.5px] text-zinc-500 mt-0.5">
+                  Materials and assignments submitted for this lesson. Verified by School Admin before cohort release.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => onOpenUploadMaterial?.(course.id, moduleItem.id, lesson.id)}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Icon name="document" size={12} />
+                  <span>+ Upload Material</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenCreateAssignment?.(course.id, moduleItem.id, lesson.id)}
+                  className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                >
+                  <Icon name="plus" size={12} />
+                  <span>+ Add Assignment</span>
+                </button>
+              </div>
+            </div>
+
+            {lessonSubmissions.length === 0 ? (
+              <div className="p-5 text-center text-xs text-zinc-400 bg-gray-50/70 rounded-xl border border-dashed border-gray-250">
+                <p className="font-semibold text-zinc-600">No teacher submissions for this lesson yet</p>
+                <p className="text-[11px] text-zinc-400 mt-1">
+                  Use the buttons above to upload materials or add assignments. Submissions will enter the Admin approval queue.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {lessonSubmissions.map((sub) => {
+                  const getStatusBadge = (status: typeof sub.status) => {
+                    switch (status) {
+                      case "approved":
+                        return { label: "Approved", cls: "bg-emerald-100 text-emerald-800 border-emerald-200" }
+                      case "pending_approval":
+                        return { label: "Pending Approval", cls: "bg-amber-100 text-amber-800 border-amber-200" }
+                      case "changes_requested":
+                        return { label: "Changes Requested", cls: "bg-orange-100 text-orange-800 border-orange-200" }
+                      case "rejected":
+                        return { label: "Rejected", cls: "bg-red-100 text-red-800 border-red-200" }
+                      case "draft":
+                      default:
+                        return { label: "Draft", cls: "bg-zinc-100 text-zinc-700 border-zinc-200" }
+                    }
+                  }
+                  const b = getStatusBadge(sub.status)
+                  const canEdit = sub.status === "draft" || sub.status === "changes_requested" || sub.status === "rejected"
+
+                  return (
+                    <div
+                      key={sub.id}
+                      className="p-3.5 rounded-xl bg-gray-50/80 hover:bg-purple-50/30 border border-gray-200 transition-all flex flex-col gap-2"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                            {sub.type}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${b.cls}`}>
+                            {b.label}
+                          </span>
+                          <span className="text-xs font-bold text-zinc-900">{sub.title}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => onEditSubmission?.(sub)}
+                              className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors cursor-pointer"
+                            >
+                              Edit & Resubmit
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onViewSubmissionDetails?.(sub)}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white hover:bg-gray-100 text-zinc-700 border border-gray-200 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            View Details →
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Admin feedback if rejected or changes requested */}
+                      {(sub.adminFeedback || sub.feedback) && (
+                        <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-950 text-[11px] flex items-start gap-2">
+                          <span className="font-bold text-orange-700 shrink-0">Admin Feedback:</span>
+                          <span className="leading-relaxed">{sub.adminFeedback || sub.feedback}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column (Secondary Info & Persistent Module Lesson Navigation - 4 cols) */}
@@ -1589,6 +1870,85 @@ export default function CoursesPage({
   onToast?: (msg: string) => void
 }) {
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>("All")
+
+  // Teacher Content Submissions & Approval Workflow state
+  const [submissions, setSubmissions] = useState<ContentSubmissionRecord[]>(() => getContentSubmissions())
+  const [mainCoursesTab, setMainCoursesTab] = useState<"courses" | "submissions">("courses")
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSubmissions(getContentSubmissions())
+    }
+    window.addEventListener("quantum-teacher-submissions-changed", handleUpdate)
+    return () => window.removeEventListener("quantum-teacher-submissions-changed", handleUpdate)
+  }, [])
+
+  // Modals state
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false)
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false)
+  const [isViewDetailsModalOpen, setIsViewDetailsModalOpen] = useState(false)
+
+  const [modalTargetCourseId, setModalTargetCourseId] = useState<string | undefined>()
+  const [modalTargetModuleId, setModalTargetModuleId] = useState<string | undefined>()
+  const [modalTargetLessonId, setModalTargetLessonId] = useState<string | undefined>()
+
+  const [viewingSubmission, setViewingSubmission] = useState<ContentSubmissionRecord | null>(null)
+  const [editingSubmission, setEditingSubmission] = useState<ContentSubmissionRecord | null>(null)
+
+  const handleOpenCreateAssignment = (courseId?: string, moduleId?: string, lessonId?: string) => {
+    setEditingSubmission(null)
+    setModalTargetCourseId(courseId)
+    setModalTargetModuleId(moduleId)
+    setModalTargetLessonId(lessonId)
+    setIsAssignmentModalOpen(true)
+  }
+
+  const handleOpenCreateQuiz = (courseId?: string, moduleId?: string, lessonId?: string) => {
+    setEditingSubmission(null)
+    setModalTargetCourseId(courseId)
+    setModalTargetModuleId(moduleId)
+    setModalTargetLessonId(lessonId)
+    setIsQuizModalOpen(true)
+  }
+
+  const handleOpenUploadMaterial = (courseId?: string, moduleId?: string, lessonId?: string) => {
+    setEditingSubmission(null)
+    setModalTargetCourseId(courseId)
+    setModalTargetModuleId(moduleId)
+    setModalTargetLessonId(lessonId)
+    setIsMaterialModalOpen(true)
+  }
+
+  const handleViewSubmissionDetails = (sub: ContentSubmissionRecord) => {
+    setViewingSubmission(sub)
+    setIsViewDetailsModalOpen(true)
+  }
+
+  const handleEditSubmission = (sub: ContentSubmissionRecord) => {
+    setEditingSubmission(sub)
+    setModalTargetCourseId(sub.courseId)
+    setModalTargetModuleId(sub.moduleId)
+    setModalTargetLessonId(sub.lessonId)
+    if (sub.type === "assignment") {
+      setIsAssignmentModalOpen(true)
+    } else if (sub.type === "quiz") {
+      setIsQuizModalOpen(true)
+    } else if (sub.type === "material") {
+      setIsMaterialModalOpen(true)
+    }
+  }
+
+  const handleSuccessSubmission = (item: ContentSubmissionRecord, submitted: boolean) => {
+    setSubmissions(getContentSubmissions())
+    if (onToast) {
+      if (submitted) {
+        onToast(`"${item.title}" submitted to Admin for review. Status: Pending Approval.`)
+      } else {
+        onToast(`Draft "${item.title}" saved locally.`)
+      }
+    }
+  }
 
   // Persistent Grid vs List view mode
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -1766,11 +2126,16 @@ export default function CoursesPage({
               course={activeCourse}
               moduleItem={activeLessonData.module}
               lesson={activeLessonData.lesson}
+              submissions={submissions}
               onBackToCourse={() => navigateToCourse(activeCourse.id)}
               onBackToModule={() => navigateToCourse(activeCourse.id)}
               onNavigateLesson={(targetLesson, targetModule) =>
                 navigateToLesson(activeCourse.id, targetModule.id, targetLesson.id)
               }
+              onOpenUploadMaterial={(cId, mId, lId) => handleOpenUploadMaterial(cId, mId, lId)}
+              onOpenCreateAssignment={(cId, mId, lId) => handleOpenCreateAssignment(cId, mId, lId)}
+              onViewSubmissionDetails={handleViewSubmissionDetails}
+              onEditSubmission={handleEditSubmission}
               onToast={onToast}
             />
           ) : (
@@ -1795,11 +2160,17 @@ export default function CoursesPage({
               allStudents={allStudents}
               initialModuleId={routeState.moduleId}
               initialLessonId={routeState.lessonId}
+              submissions={submissions}
               onBack={navigateToCourses}
               onOpenLesson={(lessonId, moduleId) =>
                 navigateToLesson(activeCourse.id, moduleId, lessonId)
               }
               onSelectStudentDetails={onSelectStudentDetails}
+              onOpenCreateAssignment={handleOpenCreateAssignment}
+              onOpenCreateQuiz={handleOpenCreateQuiz}
+              onOpenUploadMaterial={handleOpenUploadMaterial}
+              onViewSubmissionDetails={handleViewSubmissionDetails}
+              onEditSubmission={handleEditSubmission}
               onToast={onToast}
             />
           ) : (
@@ -1813,138 +2184,273 @@ export default function CoursesPage({
         </div>
       )}
 
-      {/* LEVEL 1: ALL COURSES LIST (GRID & LIST VIEW) */}
+      {/* LEVEL 1: ALL COURSES LIST (GRID & LIST VIEW) + SUBMISSIONS & APPROVALS */}
       {routeState.level === "list" && (
         <div className="panel p-5 assigned-courses-panel flex flex-col" aria-label="Assigned Courses Section">
-          {/* Top Header, Filters & View Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
-            <div>
-              <h3 className="card-title">Assigned Courses</h3>
-              <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-                Showing {filteredCourses.length} of {courses.length} courses
-                assigned to your instruction
-              </div>
+          {/* Top Level Navigation Tabs & Action Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-150 shrink-0">
+            {/* Primary View Switcher: Courses vs Submissions */}
+            <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => setMainCoursesTab("courses")}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  mainCoursesTab === "courses"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Assigned Courses ({courses.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMainCoursesTab("submissions")}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mainCoursesTab === "submissions"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <span>Content Submissions & Approvals</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                  {submissions.length}
+                </span>
+                {submissions.filter(
+                  (s) => s.status === "pending_approval" || s.status === "changes_requested"
+                ).length > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                )}
+              </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Filter pills */}
-              <div
-                className="filter-pills"
-                role="tablist"
-                aria-label="Filter courses by status"
+            {/* Quick Content Creation Entry Points */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleOpenCreateAssignment()}
+                className="px-3 h-8.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
-                <button
-                  className={`filter-pill ${activeStatusFilter === "All" ? "active" : ""
-                    }`}
-                  onClick={() => setActiveStatusFilter("All")}
-                  aria-selected={activeStatusFilter === "All"}
-                >
-                  All Courses ({courses.length})
-                </button>
-                <button
-                  className={`filter-pill ${activeStatusFilter === "Active" ? "active" : ""
-                    }`}
-                  onClick={() => setActiveStatusFilter("Active")}
-                  aria-selected={activeStatusFilter === "Active"}
-                >
-                  Active (
-                  {courses.filter((c) => c.status === "Active").length})
-                </button>
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="clear-filters-btn cursor-pointer"
-                    aria-label="Clear course search"
-                  >
-                    ✕ Clear Search
-                  </button>
-                )}
-              </div>
-
-              {/* Grid / List View Toggle Switcher */}
-              <div
-                className="inline-flex items-center p-1 rounded-xl bg-gray-100 border border-gray-200"
-                role="group"
-                aria-label="View style switcher"
+                <Icon name="plus" size={13} />
+                <span>Add Assignment</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenCreateQuiz()}
+                className="px-3 h-8.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <button
-                  type="button"
-                  onClick={() => handleViewModeChange("grid")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "grid"
-                      ? "bg-white text-purple-700 shadow-xs border border-gray-200"
-                      : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                  aria-pressed={viewMode === "grid"}
-                  title="Grid View"
-                >
-                  <Icon name="grid" size={14} />
-                  <span className="hidden sm:inline">Grid</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleViewModeChange("list")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "list"
-                      ? "bg-white text-purple-700 shadow-xs border border-gray-200"
-                      : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                  aria-pressed={viewMode === "list"}
-                  title="List View"
-                >
-                  <Icon name="list" size={14} />
-                  <span className="hidden sm:inline">List</span>
-                </button>
-              </div>
+                <Icon name="sparkles" size={13} />
+                <span>Create Quiz</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenUploadMaterial()}
+                className="px-3 h-8.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Icon name="document" size={13} />
+                <span>Upload Material</span>
+              </button>
             </div>
           </div>
 
-          {/* Courses List Content (Grid or List presentation) - Scroll strictly isolated to this section */}
-          <div className="assigned-courses-scroll flex-1 overflow-y-auto pr-1">
-            {filteredCourses.length === 0 ? (
-              <div className="roster-empty-state">
-                <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mb-1">
-                  <Icon name="book" size={20} />
+          {mainCoursesTab === "submissions" ? (
+            <TeacherSubmissionsPanel
+              submissions={submissions}
+              onOpenCreateAssignment={() => handleOpenCreateAssignment()}
+              onOpenCreateQuiz={() => handleOpenCreateQuiz()}
+              onOpenUploadMaterial={() => handleOpenUploadMaterial()}
+              onViewDetails={handleViewSubmissionDetails}
+              onEditSubmission={handleEditSubmission}
+              onToast={onToast}
+            />
+          ) : (
+            <>
+              {/* Top Header, Filters & View Switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
+                <div>
+                  <h3 className="card-title">Assigned Courses</h3>
+                  <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
+                    Showing {filteredCourses.length} of {courses.length} courses
+                    assigned to your instruction
+                  </div>
                 </div>
-                <strong className="text-sm text-zinc-800">
-                  No matching courses found
-                </strong>
-                <p className="text-xs text-zinc-500 max-w-sm">
-                  {courses.length === 0
-                    ? "There are currently no courses assigned to your teacher account."
-                    : "No courses matched your current search criteria."}
-                </p>
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="mt-2 px-4 h-8 rounded-full btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* Filter pills */}
+                  <div
+                    className="filter-pills"
+                    role="tablist"
+                    aria-label="Filter courses by status"
                   >
-                    Reset Search
-                  </button>
+                    <button
+                      className={`filter-pill ${activeStatusFilter === "All" ? "active" : ""
+                        }`}
+                      onClick={() => setActiveStatusFilter("All")}
+                      aria-selected={activeStatusFilter === "All"}
+                    >
+                      All Courses ({courses.length})
+                    </button>
+                    <button
+                      className={`filter-pill ${activeStatusFilter === "Active" ? "active" : ""
+                        }`}
+                      onClick={() => setActiveStatusFilter("Active")}
+                      aria-selected={activeStatusFilter === "Active"}
+                    >
+                      Active (
+                      {courses.filter((c) => c.status === "Active").length})
+                    </button>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="clear-filters-btn cursor-pointer"
+                        aria-label="Clear course search"
+                      >
+                        ✕ Clear Search
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Grid / List View Toggle Switcher */}
+                  <div
+                    className="inline-flex items-center p-1 rounded-xl bg-gray-100 border border-gray-200"
+                    role="group"
+                    aria-label="View style switcher"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleViewModeChange("grid")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "grid"
+                          ? "bg-white text-purple-700 shadow-xs border border-gray-200"
+                          : "text-zinc-500 hover:text-zinc-800"
+                        }`}
+                      aria-pressed={viewMode === "grid"}
+                      title="Grid View"
+                    >
+                      <Icon name="grid" size={14} />
+                      <span className="hidden sm:inline">Grid</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleViewModeChange("list")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "list"
+                          ? "bg-white text-purple-700 shadow-xs border border-gray-200"
+                          : "text-zinc-500 hover:text-zinc-800"
+                        }`}
+                      aria-pressed={viewMode === "list"}
+                      title="List View"
+                    >
+                      <Icon name="list" size={14} />
+                      <span className="hidden sm:inline">List</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Courses List Content (Grid or List presentation) - Scroll strictly isolated to this section */}
+              <div className="assigned-courses-scroll flex-1 overflow-y-auto pr-1">
+                {filteredCourses.length === 0 ? (
+                  <div className="roster-empty-state">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mb-1">
+                      <Icon name="book" size={20} />
+                    </div>
+                    <strong className="text-sm text-zinc-800">
+                      No matching courses found
+                    </strong>
+                    <p className="text-xs text-zinc-500 max-w-sm">
+                      {courses.length === 0
+                        ? "There are currently no courses assigned to your teacher account."
+                        : "No courses matched your current search criteria."}
+                    </p>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="mt-2 px-4 h-8 rounded-full btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        Reset Search
+                      </button>
+                    )}
+                  </div>
+                ) : viewMode === "grid" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 pb-2">
+                    {filteredCourses.map((course) => (
+                      <CourseCard
+                        key={course.id}
+                        course={course}
+                        onViewCourse={(c) => navigateToCourse(c.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3.5 pb-2">
+                    {filteredCourses.map((course) => (
+                      <CourseRow
+                        key={course.id}
+                        course={course}
+                        onViewCourse={(c) => navigateToCourse(c.id)}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-            ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 pb-2">
-                {filteredCourses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onViewCourse={(c) => navigateToCourse(c.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3.5 pb-2">
-                {filteredCourses.map((course) => (
-                  <CourseRow
-                    key={course.id}
-                    course={course}
-                    onViewCourse={(c) => navigateToCourse(c.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
+
+      {/* 4 WORKFLOW MODALS FOR CONTENT CREATION & APPROVAL */}
+      <CreateAssignmentModal
+        isOpen={isAssignmentModalOpen}
+        onClose={() => {
+          setIsAssignmentModalOpen(false)
+          setEditingSubmission(null)
+        }}
+        courses={courses}
+        initialCourseId={modalTargetCourseId}
+        initialModuleId={modalTargetModuleId}
+        initialLessonId={modalTargetLessonId}
+        editingSubmission={editingSubmission?.type === "assignment" ? editingSubmission : null}
+        onSuccess={handleSuccessSubmission}
+      />
+
+      <CreateQuizModal
+        isOpen={isQuizModalOpen}
+        onClose={() => {
+          setIsQuizModalOpen(false)
+          setEditingSubmission(null)
+        }}
+        courses={courses}
+        initialCourseId={modalTargetCourseId}
+        initialModuleId={modalTargetModuleId}
+        initialLessonId={modalTargetLessonId}
+        editingSubmission={editingSubmission?.type === "quiz" ? editingSubmission : null}
+        onSuccess={handleSuccessSubmission}
+      />
+
+      <UploadMaterialModal
+        isOpen={isMaterialModalOpen}
+        onClose={() => {
+          setIsMaterialModalOpen(false)
+          setEditingSubmission(null)
+        }}
+        courses={courses}
+        initialCourseId={modalTargetCourseId}
+        initialModuleId={modalTargetModuleId}
+        initialLessonId={modalTargetLessonId}
+        editingSubmission={editingSubmission?.type === "material" ? editingSubmission : null}
+        onSuccess={handleSuccessSubmission}
+      />
+
+      <ViewSubmissionDetailsModal
+        isOpen={isViewDetailsModalOpen}
+        submission={viewingSubmission}
+        onClose={() => {
+          setIsViewDetailsModalOpen(false)
+          setViewingSubmission(null)
+        }}
+        onEdit={(sub) => {
+          setIsViewDetailsModalOpen(false)
+          handleEditSubmission(sub)
+        }}
+      />
     </>
   )
 }

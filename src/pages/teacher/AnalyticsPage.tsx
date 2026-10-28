@@ -13,6 +13,7 @@ import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
 import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 import { getStudentActivityHeatmap } from "../../data/studentActivityData"
 import { MODULE_ASSIGNMENTS, type ModuleAssignmentItem, type StudentModuleSubmission } from "../../data/courseAssignmentsData"
 import {
@@ -97,30 +98,23 @@ export function AnalyticsHeader({
             </button>
           )}
         </div>
-        <HexColorField
+        <TeacherHeaderActions
           hexColor={hexColor}
-          onChangeHex={onChangeHexColor}
-        />
-        {onOpenAiDiagnostic && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiDiagnostic}
-            aria-label="Generate AI Diagnostic"
-          >
-            <span>✦</span>
-            AI Diagnostic
-          </button>
-        )}
-        {onOpenAiAssistant && (
-          <button
-            className="px-3.5 h-[35px] rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-black transition-colors cursor-pointer"
-            onClick={onOpenAiAssistant}
-            aria-label="Ask AI Assistant"
-          >
-            <span className="text-lime-300">✦</span>
-            <span>Ask AI</span>
-          </button>
-        )}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiAssistant || onOpenAiDiagnostic}
+          showPortalSwitch={true}
+        >
+          {onOpenAiDiagnostic && (
+            <button
+              className="h-9 px-3 rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap"
+              onClick={onOpenAiDiagnostic}
+              aria-label="Generate AI Diagnostic"
+            >
+              <span>✦</span>
+              AI Diagnostic
+            </button>
+          )}
+        </TeacherHeaderActions>
       </div>
     </header>
   )
@@ -323,7 +317,7 @@ export default function AnalyticsPage({
       {
         icon: "video",
         label: "Live Classes Conducted",
-        value: `${overviewStats.completedSessions} Conducted`,
+        value: `${overviewStats.completedSessions}`,
         trend: `${overviewStats.upcomingSessions} Upcoming · ${overviewStats.liveNowSessions} Live Now`,
         tone: "lavender",
       },

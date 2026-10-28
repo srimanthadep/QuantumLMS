@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Icon } from "../../components/Icon"
 import type { IconName } from "../../types"
 import { HexColorField } from "../../components/HexColorField"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 export function SettingsHeader({
   searchQuery,
@@ -47,18 +48,20 @@ export function SettingsHeader({
           )}
           
         </div>
-        <HexColorField
+        <TeacherHeaderActions
           hexColor={hexColor}
-          onChangeHex={onChangeHexColor}
-        />
-        <button
-          className="ask-ai"
-          onClick={onSavePreferences}
-          aria-label="Save Settings"
+          onChangeHexColor={onChangeHexColor}
+          showPortalSwitch={true}
         >
-          <span>✓</span>
-          Save All
-        </button>
+          <button
+            className="h-9 px-3.5 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-black transition-colors cursor-pointer whitespace-nowrap"
+            onClick={onSavePreferences}
+            aria-label="Save Settings"
+          >
+            <span>✓</span>
+            Save All
+          </button>
+        </TeacherHeaderActions>
       </div>
     </header>
   )

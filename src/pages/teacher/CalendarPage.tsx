@@ -3,8 +3,9 @@ import type { CalendarEventItem, CourseItem } from "../../types"
 import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { initialCalendarEvents } from "../../data/mockData"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
-type CalendarViewMode = "month" | "week" | "day" | "agenda"
+type CalendarViewMode = "timeline" | "month" | "week" | "day" | "agenda"
 
 // Date helpers
 function formatDateString(date: Date): string {
@@ -67,24 +68,20 @@ export function CalendarHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        <button
-          onClick={onOpenCreateReminder}
-          className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
-          aria-label="Add personal reminder"
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          showPortalSwitch={true}
         >
-          <span>+ Add Reminder</span>
-        </button>
-        {onOpenAiModal && (
           <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about schedule"
+            onClick={onOpenCreateReminder}
+            className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+            aria-label="Add personal reminder"
           >
-            <span>✦</span>
-            Ask AI
+            <span>+ Add Reminder</span>
           </button>
-        )}
+        </TeacherHeaderActions>
       </div>
     </header>
   )
@@ -488,6 +485,7 @@ export default function CalendarPage({
   hexColor: string
   onChangeHexColor: (color: string) => void
   onOpenAiModal?: () => void
+  courses?: CourseItem[]
   onToast?: (msg: string) => void
 }) {
   // Calendar Events State with localStorage persistence
@@ -855,7 +853,7 @@ export default function CalendarPage({
     return days
   }, [currentDate])
 
-  // Timeline Hours (07:00 AM to 07:00 PM)
+  // Timeline Hours (07:00 AM to 02:00 PM) - fits 100% width with 0 horizontal scroll
   const timelineHours = [
     { label: "07:00 AM", hour: 7 },
     { label: "08:00 AM", hour: 8 },
@@ -865,11 +863,6 @@ export default function CalendarPage({
     { label: "12:00 PM", hour: 12 },
     { label: "01:00 PM", hour: 13 },
     { label: "02:00 PM", hour: 14 },
-    { label: "03:00 PM", hour: 15 },
-    { label: "04:00 PM", hour: 16 },
-    { label: "05:00 PM", hour: 17 },
-    { label: "06:00 PM", hour: 18 },
-    { label: "07:00 PM", hour: 19 },
   ]
 
   // Timeline Event Cards matching reference screenshot
@@ -1026,7 +1019,7 @@ export default function CalendarPage({
       `}</style>
 
       {/* Main Calendar 2-Column Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-3.5 mt-1 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-3.5 mt-1 items-start pb-6">
         {/* LEFT COLUMN: Mini Calendar + Reminders */}
         <div className="flex flex-col gap-3.5">
           {/* 1. Mini Calendar Card */}
@@ -1189,25 +1182,21 @@ export default function CalendarPage({
             </div>
           </div>
 
-          {/* VIEW 1: HORIZONTAL TIMELINE VIEW (Reference Screenshot) */}
+          {/* VIEW 1: HORIZONTAL TIMELINE VIEW (Zero Horizontal Scroll, Plain Background) */}
           {viewMode === "timeline" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[520px] overflow-x-auto overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-white shadow-2xs">
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[540px] overflow-x-hidden overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-white shadow-2xs">
               <div
                 style={{
-                  width: `${timelineHours.length * 150}px`,
                   minHeight: "460px",
-                  backgroundImage: "radial-gradient(#e5e7eb 1.2px, transparent 1.2px)",
-                  backgroundSize: "20px 20px",
                 }}
-                className="relative"
+                className="relative w-full bg-white"
               >
                 {/* 1. Sticky Time Header Row */}
-                <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10">
+                <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10 w-full">
                   {timelineHours.map((th) => (
                     <div
                       key={th.hour}
-                      style={{ width: "150px" }}
-                      className="text-left pl-3 text-[11px] font-semibold text-zinc-400 shrink-0"
+                      className="flex-1 text-left pl-2.5 text-[11px] font-semibold text-zinc-400 shrink-0 min-w-0 truncate"
                     >
                       {th.label}
                     </div>
@@ -1215,12 +1204,11 @@ export default function CalendarPage({
                 </div>
 
                 {/* 2. Dashed Vertical Grid Lines down each hour */}
-                <div className="absolute top-10 bottom-0 left-0 right-0 flex pointer-events-none">
+                <div className="absolute top-10 bottom-0 left-0 right-0 flex pointer-events-none w-full">
                   {timelineHours.map((th) => (
                     <div
                       key={th.hour}
-                      style={{ width: "150px" }}
-                      className="border-r border-dashed border-gray-200/90 h-full shrink-0"
+                      className="flex-1 border-r border-dashed border-gray-200/90 h-full shrink-0 min-w-0"
                     />
                   ))}
                 </div>
@@ -1228,7 +1216,7 @@ export default function CalendarPage({
                 {/* 3. Current Time Indicator Marker (09:30 AM) with Blue Pill Badge */}
                 <div
                   className="absolute top-0 bottom-0 pointer-events-none z-40 flex flex-col items-center"
-                  style={{ left: `${(9 - 7 + 0.5) * 150}px` }}
+                  style={{ left: `${((9.5 - 7) / (timelineHours.length - 1)) * 100}%` }}
                 >
                   <div className="bg-[#1d63ed] text-white text-[11px] font-bold px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap mt-1.5 -translate-x-1/2">
                     09:30 AM
@@ -1237,10 +1225,11 @@ export default function CalendarPage({
                 </div>
 
                 {/* 4. Timeline Event Cards */}
-                <div className="relative pt-6 pb-6">
+                <div className="relative pt-6 pb-10 min-h-[420px]">
                   {timelineCards.map((card) => {
-                    const cardLeft = (card.hour - 7 + card.minute / 60) * 150 + 10
-                    const cardTop = card.row * 70 + 20
+                    const totalSpan = timelineHours.length - 1
+                    const leftPct = ((card.hour - 7 + card.minute / 60) / totalSpan) * 100
+                    const cardTop = card.row * 68 + 18
 
                     return (
                       <div
@@ -1264,9 +1253,9 @@ export default function CalendarPage({
                         }}
                         style={{
                           position: "absolute",
-                          left: `${cardLeft}px`,
+                          left: `calc(${leftPct}% + 4px)`,
                           top: `${cardTop}px`,
-                          width: "185px",
+                          width: "clamp(142px, 15vw, 175px)",
                           zIndex: 15,
                         }}
                         className={`p-2 pr-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-md ${
@@ -1547,6 +1536,16 @@ export default function CalendarPage({
               )}
             </div>
           )}
+          {/* Calendar Clean Footer Info & Spacing */}
+          <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+              <span className="font-medium text-zinc-600">Current Time: 09:30 AM</span>
+            </span>
+            <span className="text-[11px] text-zinc-400">
+              {filteredEvents.length} scheduled sessions · Local time
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1562,7 +1561,7 @@ export default function CalendarPage({
       <CreateReminderModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        courses={courses}
+        courses={courses || []}
         onSaveReminder={handleCreateReminder}
         defaultDate={formatDateString(currentDate)}
       />

@@ -4,6 +4,7 @@ import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
 import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 export function getStudentGrade(average: number): string {
   if (average >= 95) return "A+"
@@ -62,17 +63,12 @@ export function StudentsHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about students"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        )}
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          showPortalSwitch={true}
+        />
       </div>
     </header>
   )

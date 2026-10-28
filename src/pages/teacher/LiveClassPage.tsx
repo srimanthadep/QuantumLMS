@@ -11,6 +11,7 @@ import type {
 import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 import {
   initialLiveSessions,
   initialAIMonitoringData,
@@ -73,17 +74,12 @@ export function LiveClassHeader({
             </button>
           )}
         </div>
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about live classes"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        )}
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          showPortalSwitch={true}
+        />
       </div>
     </header>
   )

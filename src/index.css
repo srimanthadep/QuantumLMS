@@ -247,17 +247,21 @@ button {
   }
 }
 
-/* Global Viewport Lock: Zero Window / Body Scroll for Teacher Portal */
+/* Global Viewport Lock: Zero Window / Body Scroll for Teacher Portal & Plain Solid Background */
 html:has(.teacher-portal-shell),
-body:has(.teacher-portal-shell) {
+body:has(.teacher-portal-shell),
+html:has(.evaluator-portal-shell),
+body:has(.evaluator-portal-shell) {
   overflow: hidden !important;
   height: 100vh !important;
   max-height: 100vh !important;
   margin: 0 !important;
   padding: 0 !important;
+  background-image: none !important;
 }
 
-.teacher-portal-shell {
+.teacher-portal-shell,
+.evaluator-portal-shell {
   width: 100vw !important;
   height: 100vh !important;
   max-height: 100vh !important;
@@ -268,6 +272,7 @@ body:has(.teacher-portal-shell) {
   display: grid !important;
   grid-template-columns: var(--teacher-sidebar-w) minmax(0, 1fr) !important;
   gap: 12px !important;
+  background-image: none !important;
 }
 
 /* Desktop Sidebar fits cleanly in 100vh without overflowing across any screen ratio */

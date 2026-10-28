@@ -20,6 +20,7 @@ import { MODULE_ASSIGNMENTS } from "../../data/courseAssignmentsData"
 import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { MetricCard } from "../../components/MetricCard"
+import { TeacherHeaderActions } from "./TeacherHeaderActions"
 
 /**
  * Helper to safely navigate to any Teacher Portal tab by triggering
@@ -69,7 +70,7 @@ export function DashboardHeader({
           Year 4 Lead Educator · 4 Active Courses · 24 Students On Track
         </div>
       </div>
-      <div className="header-actions">
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
         <div className="search-box">
           <Icon name="search" size={15} />
           <input
@@ -89,24 +90,13 @@ export function DashboardHeader({
             </button>
           )}
         </div>
-        {onSwitchToStudent && (
-          <button
-            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer"
-            onClick={onSwitchToStudent}
-            aria-label="Switch to Student Portal"
-          >
-            <span>🎓 Student Portal</span>
-          </button>
-        )}
-        <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-        <button
-          className="ask-ai cursor-pointer"
-          onClick={onOpenAiModal}
-          aria-label="Ask AI assistant"
-        >
-          <span>✦</span>
-          Ask AI
-        </button>
+        <TeacherHeaderActions
+          hexColor={hexColor}
+          onChangeHexColor={onChangeHexColor}
+          onOpenAiModal={onOpenAiModal}
+          onSwitchToStudent={onSwitchToStudent}
+          showPortalSwitch={true}
+        />
       </div>
     </header>
   )
@@ -667,38 +657,38 @@ function StudentAnalyticsSection({
 
       {/* 3 Metric Badges */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100">
+        <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100 h-[82px] flex flex-col justify-between">
           <div className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
             Class Average
           </div>
-          <div className="text-xl font-bold text-purple-950 mt-1">
+          <div className="text-xl font-bold text-purple-950">
             {stats.avgScore}%
           </div>
-          <div className="text-[10px] text-purple-600 font-medium mt-0.5">
+          <div className="text-[10px] text-purple-600 font-medium">
             +3.2% this term
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 h-[82px] flex flex-col justify-between">
           <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
             Attendance Rate
           </div>
-          <div className="text-xl font-bold text-emerald-950 mt-1">
+          <div className="text-xl font-bold text-emerald-950">
             {stats.avgAttendance}%
           </div>
-          <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
+          <div className="text-[10px] text-emerald-600 font-medium">
             96% Benchmark met
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+        <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 h-[82px] flex flex-col justify-between">
           <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
             Completion Pace
           </div>
-          <div className="text-xl font-bold text-blue-950 mt-1">
+          <div className="text-xl font-bold text-blue-950">
             {stats.avgCompletion}%
           </div>
-          <div className="text-[10px] text-blue-600 font-medium mt-0.5">
+          <div className="text-[10px] text-blue-600 font-medium">
             On track (Week 8)
           </div>
         </div>
@@ -1300,11 +1290,11 @@ export default function ClassPage({
       />
 
       {/* Summary Cards: My Courses, My Students, Pending Reviews, and Attendance */}
-      <div className="metrics-grid shrink-0 mb-4">
+      <div className="metrics-grid">
         {dashboardMetrics.map((item) => (
           <div
             key={item.label}
-            className="cursor-pointer transition-transform hover:scale-[1.01]"
+            className="h-full cursor-pointer transition-transform hover:scale-[1.01]"
             onClick={() => {
               if (item.label === "My Courses") handleNavCourses()
               else if (item.label === "My Students") handleNavStudents()
