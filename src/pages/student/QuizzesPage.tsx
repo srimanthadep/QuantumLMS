@@ -412,7 +412,7 @@ export function QuizzesPage({
   // =========================================================================
   if (viewMode === "locked" && activeQuiz) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
         <section className="panel p-6 border border-amber-200 bg-amber-50/50 rounded-2xl" aria-label="Locked Assessment">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center flex-shrink-0 text-xl font-bold">
@@ -558,7 +558,7 @@ export function QuizzesPage({
     })
 
     return (
-      <div className="flex flex-col gap-5">
+      <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
         {/* Top Header & Breadcrumb */}
         <section className="panel" aria-label="Review Header">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
@@ -819,7 +819,7 @@ export function QuizzesPage({
     // If submission is complete, show the Result Summary View
     if (submittedAttempt) {
       return (
-        <div className="flex flex-col gap-5">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
           <section className="panel p-8 text-center max-w-2xl mx-auto" aria-label="Assessment Results">
             <div
               className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black ${
@@ -1166,7 +1166,7 @@ export function QuizzesPage({
   // VIEW 4: DEFAULT CATALOG LIST VIEW (Preserves Noorly Design & Card Layout)
   // =========================================================================
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Quizzes Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1330,7 +1330,7 @@ export function QuizzesPage({
         </div>
       ) : (
         /* Quizzes Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           {filteredQuizzes.map((quiz) => (
             <div
               key={quiz.id}

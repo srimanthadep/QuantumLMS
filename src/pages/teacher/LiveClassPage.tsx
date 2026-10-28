@@ -658,7 +658,7 @@ export function LiveClassPage({
       `}</style>
 
       {viewMode === "schedule" && (
-        <section className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section" aria-label="Live Sessions Dashboard">
+        <section className="panel p-5 mt-[var(--app-card-gap,14px)] flex-1 min-h-0 overflow-y-auto live-class-scroll-section" aria-label="Live Sessions Dashboard">
           {/* Top Header & Status Filter Pills */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div>
@@ -1025,7 +1025,7 @@ export function LiveClassPage({
       {/* VIEW 2: AI LIVE MONITORING */}
       {viewMode === "monitoring" && (
         <section
-          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
+          className="panel p-5 mt-[var(--app-card-gap,14px)] flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="AI Live Monitoring Section"
         >
           <AIMonitoringSection
@@ -1038,7 +1038,7 @@ export function LiveClassPage({
       {/* VIEW 3: LECTURE RECORDING & AI INTELLIGENCE REVIEW */}
       {viewMode === "recordings" && (
         <section
-          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
+          className="panel p-5 mt-[var(--app-card-gap,14px)] flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="Lecture Recording & AI Intelligence Review Section"
         >
           <RecordingsSuggestionsSection
@@ -1056,7 +1056,7 @@ export function LiveClassPage({
       {/* VIEW 4: ATTENDANCE */}
       {viewMode === "attendance" && (
         <section
-          className="panel p-5 mt-2 flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
+          className="panel p-5 mt-[var(--app-card-gap,14px)] flex-1 min-h-0 overflow-y-auto live-class-scroll-section"
           aria-label="Live Class Attendance Section"
         >
           <AttendanceSection

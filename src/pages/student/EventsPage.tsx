@@ -39,7 +39,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
   const featuredEvent = eventsList.find((e) => e.isFeatured)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Events Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -153,7 +153,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
       )}
 
       {/* Events List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
         {filtered.map((item) => (
           <div
             key={item.id}

@@ -28,7 +28,7 @@ export function TimetablePage({ onToast }: TimetablePageProps) {
       : timetableSchedule.filter((s) => s.day === selectedDay)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Top Banner with Actions */}
       <section className="panel" aria-label="Timetable Controls">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -180,7 +180,7 @@ export function TimetablePage({ onToast }: TimetablePageProps) {
       </section>
 
       {/* Timetable Schedule Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
         {filteredSlots.map((slot) => {
           const isToday = slot.day === "Tuesday"
           return (

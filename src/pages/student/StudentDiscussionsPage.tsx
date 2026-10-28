@@ -349,7 +349,7 @@ export const StudentDiscussionsPage: React.FC<StudentDiscussionsPageProps> = ({
   });
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5 pb-10">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] pb-10">
       {/* Page Header */}
       <section
         className="student-shared-panel p-5 sm:p-6 mb-0"

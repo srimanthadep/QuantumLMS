@@ -101,7 +101,7 @@ export function CommunityPage({ onToast }: CommunityPageProps) {
       : posts.filter((p) => p.channel === selectedChannel)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Community Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -155,7 +155,7 @@ export function CommunityPage({ onToast }: CommunityPageProps) {
       </section>
 
       {/* Community Posts Feed */}
-      <div className="flex flex-col gap-3">
+      <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
         {filtered.map((item) => (
           <div
             key={item.id}

@@ -78,7 +78,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Notes Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -169,7 +169,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
       </section>
 
       {/* Notes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
         {filtered.map((note) => (
           <div
             key={note.id}

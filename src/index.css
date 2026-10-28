@@ -96,24 +96,126 @@
   src: url("/fonts/sassoon-sans-std-bold.otf") format("opentype");
 }
 
+@theme {
+  --color-midnight-navy: #172033;
+  --color-brand-orange: #f0442e;
+  --color-soft-white: #f8fafc;
+  --color-pure-white: #ffffff;
+  --color-cool-gray: #64748b;
+  --color-learning-teal: #0f766e;
+
+  --color-page-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-muted-surface: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+  --color-text-primary: #172033;
+  --color-text-secondary: #64748b;
+
+  --color-success: #0f766e;
+  --color-success-light: #ccfbf1;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-info: #0284c7;
+  --color-info-light: #e0f2fe;
+
+  /* Universal Brand Orange-Red scale for seamless LMS alignment */
+  --color-purple-50: #fff1ee;
+  --color-purple-100: #ffe4df;
+  --color-purple-200: #fecdc6;
+  --color-purple-300: #fda499;
+  --color-purple-400: #fb715f;
+  --color-purple-500: #f0442e;
+  --color-purple-600: #f0442e;
+  --color-purple-700: #d73823;
+  --color-purple-800: #b92b1a;
+  --color-purple-900: #992418;
+  --color-purple-950: #172033;
+
+  /* Universal Learning Teal scale for completion, progress, and success */
+  --color-lime-50: #f0fdfa;
+  --color-lime-100: #ccfbf1;
+  --color-lime-200: #99f6e4;
+  --color-lime-300: #5eead4;
+  --color-lime-400: #2dd4bf;
+  --color-lime-500: #0f766e;
+  --color-lime-600: #0f766e;
+  --color-lime-700: #0f766e;
+  --color-lime-800: #115e59;
+  --color-lime-900: #134e4a;
+  --color-lime-950: #042f2e;
+}
+
 :root {
-  --bg-custom: #9860e9;
-  --bg-grid-line: rgba(255, 255, 255, 0.19);
-  --header-text-color: #ffffff;
-  --header-subtitle-color: rgba(255, 255, 255, 0.95);
-  --purple: #9860e9;
-  --purple-dark: #8750dc;
-  --lavender: #f1efff;
-  --lime: #a8ed00;
-  --lime-soft: #efffbd;
-  --pink-soft: #ffeaf2;
-  --yellow-soft: #fff6c9;
-  --gray-soft: #f4f5f7;
-  --ink: #09090b;
-  --muted: #666375;
-  --white: #fff;
+  /* ========================================================
+     QUANTUM LMS DESIGN SYSTEM - PREMIUM ORANGE-RED + MIDNIGHT NAVY + SOFT WHITE
+     ======================================================== */
+  /* Primary Brand Colours */
+  --midnight-navy: #172033;
+  --brand-orange: #f0442e;
+  --brand-orange-hover: #d73823;
+  --brand-orange-light: #fff1ee;
+  --learning-teal: #0f766e;
+  --learning-teal-light: #ccfbf1;
+
+  /* Neutral Colours */
+  --bg-page: #f8fafc;
+  --surface: #ffffff;
+  --muted-surface: #f1f5f9;
+  --border-color: #e2e8f0;
+  --text-primary: #172033;
+  --text-secondary: #64748b;
+
+  /* Semantic Colours */
+  --success: #0f766e;
+  --success-light: #ccfbf1;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --info: #0284c7;
+  --info-light: #e0f2fe;
+
+  /* Signature Brand Gradient: #FF5A24 → #F0442E → #C8102E */
+  --gradient-brand: linear-gradient(135deg, #ff5a24 0%, #f0442e 50%, #c8102e 100%);
+  --gradient-primary: linear-gradient(135deg, #ff5a24 0%, #f0442e 50%, #c8102e 100%);
+  --gradient-navy: linear-gradient(135deg, #172033 0%, #253350 100%);
+  --gradient-teal: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+
+  /* Data Visualization Palette */
+  --chart-1: #f0442e;
+  --chart-2: #ff5a24;
+  --chart-3: #172033;
+  --chart-4: #0f766e;
+  --chart-5: #f59e0b;
+  --chart-6: #c8102e;
+  --chart-7: #64748b;
+
+  /* Dynamic Canvas Background & Header Contrast */
+  --bg-custom: #f8fafc;
+  --bg-grid-line: rgba(23, 32, 51, 0.05);
+  --header-text-color: #172033;
+  --header-subtitle-color: #64748b;
+
+  /* Unified Aliases for backward compatibility */
+  --purple: #f0442e;
+  --purple-dark: #d73823;
+  --lavender: #fff1ee;
+  --lavender-bg: #fff1ee;
+  --lime: #0f766e;
+  --lime-soft: #ccfbf1;
+  --pink-soft: #fee2e2;
+  --yellow-soft: #fef3c7;
+  --gray-soft: #f8fafc;
+  --ink: #172033;
+  --muted: #64748b;
+  --white: #ffffff;
   --radius-xl: 24px;
   --radius-lg: 18px;
+  --app-card-gap: 14px;
+  --app-card-gap-metrics: 12px;
+  --app-card-margin-bottom: 14px;
 }
 
 * {
@@ -161,13 +263,12 @@ body::-webkit-scrollbar {
 }
 
 body {
-  background-color: var(--bg-custom, var(--purple));
+  background-color: var(--bg-custom, #f8fafc);
   background-image:
-    linear-gradient(var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px);
-  background-size: 28px 28px;
+    radial-gradient(circle at 1px 1px, var(--bg-grid-line, rgba(23, 32, 51, 0.05)) 1.25px, transparent 0);
+  background-size: 24px 24px;
   background-attachment: fixed;
-  color: var(--ink);
+  color: var(--text-primary, #172033);
   font-family: "Sassoon Sans Std", "Sassoon Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s ease;
@@ -205,11 +306,10 @@ button {
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);
   gap: 16px;
-  background-color: var(--bg-custom, var(--purple));
+  background-color: var(--bg-custom, #f8fafc);
   background-image:
-    linear-gradient(var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid-line, rgba(255, 255, 255, 0.19)) 1px, transparent 1px);
-  background-size: 28px 28px;
+    radial-gradient(circle at 1px 1px, var(--bg-grid-line, rgba(23, 32, 51, 0.05)) 1.25px, transparent 0);
+  background-size: 24px 24px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
 }
@@ -311,35 +411,68 @@ body:has(.teacher-portal-shell) {
 
 /* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
 @media (max-height: 860px) {
-  .teacher-portal-shell .metrics-grid {
+  :root {
+    --app-card-gap: 10px;
+    --app-card-gap-metrics: 10px;
+    --app-card-margin-bottom: 8px;
+  }
+  .metrics-grid,
+  .teacher-portal-shell .metrics-grid,
+  .dashboard-shell .metrics-grid,
+  .student-dashboard-shell .metrics-grid,
+  .support-portal-root .metrics-grid {
     min-height: 112px !important;
     height: 112px !important;
     gap: 10px !important;
     margin-bottom: 8px !important;
   }
-  .teacher-portal-shell .metric-card {
+  .metric-card,
+  .teacher-portal-shell .metric-card,
+  .dashboard-shell .metric-card,
+  .student-dashboard-shell .metric-card,
+  .support-portal-root .metric-card {
     height: 112px !important;
   }
-  .teacher-portal-shell .metric-label {
+  .metric-label,
+  .teacher-portal-shell .metric-label,
+  .dashboard-shell .metric-label,
+  .student-dashboard-shell .metric-label,
+  .support-portal-root .metric-label {
     top: 22px !important;
     font-size: 13px !important;
   }
-  .teacher-portal-shell .metric-icon {
+  .metric-icon,
+  .teacher-portal-shell .metric-icon,
+  .dashboard-shell .metric-icon,
+  .student-dashboard-shell .metric-icon,
+  .support-portal-root .metric-icon {
     top: 14px !important;
     left: 14px !important;
     width: 32px !important;
     height: 32px !important;
   }
-  .teacher-portal-shell .metric-bottom {
+  .metric-bottom,
+  .teacher-portal-shell .metric-bottom,
+  .dashboard-shell .metric-bottom,
+  .student-dashboard-shell .metric-bottom,
+  .support-portal-root .metric-bottom {
     bottom: 8px !important;
     left: 14px !important;
     right: 14px !important;
   }
-  .teacher-portal-shell .metric-bottom strong {
+  .metric-bottom strong,
+  .teacher-portal-shell .metric-bottom strong,
+  .dashboard-shell .metric-bottom strong,
+  .student-dashboard-shell .metric-bottom strong,
+  .support-portal-root .metric-bottom strong {
     font-size: 24px !important;
     line-height: 28px !important;
   }
-  .teacher-portal-shell .metric-bottom span {
+  .metric-bottom span,
+  .teacher-portal-shell .metric-bottom span,
+  .dashboard-shell .metric-bottom span,
+  .student-dashboard-shell .metric-bottom span,
+  .support-portal-root .metric-bottom span {
     font-size: 11px !important;
   }
   .teacher-portal-shell .dashboard-header {
@@ -384,40 +517,85 @@ body:has(.teacher-portal-shell) {
     height: 185px !important;
     padding: 14px 18px 8px !important;
   }
+  .left-column,
+  .right-column,
+  .content-grid,
   .teacher-portal-shell .left-column,
   .teacher-portal-shell .right-column,
-  .teacher-portal-shell .content-grid {
+  .teacher-portal-shell .content-grid,
+  .dashboard-shell .left-column,
+  .dashboard-shell .right-column,
+  .dashboard-shell .content-grid,
+  .student-dashboard-shell .left-column,
+  .student-dashboard-shell .right-column,
+  .student-dashboard-shell .content-grid,
+  .support-portal-root .left-column,
+  .support-portal-root .right-column,
+  .support-portal-root .content-grid,
+  .student-courses-grid,
+  .app-card-stack,
+  .app-card-grid-2,
+  .app-card-grid-3 {
     gap: 10px !important;
   }
 }
 
 @media (max-height: 740px) {
-  .teacher-portal-shell .metrics-grid {
+  :root {
+    --app-card-gap: 8px;
+    --app-card-gap-metrics: 8px;
+    --app-card-margin-bottom: 6px;
+  }
+  .metrics-grid,
+  .teacher-portal-shell .metrics-grid,
+  .dashboard-shell .metrics-grid,
+  .student-dashboard-shell .metrics-grid,
+  .support-portal-root .metrics-grid {
     min-height: 96px !important;
     height: 96px !important;
     gap: 8px !important;
     margin-bottom: 6px !important;
   }
-  .teacher-portal-shell .metric-card {
+  .metric-card,
+  .teacher-portal-shell .metric-card,
+  .dashboard-shell .metric-card,
+  .student-dashboard-shell .metric-card,
+  .support-portal-root .metric-card {
     height: 96px !important;
   }
-  .teacher-portal-shell .metric-label {
+  .metric-label,
+  .teacher-portal-shell .metric-label,
+  .dashboard-shell .metric-label,
+  .student-dashboard-shell .metric-label,
+  .support-portal-root .metric-label {
     top: 18px !important;
     left: 50px !important;
     font-size: 12px !important;
   }
-  .teacher-portal-shell .metric-icon {
+  .metric-icon,
+  .teacher-portal-shell .metric-icon,
+  .dashboard-shell .metric-icon,
+  .student-dashboard-shell .metric-icon,
+  .support-portal-root .metric-icon {
     top: 10px !important;
     left: 10px !important;
     width: 28px !important;
     height: 28px !important;
   }
-  .teacher-portal-shell .metric-bottom {
+  .metric-bottom,
+  .teacher-portal-shell .metric-bottom,
+  .dashboard-shell .metric-bottom,
+  .student-dashboard-shell .metric-bottom,
+  .support-portal-root .metric-bottom {
     bottom: 6px !important;
     left: 10px !important;
     right: 10px !important;
   }
-  .teacher-portal-shell .metric-bottom strong {
+  .metric-bottom strong,
+  .teacher-portal-shell .metric-bottom strong,
+  .dashboard-shell .metric-bottom strong,
+  .student-dashboard-shell .metric-bottom strong,
+  .support-portal-root .metric-bottom strong {
     font-size: 20px !important;
     line-height: 24px !important;
   }
@@ -469,9 +647,25 @@ body:has(.teacher-portal-shell) {
     height: 170px !important;
     padding: 12px 16px 6px !important;
   }
+  .left-column,
+  .right-column,
+  .content-grid,
   .teacher-portal-shell .left-column,
   .teacher-portal-shell .right-column,
-  .teacher-portal-shell .content-grid {
+  .teacher-portal-shell .content-grid,
+  .dashboard-shell .left-column,
+  .dashboard-shell .right-column,
+  .dashboard-shell .content-grid,
+  .student-dashboard-shell .left-column,
+  .student-dashboard-shell .right-column,
+  .student-dashboard-shell .content-grid,
+  .support-portal-root .left-column,
+  .support-portal-root .right-column,
+  .support-portal-root .content-grid,
+  .student-courses-grid,
+  .app-card-stack,
+  .app-card-grid-2,
+  .app-card-grid-3 {
     gap: 8px !important;
   }
 }
@@ -547,7 +741,9 @@ body:has(.teacher-portal-shell) {
   width: 200px;
   min-height: 665px;
   border-radius: var(--radius-xl);
-  background: var(--lavender);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
   padding: 24px 22px 20px;
   display: flex;
   flex-direction: column;
@@ -600,19 +796,19 @@ body:has(.teacher-portal-shell) {
   width: 61px;
   height: 61px;
   border-radius: 23px;
-  background: var(--pink-soft);
+  background: #fff1ee;
   object-fit: cover;
 }
 
 .teacher strong {
   margin-top: 9px;
   font-size: 13px;
-  font-weight: 500;
-  color: #000;
+  font-weight: 600;
+  color: #172033;
 }
 
 .teacher span {
-  color: var(--muted);
+  color: #64748b;
   font-size: 10px;
   font-weight: 400;
 }
@@ -629,23 +825,25 @@ body:has(.teacher-portal-shell) {
   display: flex;
   align-items: center;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: #000;
+  color: #64748b;
   padding: 0 10px;
   gap: 8px;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .nav-item:hover {
-  background: rgba(152, 96, 233, 0.08);
+  background: #f1f5f9;
+  color: #172033;
 }
 
 .nav-item.active {
-  color: var(--purple-dark);
-  background: rgba(152, 96, 233, 0.12);
+  color: #f0442e;
+  background: #fff1ee;
   font-weight: 700;
 }
 
@@ -661,27 +859,28 @@ body:has(.teacher-portal-shell) {
   right: 22px;
   bottom: 20px;
   height: 38px;
-  border: 0;
+  border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #000;
-  color: #fff;
+  background: #ffffff;
+  color: #64748b;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .new-assignment-btn:hover,
 .logout-btn:hover {
-  background: #1f1f23;
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #ef4444;
   transform: translateY(-1.5px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
-  color: #f4f4f5;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.16);
 }
 
 .new-assignment-btn:active,
@@ -897,25 +1096,28 @@ body:has(.teacher-portal-shell) {
   height: 35px;
   border: 0;
   border-radius: 999px;
-  background: #000;
+  background: linear-gradient(135deg, #ff5a24 0%, #f0442e 100%);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  transition: background 0.15s ease;
+  gap: 5px;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(240, 68, 46, 0.28);
 }
 
 .ask-ai:hover {
-  background: #242429;
+  background: linear-gradient(135deg, #f0442e 0%, #c8102e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(240, 68, 46, 0.38);
 }
 
 .ask-ai span {
-  color: #f3ff9b;
-  font-size: 15px;
+  color: #ffd8d1;
+  font-size: 14px;
 }
 
 /* Metrics Grid (Status Cards) */
@@ -923,8 +1125,8 @@ body:has(.teacher-portal-shell) {
   min-height: 132px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--app-card-gap-metrics, 12px);
+  margin-bottom: var(--app-card-margin-bottom, 14px);
 }
 
 .metric-card {
@@ -934,11 +1136,12 @@ body:has(.teacher-portal-shell) {
   background: transparent;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
   cursor: pointer;
+  filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.04));
 }
 
 .metric-card:hover {
   transform: translateY(-3px);
-  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.12));
+  filter: drop-shadow(0 8px 24px rgba(99, 91, 255, 0.12));
 }
 
 .metric-icon {
@@ -958,19 +1161,25 @@ body:has(.teacher-portal-shell) {
   transform: scale(1.05);
 }
 
-.metric-icon.lavender { background: #f3f0ff; color: #7f4ee3; }
-.metric-icon.pink { background: var(--pink-soft); color: #e44383; }
-.metric-icon.yellow { background: var(--yellow-soft); color: #b78a00; }
-.metric-icon.lime { background: var(--lime-soft); color: #6e9a00; }
+.metric-icon.lavender,
+.metric-icon.purple { background: #ede9fe; color: #635bff; }
+.metric-icon.pink { background: #fce7f3; color: #f472b6; }
+.metric-icon.yellow,
+.metric-icon.amber { background: #fef3c7; color: #f59e0b; }
+.metric-icon.lime,
+.metric-icon.green,
+.metric-icon.teal { background: #d1fae5; color: #10b981; }
+.metric-icon.blue,
+.metric-icon.info { background: #dbeafe; color: #3b82f6; }
 
 .metric-label {
   position: absolute;
   left: 65px;
   top: 28px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  color: #000;
+  color: #64748b !important;
   z-index: 2;
 }
 
@@ -990,36 +1199,70 @@ body:has(.teacher-portal-shell) {
   line-height: 34px;
   font-weight: 700;
   letter-spacing: -1px;
-  color: #000;
+  color: #172033 !important;
 }
 
 .metric-bottom span {
   padding-bottom: 3px;
-  color: #79b700;
+  color: #0f766e !important;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Content Grid */
+/* Content Grid & Universal Card Spacing Systems */
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: 14px;
+  gap: var(--app-card-gap, 14px);
   align-items: start;
 }
 
 .left-column {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--app-card-gap, 14px);
   min-width: 0;
 }
 
 .right-column {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--app-card-gap, 14px);
   min-width: 0;
+}
+
+/* Universal Card Stacks and Grids */
+.app-card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-card-gap, 14px) !important;
+}
+
+.app-card-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--app-card-gap, 14px) !important;
+}
+@media (min-width: 768px) {
+  .app-card-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.app-card-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--app-card-gap, 14px) !important;
+}
+@media (min-width: 640px) {
+  .app-card-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .app-card-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .panel,
@@ -1030,28 +1273,30 @@ body:has(.teacher-portal-shell) {
 }
 
 .panel {
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
 .panel:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
 }
 
-/* Class Overview Card */
+/* Class Overview Card - Signature Brand Gradient from Design System */
 .class-card {
   position: relative;
   height: 215px;
-  background: var(--lime);
+  background: linear-gradient(135deg, #ff5a24 0%, #f0442e 50%, #c8102e 100%) !important;
   padding: 16px 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 20px rgba(240, 68, 46, 0.22);
   cursor: pointer;
+  color: #ffffff;
 }
 
 .class-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 28px rgba(240, 68, 46, 0.32);
 }
 
 .class-heading {
@@ -1059,14 +1304,14 @@ body:has(.teacher-portal-shell) {
   line-height: 29px;
   font-weight: 700;
   letter-spacing: -0.7px;
-  color: #000;
+  color: #ffffff !important;
 }
 
 .class-subtitle {
   margin-top: 1px;
   font-size: 11px;
   font-weight: 400;
-  color: #000;
+  color: #e0e7ff !important;
 }
 
 .on-track {
@@ -1078,10 +1323,12 @@ body:has(.teacher-portal-shell) {
   display: flex;
   align-items: center;
   border-radius: 999px;
-  background: #050505;
-  color: #d6ff5c;
-  font-size: 9px;
-  font-weight: 500;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  font-size: 9.5px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
 }
 
 .hand-art {
@@ -1094,6 +1341,7 @@ body:has(.teacher-portal-shell) {
   object-fit: contain;
   object-position: right center;
   pointer-events: none;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
 .avatar-group {
@@ -1109,17 +1357,17 @@ body:has(.teacher-portal-shell) {
   width: 39px;
   height: 39px;
   margin-right: -9px;
-  border: 2px solid #fff;
+  border: 2px solid #ffffff;
   border-radius: 50%;
   object-fit: cover;
-  background: #ddd;
+  background: #ede9fe;
 }
 
 .avatar-more {
   display: grid;
   place-items: center;
-  background: #030303;
-  color: #d9ff69;
+  background: #0f172a;
+  color: #ffffff;
   font-size: 10px;
   font-weight: 700;
 }
@@ -1135,17 +1383,18 @@ body:has(.teacher-portal-shell) {
 .class-progress span,
 .class-progress strong {
   display: block;
-  color: #000;
 }
 
 .class-progress span {
   font-weight: 500;
+  color: #e0e7ff !important;
 }
 
 .class-progress strong {
   margin-top: 1px;
   font-size: 14px;
   font-weight: 700;
+  color: #ffffff !important;
 }
 
 .class-progress-track {
@@ -1154,7 +1403,7 @@ body:has(.teacher-portal-shell) {
   margin-top: 5px;
   overflow: hidden;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 .class-progress-track i {
@@ -1162,7 +1411,7 @@ body:has(.teacher-portal-shell) {
   width: 78%;
   height: 100%;
   border-radius: inherit;
-  background: #050505;
+  background: #ffffff !important;
 }
 
 /* Card Header Common */
@@ -1177,20 +1426,22 @@ body:has(.teacher-portal-shell) {
   line-height: 24px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  color: #000;
+  color: #172033 !important;
 }
 
 .view-all {
   border: 0;
   background: transparent;
-  color: #666373;
+  color: #64748b;
   font-size: 10px;
   font-weight: 500;
   padding: 4px;
+  cursor: pointer;
+  transition: color 0.15s ease;
 }
 
 .view-all:hover {
-  color: var(--purple-dark);
+  color: #f0442e;
 }
 
 /* Assignments Card */
@@ -1218,7 +1469,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .assignment-row:hover {
-  background: #f7f6fc;
+  background: #f8fafc;
 }
 
 .row-icon {
@@ -1228,8 +1479,8 @@ body:has(.teacher-portal-shell) {
   display: grid;
   place-items: center;
   border-radius: 11px;
-  background: var(--gray-soft);
-  color: #4b4856;
+  background: #fff1ee;
+  color: #f0442e;
 }
 
 .row-copy {
@@ -1247,11 +1498,11 @@ body:has(.teacher-portal-shell) {
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: #000;
+  color: #172033;
 }
 
 .row-copy span {
-  color: var(--muted);
+  color: #64748b;
   font-size: 9px;
   line-height: 12px;
   font-weight: 400;
@@ -1271,10 +1522,19 @@ body:has(.teacher-portal-shell) {
   white-space: nowrap;
 }
 
-.status.green { background: var(--lime-soft); color: #659000; }
-.status.purple { background: #f5efff; color: #8556ca; }
-.status.yellow { background: #fff0ac; color: #a77b00; }
-.status.gray { background: #f1f2f4; color: #676778; }
+.status.green,
+.status.success { background: #ccfbf1 !important; color: #0f766e !important; }
+.status.purple,
+.status.orange,
+.status.lavender { background: #fff1ee !important; color: #f0442e !important; }
+.status.yellow,
+.status.warning { background: #fef3c7 !important; color: #d97706 !important; }
+.status.red,
+.status.error { background: #fee2e2 !important; color: #dc2626 !important; }
+.status.blue,
+.status.info { background: #e0f2fe !important; color: #0284c7 !important; }
+.status.gray,
+.status.neutral { background: #f1f5f9 !important; color: #64748b !important; }
 
 /* Student Progress Card */
 .student-card {
@@ -1286,7 +1546,7 @@ body:has(.teacher-portal-shell) {
   margin-top: 19px;
   display: grid;
   grid-template-columns: minmax(130px, 1.4fr) minmax(140px, 1.8fr) 70px 28px;
-  color: #666373;
+  color: #64748b;
   font-size: 10px;
   font-weight: 500;
 }
@@ -1305,10 +1565,11 @@ body:has(.teacher-portal-shell) {
   border-radius: 8px;
   padding: 0 6px;
   margin: 0 -6px;
+  cursor: pointer;
 }
 
 .student-row:hover {
-  background: #f7f6fc;
+  background: #f8fafc;
 }
 
 .student-name {
@@ -1316,7 +1577,7 @@ body:has(.teacher-portal-shell) {
   align-items: center;
   gap: 10px;
   font-weight: 700;
-  color: #000;
+  color: #172033;
   min-width: 0;
 }
 
@@ -1326,6 +1587,7 @@ body:has(.teacher-portal-shell) {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1px solid #e2e8f0;
 }
 
 .student-name span {
@@ -1346,22 +1608,29 @@ body:has(.teacher-portal-shell) {
   height: 6px;
   overflow: hidden;
   border-radius: 10px;
-  background: #f0f1f3;
+  background: #fff1ee;
 }
 
 .completion-track i {
   display: block;
   height: 100%;
   border-radius: inherit;
+  background: linear-gradient(90deg, #ff5a24 0%, #f0442e 100%);
 }
 
-.completion-track i.lime { background: var(--lime); }
-.completion-track i.pink { background: #f2a6c7; }
-.completion-track i.yellow { background: #f8dc70; }
-.completion-track i.purple { background: #d7a9ed; }
+.completion-track i.lime,
+.completion-track i.green,
+.completion-track i.teal { background: #0f766e !important; }
+.completion-track i.pink,
+.completion-track i.red { background: #dc2626 !important; }
+.completion-track i.yellow,
+.completion-track i.amber { background: #f59e0b !important; }
+.completion-track i.purple,
+.completion-track i.orange { background: linear-gradient(90deg, #ff5a24 0%, #f0442e 100%) !important; }
+.completion-track i.blue { background: #0284c7 !important; }
 
 .completion span {
-  color: #5f5c69;
+  color: #64748b;
   font-size: 10px;
   font-weight: 500;
 }
@@ -1369,24 +1638,25 @@ body:has(.teacher-portal-shell) {
 .average {
   font-size: 13px;
   font-weight: 700;
-  color: #000;
+  color: #172033;
 }
 
 .more {
   border: 0;
   background: transparent;
-  color: #6d6a77;
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   padding: 4px;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .more:hover {
-  background: #e9e6f7;
-  color: var(--purple-dark);
+  background: #fff1ee;
+  color: #f0442e;
 }
 
 /* Parent Reports Card */
@@ -1400,23 +1670,26 @@ body:has(.teacher-portal-shell) {
   height: 29px;
   border: 0;
   border-radius: 999px;
-  background: #000;
-  color: #fff;
+  background: #f0442e;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   display: grid;
   place-items: center;
   transition: all 0.15s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(240, 68, 46, 0.25);
 }
 
 .report-button:hover {
-  background: #242429;
+  background: #d73823;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(240, 68, 46, 0.35);
 }
 
 .reports-card p {
   margin: 1px 0 15px;
-  color: #5f5c68;
+  color: #64748b;
   font-size: 10px;
   line-height: 12px;
   font-weight: 400;
@@ -1428,10 +1701,11 @@ body:has(.teacher-portal-shell) {
   border-radius: 12px;
   padding: 0 8px;
   margin: 0 -8px;
+  cursor: pointer;
 }
 
 .report-row:hover {
-  background: #f7f6fc;
+  background: #f8fafc;
 }
 
 .report-row .status {
@@ -1453,22 +1727,24 @@ body:has(.teacher-portal-shell) {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 500;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: transparent;
-  color: #666373;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .filter-pill:hover {
-  background: #f4f3fa;
-  color: var(--ink);
+  background: #f1f5f9;
+  color: #172033;
 }
 
 .filter-pill.active {
-  background: #000;
-  color: #fff;
-  border-color: #000;
+  background: #f0442e;
+  color: #ffffff;
+  border-color: #f0442e;
   font-weight: 700;
+  box-shadow: 0 2px 6px rgba(240, 68, 46, 0.2);
 }
 
 .roster-card {
@@ -1595,8 +1871,8 @@ body:has(.teacher-portal-shell) {
 
 .roster-select:focus,
 .lms-select:focus {
-  border-color: var(--purple, #9860e9);
-  box-shadow: 0 0 0 3px rgba(152, 96, 233, 0.15);
+  border-color: #635BFF;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
   background-color: #ffffff;
 }
 
@@ -1632,8 +1908,8 @@ body:has(.teacher-portal-shell) {
 }
 
 .form-select-standard:focus {
-  border-color: var(--purple, #9860e9);
-  box-shadow: 0 0 0 3px rgba(152, 96, 233, 0.18);
+  border-color: #635BFF;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.18);
   background-color: #ffffff;
 }
 
@@ -1987,23 +2263,51 @@ select option {
 }
 
 .btn-primary {
-  background: #000 !important;
-  color: #fff !important;
+  background: #635bff !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(99, 91, 255, 0.25);
+  transition: all 0.15s ease;
 }
 
 .btn-primary:hover {
-  background: #242429 !important;
+  background: #534ae6 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 91, 255, 0.35);
 }
 
 .btn-secondary {
-  background: rgba(152, 96, 233, 0.12) !important;
-  color: var(--purple-dark) !important;
-  font-weight: 500 !important;
+  background: #ede9fe !important;
+  color: #635bff !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease;
 }
 
 .btn-secondary:hover {
-  background: rgba(152, 96, 233, 0.2) !important;
+  background: #ddd6fe !important;
+}
+
+.btn-outline {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease;
+}
+
+.btn-outline:hover {
+  background: #f8fafc !important;
+}
+
+.btn-danger {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: #fecaca !important;
 }
 
 /* Modals & Dialogs */
@@ -2767,12 +3071,12 @@ select option {
 
 .auth-lime-card {
   position: relative;
-  background: var(--lime);
+  background: linear-gradient(135deg, #ff5a24 0%, #f0442e 50%, #c8102e 100%);
   border-radius: var(--radius-xl);
   padding: 24px 22px 20px;
   overflow: hidden;
-  color: #000;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(240, 68, 46, 0.25);
 }
 
 .auth-hand-art {
@@ -2790,7 +3094,8 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #000;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   border-radius: 999px;
   padding: 4px 10px;
@@ -2808,12 +3113,13 @@ select option {
   letter-spacing: -0.6px;
   margin: 0 0 6px 0;
   max-width: 260px;
+  color: #ffffff;
 }
 
 .auth-lime-sub {
   font-size: 12px;
   line-height: 1.4;
-  color: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.92);
   font-weight: 500;
   max-width: 250px;
   margin-bottom: 18px;
@@ -4417,7 +4723,7 @@ select option {
 .student-chart-bar-track {
   width: 14px;
   height: 75px;
-  background: #f4f3ff;
+  background: #f1f5f9;
   border-radius: 999px;
   display: flex;
   align-items: flex-end;
@@ -4426,19 +4732,19 @@ select option {
 
 .student-chart-bar-fill {
   width: 100%;
-  background: #c4b5fd;
+  background: #fed7d0;
   border-radius: 999px;
   transition: height 0.3s ease;
 }
 
 .student-chart-bar-fill.highlight {
-  background: #7c3aed;
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35);
+  background: #f0442e;
+  box-shadow: 0 2px 8px rgba(240, 68, 46, 0.35);
 }
 
 .student-chart-day-label {
   font-size: 8.5px;
-  color: #71717a;
+  color: #64748b;
   font-weight: 600;
 }
 
@@ -4446,7 +4752,7 @@ select option {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  border-top: 1px solid #f4f4f5;
+  border-top: 1px solid #f1f5f9;
   padding-top: 8px;
   margin-top: 4px;
 }
@@ -4467,24 +4773,24 @@ select option {
 }
 
 .student-chart-stat-icon.green {
-  background: #ecfdf5;
-  color: #10b981;
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
 .student-chart-stat-icon.purple {
-  background: #f4f3ff;
-  color: #7c3aed;
+  background: #fff1ee;
+  color: #f0442e;
 }
 
 .student-chart-stat-icon.cyan {
-  background: #ecfeff;
-  color: #06b6d4;
+  background: #e0f2fe;
+  color: #0284c7;
 }
 
 .student-chart-stat-val {
   font-size: 11px;
   font-weight: 800;
-  color: #09090b;
+  color: #172033;
   line-height: 1;
 }
 
@@ -4656,16 +4962,16 @@ select option {
   border: none;
 }
 
-/* Hero: Continue Learning Banner - Teacher Maple Class Lime Theme */
+/* Hero: Continue Learning Banner - Quantum LMS Signature Gradient Theme */
 .student-hero-banner.student-hero-lime {
-  background: var(--lime) !important; /* #a8ed00 */
+  background: linear-gradient(135deg, #ff5a24 0%, #f0442e 50%, #c8102e 100%) !important;
   border-radius: var(--radius-xl);
   padding: 20px 24px;
-  color: #000000;
+  color: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 25px rgba(240, 68, 46, 0.28);
   position: relative;
   overflow: hidden;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
@@ -4673,20 +4979,22 @@ select option {
 
 .student-hero-banner.student-hero-lime:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 14px 32px rgba(240, 68, 46, 0.35);
 }
 
 .student-hero-badge-black {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   height: 26px;
   padding: 0 12px;
   border-radius: 999px;
-  background: #050505;
-  color: #d6ff5c;
-  font-size: 9.5px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 
@@ -4695,21 +5003,21 @@ select option {
   line-height: 28px;
   font-weight: 700;
   letter-spacing: -0.6px;
-  color: #000000;
+  color: #ffffff;
   margin: 0;
 }
 
 .student-hero-sub-dark {
   font-size: 13px;
   font-weight: 600;
-  color: #000000;
+  color: rgba(255, 255, 255, 0.95);
   margin: 4px 0 2px;
 }
 
 .student-hero-meta-dark {
   font-size: 11px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.65);
+  color: #fed7d0;
   margin-bottom: 16px;
 }
 
@@ -4717,8 +5025,8 @@ select option {
   height: 36px;
   padding: 0 18px;
   border-radius: 999px;
-  background: #000000;
-  color: #ffffff;
+  background: #ffffff !important;
+  color: #172033 !important;
   font-size: 12px;
   font-weight: 700;
   border: none;
@@ -4726,23 +5034,24 @@ select option {
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .student-hero-btn-dark:hover {
-  background: #1f1f23;
+  background: #f8fafc !important;
+  color: #f0442e !important;
   transform: translateY(-1.5px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .student-hero-bookmark-dark {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.06);
-  border: 1.5px solid rgba(0, 0, 0, 0.15);
-  color: #000000;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -4751,9 +5060,9 @@ select option {
 
 .student-hero-bookmark-dark:hover,
 .student-hero-bookmark-dark.active {
-  background: #000000;
+  background: rgba(255, 255, 255, 0.35);
   color: #ffffff;
-  border-color: #000000;
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Seamless AI Robot Blending */
@@ -4771,7 +5080,7 @@ select option {
   width: 140px;
   height: 140px;
   object-fit: contain;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.12));
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.18));
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   background: transparent !important;
   border: none !important;
@@ -4795,21 +5104,21 @@ select option {
 .student-progress-label-lime {
   font-size: 11px;
   font-weight: 700;
-  color: #000000;
+  color: #ffffff;
 }
 
 .student-progress-track-lime {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.25);
   overflow: hidden;
 }
 
 .student-progress-fill-lime {
   height: 100%;
   border-radius: 999px;
-  background: #000000;
+  background: #ffffff;
   transition: width 0.3s ease;
 }
 
@@ -4822,38 +5131,38 @@ select option {
 
 .student-action-ai-btn {
   width: 100%;
-  height: 30px;
+  height: 32px;
   border: 0;
   border-radius: 999px;
-  background: #000;
-  color: #fff;
+  background: linear-gradient(135deg, #ff5a24 0%, #f0442e 100%);
+  color: #ffffff;
   font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 12px rgba(240, 68, 46, 0.28);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .student-action-ai-btn span:first-child {
-  color: #f3ff9b;
+  color: #ffd8d1;
 }
 
 .student-action-ai-btn:hover {
-  background: #1f1f23;
+  background: #d73823;
   transform: translateY(-1px);
 }
 
 .student-action-switch-btn {
   width: 100%;
   height: 28px;
-  border: 1px solid rgba(152, 96, 233, 0.3);
+  border: 1px solid #E2E8F0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--purple-dark);
+  background: #FFFFFF;
+  color: #64748B;
   font-size: 10.5px;
   font-weight: 700;
   display: flex;
@@ -4864,18 +5173,19 @@ select option {
 }
 
 .student-action-switch-btn:hover {
-  background: #ffffff;
-  border-color: var(--purple);
+  background: #FFF1EE;
+  border-color: #F0442E;
+  color: #F0442E;
   transform: translateY(-1px);
 }
 
 .student-action-logout-btn {
   width: 100%;
   height: 30px;
-  border: 0;
+  border: 1px solid #E2E8F0;
   border-radius: 999px;
-  background: #000;
-  color: #fff;
+  background: #FFFFFF;
+  color: #64748B;
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -4883,12 +5193,13 @@ select option {
   justify-content: center;
   gap: 5px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .student-action-logout-btn:hover {
-  background: #1f1f23;
+  background: #FEE2E2;
+  color: #EF4444;
+  border-color: #FCA5A5;
   transform: translateY(-1px);
 }
 
@@ -5230,18 +5541,18 @@ select option {
 
 /* ==================== NOORLY SOFT UI COMPONENT SYSTEM (STUDENT PORTAL) ==================== */
 :root {
-  --noorly-primary-purple: #905FEB;
-  --noorly-purple-hover: #7E4BDC;
-  --noorly-secondary-lime: #AEEB00;
-  --noorly-tertiary-lavender: #F0EDFF;
-  --noorly-neutral-ink: #111111;
-  --noorly-base-canvas: #F1F0F3;
+  --noorly-primary-purple: #F0442E;
+  --noorly-purple-hover: #D73823;
+  --noorly-secondary-lime: #0F766E;
+  --noorly-tertiary-lavender: #FFF1EE;
+  --noorly-neutral-ink: #172033;
+  --noorly-base-canvas: #F8FAFC;
   --noorly-card-bg: #FFFFFF;
-  --noorly-card-border: rgba(17, 17, 17, 0.06);
+  --noorly-card-border: #E2E8F0;
   --noorly-radius-pill: 9999px;
   --noorly-radius-card: 20px;
-  --noorly-shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-  --noorly-shadow-hover: 0 10px 30px rgba(144, 95, 235, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --noorly-shadow-soft: 0 4px 20px rgba(23, 32, 51, 0.04), 0 1px 3px rgba(23, 32, 51, 0.02);
+  --noorly-shadow-hover: 0 10px 30px rgba(240, 68, 46, 0.12), 0 2px 8px rgba(23, 32, 51, 0.04);
 }
 
 /* Noorly Soft UI Card */
@@ -5271,19 +5582,19 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 3px 12px rgba(144, 95, 235, 0.25);
+  box-shadow: 0 3px 12px rgba(240, 68, 46, 0.25);
   transition: all 0.18s ease;
 }
 
 .noorly-btn-primary:hover {
   background: var(--noorly-purple-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(144, 95, 235, 0.35);
+  box-shadow: 0 6px 18px rgba(240, 68, 46, 0.35);
 }
 
 .noorly-btn-lime {
-  background: var(--noorly-secondary-lime);
-  color: var(--noorly-neutral-ink);
+  background: #FFF1EE;
+  color: #F0442E;
   border-radius: var(--noorly-radius-pill);
   font-weight: 700;
   font-size: 12px;
@@ -5293,14 +5604,14 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 3px 12px rgba(174, 235, 0, 0.28);
+  box-shadow: 0 3px 12px rgba(240, 68, 46, 0.12);
   transition: all 0.18s ease;
 }
 
 .noorly-btn-lime:hover {
-  background: #9ee000;
+  background: #FED7D0;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(174, 235, 0, 0.38);
+  box-shadow: 0 6px 18px rgba(240, 68, 46, 0.2);
 }
 
 .noorly-btn-dark {
@@ -5315,19 +5626,19 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 12px rgba(23, 32, 51, 0.16);
   transition: all 0.18s ease;
 }
 
 .noorly-btn-dark:hover {
-  background: #252525;
+  background: #253350;
   transform: translateY(-1px);
 }
 
 .noorly-btn-secondary {
   background: #FFFFFF;
   color: var(--noorly-neutral-ink);
-  border: 1px solid rgba(17, 17, 17, 0.1);
+  border: 1px solid #E2E8F0;
   border-radius: var(--noorly-radius-pill);
   font-weight: 700;
   font-size: 12px;
@@ -5340,8 +5651,8 @@ select option {
 }
 
 .noorly-btn-secondary:hover {
-  background: #FAFAFA;
-  border-color: rgba(17, 17, 17, 0.2);
+  background: #F8FAFC;
+  border-color: #CBD5E1;
 }
 
 /* Noorly Soft Badges */
@@ -5355,8 +5666,8 @@ select option {
 }
 
 .noorly-badge-lime {
-  background: #F3FFD1;
-  color: #557900;
+  background: #CCFBF1;
+  color: #0F766E;
   border-radius: var(--noorly-radius-pill);
   padding: 3px 10px;
   font-size: 10px;
@@ -5364,8 +5675,8 @@ select option {
 }
 
 .noorly-badge-ink {
-  background: var(--noorly-neutral-ink);
-  color: var(--noorly-secondary-lime);
+  background: #172033;
+  color: #FFFFFF;
   border-radius: var(--noorly-radius-pill);
   padding: 3px 10px;
   font-size: 10px;
@@ -5376,7 +5687,7 @@ select option {
 /* Noorly Inputs */
 .noorly-input {
   border-radius: 14px;
-  border: 1px solid rgba(17, 17, 17, 0.12);
+  border: 1px solid #E2E8F0;
   background: #FFFFFF;
   padding: 10px 14px;
   font-size: 12px;
@@ -5387,7 +5698,7 @@ select option {
 
 .noorly-input:focus {
   border-color: var(--noorly-primary-purple);
-  box-shadow: 0 0 0 3px rgba(144, 95, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(240, 68, 46, 0.15);
 }
 
 /* Noorly Progress Bar */
@@ -5395,14 +5706,14 @@ select option {
   width: 100%;
   height: 8px;
   border-radius: var(--noorly-radius-pill);
-  background: rgba(17, 17, 17, 0.08);
+  background: #FFF1EE;
   overflow: hidden;
 }
 
 .noorly-progress-fill {
   height: 100%;
   border-radius: var(--noorly-radius-pill);
-  background: var(--noorly-primary-purple);
+  background: linear-gradient(90deg, #FF5A24 0%, #F0442E 100%);
   transition: width 0.4s ease;
 }
 
@@ -5414,12 +5725,13 @@ select option {
 }
 
 .student-hero-banner.student-hero-lime {
-  background: var(--noorly-secondary-lime) !important;
-  color: var(--noorly-neutral-ink) !important;
+  background: linear-gradient(135deg, #FF5A24 0%, #F0442E 50%, #C8102E 100%) !important;
+  color: #ffffff !important;
 }
 
 .student-hero-btn-dark {
-  background: var(--noorly-neutral-ink) !important;
+  background: #ffffff !important;
+  color: #172033 !important;
 }
 
 /* Noorly Course Card Styling */
@@ -5446,7 +5758,7 @@ select option {
 .student-courses-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--app-card-gap, 12px);
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -5462,21 +5774,21 @@ select option {
 @media (min-width: 640px) {
   .student-courses-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 11px;
+    gap: var(--app-card-gap, 12px);
   }
 }
 
 @media (min-width: 960px) {
   .student-courses-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--app-card-gap, 12px);
   }
 }
 
 @media (min-width: 1200px) {
   .student-courses-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--app-card-gap, 12px);
   }
 }
 

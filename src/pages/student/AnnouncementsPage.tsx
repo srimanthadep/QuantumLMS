@@ -46,7 +46,7 @@ export function AnnouncementsPage({ onToast }: AnnouncementsPageProps) {
   }, [announcements, filter, search])
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Announcements Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -123,7 +123,7 @@ export function AnnouncementsPage({ onToast }: AnnouncementsPageProps) {
       </section>
 
       {/* Announcements Feed */}
-      <div className="flex flex-col gap-3">
+      <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
         {filtered.map((item) => {
           const isExpanded = expandedIds[item.id] ?? false
           return (

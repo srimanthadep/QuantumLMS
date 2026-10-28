@@ -4,7 +4,7 @@ import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { initialCalendarEvents } from "../../data/mockData"
 
-type CalendarViewMode = "month" | "week" | "day" | "agenda"
+type CalendarViewMode = "timeline" | "month" | "week" | "day" | "agenda"
 
 // Date helpers
 function formatDateString(date: Date): string {
@@ -480,7 +480,7 @@ export default function CalendarPage({
   hexColor,
   onChangeHexColor,
   onOpenAiModal,
-  courses,
+  courses = [],
   onToast,
 }: {
   searchQuery: string
@@ -488,6 +488,7 @@ export default function CalendarPage({
   hexColor: string
   onChangeHexColor: (color: string) => void
   onOpenAiModal?: () => void
+  courses?: CourseItem[]
   onToast?: (msg: string) => void
 }) {
   // Calendar Events State with localStorage persistence
@@ -1562,7 +1563,7 @@ export default function CalendarPage({
       <CreateReminderModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        courses={courses}
+        courses={courses || []}
         onSaveReminder={handleCreateReminder}
         defaultDate={formatDateString(currentDate)}
       />

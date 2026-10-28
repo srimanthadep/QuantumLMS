@@ -469,7 +469,7 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
   };
 
   return (
-    <div className="flex flex-col gap-5 pb-10">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] pb-10">
       {/* Page Header / Action Bar */}
       <section className="student-shared-panel p-5 sm:p-6 mb-0" aria-label="Communication Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

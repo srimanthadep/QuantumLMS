@@ -471,7 +471,7 @@ export default function AnalyticsPage({
   }, [])
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header */}
       <AnalyticsHeader
         searchQuery={searchQuery}
@@ -483,7 +483,7 @@ export default function AnalyticsPage({
       />
 
       {/* 2. Top Summary KPI Cards (Section 2.A) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[var(--app-card-gap-metrics,12px)]">
         {kpiCards.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}
@@ -790,8 +790,8 @@ export default function AnalyticsPage({
                   <svg viewBox="0 0 840 100" className="w-full h-full overflow-visible">
                     <defs>
                       <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#9860e9" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#9860e9" stopOpacity="0.2" />
+                        <stop offset="0%" stopColor="#F0442E" stopOpacity="0.85" />
+                        <stop offset="100%" stopColor="#FF5A24" stopOpacity="0.25" />
                       </linearGradient>
                     </defs>
                     <line x1="0" y1="90" x2="840" y2="90" stroke="#f0f1f5" strokeWidth="1" />
@@ -1305,7 +1305,7 @@ export default function AnalyticsPage({
                   {/* Trendline */}
                   <polyline
                     fill="none"
-                    stroke="#a8ed00"
+                    stroke="#0F766E"
                     strokeWidth="3"
                     strokeLinecap="round"
                     points="40,25 140,35 240,15 340,22"
@@ -1318,7 +1318,7 @@ export default function AnalyticsPage({
                     { x: 340, y: 22, label: "96%", session: "Oct 22" },
                   ].map((pt) => (
                     <g key={pt.session}>
-                      <circle cx={pt.x} cy={pt.y} r="4" fill="#fff" stroke="#557c00" strokeWidth="2" />
+                      <circle cx={pt.x} cy={pt.y} r="4" fill="#fff" stroke="#0F766E" strokeWidth="2" />
                       <text x={pt.x} y={pt.y - 8} fill="#27272a" fontSize="9" fontWeight="bold" textAnchor="middle">
                         {pt.label}
                       </text>
@@ -1734,7 +1734,7 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
         key: "english",
         name: "English Language Arts",
         short: "English",
-        hex: "#9860e9",
+        hex: "#F0442E",
         mastery: 86,
         benchmark: 80,
         trendPoints: [72, 74, 76, 79, 81, 83, 85, 86],
@@ -1748,7 +1748,7 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
         key: "math",
         name: "Mathematics & Reasoning",
         short: "Math",
-        hex: "#a8ed00",
+        hex: "#FF5A24",
         mastery: 81,
         benchmark: 75,
         trendPoints: [65, 68, 70, 72, 75, 77, 80, 81],
@@ -1762,7 +1762,7 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
         key: "science",
         name: "Natural Science & Discovery",
         short: "Science",
-        hex: "#f2a6c7",
+        hex: "#172033",
         mastery: 89,
         benchmark: 78,
         trendPoints: [70, 73, 75, 78, 82, 85, 88, 89],
@@ -1776,7 +1776,7 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
         key: "art",
         name: "Creative Arts & Logic",
         short: "Art & Logic",
-        hex: "#f8dc70",
+        hex: "#0F766E",
         mastery: 94,
         benchmark: 82,
         trendPoints: [82, 84, 87, 89, 90, 92, 93, 94],
@@ -1880,10 +1880,10 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
           <line x1="30" y1="57.5" x2="570" y2="57.5" stroke="#edf0f5" strokeWidth="1" strokeDasharray="3 3" />
           <text x="24" y="60.5" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">90%</text>
 
-          <line x1="30" y1="90" x2="570" y2="90" stroke="#c4b5fd" strokeWidth="1.5" strokeDasharray="4 4" />
-          <text x="24" y="93" fill="var(--purple)" fontSize="9" fontWeight="700" textAnchor="end">80%</text>
-          <rect x="495" y="81" width="80" height="15" rx="4" fill="#f5f3ff" />
-          <text x="535" y="92" fill="var(--purple-dark)" fontSize="8.5" fontWeight="700" textAnchor="middle">Target Goal 80%</text>
+          <line x1="30" y1="90" x2="570" y2="90" stroke="#FFD8D1" strokeWidth="1.5" strokeDasharray="4 4" />
+          <text x="24" y="93" fill="#F0442E" fontSize="9" fontWeight="700" textAnchor="end">80%</text>
+          <rect x="495" y="81" width="80" height="15" rx="4" fill="#FFF1EE" />
+          <text x="535" y="92" fill="#F0442E" fontSize="8.5" fontWeight="700" textAnchor="middle">Target Goal 80%</text>
 
           <line x1="30" y1="122.5" x2="570" y2="122.5" stroke="#edf0f5" strokeWidth="1" strokeDasharray="3 3" />
           <text x="24" y="125.5" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">70%</text>

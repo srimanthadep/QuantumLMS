@@ -372,7 +372,7 @@ export function StudentSettingsPage({
   ]
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-full min-w-0 box-border text-left">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border text-left">
       {/* Top Breadcrumb Navigation */}
       <div className="flex justify-end items-center gap-1.5 text-xs text-zinc-400 font-medium -mb-1">
         <span>Settings</span>

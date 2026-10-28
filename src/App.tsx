@@ -266,6 +266,10 @@ export default function App() {
     try {
       const saved = localStorage.getItem("quantum_lms_bg_hex")
       if (saved && isValidHexColor(saved)) {
+        // Automatically migrate legacy purple background to new design system default
+        if (saved.toLowerCase() === "#9860e9") {
+          return DEFAULT_BG_HEX
+        }
         return normalizeHexColor(saved)
       }
     } catch {
@@ -281,11 +285,11 @@ export default function App() {
     document.body.style.backgroundColor = hexColor
     document.documentElement.style.setProperty("--bg-custom", hexColor)
     if (isLightBg) {
-      document.documentElement.style.setProperty("--bg-grid-line", "rgba(0, 0, 0, 0.08)")
-      document.documentElement.style.setProperty("--header-text-color", "#09090b")
-      document.documentElement.style.setProperty("--header-subtitle-color", "rgba(9, 9, 11, 0.75)")
+      document.documentElement.style.setProperty("--bg-grid-line", "rgba(23, 32, 51, 0.05)")
+      document.documentElement.style.setProperty("--header-text-color", "#172033")
+      document.documentElement.style.setProperty("--header-subtitle-color", "#64748B")
     } else {
-      document.documentElement.style.setProperty("--bg-grid-line", "rgba(255, 255, 255, 0.19)")
+      document.documentElement.style.setProperty("--bg-grid-line", "rgba(255, 255, 255, 0.15)")
       document.documentElement.style.setProperty("--header-text-color", "#ffffff")
       document.documentElement.style.setProperty("--header-subtitle-color", "rgba(255, 255, 255, 0.95)")
     }

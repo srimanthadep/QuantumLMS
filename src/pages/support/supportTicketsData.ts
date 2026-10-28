@@ -2,13 +2,20 @@ import { SupportTicket as BaseSupportTicket } from "@/types/lms";
 
 export type SupportCategory =
   | "Login & Account"
-  | "Live Class	"
+  | "Live Class"
   | "Assignments & Exams"
   | "Course Content"
   | "Technical Problem"
-  | "Payments & Certificates	"
+  | "Payments & Certificates"
   | "Notifications"
-  | "Others";
+  | "Others"
+  | "Account & Access Management"
+  | "Course & Content Management"
+  | "Assignments & Assessments"
+  | "Live Classes & Attendance"
+  | "Technical Support"
+  | "Communication & Notifications"
+  | "General Help & Feedback";
 
 export type SupportPriority = "high" | "medium" | "low";
 
@@ -25,8 +32,8 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
     badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
   },
   {
-    id: "Live Class	",
-    label: "Live Class	",
+    id: "Live Class",
+    label: "Live Class",
     badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
   },
   {
@@ -57,6 +64,41 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Others",
     label: "Others",
+    badgeClass: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB] rounded-full",
+  },
+  {
+    id: "Account & Access Management",
+    label: "Account & Access Management",
+    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+  },
+  {
+    id: "Course & Content Management",
+    label: "Course & Content Management",
+    badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
+  },
+  {
+    id: "Assignments & Assessments",
+    label: "Assignments & Assessments",
+    badgeClass: "bg-[#EAFCC7] text-[#3B6600] border-[#AEEB00]/40 rounded-full",
+  },
+  {
+    id: "Live Classes & Attendance",
+    label: "Live Classes & Attendance",
+    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+  },
+  {
+    id: "Technical Support",
+    label: "Technical Support",
+    badgeClass: "bg-[#FEE4E2] text-[#D92D20] border-[#FDA29B]/40 rounded-full",
+  },
+  {
+    id: "Communication & Notifications",
+    label: "Communication & Notifications",
+    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+  },
+  {
+    id: "General Help & Feedback",
+    label: "General Help & Feedback",
     badgeClass: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB] rounded-full",
   },
 ];

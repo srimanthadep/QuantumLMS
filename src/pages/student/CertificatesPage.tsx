@@ -15,7 +15,7 @@ export function CertificatesPage({ onToast }: CertificatesPageProps) {
   const inProgress = certificates.filter((c) => c.status === "In Progress")
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header Panel */}
       <section className="panel" aria-label="Certificates Header">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -59,7 +59,7 @@ export function CertificatesPage({ onToast }: CertificatesPageProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           {earned.map((cert) => (
             <div
               key={cert.id}
@@ -158,7 +158,7 @@ export function CertificatesPage({ onToast }: CertificatesPageProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           {inProgress.map((cert) => (
             <div
               key={cert.id}

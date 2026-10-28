@@ -316,7 +316,7 @@ export default function AdminPortal({
               <button
                 type="button"
                 onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap"
+                className="px-3 h-[35px] rounded-full bg-[#172033] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#253350] transition-colors cursor-pointer whitespace-nowrap"
                 aria-label="Switch active role view"
               >
                 <span>🔄 {role === "Super Admin" ? "Super Admin" : "School Admin"}</span>

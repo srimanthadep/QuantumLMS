@@ -110,7 +110,7 @@ export function AssignmentsPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* ==================================================================== */}
       {/* 1. DEDICATED IN-PAGE ASSIGNMENT DETAIL & SUBMISSION VIEW             */}
       {/* ==================================================================== */}
@@ -509,7 +509,7 @@ export function AssignmentsPage({
         /* ==================================================================== */
         /* 2. ASSIGNMENTS LIST VIEW                                             */
         /* ==================================================================== */
-        <div className="flex flex-col gap-5">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
           {/* Header Panel with Controls */}
           <section className="panel" aria-label="Assignments Header">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -581,7 +581,7 @@ export function AssignmentsPage({
           </section>
 
           {/* Assignments List */}
-          <div className="flex flex-col gap-3">
+          <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
             {filtered.map((item) => {
               return (
                 <div

@@ -129,7 +129,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Academic Summary Action */}
       <section
         className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl"

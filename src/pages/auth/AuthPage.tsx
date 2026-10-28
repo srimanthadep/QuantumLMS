@@ -110,7 +110,7 @@ export default function AuthPage({
             <div>
               {/* Dynamic Hero Banner based on Active Role */}
               {role === "Super Admin" ? (
-                <div className="auth-lime-card !bg-linear-to-br !from-red-500 !to-rose-600 text-white">
+                <div className="auth-lime-card text-white">
                   <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
                     <span>⚡</span>
                     <span>Root Master Sovereignty</span>
@@ -129,7 +129,7 @@ export default function AuthPage({
                   </div>
                 </div>
               ) : role === "Admin" ? (
-                <div className="auth-lime-card !bg-linear-to-br !from-purple-600 !to-indigo-700 text-white">
+                <div className="auth-lime-card text-white">
                   <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
                     <span>🏫</span>
                     <span>Campus Executive Oversight</span>
@@ -148,7 +148,7 @@ export default function AuthPage({
                   </div>
                 </div>
               ) : role === "Student" ? (
-                <div className="auth-lime-card !bg-linear-to-br !from-blue-500 !to-cyan-600 text-white">
+                <div className="auth-lime-card text-white">
                   <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
                     <span>🎒</span>
                     <span>Interactive Student Suite</span>
@@ -167,7 +167,7 @@ export default function AuthPage({
                   </div>
                 </div>
               ) : role === "Support" ? (
-                <div className="auth-lime-card !bg-linear-to-br !from-cyan-600 !to-teal-700 text-white">
+                <div className="auth-lime-card text-white">
                   <div className="auth-showcase-badge !bg-black/25 !text-white !border-white/20">
                     <span>🎧</span>
                     <span>Support & Resolution Suite</span>

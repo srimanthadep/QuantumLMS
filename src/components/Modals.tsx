@@ -443,7 +443,7 @@ export function Toast({ message, onClose }: { message: string; onClose: () => vo
 
   return (
     <div className="toast-notice" role="status">
-      <span className="w-5 h-5 rounded-full bg-[#a8ed00] text-black grid place-items-center text-xs font-bold">
+      <span className="w-5 h-5 rounded-full bg-[#0F766E] text-white grid place-items-center text-xs font-bold">
         ✓
       </span>
       <span>{message}</span>
