@@ -1,6 +1,73 @@
 import type { IconName } from "../../types"
 
-export type StudentNavPage = "Dashboard" | "My Courses" | "Course Details" | "Timetable" | "Attendance" | "Assignments" | "Quizzes" | "Grades" | "Communication" | "Discussions" | "Mentor Details" | "My Notes" | "Certificates" | "Events & Notices" | "Announcements" | "Community" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
+export type StudentNavPage = "Dashboard" | "My Courses" | "Course Details" | "Timetable" | "Attendance" | "Assignments" | "Quizzes" | "Grades" | "Communication" | "Discussions" | "Mentor Details" | "My Notes" | "Certificates" | "Resume Building" | "Mock Interview" | "Events & Notices" | "Announcements" | "Community" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
+
+export interface EducationEntry {
+  id: string
+  degree: string
+  institution: string
+  year: string
+  score: string
+  location?: string
+}
+
+export interface ProjectEntry {
+  id: string
+  title: string
+  role?: string
+  technologies: string
+  link?: string
+  description: string
+}
+
+export interface ExperienceEntry {
+  id: string
+  company: string
+  role: string
+  duration: string
+  location?: string
+  responsibilities: string
+}
+
+export interface CertificationEntry {
+  id: string
+  name: string
+  issuer: string
+  date: string
+  link?: string
+}
+
+export interface AchievementEntry {
+  id: string
+  title: string
+  year: string
+  description: string
+}
+
+export interface ResumeData {
+  personalInfo: {
+    fullName: string
+    headline: string
+    email: string
+    phone: string
+    location: string
+    linkedin: string
+    github: string
+    portfolio: string
+  }
+  summary: string
+  education: EducationEntry[]
+  skills: {
+    languages: string[]
+    frameworks: string[]
+    tools: string[]
+    concepts: string[]
+  }
+  projects: ProjectEntry[]
+  experience: ExperienceEntry[]
+  certifications: CertificationEntry[]
+  achievements: AchievementEntry[]
+}
 
 export interface CourseItem {
   id: string
@@ -233,6 +300,23 @@ export interface FaqItem {
 }
 
 export type TicketCategory =
+  | "Select Issue Category"
+  | "All Categories"
+  | "Login & Account"
+  | "Live Class"
+  | "Assignments & Exams"
+  | "Course Content"
+  | "Technical Problem"
+  | "Payments & Certificates"
+  | "Notifications"
+  | "Others"
+  | "Account & Access Management"
+  | "Course & Content Management"
+  | "Assignments & Assessments"
+  | "Live Classes & Attendance"
+  | "Technical Support"
+  | "Communication & Notifications"
+  | "General Help & Feedback"
   | "Technical Issue"
   | "Course/Content"
   | "Attendance"
@@ -304,4 +388,58 @@ export interface MentorProfile {
   availabilityStatus: "Available Now" | "In Lecture" | "Away"
   assignedStudents: MentorAssignedStudent[]
   meeting?: MentorMeetingInfo
+}
+
+// Mock Interview System Data Models
+export type InterviewType =
+  | "Technical"
+  | "HR"
+  | "Behavioral"
+  | "Coding"
+  | "Aptitude"
+
+export interface InterviewQuestion {
+  id: string
+  category: InterviewType
+  question: string
+  expectedConcepts: string[]
+  sampleAnswer: string
+  tip: string
+}
+
+export interface InterviewSetup {
+  jobRole: string
+  experienceLevel: "Fresher" | "1-2 Years" | "3-5 Years" | "5+ Years"
+  questionCount: number
+  durationMinutes: number
+}
+
+export interface InterviewQuestionResponse {
+  questionId: string
+  questionText: string
+  answerText: string
+  scorePercent: number
+  feedback: string
+  conceptsFound: string[]
+  conceptsMissed: string[]
+}
+
+export interface InterviewHistoryItem {
+  id: string
+  date: string
+  type: InterviewType
+  role: string
+  score: number // 0-100 percentage
+  totalQuestions: number
+  completedQuestions: number
+  durationMinutes: number
+  timeSpentSeconds: number
+  responses: InterviewQuestionResponse[]
+}
+
+export interface InterviewStats {
+  totalInterviews: number
+  averageScore: number
+  practiceHours: number
+  interviewsCompleted: number
 }

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type { CommunityPost } from "./studentTypes"
 import { initialCommunityPosts } from "./studentMockData"
 
@@ -268,22 +269,16 @@ export function CommunityPage({ onToast }: CommunityPageProps) {
                 <label className="font-bold text-zinc-700 block mb-1">
                   Select Channel
                 </label>
-                <select
+                <StudentDropdown
                   value={postChannel}
-                  onChange={(e) => setPostChannel(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
-                >
-                  <option value="🏆 Hackathons">
-                    🏆 Hackathons & Team Formation
-                  </option>
-                  <option value="🔬 Research & Labs">🔬 Research & Labs</option>
-                  <option value="📚 Study Groups">
-                    📚 Study Groups & Midterm Prep
-                  </option>
-                  <option value="💬 General">
-                    💬 General Student Discussion
-                  </option>
-                </select>
+                  onChange={setPostChannel}
+                  options={[
+                    { value: "🏆 Hackathons", label: "🏆 Hackathons & Team Formation" },
+                    { value: "🔬 Research & Labs", label: "🔬 Research & Labs" },
+                    { value: "📚 Study Groups", label: "📚 Study Groups & Midterm Prep" },
+                    { value: "💬 General", label: "💬 General Student Discussion" },
+                  ]}
+                />
               </div>
 
               <div>

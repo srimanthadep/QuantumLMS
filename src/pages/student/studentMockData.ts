@@ -1995,7 +1995,7 @@ export const initialCommunityPosts: CommunityPost[] = [
 export const initialSupportTickets: SupportTicket[] = [
   {
     id: "TKT-84920",
-    category: "Technical Issue",
+    category: "Technical Support",
     subject: "H100 GPU Cluster allocation quota extension for RAG benchmarking",
     description:
       "Requesting additional compute hours on node slurm-h100-04 to run embedding latency benchmarks across 50,000 document chunks for thesis research.",
@@ -2039,7 +2039,7 @@ export const initialSupportTickets: SupportTicket[] = [
   },
   {
     id: "TKT-71204",
-    category: "Attendance",
+    category: "Live Classes & Attendance",
     subject: "Medical leave verification for Oct 14 absence",
     description:
       "Submitted official health center medical slip for excused absence on Oct 14 during Machine Learning Foundations lecture.",
@@ -2074,7 +2074,7 @@ export const initialSupportTickets: SupportTicket[] = [
   },
   {
     id: "TKT-92145",
-    category: "Timetable",
+    category: "Live Classes & Attendance",
     subject: "Timetable clash between AI Ethics seminar and Lab 4 slot",
     description:
       "There is an overlapping period on Wednesday between 02:00 PM - 03:30 PM where AI Ethics (Virtual Room 1) and Lab 4 (Lab 2) are scheduled simultaneously.",
@@ -2099,7 +2099,7 @@ export const initialSupportTickets: SupportTicket[] = [
   },
   {
     id: "TKT-63019",
-    category: "Course/Content",
+    category: "Course & Content Management",
     subject: "Senior thesis advisor sign-off for Spring 2027 Elective track",
     description:
       "Scheduled advising session with Prof. Srimanth Adep regarding autonomous agent robotics research track.",

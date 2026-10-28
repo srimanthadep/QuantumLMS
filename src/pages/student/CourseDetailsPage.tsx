@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { Icon } from "../../components/Icon"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type {
   CourseItem,
   ModuleItem,
@@ -1955,18 +1956,18 @@ export function CourseDetailsPage({
 
                 {/* Filter by Lesson Dropdown */}
                 {courseLessons.length > 0 && (
-                  <select
+                  <StudentDropdown
                     value={selectedLessonFilter}
-                    onChange={(e) => setSelectedLessonFilter(e.target.value)}
-                    className="px-3.5 py-2 text-xs font-semibold rounded-full border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:border-purple-600 cursor-pointer"
-                  >
-                    <option value="All">All Lessons & Topics ({notes.length})</option>
-                    {courseLessons.map((les) => (
-                      <option key={les} value={les}>
-                        Lesson: {les.length > 35 ? les.slice(0, 35) + "..." : les}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedLessonFilter}
+                    className="min-w-[200px]"
+                    options={[
+                      { value: "All", label: `All Lessons & Topics (${notes.length})` },
+                      ...courseLessons.map((les) => ({
+                        value: les,
+                        label: `Lesson: ${les.length > 35 ? les.slice(0, 35) + "..." : les}`,
+                      })),
+                    ]}
+                  />
                 )}
               </div>
 
@@ -3941,18 +3942,17 @@ export function CourseDetailsPage({
                   <label className="block text-xs font-bold text-zinc-700 mb-1">
                     Associated Lesson / Topic
                   </label>
-                  <select
+                  <StudentDropdown
                     value={noteFormLesson}
-                    onChange={(e) => setNoteFormLesson(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 focus:outline-none focus:border-purple-600 text-zinc-900 bg-white"
-                  >
-                    <option value="General / Course Overview">General / Course Overview</option>
-                    {courseLessons.map((les) => (
-                      <option key={les} value={les}>
-                        {les.length > 35 ? les.slice(0, 35) + "..." : les}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setNoteFormLesson}
+                    options={[
+                      { value: "General / Course Overview", label: "General / Course Overview" },
+                      ...courseLessons.map((les) => ({
+                        value: les,
+                        label: les.length > 35 ? les.slice(0, 35) + "..." : les,
+                      })),
+                    ]}
+                  />
                 </div>
 
                 <div>

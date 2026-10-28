@@ -19,34 +19,19 @@ export function StudentSidebar({
   onSwitchToTeacher,
   onLogout,
 }: StudentSidebarProps) {
-  const navCategories: {
-    category: string
-    items: { label: StudentNavPage; icon: IconName }[]
-  }[] = [
-    {
-      category: "Daily Academic Activities and Learning",
-      items: [
-        { label: "Dashboard", icon: "home" },
-        { label: "My Courses", icon: "book" },
-        { label: "Timetable", icon: "calendar" },
-        { label: "Attendance", icon: "check" },
-        { label: "Grades", icon: "trend" },
-        { label: "Communication", icon: "chat" },
-        { label: "Discussions", icon: "message" },
-        { label: "Events & Notices", icon: "bell" },
-      ],
-    },
-    {
-      category: "Mentorship & Career Tools",
-      items: [
-        { label: "Mentor Details", icon: "users" },
-        { label: "My Notes", icon: "note" },
-        { label: "Certificates", icon: "award" },
-        { label: "Profile", icon: "users" },
-        { label: "Settings", icon: "settings" },
-        { label: "Support & Help", icon: "help" },
-      ],
-    },
+  const navItems: { label: StudentNavPage; icon: IconName }[] = [
+    { label: "Dashboard", icon: "home" },
+    { label: "My Courses", icon: "book" },
+    { label: "Timetable", icon: "calendar" },
+    { label: "Attendance", icon: "check" },
+    { label: "Grades", icon: "trend" },
+    { label: "Communication", icon: "chat" },
+    { label: "Discussions", icon: "message" },
+    { label: "Mentor Details", icon: "users" },
+    { label: "My Notes", icon: "note" },
+    { label: "Certificates", icon: "award" },
+    { label: "Resume Building", icon: "document" },
+    { label: "Mock Interview", icon: "chat" },
   ]
 
   return (
@@ -76,28 +61,22 @@ export function StudentSidebar({
 
       {/* Navigation Pages matching LMS Student Portal */}
       <nav className="student-shared-nav flex-1 min-h-0 overflow-y-auto" aria-label="Student main navigation">
-        {navCategories.map((group, groupIdx) => (
-          <div key={group.category} className="student-nav-group shrink-0">
-            {groupIdx > 0 && <hr className="student-nav-divider" />}
-            <div className="student-nav-category">{group.category}</div>
-            {group.items.map((item) => {
-              const isActive =
-                activeTab === item.label ||
-                (item.label === "My Courses" && activeTab === "Course Details")
-              return (
-                <button
-                  key={item.label}
-                  className={isActive ? "nav-item active" : "nav-item"}
-                  onClick={() => setActiveTab(item.label)}
-                  title={item.label}
-                >
-                  <Icon name={item.icon} size={15} />
-                  <span className="truncate">{item.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        ))}
+        {navItems.map((item) => {
+          const isActive =
+            activeTab === item.label ||
+            (item.label === "My Courses" && activeTab === "Course Details")
+          return (
+            <button
+              key={item.label}
+              className={isActive ? "nav-item active" : "nav-item"}
+              onClick={() => setActiveTab(item.label)}
+              title={item.label}
+            >
+              <Icon name={item.icon} size={15} />
+              <span className="truncate">{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
 
       {/* Sidebar Action Buttons */}

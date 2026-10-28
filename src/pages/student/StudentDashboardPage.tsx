@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react"
 import { Icon } from "../../components/Icon"
-import { HexColorField } from "../../components/HexColorField"
+import { StudentHeader } from "../../components/StudentHeader"
 import { MetricCard } from "../../components/MetricCard"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type {
   StudentNavPage,
   CourseItem,
@@ -14,6 +15,7 @@ interface StudentDashboardProps {
   onNavigate: (page: StudentNavPage, courseId?: string) => void
   onOpenAiModal: () => void
   onSwitchToTeacher: () => void
+  onLogout?: () => void
   onToast: (msg: string) => void
   hexColor: string
   onChangeHexColor: (c: string) => void
@@ -26,6 +28,7 @@ export default function StudentDashboardPage({
   onNavigate,
   onOpenAiModal,
   onSwitchToTeacher,
+  onLogout,
   onToast,
   hexColor,
   onChangeHexColor,
@@ -38,7 +41,6 @@ export default function StudentDashboardPage({
   const [isCertModalOpen, setIsCertModalOpen] = useState(false)
   const [chartTimeframe, setChartTimeframe] =
     useState<"This Week" | "Last Week" | "This Month">("This Week")
-  const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false)
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(
     {},
   )
@@ -94,67 +96,19 @@ export default function StudentDashboardPage({
 
   return (
     <div className="student-dashboard-content w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border">
-      {/* 1. Dashboard Header - Stationary, responsive, aligned and unclipped */}
-      <header className="dashboard-header shrink-0 h-auto min-h-[54px] flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 mb-3 pl-12 lg:pl-0">
-        <div className="min-w-0 py-0.5">
-          <div className="greeting">
-            <span>Good morning, Srimanth</span>
-            <span className="wave-emoji" role="img" aria-label="wave">
-              👋
-            </span>
-          </div>
-          <div className="subtitle text-xs text-white/90 leading-tight">
-            Keep learning. Build your AI skills. Make an impact.
-          </div>
-        </div>
-
-        <div className="header-actions flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          {/* Search box */}
-          <div className="search-box shrink-0">
-            <Icon name="search" size={15} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search courses, lessons or topics..."
-              aria-label="Search courses"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1"
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
-          </div>
-
-          {/* Quick Portal Switcher */}
-          <button
-            onClick={onSwitchToTeacher}
-            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            title="Switch to Teacher View"
-          >
-            <span>👨‍🏫 Teacher Portal</span>
-          </button>
-
-          {/* Background Hex Color Picker */}
-          <div className="shrink-0">
-            <HexColorField hexColor={hexColor} onChangeHex={onChangeHexColor} />
-          </div>
-
-          {/* Ask AI Black Pill Button */}
-          <button
-            className="ask-ai shrink-0"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI Assistant"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        </div>
-      </header>
+      {/* 1. Dashboard Header - Shared, stationary, responsive */}
+      <StudentHeader
+        showGreeting={true}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search courses, lessons or topics..."
+        onSwitchToTeacher={onSwitchToTeacher}
+        hexColor={hexColor}
+        onChangeHexColor={onChangeHexColor}
+        onOpenAiModal={onOpenAiModal}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      />
 
       {/* 2. Independently Scrollable Dashboard Body */}
       <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 space-y-4 box-border">
@@ -387,7 +341,7 @@ export default function StudentDashboardPage({
                         }}
                         title={`Resume ${course.title}`}
                       >
-                        <Icon name="play" size={13} />
+                        <Icon name="play" size={11} />
                       </button>
                     </div>
                   </div>
@@ -732,35 +686,22 @@ export default function StudentDashboardPage({
             <div className="card-header relative">
               <h3 className="card-title">Learning Progress</h3>
               <div className="relative">
-                <button
-                  type="button"
-                  className="student-chart-dropdown cursor-pointer flex items-center gap-1.5"
-                  onClick={() => setIsChartDropdownOpen(!isChartDropdownOpen)}
-                >
-                  <span>{chartTimeframe}</span>
-                  <span className="text-[10px]">{isChartDropdownOpen ? "▲" : "▼"}</span>
-                </button>
-
-                {isChartDropdownOpen && (
-                  <div className="absolute right-0 top-8 z-30 bg-white rounded-xl shadow-lg border border-zinc-200 py-1 min-w-[120px] text-xs font-semibold">
-                    {(["This Week", "Last Week", "This Month"] as const).map((tf) => (
-                      <button
-                        key={tf}
-                        type="button"
-                        onClick={() => {
-                          setChartTimeframe(tf)
-                          setIsChartDropdownOpen(false)
-                          onToast(`Viewing learning analytics for ${tf}`)
-                        }}
-                        className={`w-full text-left px-3 py-1.5 hover:bg-purple-50 transition-colors cursor-pointer ${
-                          chartTimeframe === tf ? "text-purple-700 font-bold bg-purple-50/50" : "text-zinc-700"
-                        }`}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <StudentDropdown
+                  value={chartTimeframe}
+                  onChange={(tf) => {
+                    setChartTimeframe(tf as typeof chartTimeframe)
+                    onToast(`Viewing learning analytics for ${tf}`)
+                  }}
+                  options={[
+                    { value: "This Week", label: "This Week" },
+                    { value: "Last Week", label: "Last Week" },
+                    { value: "This Month", label: "This Month" },
+                  ]}
+                  size="sm"
+                  fullWidth={false}
+                  align="right"
+                  triggerClassName="rounded-full bg-zinc-50 border-zinc-200 py-1 px-3 text-xs font-bold text-zinc-700 min-w-[115px]"
+                />
               </div>
             </div>
 

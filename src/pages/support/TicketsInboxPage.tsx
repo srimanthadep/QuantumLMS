@@ -87,7 +87,9 @@ export const TicketsInboxPage: React.FC = () => {
   };
 
   const getCategoryBadgeClass = (category: string) => {
-    const found = SUPPORT_CATEGORIES.find((c) => c.id === category);
+    const found = SUPPORT_CATEGORIES.find(
+      (c) => c.id === category || (category === "General Help & Feedback" && c.id === "Others")
+    );
     return found ? found.badgeClass : "bg-slate-50 text-zinc-600 border-slate-200";
   };
 

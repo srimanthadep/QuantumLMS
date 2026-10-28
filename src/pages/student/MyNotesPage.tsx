@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react"
 import { Icon } from "../../components/Icon"
+import { StudentDropdown } from "../../components/StudentDropdown"
 import type { NoteItem } from "./studentTypes"
 import { initialNotesList } from "./studentMockData"
 
@@ -371,20 +372,16 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
                 <label className="font-bold text-zinc-700 block mb-1">
                   Subject Course
                 </label>
-                <select
+                <StudentDropdown
                   value={newCourse}
-                  onChange={(e) => setNewCourse(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
-                >
-                  <option value="Generative AI Masterclass">
-                    Generative AI Masterclass
-                  </option>
-                  <option value="Python for AI">Python for AI</option>
-                  <option value="Machine Learning Foundations">
-                    Machine Learning Foundations
-                  </option>
-                  <option value="AI Agents Bootcamp">AI Agents Bootcamp</option>
-                </select>
+                  onChange={setNewCourse}
+                  options={[
+                    "Generative AI Masterclass",
+                    "Python for AI",
+                    "Machine Learning Foundations",
+                    "AI Agents Bootcamp"
+                  ]}
+                />
               </div>
 
               <div>

@@ -5,6 +5,7 @@ build/
 .env*
 .vite/
 vite.config.*.timestamp-*
+package-lock.json
 *.tsbuildinfo
 *-debug.log*
 logs/

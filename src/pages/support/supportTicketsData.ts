@@ -1,13 +1,14 @@
 import { SupportTicket as BaseSupportTicket } from "@/types/lms";
 
 export type SupportCategory =
-  | "Account & Access Management"
-  | "Course & Content Management"
-  | "Assignments & Assessments"
-  | "Live Classes & Attendance"
-  | "Technical Support"
-  | "Communication & Notifications"
-  | "General Help & Feedback";
+  | "Login & Account"
+  | "Live Class	"
+  | "Assignments & Exams"
+  | "Course Content"
+  | "Technical Problem"
+  | "Payments & Certificates	"
+  | "Notifications"
+  | "Others";
 
 export type SupportPriority = "high" | "medium" | "low";
 
@@ -19,38 +20,43 @@ export interface SupportCategoryInfo {
 
 export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
-    id: "Account & Access Management",
-    label: "Account & Access Management",
+    id: "Login & Account",
+    label: "Login & Account",
     badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
   },
   {
-    id: "Course & Content Management",
-    label: "Course & Content Management",
+    id: "Live Class	",
+    label: "Live Class	",
     badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
   },
   {
-    id: "Assignments & Assessments",
-    label: "Assignments & Assessments",
+    id: "Assignments & Exams",
+    label: "Assignments & Exams",
     badgeClass: "bg-[#EAFCC7] text-[#3B6600] border-[#AEEB00]/40 rounded-full",
   },
   {
-    id: "Live Classes & Attendance",
-    label: "Live Classes & Attendance",
+    id: "Course Content",
+    label: "Course Content",
     badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
   },
   {
-    id: "Technical Support",
-    label: "Technical Support",
+    id: "Technical Problem",
+    label: "Technical Problem",
     badgeClass: "bg-[#FEE4E2] text-[#D92D20] border-[#FDA29B]/40 rounded-full",
   },
   {
-    id: "Communication & Notifications",
-    label: "Communication & Notifications",
+    id: "Payments & Certificates",
+    label: "Payments & Certificates",
+    badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
+  },
+  {
+    id: "Notifications",
+    label: "Notifications",
     badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
   },
   {
-    id: "General Help & Feedback",
-    label: "General Help & Feedback",
+    id: "Others",
+    label: "Others",
     badgeClass: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB] rounded-full",
   },
 ];
@@ -586,7 +592,7 @@ export const ALL_SUPPORT_TICKETS: SupportTicket[] = [
     ],
   },
 
-  // 7. General Help & Feedback
+  // 7. Others
   {
     id: "tkt-1100",
     ticketNumber: "TKT-1100",
@@ -594,7 +600,7 @@ export const ALL_SUPPORT_TICKETS: SupportTicket[] = [
     studentName: "Deepa Krishnan",
     studentEmail: "deepa.k@research.in",
     studentBatch: "Cohort 7 (Live + Replay)",
-    category: "General Help & Feedback",
+    category: "Others",
     priority: "medium",
     status: "open",
     assignedAgent: "Meera Sen",
@@ -617,7 +623,7 @@ export const ALL_SUPPORT_TICKETS: SupportTicket[] = [
     studentName: "Manish Saxena",
     studentEmail: "manish.s@quantum.ai",
     studentBatch: "Cohort 6 (Full Access)",
-    category: "General Help & Feedback",
+    category: "Others",
     priority: "low",
     status: "resolved",
     assignedAgent: "Nikhil Joshi",

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { StudentDropdown } from "../../components/StudentDropdown";
 
 // ============================================================================
 // SELF-CONTAINED SVG ICONS (Pixel-perfect, matching Noorly Soft UI stroke & design)
@@ -433,15 +434,19 @@ export const StudentDiscussionsPage: React.FC<StudentDiscussionsPageProps> = ({
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
             <span className="text-xs text-[#514B68] font-semibold whitespace-nowrap">Filter Course:</span>
-            <select
+            <StudentDropdown
               value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="h-9 rounded-full border border-[#E2DCEE] bg-white px-3 text-xs font-semibold text-[#171526] focus:outline-none focus:ring-2 focus:ring-[#905FEB] w-full sm:w-auto cursor-pointer"
-            >
-              <option value="All">All Courses</option>
-              <option value="Full-Stack AI Engineering">Full-Stack AI Engineering</option>
-              <option value="Distributed Systems & KV-Cache">Distributed Systems & KV-Cache</option>
-            </select>
+              onChange={(val) => setCourseFilter(val)}
+              options={[
+                { value: "All", label: "All Courses" },
+                { value: "Full-Stack AI Engineering", label: "Full-Stack AI Engineering" },
+                { value: "Distributed Systems & KV-Cache", label: "Distributed Systems & KV-Cache" },
+              ]}
+              size="sm"
+              fullWidth={false}
+              rounded="full"
+              triggerClassName="min-w-[190px]"
+            />
           </div>
         </div>
       </Card>
@@ -611,28 +616,30 @@ export const StudentDiscussionsPage: React.FC<StudentDiscussionsPageProps> = ({
             <form onSubmit={handleCreatePost} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-[#171526] block mb-1">Course *</label>
-                <select
+                <StudentDropdown
                   value={newCourse}
-                  onChange={(e) => setNewCourse(e.target.value)}
-                  className="h-9 w-full rounded-full border border-[#E2DCEE] bg-[#FBFAFC] px-3.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#905FEB] cursor-pointer"
-                >
-                  <option value="Full-Stack AI Engineering">Full-Stack AI Engineering</option>
-                  <option value="Distributed Systems & KV-Cache">Distributed Systems & KV-Cache</option>
-                </select>
+                  onChange={(val) => setNewCourse(val)}
+                  options={[
+                    "Full-Stack AI Engineering",
+                    "Distributed Systems & KV-Cache",
+                  ]}
+                  rounded="full"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[#171526] block mb-1">Tag Faculty / Instructor</label>
-                <select
+                <StudentDropdown
                   value={newTaggedFaculty}
-                  onChange={(e) => setNewTaggedFaculty(e.target.value)}
-                  className="h-9 w-full rounded-full border border-[#E2DCEE] bg-[#FBFAFC] px-3.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#905FEB] cursor-pointer"
-                >
-                  <option value="@Prof. Rajesh Verma">@Prof. Rajesh Verma (Lead Faculty)</option>
-                  <option value="@Dr. Priya Sharma">@Dr. Priya Sharma (LLM Architect)</option>
-                  <option value="@Karthik Sundaram">@Karthik Sundaram (Staff MLOps)</option>
-                  <option value="">No tag</option>
-                </select>
+                  onChange={(val) => setNewTaggedFaculty(val)}
+                  options={[
+                    { value: "@Prof. Rajesh Verma", label: "@Prof. Rajesh Verma (Lead Faculty)" },
+                    { value: "@Dr. Priya Sharma", label: "@Dr. Priya Sharma (LLM Architect)" },
+                    { value: "@Karthik Sundaram", label: "@Karthik Sundaram (Staff MLOps)" },
+                    { value: "", label: "No tag" },
+                  ]}
+                  rounded="full"
+                />
               </div>
 
               <div>
@@ -714,16 +721,17 @@ export const StudentDiscussionsPage: React.FC<StudentDiscussionsPageProps> = ({
 
             <div className="space-y-3 pt-1">
               <label className="text-xs font-bold text-[#171526] block">Select Reason</label>
-              <select
+              <StudentDropdown
                 value={reportReason}
-                onChange={(e) => setReportReason(e.target.value)}
-                className="h-9 w-full rounded-full border border-[#E2DCEE] bg-[#FBFAFC] px-3.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#905FEB] cursor-pointer"
-              >
-                <option value="Off-topic or spam">Off-topic or spam</option>
-                <option value="Academic dishonesty / Code dumping">Academic dishonesty / Code dumping</option>
-                <option value="Harassment or rude conduct">Harassment or rude conduct</option>
-                <option value="Misleading technical assertions">Misleading technical assertions</option>
-              </select>
+                onChange={(val) => setReportReason(val)}
+                options={[
+                  "Off-topic or spam",
+                  "Academic dishonesty / Code dumping",
+                  "Harassment or rude conduct",
+                  "Misleading technical assertions",
+                ]}
+                rounded="full"
+              />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2DCEE]">

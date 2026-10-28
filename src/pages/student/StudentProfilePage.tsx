@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Icon } from "../../components/Icon"
 import type { StudentNavPage } from "./studentTypes"
 import { studentProfileData, assignedMentorData } from "./studentMockData"
+import { fetchStudentIdFromSupabase } from "../../lib/supabase"
 
 interface StudentProfilePageProps {
   onToast: (msg: string) => void
@@ -27,7 +28,38 @@ export function StudentProfilePage({
   const [avatar, setAvatar] = useState(studentProfileData.avatar)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
 
+  // Dynamic Student ID fetched from Supabase
+  const [studentId, setStudentId] = useState<string>("Not Assigned")
+  const [isLoadingStudentId, setIsLoadingStudentId] = useState<boolean>(true)
+  const [idSource, setIdSource] = useState<"supabase" | "cache" | "unassigned">("unassigned")
+
   const [profileError, setProfileError] = useState<string | null>(null)
+
+  // Fetch Student ID dynamically from Supabase
+  useEffect(() => {
+    let isMounted = true
+    setIsLoadingStudentId(true)
+
+    fetchStudentIdFromSupabase(email)
+      .then((res) => {
+        if (isMounted) {
+          setStudentId(res.studentId)
+          setIdSource(res.source)
+          setIsLoadingStudentId(false)
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load student ID from Supabase:", err)
+        if (isMounted) {
+          setStudentId("Not Assigned")
+          setIsLoadingStudentId(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [email])
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,8 +121,10 @@ export function StudentProfilePage({
                 <h2 className="text-2xl font-black text-zinc-900">
                   {fullName}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
-                  {studentProfileData.rollNumber}
+                {/* Dynamic Student ID Badge */}
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0] border border-[#D8C2FF]/60 flex items-center gap-1">
+                  <span>Student ID:</span>
+                  <span className="font-mono">{isLoadingStudentId ? "..." : studentId}</span>
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
                   Active Enrolled
@@ -101,10 +135,14 @@ export function StudentProfilePage({
               </div>
 
               <p className="text-xs font-semibold text-zinc-700 mb-2">
-                {studentProfileData.program} · {studentProfileData.batch}
+                {studentProfileData.program} · {studentProfileData.department} · {studentProfileData.batch}
               </p>
 
               <div className="flex flex-wrap items-center justify-start gap-4 text-xs text-zinc-500 font-medium">
+                <span>
+                  Email: <strong className="text-zinc-800 font-semibold">{email}</strong>
+                </span>
+                <span>•</span>
                 <span>
                   Cumulative GPA:{" "}
                   <strong className="text-purple-700 font-bold">
@@ -242,7 +280,7 @@ export function StudentProfilePage({
         </div>
       </section>
 
-      {/* 3. Academic Transcript Summary & Download */}
+      {/* 3. Academic Transcript Summary & Academic Details Section */}
       <section
         className="panel p-6 bg-white border border-zinc-100 shadow-sm"
         aria-label="Academic Records"
@@ -269,12 +307,41 @@ export function StudentProfilePage({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
-          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
-            <span className="text-[10px] text-zinc-400 font-bold block uppercase">
-              Degree Program
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+          {/* Card 1: Official Student ID */}
+          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
+                  Official Student ID
+                </span>
+                <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                  🔒 Read-Only
+                </span>
+              </div>
+              <strong
+                className={`text-sm block mt-1 font-mono ${
+                  studentId === "Not Assigned"
+                    ? "text-amber-700 italic"
+                    : "text-[#5F2BC0] font-black"
+                }`}
+              >
+                {isLoadingStudentId ? "Fetching from Supabase..." : studentId}
+              </strong>
+            </div>
+            <span className="text-zinc-500 text-[11px] mt-2 block">
+              {studentId !== "Not Assigned"
+                ? "✓ Synced with Supabase student record"
+                : "No Student ID registered in database"}
             </span>
-            <strong className="text-zinc-900 text-sm block mt-0.5">
+          </div>
+
+          {/* Card 2: Degree Program & Course */}
+          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
+            <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
+              Course / Degree Program
+            </span>
+            <strong className="text-zinc-900 text-sm block mt-1">
               {studentProfileData.program}
             </strong>
             <span className="text-zinc-500 text-[11px]">
@@ -282,11 +349,12 @@ export function StudentProfilePage({
             </span>
           </div>
 
+          {/* Card 3: Academic Department */}
           <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
-            <span className="text-[10px] text-zinc-400 font-bold block uppercase">
+            <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
               Academic Department
             </span>
-            <strong className="text-zinc-900 text-sm block mt-0.5">
+            <strong className="text-zinc-900 text-sm block mt-1">
               {studentProfileData.department}
             </strong>
             <span className="text-zinc-500 text-[11px]">
@@ -294,11 +362,25 @@ export function StudentProfilePage({
             </span>
           </div>
 
+          {/* Card 4: Year of Study */}
           <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
-            <span className="text-[10px] text-zinc-400 font-bold block uppercase">
+            <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
+              Year of Study & Batch
+            </span>
+            <strong className="text-zinc-900 text-sm block mt-1">
+              {studentProfileData.batch}
+            </strong>
+            <span className="text-purple-700 font-semibold text-[11px]">
+              Class of 2027 Honors Candidate
+            </span>
+          </div>
+
+          {/* Card 5: Completed Credits */}
+          <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
+            <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
               Completed Credits
             </span>
-            <strong className="text-zinc-900 text-sm block mt-0.5">
+            <strong className="text-zinc-900 text-sm block mt-1">
               {studentProfileData.creditsCompleted} of{" "}
               {studentProfileData.totalCredits} Credits
             </strong>
@@ -307,15 +389,16 @@ export function StudentProfilePage({
             </span>
           </div>
 
+          {/* Card 6: Expected Graduation */}
           <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
-            <span className="text-[10px] text-zinc-400 font-bold block uppercase">
+            <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">
               Expected Graduation
             </span>
-            <strong className="text-zinc-900 text-sm block mt-0.5">
+            <strong className="text-zinc-900 text-sm block mt-1">
               June 2027
             </strong>
             <span className="text-purple-700 font-semibold text-[11px]">
-              Class of 2027 Honors Candidate
+              Verified by School of AI Registrar
             </span>
           </div>
         </div>
@@ -342,6 +425,34 @@ export function StudentProfilePage({
           className="flex flex-col gap-4 text-xs"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Student ID (Read-Only) */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-zinc-700 block">
+                  Student ID
+                </label>
+                <span className="text-[10px] font-semibold text-[#514B68] bg-[#F0EDFF] px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#D8C2FF]/60">
+                  🔒 Read-Only
+                </span>
+              </div>
+              <input
+                type="text"
+                readOnly
+                disabled
+                value={isLoadingStudentId ? "Fetching from Supabase..." : studentId}
+                className={`w-full p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 font-mono font-bold select-all cursor-not-allowed ${
+                  studentId === "Not Assigned"
+                    ? "text-amber-700 italic"
+                    : "text-[#5F2BC0]"
+                }`}
+              />
+              <span className="text-[10.5px] text-[#514B68] mt-1 block">
+                {studentId !== "Not Assigned"
+                  ? "✓ Verified from your Supabase student profile record."
+                  : "Student ID is not assigned in your Supabase profile record."}
+              </span>
+            </div>
+
             <div>
               <label className="font-bold text-zinc-700 block mb-1">
                 Full Legal Name
@@ -365,6 +476,32 @@ export function StudentProfilePage({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-zinc-700 block mb-1">
+                Academic Department
+              </label>
+              <input
+                type="text"
+                readOnly
+                disabled
+                value={studentProfileData.department}
+                className="w-full p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 text-zinc-700 cursor-not-allowed select-all"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-zinc-700 block mb-1">
+                Course / Program & Year of Study
+              </label>
+              <input
+                type="text"
+                readOnly
+                disabled
+                value={`${studentProfileData.program} (${studentProfileData.batch})`}
+                className="w-full p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/80 text-zinc-700 cursor-not-allowed select-all"
               />
             </div>
 
@@ -427,3 +564,6 @@ export function StudentProfilePage({
     </div>
   )
 }
+
+export default StudentProfilePage
+
