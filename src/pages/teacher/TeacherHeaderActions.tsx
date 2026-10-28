@@ -16,7 +16,7 @@ export function TeacherHeaderActions({
   onChangeHexColor,
   onOpenAiModal,
   onSwitchToStudent,
-  showPortalSwitch = true,
+  showPortalSwitch = false,
   children,
 }: TeacherHeaderActionsProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -52,7 +52,7 @@ export function TeacherHeaderActions({
     }
   })
 
-  // Close dropdowns on outside click
+  // Close dropdowns on outside click & listen for profile updates
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -68,8 +68,25 @@ export function TeacherHeaderActions({
         setIsNotificationsOpen(false)
       }
     }
+
+    function handleProfileUpdate(e: any) {
+      if (e.detail) {
+        setTeacherUser({
+          name: e.detail.fullName || "Srimanth",
+          role: "Teacher",
+          subtitle: e.detail.designation || "Teacher · Year 4 Lead",
+          email: e.detail.email || "srimanth@quantum-lms.edu",
+          avatar: e.detail.avatar || "/assets/teacher.png",
+        })
+      }
+    }
+
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    window.addEventListener("quantum-teacher-profile-updated", handleProfileUpdate)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      window.removeEventListener("quantum-teacher-profile-updated", handleProfileUpdate)
+    }
   }, [])
 
   const handleNavigate = (path: string) => {
@@ -109,19 +126,6 @@ export function TeacherHeaderActions({
     <div className="header-actions flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
       {/* Optional page-specific action buttons (e.g. + Add Reminder, Save All, New Request) */}
       {children}
-
-      {/* Quick Portal Switcher Button */}
-      {showPortalSwitch && (
-        <button
-          type="button"
-          onClick={handleRoleSwitch}
-          className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          title="Switch to Student Portal"
-          aria-label="Switch to Student Portal"
-        >
-          <span>🎓 Student Portal</span>
-        </button>
-      )}
 
       {/* Background HEX color picker */}
       <div className="shrink-0">
@@ -289,8 +293,12 @@ export function TeacherHeaderActions({
             className="absolute right-0 top-full mt-2 w-64 bg-white border border-zinc-200/90 rounded-2xl shadow-xl z-50 p-2 text-left animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Profile Header User Card */}
-            <div className="px-3 py-2.5 border-b border-zinc-100 flex items-center gap-3">
+            {/* Profile Header User Card - Clickable to open My Profile */}
+            <div
+              onClick={() => handleNavigate("/teacher/settings?tab=profile")}
+              className="px-3 py-2.5 border-b border-zinc-100 flex items-center gap-3 hover:bg-purple-50/50 transition-colors cursor-pointer rounded-t-xl"
+              title="View & Edit My Profile"
+            >
               <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-purple-200 shadow-xs">
                 <img
                   src={teacherUser.avatar}
@@ -303,8 +311,9 @@ export function TeacherHeaderActions({
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-zinc-900 truncate">
-                  {teacherUser.name}
+                <p className="text-xs font-bold text-zinc-900 truncate flex items-center justify-between">
+                  <span>{teacherUser.name}</span>
+                  <span className="text-[10px] text-purple-600 font-semibold">View →</span>
                 </p>
                 <p className="text-[11px] text-purple-600 font-semibold truncate">
                   {teacherUser.subtitle}
@@ -319,7 +328,7 @@ export function TeacherHeaderActions({
             <div className="py-1 space-y-0.5">
               <button
                 type="button"
-                onClick={() => handleNavigate("/teacher/settings")}
+                onClick={() => handleNavigate("/teacher/settings?tab=profile")}
                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-zinc-700 hover:bg-zinc-100 flex items-center gap-2.5 cursor-pointer transition-colors"
               >
                 <span className="text-zinc-500 flex items-center">
@@ -330,7 +339,7 @@ export function TeacherHeaderActions({
 
               <button
                 type="button"
-                onClick={() => handleNavigate("/teacher/settings")}
+                onClick={() => handleNavigate("/teacher/settings?tab=account")}
                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-zinc-700 hover:bg-zinc-100 flex items-center gap-2.5 cursor-pointer transition-colors"
               >
                 <span className="text-zinc-500 flex items-center">
@@ -341,7 +350,7 @@ export function TeacherHeaderActions({
 
               <button
                 type="button"
-                onClick={() => handleNavigate("/teacher/calendar")}
+                onClick={() => handleNavigate("/teacher/calendar?tab=events-notices")}
                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-zinc-700 hover:bg-zinc-100 flex items-center gap-2.5 cursor-pointer transition-colors"
               >
                 <span className="text-zinc-500 flex items-center">
@@ -352,7 +361,7 @@ export function TeacherHeaderActions({
 
               <button
                 type="button"
-                onClick={() => handleNavigate("/teacher/support")}
+                onClick={() => handleNavigate("/teacher/help")}
                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-zinc-700 hover:bg-zinc-100 flex items-center gap-2.5 cursor-pointer transition-colors"
               >
                 <span className="text-zinc-500 flex items-center">
@@ -362,15 +371,6 @@ export function TeacherHeaderActions({
               </button>
 
               <div className="my-1 border-t border-zinc-100" />
-
-              <button
-                type="button"
-                onClick={handleRoleSwitch}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-purple-700 hover:bg-purple-50 flex items-center gap-2.5 cursor-pointer transition-colors"
-              >
-                <span>🎓</span>
-                <span>Switch to Student Portal</span>
-              </button>
 
               <button
                 type="button"

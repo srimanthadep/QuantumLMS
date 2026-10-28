@@ -8,4 +8,8 @@ export { default as LiveStudioPage } from "./LiveStudioPage"
 export { default as AnalyticsPage, AnalyticsHeader } from "./AnalyticsPage"
 export { default as ReportsPage, ReportsHeader } from "./ReportsPage"
 export { default as SettingsPage, SettingsHeader } from "./SettingsPage"
+export { default as ProfilePage, ProfileHeader } from "./ProfilePage"
+export { default as AccountSettingsPage, AccountSettingsHeader } from "./AccountSettingsPage"
 export { default as SupportPage, SupportHeader } from "./SupportPage"
+export { default as EventsNoticesPage, EventsNoticesHeader } from "./EventsNoticesPage"
+

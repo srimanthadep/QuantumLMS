@@ -4,6 +4,8 @@ import { Icon } from "../../components/Icon"
 import { HexColorField } from "../../components/HexColorField"
 import { initialCalendarEvents } from "../../data/mockData"
 import { TeacherHeaderActions } from "./TeacherHeaderActions"
+import EventsNoticesPage from "./EventsNoticesPage"
+import { getEventsNoticesData } from "./teacherEventsNoticesData"
 
 type CalendarViewMode = "timeline" | "month" | "week" | "day" | "agenda"
 
@@ -30,6 +32,8 @@ export function CalendarHeader({
   hexColor,
   onChangeHexColor,
   onOpenCreateReminder,
+  onSwitchToEventsNotices,
+  unreadNoticesCount,
 }: {
   searchQuery: string
   setSearchQuery: (q: string) => void
@@ -37,6 +41,8 @@ export function CalendarHeader({
   hexColor: string
   onChangeHexColor: (color: string) => void
   onOpenCreateReminder: () => void
+  onSwitchToEventsNotices?: () => void
+  unreadNoticesCount?: number
 }) {
   return (
     <header className="dashboard-header">
@@ -74,6 +80,22 @@ export function CalendarHeader({
           onOpenAiModal={onOpenAiModal}
           showPortalSwitch={true}
         >
+          {onSwitchToEventsNotices && (
+            <button
+              type="button"
+              onClick={onSwitchToEventsNotices}
+              className="h-9 px-3 rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+              aria-label="View Campus Events & Notices"
+            >
+              <Icon name="bell" size={13} />
+              <span>Events &amp; Notices</span>
+              {(unreadNoticesCount ?? 0) > 0 && (
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                  {unreadNoticesCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={onOpenCreateReminder}
             className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
@@ -488,6 +510,52 @@ export default function CalendarPage({
   courses?: CourseItem[]
   onToast?: (msg: string) => void
 }) {
+  // Active Sub-Tab: "calendar" | "events-notices"
+  const [activeSubTab, setActiveSubTab] = useState<"calendar" | "events-notices">(() => {
+    if (typeof window !== "undefined") {
+      const s = window.location.search.toLowerCase()
+      const p = window.location.pathname.toLowerCase()
+      if (s.includes("events-notices") || s.includes("notices") || s.includes("events") || p.includes("events") || p.includes("notices")) {
+        return "events-notices"
+      }
+    }
+    return "calendar"
+  })
+
+  // Synchronize with URL / history
+  useEffect(() => {
+    const handlePopState = () => {
+      const s = window.location.search.toLowerCase()
+      const p = window.location.pathname.toLowerCase()
+      if (s.includes("events-notices") || s.includes("notices") || s.includes("events") || p.includes("events") || p.includes("notices")) {
+        setActiveSubTab("events-notices")
+      } else {
+        setActiveSubTab("calendar")
+      }
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  // Unread Notices count for notification badge
+  const [unreadNoticesCount, setUnreadNoticesCount] = useState(() => {
+    try {
+      return getEventsNoticesData().notices.filter((n) => !n.isRead).length
+    } catch {
+      return 0
+    }
+  })
+
+  useEffect(() => {
+    const refreshCount = () => {
+      try {
+        setUnreadNoticesCount(getEventsNoticesData().notices.filter((n) => !n.isRead).length)
+      } catch {}
+    }
+    window.addEventListener("quantum-events-notices-changed", refreshCount)
+    return () => window.removeEventListener("quantum-events-notices-changed", refreshCount)
+  }, [])
+
   // Calendar Events State with localStorage persistence
   const [events, setEvents] = useState<CalendarEventItem[]>(() => {
     try {
@@ -970,6 +1038,25 @@ export default function CalendarPage({
 
   const todayStr = "2026-10-22"
 
+  if (activeSubTab === "events-notices") {
+    return (
+      <EventsNoticesPage
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        hexColor={hexColor}
+        onChangeHexColor={onChangeHexColor}
+        onOpenAiModal={onOpenAiModal}
+        onToast={onToast}
+        onSwitchToCalendar={() => {
+          setActiveSubTab("calendar")
+          if (typeof window !== "undefined" && window.history?.pushState) {
+            window.history.pushState(null, "", "/teacher/calendar")
+          }
+        }}
+      />
+    )
+  }
+
   return (
     <>
       <CalendarHeader
@@ -979,7 +1066,47 @@ export default function CalendarPage({
         hexColor={hexColor}
         onChangeHexColor={onChangeHexColor}
         onOpenCreateReminder={() => setIsCreateModalOpen(true)}
+        onSwitchToEventsNotices={() => {
+          setActiveSubTab("events-notices")
+          if (typeof window !== "undefined" && window.history?.pushState) {
+            window.history.pushState(null, "", "/teacher/calendar?tab=events-notices")
+          }
+        }}
+        unreadNoticesCount={unreadNoticesCount}
       />
+
+      {/* Top View Mode Navigation Pill Switcher */}
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-150 flex-wrap gap-2">
+        <div className="inline-flex items-center p-1 bg-gray-100/90 rounded-full border border-gray-200 shadow-2xs">
+          <div className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-purple-900 shadow-xs flex items-center gap-1.5">
+            <Icon name="calendar" size={13} />
+            <span>Academic Schedule</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSubTab("events-notices")
+              if (typeof window !== "undefined" && window.history?.pushState) {
+                window.history.pushState(null, "", "/teacher/calendar?tab=events-notices")
+              }
+            }}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-zinc-600 hover:text-zinc-900 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Icon name="bell" size={13} />
+            <span>Events &amp; Notices</span>
+            {unreadNoticesCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                {unreadNoticesCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="text-xs text-zinc-500 flex items-center gap-2 font-medium">
+          <span className="w-2 h-2 rounded-full bg-blue-500" />
+          <span>Academic Year 2025–2026 Schedule</span>
+        </div>
+      </div>
 
       {/* Global Scoped Scrollbar Style for Calendar Sections */}
       <style>{`
