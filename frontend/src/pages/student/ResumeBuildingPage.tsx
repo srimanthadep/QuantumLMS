@@ -950,7 +950,7 @@ export function ResumeBuildingPage({
   ]
 
   return (
-    <div className="resume-builder-page flex flex-col gap-3.5 w-full max-w-full min-w-0 box-border pb-12">
+    <div className="resume-builder-page app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border pb-12">
       {/* 1. TOP CARD: Title, Subtitle, and Top Action Buttons */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
@@ -1096,7 +1096,7 @@ export function ResumeBuildingPage({
       </div>
 
       {/* 3. MAIN 2-COLUMN GRID: Accordion Editor (Left) & Google PDF Preview (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-start">
         {/* LEFT COLUMN: Unified Accordion Card */}
         <div
           className={`lg:col-span-6 ${

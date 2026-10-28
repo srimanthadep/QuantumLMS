@@ -120,7 +120,7 @@ export function MyEvaluations({
   ]
 
   return (
-    <div className="evaluator-my-evaluations space-y-5">
+    <div className="evaluator-my-evaluations app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Top Controls: Filter Tabs & Sorting */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Navigation Tabs */}

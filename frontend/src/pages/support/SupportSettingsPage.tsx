@@ -121,7 +121,7 @@ export const SupportSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font h-full">
       {/* Settings Control Strip matching canonical panel design */}
       <div className="panel px-4 py-2.5 bg-white border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">

@@ -612,7 +612,7 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
                 <span className="text-[11px] text-[#514B68]">Passing Benchmark: 75%</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
                 {competencies.map((c) => (
                   <div
                     key={c.name}
@@ -643,7 +643,7 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
             </div>
 
             {/* Strengths & Areas Requiring Improvement */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)] pt-2">
               <div className="p-4 rounded-[18px] border border-[#D2F66A] bg-[#E7FF9C]/25 space-y-2">
                 <h5 className="text-xs font-bold text-[#253700] flex items-center gap-1.5 uppercase tracking-wider">
                   <CheckCircle2Icon size={16} /> Demonstrated Strengths
@@ -748,8 +748,8 @@ export const StudentCommunicationPage: React.FC<StudentCommunicationPageProps> =
 
       {/* TAB 2: PRACTICE ACTIVITIES & LEARNING RESOURCES */}
       {activeTab === "practice" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
             {practiceActivities.map((act) => (
               <Card
                 key={act.id}

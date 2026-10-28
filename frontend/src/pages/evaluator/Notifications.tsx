@@ -73,7 +73,7 @@ export function Notifications({
   const unreadCount = state.notifications.filter((n) => !n.read).length
 
   return (
-    <div className="evaluator-notifications space-y-5">
+    <div className="evaluator-notifications app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header and Filter Toolbar */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Category Tabs */}

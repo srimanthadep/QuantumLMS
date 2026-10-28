@@ -237,7 +237,7 @@ export const SlaEscalationsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font h-full">
       {/* 1. KPI Stats Cards */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
@@ -245,8 +245,8 @@ export const SlaEscalationsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 2. SLA Tiers Adherence Breakdown in 8px grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
+      {/* 2. SLA Tiers Adherence Breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-card-gap,14px)] shrink-0">
         <div className="p-3 rounded-2xl border border-zinc-150 bg-white shadow-xs space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-[#111111] flex items-center gap-1.5 text-[11px]">

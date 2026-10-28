@@ -62,7 +62,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
   const profile = formSettings.profile
 
   return (
-    <div className="evaluator-settings space-y-6 max-w-4xl">
+    <div className="evaluator-settings app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] max-w-4xl">
       {/* Evaluator Profile Section */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
         <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">

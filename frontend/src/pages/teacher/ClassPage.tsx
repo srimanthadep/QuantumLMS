@@ -1300,7 +1300,7 @@ export default function ClassPage({
       />
 
       {/* Summary Cards: My Courses, My Students, Pending Reviews, and Attendance */}
-      <div className="metrics-grid shrink-0 mb-4">
+      <div className="metrics-grid shrink-0">
         {dashboardMetrics.map((item) => (
           <div
             key={item.label}

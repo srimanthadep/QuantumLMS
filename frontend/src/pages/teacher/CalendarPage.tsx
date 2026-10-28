@@ -1027,9 +1027,9 @@ export default function CalendarPage({
       `}</style>
 
       {/* Main Calendar 2-Column Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-3.5 mt-1 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-[var(--app-card-gap,14px)] mt-1 items-start">
         {/* LEFT COLUMN: Mini Calendar + Reminders */}
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-[var(--app-card-gap,14px)]">
           {/* 1. Mini Calendar Card */}
           <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
             {/* Header: Month & Year with Chevrons */}

@@ -212,7 +212,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
       </section>
 
       {/* 3. Upper Section: Gradebook Table & Performance Overview Graph */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* Gradebook Table (7 columns on XL) */}
         <section
           className="xl:col-span-7 panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
@@ -535,7 +535,7 @@ export function GradesPage({ onToast }: GradesPageProps) {
       </div>
 
       {/* 4. Lower Section: 3-Card Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* Card 1: Score vs Class Benchmark */}
         <section
           className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"

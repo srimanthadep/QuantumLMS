@@ -214,7 +214,7 @@
   --radius-xl: 24px;
   --radius-lg: 18px;
   --app-card-gap: 14px;
-  --app-card-gap-metrics: 12px;
+  --app-card-gap-metrics: 14px;
   --app-card-margin-bottom: 14px;
 }
 
@@ -405,9 +405,9 @@ body:has(.teacher-portal-shell) {
 /* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
 @media (max-height: 860px) {
   :root {
-    --app-card-gap: 10px;
-    --app-card-gap-metrics: 10px;
-    --app-card-margin-bottom: 8px;
+    --app-card-gap: 14px;
+    --app-card-gap-metrics: 14px;
+    --app-card-margin-bottom: 14px;
   }
   .metrics-grid,
   .teacher-portal-shell .metrics-grid,
@@ -416,8 +416,8 @@ body:has(.teacher-portal-shell) {
   .support-portal-root .metrics-grid {
     min-height: 112px !important;
     height: 112px !important;
-    gap: 10px !important;
-    margin-bottom: 8px !important;
+    gap: var(--app-card-gap, 14px) !important;
+    margin-bottom: var(--app-card-margin-bottom, 14px) !important;
   }
   .metric-card,
   .teacher-portal-shell .metric-card,
@@ -529,15 +529,15 @@ body:has(.teacher-portal-shell) {
   .app-card-stack,
   .app-card-grid-2,
   .app-card-grid-3 {
-    gap: 10px !important;
+    gap: var(--app-card-gap, 14px) !important;
   }
 }
 
 @media (max-height: 740px) {
   :root {
-    --app-card-gap: 8px;
-    --app-card-gap-metrics: 8px;
-    --app-card-margin-bottom: 6px;
+    --app-card-gap: 14px;
+    --app-card-gap-metrics: 14px;
+    --app-card-margin-bottom: 14px;
   }
   .metrics-grid,
   .teacher-portal-shell .metrics-grid,
@@ -546,8 +546,8 @@ body:has(.teacher-portal-shell) {
   .support-portal-root .metrics-grid {
     min-height: 96px !important;
     height: 96px !important;
-    gap: 8px !important;
-    margin-bottom: 6px !important;
+    gap: var(--app-card-gap, 14px) !important;
+    margin-bottom: var(--app-card-margin-bottom, 14px) !important;
   }
   .metric-card,
   .teacher-portal-shell .metric-card,
@@ -659,7 +659,7 @@ body:has(.teacher-portal-shell) {
   .app-card-stack,
   .app-card-grid-2,
   .app-card-grid-3 {
-    gap: 8px !important;
+    gap: var(--app-card-gap, 14px) !important;
   }
 }
 
@@ -1118,7 +1118,7 @@ body:has(.teacher-portal-shell) {
   min-height: 132px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--app-card-gap-metrics, 12px);
+  gap: var(--app-card-gap, 14px);
   margin-bottom: var(--app-card-margin-bottom, 14px);
 }
 
@@ -1228,7 +1228,19 @@ body:has(.teacher-portal-shell) {
 }
 
 /* Universal Card Stacks and Grids */
-.app-card-stack {
+.app-card-stack,
+.evaluator-dashboard,
+.evaluator-assessments,
+.evaluator-my-evaluations,
+.evaluator-submissions,
+.evaluator-results-feedback,
+.evaluator-reports,
+.evaluator-reassessment,
+.evaluator-notifications,
+.evaluator-settings,
+.support-page,
+.resume-builder-page,
+.mock-interview-page {
   display: flex;
   flex-direction: column;
   gap: var(--app-card-gap, 14px) !important;
@@ -5747,7 +5759,7 @@ select option {
 .student-courses-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: var(--app-card-gap, 12px);
+  gap: var(--app-card-gap, 14px);
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -5763,21 +5775,21 @@ select option {
 @media (min-width: 640px) {
   .student-courses-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--app-card-gap, 12px);
+    gap: var(--app-card-gap, 14px);
   }
 }
 
 @media (min-width: 960px) {
   .student-courses-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--app-card-gap, 12px);
+    gap: var(--app-card-gap, 14px);
   }
 }
 
 @media (min-width: 1200px) {
   .student-courses-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--app-card-gap, 12px);
+    gap: var(--app-card-gap, 14px);
   }
 }
 

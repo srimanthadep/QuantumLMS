@@ -975,7 +975,7 @@ export function CourseDetailsPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Back button and Course Switcher Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3 rounded-2xl border border-white/50">
         <button
@@ -1012,7 +1012,7 @@ export function CourseDetailsPage({
         className="panel p-6 bg-white border border-zinc-100"
         aria-label="Course Header"
       >
-        <div className="flex flex-col lg:flex-row gap-6 items-start justify-between">
+        <div className="flex flex-col lg:flex-row gap-[var(--app-card-gap,14px)] items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">

@@ -87,7 +87,7 @@ export function Reassessment({
   }
 
   return (
-    <div className="evaluator-reassessment space-y-5">
+    <div className="evaluator-reassessment app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Policy Banner */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5 flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">

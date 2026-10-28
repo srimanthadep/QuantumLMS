@@ -654,7 +654,7 @@
 }
 
 .support-portal-root .metrics-grid {
-  gap: var(--app-card-gap-metrics, 12px) !important;
+  gap: var(--app-card-gap, 14px) !important;
   margin-bottom: var(--app-card-margin-bottom, 14px) !important;
 }
 
@@ -662,7 +662,10 @@
 .support-portal-root .left-column,
 .support-portal-root .right-column,
 .support-portal-root .card-grid,
-.support-portal-root .panel-grid {
+.support-portal-root .panel-grid,
+.support-portal-root .support-view-container,
+.support-portal-root .support-view-container > div,
+.support-portal-root .app-card-stack {
   gap: var(--app-card-gap, 14px) !important;
 }
 
@@ -670,15 +673,15 @@
 @media (max-height: 860px) {
   .support-portal-root .metrics-grid {
     height: 112px !important;
-    gap: 10px !important;
-    margin-bottom: 8px !important;
+    gap: var(--app-card-gap, 14px) !important;
+    margin-bottom: var(--app-card-margin-bottom, 14px) !important;
   }
   .support-portal-root .content-grid,
   .support-portal-root .left-column,
   .support-portal-root .right-column,
   .support-portal-root .card-grid,
   .support-portal-root .panel-grid {
-    gap: 10px !important;
+    gap: var(--app-card-gap, 14px) !important;
   }
   .support-portal-root .metric-card {
     height: 112px !important;
@@ -735,15 +738,15 @@
 @media (max-height: 740px) {
   .support-portal-root .metrics-grid {
     height: 96px !important;
-    gap: 8px !important;
-    margin-bottom: 6px !important;
+    gap: var(--app-card-gap, 14px) !important;
+    margin-bottom: var(--app-card-margin-bottom, 14px) !important;
   }
   .support-portal-root .content-grid,
   .support-portal-root .left-column,
   .support-portal-root .right-column,
   .support-portal-root .card-grid,
   .support-portal-root .panel-grid {
-    gap: 8px !important;
+    gap: var(--app-card-gap, 14px) !important;
   }
   .support-portal-root .metric-card {
     height: 96px !important;

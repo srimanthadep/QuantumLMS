@@ -75,7 +75,7 @@ export function ResultsFeedback({
   }
 
   return (
-    <div className="evaluator-results-feedback space-y-5">
+    <div className="evaluator-results-feedback app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Institutional Release Governance Notice */}
       <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-amber-900">
         <div className="flex items-center gap-2.5">

@@ -31,7 +31,7 @@ export function MentorDetailsPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Mentor Switcher */}
       <section
         className="panel p-6 bg-white border border-zinc-100 shadow-sm"
@@ -248,7 +248,7 @@ export function MentorDetailsPage({
         </div>
 
         {isMeetingScheduled && meeting ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
             {/* Left 8 cols: Meeting details card */}
             <div className="lg:col-span-8 p-5 rounded-2xl bg-gradient-to-br from-purple-50/60 via-white to-purple-50/30 border border-purple-100 flex flex-col justify-between gap-4">
               <div className="space-y-3">

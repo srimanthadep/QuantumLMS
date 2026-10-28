@@ -441,7 +441,7 @@ export function StudentSettingsPage({
       </section>
 
       {/* Row 1: Two-Column Arrangement (Portal Theme & Regional Preferences) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
         {/* 2. Portal Theme & Canvas Background */}
         <section
           className="bg-white border border-zinc-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col justify-between"
@@ -609,7 +609,7 @@ export function StudentSettingsPage({
       </div>
 
       {/* Row 2: Two-Column Arrangement (Notification & Security) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
         {/* 4. Notification & Alert Preferences */}
         <section
           className="bg-white border border-zinc-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col justify-between"
@@ -912,7 +912,7 @@ export function StudentSettingsPage({
       </div>
 
       {/* Row 3: Bottom Two Cards (2FA & Active Authorized Sessions) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
         {/* 6. Two-Factor Authentication (2FA) */}
         <section
           className="bg-white border border-zinc-100 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"

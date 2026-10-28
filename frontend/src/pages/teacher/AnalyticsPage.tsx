@@ -483,7 +483,7 @@ export default function AnalyticsPage({
       />
 
       {/* 2. Top Summary KPI Cards (Section 2.A) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[var(--app-card-gap-metrics,12px)]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[var(--app-card-gap,14px)]">
         {kpiCards.map((item) => (
           <MetricCard key={item.label} item={item} />
         ))}

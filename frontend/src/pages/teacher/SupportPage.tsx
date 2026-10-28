@@ -794,7 +794,7 @@ export default function SupportPage({
   }
 
   return (
-    <div className="support-page space-y-6">
+    <div className="support-page app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Teacher Dashboard Header */}
       <SupportHeader
         searchQuery={searchQuery}

@@ -520,7 +520,7 @@ export const LiveChatPage: React.FC = () => {
   });
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 h-full support-page-font">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] h-full support-page-font">
       {/* Toast Notification */}
       {notification && (
         <div className="fixed top-4 right-4 z-50 bg-[#111111] text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in slide-in-from-top-3">
@@ -621,7 +621,7 @@ export const LiveChatPage: React.FC = () => {
       {/* =========================================================
           MAIN 3-COLUMN WORKSPACE: FEATURES FROM 1 + UI FROM 2
          ========================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* =========================================================
             COLUMN 1: Conversation Queue (4 cols / 3.5 cols)
            ========================================================= */}

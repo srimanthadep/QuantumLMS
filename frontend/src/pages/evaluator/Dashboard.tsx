@@ -84,9 +84,9 @@ export function Dashboard({
   }
 
   return (
-    <div className="evaluator-dashboard space-y-6">
+    <div className="evaluator-dashboard app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 4 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-card-gap,14px)]">
         {/* Card 1: Assigned Assessments */}
         <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
@@ -190,7 +190,7 @@ export function Dashboard({
       </div>
 
       {/* Quick Action Shortcuts */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-[var(--app-card-gap,14px)]">
         <button
           type="button"
           onClick={handleContinueNextPending}
@@ -246,7 +246,7 @@ export function Dashboard({
       </div>
 
       {/* Main Grid: Pending Evaluations Table & Upcoming Deadlines Widget */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
         {/* Left 2 Cols: Pending Evaluations Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">

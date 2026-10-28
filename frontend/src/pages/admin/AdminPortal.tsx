@@ -440,7 +440,7 @@ export default function AdminPortal({
                           }
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-[var(--app-card-gap,14px)]">
                         <div className="p-3 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col justify-between">
                           <div>
                             <div className="flex items-center justify-between">
@@ -696,7 +696,7 @@ export default function AdminPortal({
                     }
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-[var(--app-card-gap,14px)]">
                   {campuses.map((c) => (
                     <div
                       key={c.id}
@@ -1021,7 +1021,7 @@ export default function AdminPortal({
                     }
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
                   {filteredFaculty.map((f) => (
                     <div
                       key={f.id}
@@ -1356,7 +1356,7 @@ export default function AdminPortal({
                     }
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
                   {facultyList.map((f) => (
                     <div
                       key={f.id}
@@ -1503,7 +1503,7 @@ export default function AdminPortal({
                     }
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
                   {classRooms.map((c) => (
                     <div key={c.id} className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/60">
                       <div className="flex justify-between items-start">

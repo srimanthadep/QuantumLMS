@@ -64,7 +64,7 @@ export function Assessments({
   ]
 
   return (
-    <div className="evaluator-assessments space-y-5">
+    <div className="evaluator-assessments app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Read-Only Permission Banner */}
       <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-purple-900">
         <div className="flex items-center gap-2.5">
@@ -113,9 +113,9 @@ export function Assessments({
       </div>
 
       {/* Grid: Assessments Cards & Detailed Drawer */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)]">
         {/* Left Column: Assessment Cards List */}
-        <div className="lg:col-span-5 space-y-3">
+        <div className="lg:col-span-5 flex flex-col gap-[var(--app-card-gap,14px)]">
           {filteredAssessments.length === 0 ? (
             <div className="bg-white rounded-2xl border border-zinc-200 p-8 text-center text-zinc-500">
               No assessments matching your criteria.

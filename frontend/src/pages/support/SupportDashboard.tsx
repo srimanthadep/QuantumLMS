@@ -76,7 +76,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
   ]
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] h-full">
       {/* 1. Metric Cards Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
@@ -135,10 +135,10 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
         </div>
       </div>
 
-      {/* 3. Main Content Grid - standard 8px gap */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
+      {/* 3. Main Content Grid - standard card gap */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* Left Column: Priority Tickets Queue (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-2 h-full min-h-0">
+        <div className="lg:col-span-8 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           <div className="panel p-4 sm:p-5 bg-white flex flex-col h-full min-h-0">
             {/* Card Header matching Teacher & Admin */}
             <div className="card-header">
@@ -274,7 +274,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
         </div>
 
         {/* Right Column: Fast Operational Hub & Telemetry (4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-2 h-full min-h-0">
+        <div className="lg:col-span-4 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           {/* Quick SLA Radar Panel */}
           <div className="panel p-4 sm:p-5 bg-white flex flex-col justify-between flex-1 min-h-0">
             <div>

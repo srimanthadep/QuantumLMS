@@ -198,7 +198,7 @@ export const Student360Page: React.FC = () => {
   ];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font h-full">
       {/* 1. KPI Stats Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
@@ -238,7 +238,7 @@ export const Student360Page: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Dedicated Scrollable Container with 8px Gap */}
+      {/* 3. Dedicated Scrollable Container with standard gap */}
       <div className="flex-1 min-h-0 overflow-y-auto support-queue-scrollbar pr-1 pb-1">
         {filtered.length === 0 ? (
           <div className="py-12 text-center bg-white panel p-8">
@@ -258,7 +258,7 @@ export const Student360Page: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
             {filtered.map((learner) => (
               <div
                 key={learner.id}

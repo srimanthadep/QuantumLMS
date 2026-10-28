@@ -2311,7 +2311,7 @@ export function MockInterviewPage({
   // SCREEN 4: ORIGINAL MOCK INTERVIEW DASHBOARD (Kept 100% Intact!)
   // =========================================================================
   return (
-    <div className="mock-interview-page flex flex-col gap-4 w-full max-w-full min-w-0 box-border pb-12">
+    <div className="mock-interview-page app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border pb-12">
       {/* Sample Question Details Modal */}
       {viewingQuestion && (
         <div
@@ -2598,7 +2598,7 @@ export function MockInterviewPage({
       </div>
 
       {/* 2. INTERVIEW STATISTICS (Row of 4 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-card-gap,14px)]">
         {/* Total Interviews */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
           <div>
@@ -2684,7 +2684,7 @@ export function MockInterviewPage({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[var(--app-card-gap,14px)]">
           {interviewTypes.map((item) => {
             const isSelected = selectedType === item.type
 
@@ -2733,7 +2733,7 @@ export function MockInterviewPage({
       </div>
 
       {/* 4. BOTTOM 3-COLUMN GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* COLUMN 1: INTERVIEW SETUP (Only 4 fields! NO Difficulty Level!) */}
         <div className="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
           <div>

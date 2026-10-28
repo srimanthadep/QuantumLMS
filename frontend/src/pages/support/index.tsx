@@ -733,8 +733,8 @@ function SupportLayout({
           </div>
         </header>
 
-        {/* Viewport Content - standard 8px gap */}
-        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-2 pb-0 overflow-hidden">
+        {/* Viewport Content - standard card gap */}
+        <div className="support-view-container flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] pb-0 overflow-hidden">
           {children}
         </div>
       </main>

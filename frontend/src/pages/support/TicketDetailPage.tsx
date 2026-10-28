@@ -146,7 +146,7 @@ export const TicketDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font pb-0 h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font pb-0 h-full">
       {/* Toast Notification */}
       {actionToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
@@ -238,11 +238,11 @@ export const TicketDetailPage: React.FC = () => {
       </div>
 
       {/* MAIN 2-COLUMN WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* ========================================================
             COLUMN 1: Conversation Thread & AI Composer (8 cols)
            ======================================================== */}
-        <div className="lg:col-span-8 flex flex-col h-full min-h-0 gap-2 overflow-hidden">
+        <div className="lg:col-span-8 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-hidden">
           {/* Compact Ticket Overview Capsule */}
           <div className="panel p-3 bg-white border border-zinc-150 space-y-1.5 shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -471,7 +471,7 @@ export const TicketDetailPage: React.FC = () => {
         {/* ========================================================
             COLUMN 2: Student Telemetry, Mentor Actions & Governance (4 cols)
            ======================================================== */}
-        <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-2 overflow-y-auto support-queue-scrollbar pr-0.5">
+        <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-y-auto support-queue-scrollbar pr-0.5">
           {/* Learner 360° Profile Telemetry Card */}
           <div className="p-3 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-2 shrink-0">
             <div className="flex items-center justify-between">

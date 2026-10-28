@@ -98,7 +98,7 @@ export function Submissions({
   ])
 
   return (
-    <div className="evaluator-submissions space-y-5">
+    <div className="evaluator-submissions app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Search and Filters Toolbar */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap flex-1">

@@ -307,7 +307,7 @@ export function StudentProfilePage({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)] text-xs">
           {/* Card 1: Official Student ID */}
           <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 flex flex-col justify-between">
             <div>
@@ -424,7 +424,7 @@ export function StudentProfilePage({
           onSubmit={handleSaveProfile}
           className="flex flex-col gap-4 text-xs"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[var(--app-card-gap,14px)]">
             {/* Student ID (Read-Only) */}
             <div>
               <div className="flex items-center justify-between mb-1">

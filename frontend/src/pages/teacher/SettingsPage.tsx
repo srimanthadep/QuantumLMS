@@ -347,7 +347,7 @@ export default function SettingsPage({
   }, [searchQuery])
 
   return (
-    <div className="space-y-4">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       <SettingsHeader
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

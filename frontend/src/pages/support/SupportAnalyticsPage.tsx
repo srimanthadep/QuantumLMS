@@ -195,7 +195,7 @@ export const SupportAnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 support-page-font h-full">
+    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font h-full">
       {/* 1. KPI Stats Grid */}
       <div className="metrics-grid shrink-0">
         {kpis.map((item) => (
@@ -245,10 +245,10 @@ export const SupportAnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Primary Analytics Grid (8px gap) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0">
+      {/* 3. Primary Analytics Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* Inquiry Category Breakdown Card (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-2 h-full min-h-0">
+        <div className="lg:col-span-6 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Purple Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs" />
@@ -336,7 +336,7 @@ export const SupportAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Mentor Performance Leaderboard (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-2 h-full min-h-0">
+        <div className="lg:col-span-6 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Lavender Gradient Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#B89CF5] to-[#E5DEFF] shadow-xs" />

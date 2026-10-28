@@ -167,7 +167,7 @@ export function Reports({ state, onToast }: ReportsProps) {
   }
 
   return (
-    <div className="evaluator-reports space-y-6">
+    <div className="evaluator-reports app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header and Controls */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Report Sub-Tabs */}
@@ -246,8 +246,8 @@ export function Reports({ state, onToast }: ReportsProps) {
 
       {/* Tab 1: Evaluation Progress */}
       {reportTab === "progress" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[var(--app-card-gap,14px)]">
             <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                 Overall Completion Rate
@@ -372,8 +372,8 @@ export function Reports({ state, onToast }: ReportsProps) {
 
       {/* Tab 3: Marks Distribution */}
       {reportTab === "marks_distribution" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-[var(--app-card-gap,14px)]">
             <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-[11px] font-bold text-zinc-400 uppercase">Average Score</span>
               <div className="text-2xl font-black text-purple-700 mt-1">
