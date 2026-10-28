@@ -16,3 +16,12 @@ export * as AdminComponents from "./admin"
 export * as SharedComponents from "./shared"
 export * as UI from "./ui"
 export * as Icons from "./icons"
+
+// Direct convenience exports
+export { Icon } from "./Icon"
+export { HexColorField } from "./HexColorField"
+export { MetricCard, FolderTabBackground } from "./MetricCard"
+export { AdminSidebar } from "./AdminSidebar"
+export { StudentSidebar } from "./StudentSidebar"
+export { StudentHeader } from "./StudentHeader"
+

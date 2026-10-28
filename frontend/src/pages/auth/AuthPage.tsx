@@ -247,12 +247,12 @@ export default function AuthPage({
                   role === "Super Admin"
                     ? "/assets/srimanth.png"
                     : role === "Admin"
-                    ? "/assets/student-1.png"
-                    : role === "Student"
-                    ? "/assets/student-2.png"
-                    : role === "Support"
-                    ? "/assets/student-3.png"
-                    : "/assets/srimanth.png"
+                      ? "/assets/student-1.png"
+                      : role === "Student"
+                        ? "/assets/student-2.png"
+                        : role === "Support"
+                          ? "/assets/student-3.png"
+                          : "/assets/srimanth.png"
                 }
                 alt="Account User"
               />
@@ -262,40 +262,38 @@ export default function AuthPage({
                     {role === "Super Admin"
                       ? "Dr. Katherine Vance"
                       : role === "Admin"
-                      ? "Marcus Sterling"
-                      : role === "Student"
-                      ? "Leo Thompson"
-                      : role === "Support"
-                      ? "Alex Rivera"
-                      : "Srimanth"}
+                        ? "Marcus Sterling"
+                        : role === "Student"
+                          ? "Leo Thompson"
+                          : role === "Support"
+                            ? "Alex Rivera"
+                            : "Srimanth"}
                   </strong>
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      role === "Super Admin"
-                        ? "bg-red-500"
-                        : role === "Support"
+                    className={`w-1.5 h-1.5 rounded-full ${role === "Super Admin"
+                      ? "bg-red-500"
+                      : role === "Support"
                         ? "bg-cyan-500"
                         : "bg-emerald-500"
-                    }`}
+                      }`}
                   />
                 </div>
                 <span className="text-[11px] text-zinc-500 font-medium block">
                   {role === "Super Admin"
                     ? "Chief System Director & Super Admin"
                     : role === "Admin"
-                    ? "Principal & Academic Operations Director"
-                    : role === "Student"
-                    ? "Year 4 Student · Maple Class"
-                    : "Lead Educator · Year 4 Maple Class"}
+                      ? "Principal & Academic Operations Director"
+                      : role === "Student"
+                        ? "Year 4 Student · Maple Class"
+                        : "Lead Educator · Year 4 Maple Class"}
                 </span>
                 <span
-                  className={`text-[10px] font-semibold block mt-0.5 ${
-                    role === "Super Admin"
-                      ? "text-red-700"
-                      : role === "Admin"
+                  className={`text-[10px] font-semibold block mt-0.5 ${role === "Super Admin"
+                    ? "text-red-700"
+                    : role === "Admin"
                       ? "text-purple-700"
                       : "text-emerald-700"
-                  }`}
+                    }`}
                 >
                   {role === "Super Admin"
                     ? "🔒 Root Master Key Verified"
@@ -312,8 +310,8 @@ export default function AuthPage({
                   {role === "Super Admin"
                     ? "256-bit zero-trust tenant encryption across all campus nodes"
                     : role === "Admin"
-                    ? "Automated faculty class scheduling & teacher workload balancing"
-                    : "Automatic AI parent digests generated from weekly tasks"}
+                      ? "Automated faculty class scheduling & teacher workload balancing"
+                      : "Automatic AI parent digests generated from weekly tasks"}
                 </span>
               </div>
               <div className="auth-bullet-item">
@@ -322,8 +320,8 @@ export default function AuthPage({
                   {role === "Super Admin"
                     ? "Live AI model inference tracking & rate limit controls"
                     : role === "Admin"
-                    ? "School-wide attendance registers & statutory accreditation PDF"
-                    : "Instant diagnostic grading with personalized skill interventions"}
+                      ? "School-wide attendance registers & statutory accreditation PDF"
+                      : "Instant diagnostic grading with personalized skill interventions"}
                 </span>
               </div>
             </div>
@@ -364,11 +362,10 @@ export default function AuthPage({
                     type="button"
                     onClick={() => handleQuickLaunch(acc.role)}
                     disabled={isLoading}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      role === acc.role
-                        ? "bg-purple-50/80 border-purple-300 shadow-xs"
-                        : "bg-zinc-50/70 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300"
-                    }`}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${role === acc.role
+                      ? "bg-purple-50/80 border-purple-300 shadow-xs"
+                      : "bg-zinc-50/70 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300"
+                      }`}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="text-xs font-bold text-zinc-900 flex items-center gap-1">
@@ -376,10 +373,10 @@ export default function AuthPage({
                           {acc.role === "Super Admin"
                             ? "⚡"
                             : acc.role === "Admin"
-                            ? "🏫"
-                            : acc.role === "Teacher"
-                            ? "🎓"
-                            : "🎒"}
+                              ? "🏫"
+                              : acc.role === "Teacher"
+                                ? "🎓"
+                                : "🎒"}
                         </span>
                         <span>{acc.role}</span>
                       </span>
@@ -555,8 +552,8 @@ export default function AuthPage({
                   {isLoading
                     ? "Signing in..."
                     : mode === "signin"
-                    ? `Sign In as ${role} →`
-                    : `Create ${role} Account & Launch →`}
+                      ? `Sign In as ${role} →`
+                      : `Create ${role} Account & Launch →`}
                 </span>
               </button>
             </form>

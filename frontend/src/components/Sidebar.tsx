@@ -106,7 +106,7 @@ export function TeacherProfile({
           type="button"
           onClick={() => (onSwitchRole ? setShowRoleSwitcher(!showRoleSwitcher) : onNavigateProfile?.())}
           title={`${displayName} (${roleName}) - Switch perspective`}
-          className="w-10 h-10 rounded-xl overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-purple-400 transition-all cursor-pointer"
+          className="w-10 h-10 rounded-xl overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-[#F0442E]/40 transition-all cursor-pointer"
         >
           <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
         </button>
@@ -137,12 +137,12 @@ export function TeacherProfile({
       title={onSwitchRole ? "Click to switch role perspective" : onNavigateProfile ? "View Profile" : undefined}
     >
       <div className="flex items-center gap-2.5">
-        <img src={avatar} alt={displayName} className="w-9 h-9 rounded-xl object-cover border border-purple-200" />
+        <img src={avatar} alt={displayName} className="w-9 h-9 rounded-xl object-cover border border-[#F0442E]/30" />
         <div className="flex-1 min-w-0 text-left">
           <strong className="block text-xs font-bold text-zinc-900 truncate leading-tight">{displayName}</strong>
           <span className="text-[10px] font-medium text-zinc-500 flex items-center gap-1">
             <span>{roleName}</span>
-            {onSwitchRole && <span className="text-[9px] text-purple-600 font-bold">▾</span>}
+            {onSwitchRole && <span className="text-[9px] text-[#F0442E] font-bold">▾</span>}
           </span>
         </div>
       </div>
@@ -189,12 +189,12 @@ function RoleSwitcherMenu({
             onClick={() => onSelectRole(r.role)}
             className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
               isSelected
-                ? "bg-purple-50 text-purple-800 font-bold"
+                ? "bg-[#FEF2F0] text-[#F0442E] font-bold"
                 : "text-zinc-700 hover:bg-zinc-100 font-medium"
             }`}
           >
             <span>{r.icon} {r.label}</span>
-            {isSelected && <span className="text-purple-600 font-bold">✓</span>}
+            {isSelected && <span className="text-[#F0442E] font-bold">✓</span>}
           </button>
         )
       })}
@@ -342,11 +342,22 @@ export function AppSidebar({
     return false
   }
 
-  const effectiveUser: CurrentUser = currentUser || {
-    name: resolvedRole === "Student" ? "Srimanth" : resolvedRole === "Evaluator" ? profile?.name || "Dr. Aris Thorne" : "Srimanth",
-    role: (resolvedRole as UserRole) || "Teacher",
-    avatar: "/assets/srimanth.png",
-  }
+  const effectiveUser: CurrentUser = currentUser || (() => {
+    try {
+      const saved = localStorage.getItem("quantum_current_user")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed?.name) return parsed
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      name: resolvedRole === "Student" ? "Leo Thompson" : resolvedRole === "Evaluator" ? profile?.name || "Dr. Alistair Vance" : "Srimanth",
+      role: (resolvedRole as UserRole) || "Teacher",
+      avatar: resolvedRole === "Student" ? "/assets/student-2.png" : "/assets/srimanth.png",
+    }
+  })()
 
   return (
     <aside
@@ -395,19 +406,19 @@ export function AppSidebar({
                 isCollapsed ? "justify-center px-0" : ""
               } ${
                 active
-                  ? "bg-purple-50 text-purple-700 font-medium"
+                  ? "bg-[#FEF2F0] text-[#F0442E] font-semibold"
                   : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 font-medium"
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <span className={`shrink-0 ${active ? "text-purple-700" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active ? "text-[#F0442E]" : "text-zinc-500"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && (
                 <span className="truncate flex-1 text-left">{item.label}</span>
               )}
               {!isCollapsed && item.badge !== undefined && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.badgeColor || "bg-purple-100 text-purple-700"}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.badgeColor || "bg-[#FEF2F0] text-[#F0442E]"}`}>
                   {item.badge}
                 </span>
               )}
@@ -435,12 +446,12 @@ export function AppSidebar({
                 isCollapsed ? "justify-center px-0" : ""
               } ${
                 active
-                  ? "bg-purple-50 text-purple-700 font-medium"
+                  ? "bg-[#FEF2F0] text-[#F0442E] font-semibold"
                   : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 font-medium"
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <span className={`shrink-0 ${active ? "text-purple-700" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active ? "text-[#F0442E]" : "text-zinc-500"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && (
@@ -459,13 +470,13 @@ export function AppSidebar({
             onClick={onOpenAiModal}
             className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               isCollapsed
-                ? "bg-purple-700 text-white"
-                : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/60 shadow-2xs"
+                ? "bg-[#172033] text-white"
+                : "bg-teal-50 text-[#0F766E] hover:bg-teal-100/80 border border-teal-600/20 shadow-2xs"
             }`}
             title="Ask AI Copilot"
           >
             <Sparkles size={15} />
-            {!isCollapsed && <span>Ask AI</span>}
+            {!isCollapsed && <span>Ask AI Tutor</span>}
           </button>
         )}
 

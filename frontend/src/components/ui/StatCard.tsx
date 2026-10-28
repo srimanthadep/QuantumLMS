@@ -3,7 +3,11 @@ import { cn } from "@/lib/utils"
 import type { MetricItem } from "../../types"
 import { Icon } from "../Icon"
 
-export function FolderTabBackground() {
+export function FolderTabBackground(_props?: {
+  width?: number
+  height?: number
+  label?: string
+}) {
   return null
 }
 
@@ -41,33 +45,58 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   tone,
   trend,
+  index = 0,
   className,
   onClick,
   isActive = false,
 }) => {
-  // Resolve item vs direct props
   const resolvedTitle = item ? item.label : title || ""
   const resolvedValue = item ? item.value : value ?? ""
-  const resolvedTone = item ? item.tone : tone || "lavender"
-  const rawTrend = item ? item.trend : (typeof trend === "object" ? trend?.value : typeof trend === "string" ? trend : change || subtitle || "")
-  const resolvedIcon = item ? item.icon : icon
+  const resolvedTone: "lavender" | "pink" | "yellow" | "lime" =
+    (item ? item.tone : tone) ||
+    (index % 4 === 0
+      ? "lavender"
+      : index % 4 === 1
+      ? "pink"
+      : index % 4 === 2
+      ? "yellow"
+      : "lime")
 
-  // Determine trend badge style (is it positive, neutral, or badge)
-  const isPositiveTrend = typeof rawTrend === "string" && (rawTrend.startsWith("+") || rawTrend.includes("met") || rawTrend.includes("All") || rawTrend.includes("Target"));
+  const rawTrend = item
+    ? item.trend
+    : typeof trend === "object"
+    ? trend?.value
+    : typeof trend === "string"
+    ? trend
+    : change || subtitle || ""
+
+  const resolvedIcon = item ? item.icon : icon
 
   return (
     <section
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
       className={cn(
         "metric-card bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col justify-between transition-all shadow-xs",
-        isActive && "ring-2 ring-primary shadow-sm",
-        onClick && "cursor-pointer hover:border-primary/40",
+        onClick && "cursor-pointer hover:border-[#F0442E]/40",
+        isActive && "ring-2 ring-[#F0442E] border-[#F0442E] -translate-y-0.5",
         className
       )}
       aria-label={resolvedTitle}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="metric-label text-xs font-medium uppercase tracking-wider text-muted-foreground truncate">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <span className="metric-label text-xs font-semibold uppercase tracking-wider text-slate-500 truncate">
           {resolvedTitle}
         </span>
         {resolvedIcon && (
@@ -75,25 +104,21 @@ export const StatCard: React.FC<StatCardProps> = ({
             {typeof resolvedIcon === "string" ? (
               <Icon name={resolvedIcon as any} size={18} />
             ) : (
-              React.createElement(resolvedIcon as any, { size: 18, className: "w-[18px] h-[18px]" })
+              React.createElement(resolvedIcon as any, {
+                size: 18,
+                className: "w-[18px] h-[18px]",
+              })
             )}
           </div>
         )}
       </div>
 
       <div className="metric-bottom flex items-baseline justify-between gap-2 mt-auto">
-        <strong className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+        <strong className="text-2xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-white">
           {resolvedValue}
         </strong>
         {rawTrend && (
-          <span
-            className={cn(
-              "text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums shrink-0",
-              isPositiveTrend
-                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40"
-                : "bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-700/60"
-            )}
-          >
+          <span className="text-[11px] font-semibold text-[#0F766E] bg-teal-50 dark:bg-teal-950/40 border border-teal-600/20 px-2 py-0.5 rounded-full tabular-nums shrink-0">
             {rawTrend}
           </span>
         )}
