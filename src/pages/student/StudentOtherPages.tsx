@@ -155,7 +155,7 @@ export function StudentOtherPage({
 
           <button
             onClick={onSwitchToTeacher}
-            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="px-3 h-[35px] rounded-full bg-[#172033] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#253350] transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title="Switch to Teacher View"
           >
             <span>👨‍🏫 Teacher Portal</span>

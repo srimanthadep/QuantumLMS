@@ -69,7 +69,7 @@ export function HexColorField({
           type="text"
           value={localVal}
           onChange={handleInputChange}
-          placeholder="#9860e9"
+          placeholder="#F8FAFC"
           maxLength={9}
           aria-label="Hex color for background"
           spellCheck={false}

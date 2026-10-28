@@ -53,7 +53,7 @@ export function FolderTabBackground({
   )
 }
 
-export function MetricCard({ item }: { item: MetricItem }) {
+export function MetricCard({ item, onClick }: { item: MetricItem; onClick?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 210, height: 132 })
 
@@ -80,8 +80,9 @@ export function MetricCard({ item }: { item: MetricItem }) {
   return (
     <section
       ref={containerRef}
-      className="metric-card folder-tab-card"
+      className={`metric-card folder-tab-card ${onClick ? "cursor-pointer" : ""}`}
       aria-label={item.label}
+      onClick={onClick}
     >
       <FolderTabBackground
         width={dimensions.width}

@@ -379,7 +379,7 @@ export default function SettingsPage({
       )}
 
       {/* Main Settings Structured Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-start">
         {/* Navigation Area: Left Sidebar (Desktop) / Horizontal Scrollable Tabs (Mobile) */}
         <aside className="lg:col-span-3">
           <div className="panel p-3 bg-white/95 backdrop-blur-xs">
@@ -412,8 +412,8 @@ export default function SettingsPage({
                     type="button"
                     onClick={() => setActiveCategory(cat.id)}
                     className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap text-left shrink-0 ${isActive
-                        ? "bg-purple-600 text-white shadow-xs"
-                        : "text-zinc-600 hover:text-purple-700 hover:bg-purple-50/60"
+                        ? "bg-[#F0442E] text-white shadow-xs"
+                        : "text-zinc-600 hover:text-[#F0442E] hover:bg-[#FFF1EE]"
                       }`}
                     role="tab"
                     aria-selected={isActive}
@@ -424,7 +424,7 @@ export default function SettingsPage({
                     </div>
                     {cat.badge && (
                       <span
-                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"
+                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-[#FFF1EE] text-[#F0442E]"
                           }`}
                       >
                         {cat.badge}
@@ -910,23 +910,24 @@ export default function SettingsPage({
                   <div>
                     <strong className="text-xs font-bold text-zinc-900 block">Canvas Background Hex Color</strong>
                     <span className="text-[11px] text-zinc-500">
-                      Current: <span className="font-mono font-bold text-purple-700">{hexColor}</span>. Select a curated preset or use the header picker.
+                      Current: <span className="font-mono font-bold text-[#F0442E]">{hexColor}</span>. Select a curated preset or use the header picker.
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
-                      { name: "Default Violet", hex: "#9860e9" },
-                      { name: "Deep Royal", hex: "#5b45b0" },
-                      { name: "Slate Minimal", hex: "#27272a" },
-                      { name: "Teal Emerald", hex: "#0f766e" },
-                      { name: "Warm Amber", hex: "#b45309" },
+                      { name: "Soft White (Default)", hex: "#F8FAFC" },
+                      { name: "Midnight Navy", hex: "#172033" },
+                      { name: "Brand Orange-Red", hex: "#F0442E" },
+                      { name: "Learning Teal", hex: "#0F766E" },
+                      { name: "Pure White", hex: "#FFFFFF" },
+                      { name: "Cool Gray Canvas", hex: "#F1F5F9" },
                     ].map((preset) => (
                       <button
                         key={preset.hex}
                         type="button"
                         onClick={() => onChangeHexColor(preset.hex)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${hexColor.toLowerCase() === preset.hex.toLowerCase()
-                            ? "bg-white border-purple-500 ring-2 ring-purple-200 text-zinc-900 shadow-xs"
+                            ? "bg-white border-[#F0442E] ring-2 ring-[#FED7D0] text-zinc-900 shadow-xs"
                             : "bg-white border-gray-200 text-zinc-600 hover:border-gray-300"
                           }`}
                       >

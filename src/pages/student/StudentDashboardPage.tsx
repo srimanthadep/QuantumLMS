@@ -133,7 +133,7 @@ export default function StudentDashboardPage({
           {/* Quick Portal Switcher */}
           <button
             onClick={onSwitchToTeacher}
-            className="px-3 h-[35px] rounded-full bg-purple-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-purple-700 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="px-3 h-[35px] rounded-full bg-[#172033] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#253350] transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title="Switch to Teacher View"
           >
             <span>👨‍🏫 Teacher Portal</span>
@@ -157,13 +157,9 @@ export default function StudentDashboardPage({
       </header>
 
       {/* 2. Independently Scrollable Dashboard Body */}
-      <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 space-y-4 box-border">
+      <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 box-border">
         {/* Top Metric Cards (4) - Folder Tab Cut Cards */}
         <section className="metrics-grid" aria-label="Student Learning Metrics">
-        <div
-          onClick={() => onNavigate("My Courses")}
-          className="cursor-pointer"
-        >
           <MetricCard
             item={{
               label: "Active Courses",
@@ -172,12 +168,8 @@ export default function StudentDashboardPage({
               tone: "lavender",
               icon: "book",
             }}
+            onClick={() => onNavigate("My Courses")}
           />
-        </div>
-        <div
-          onClick={() => onNavigate("Attendance")}
-          className="cursor-pointer"
-        >
           <MetricCard
             item={{
               label: "Attendance Rate",
@@ -186,12 +178,8 @@ export default function StudentDashboardPage({
               tone: "lime",
               icon: "check",
             }}
+            onClick={() => onNavigate("Attendance")}
           />
-        </div>
-        <div
-          onClick={() => onNavigate("Assignments")}
-          className="cursor-pointer"
-        >
           <MetricCard
             item={{
               label: "Pending Tasks",
@@ -200,9 +188,8 @@ export default function StudentDashboardPage({
               tone: "pink",
               icon: "document",
             }}
+            onClick={() => onNavigate("Assignments")}
           />
-        </div>
-        <div onClick={() => onNavigate("Grades")} className="cursor-pointer">
           <MetricCard
             item={{
               label: "Current GPA",
@@ -211,9 +198,9 @@ export default function StudentDashboardPage({
               tone: "yellow",
               icon: "trend",
             }}
+            onClick={() => onNavigate("Grades")}
           />
-        </div>
-      </section>
+        </section>
 
       {/* 3. Main Content Grid - Same 2-Column Responsive Split */}
       <div className="content-grid">

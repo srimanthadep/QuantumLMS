@@ -361,7 +361,7 @@ function SupportLayout({
     <div
       className="dashboard-shell support-portal-root"
       style={{
-        backgroundColor: hexColor || "var(--bg-custom, #9860e9)",
+        backgroundColor: hexColor || "var(--bg-custom, #F8FAFC)",
         backgroundImage: isLightBg
           ? "linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px)"
           : "linear-gradient(rgba(255, 255, 255, 0.19) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.19) 1px, transparent 1px)",
@@ -392,7 +392,7 @@ function SupportLayout({
           {onChangeHexColor && (
             <div className="scale-90">
               <HexColorField
-                hexColor={hexColor || "#9860e9"}
+                hexColor={hexColor || "#F8FAFC"}
                 onChangeHex={onChangeHexColor}
               />
             </div>
@@ -716,7 +716,7 @@ function SupportLayout({
             {/* Hex Color Field */}
             {onChangeHexColor && (
               <HexColorField
-                hexColor={hexColor || "#9860e9"}
+                hexColor={hexColor || "#F8FAFC"}
                 onChangeHex={onChangeHexColor}
               />
             )}

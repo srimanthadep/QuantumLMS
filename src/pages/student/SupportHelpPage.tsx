@@ -400,7 +400,7 @@ export function SupportHelpPage({
     ]
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Section Switcher */}
       <section
         className="panel p-6 bg-white border border-zinc-100 shadow-sm rounded-3xl"
@@ -484,7 +484,7 @@ export function SupportHelpPage({
       {/* SECTION 1: TICKET MANAGEMENT (PRIMARY)                   */}
       {/* ========================================================= */}
       {activeSection === "tickets" && (
-        <div className="flex flex-col gap-5">
+        <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
           {/* If viewing a single ticket details */}
           {activeTicket ? (
             <div className="flex flex-col gap-4">

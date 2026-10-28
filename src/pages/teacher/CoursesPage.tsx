@@ -1922,7 +1922,7 @@ export default function CoursesPage({
                 )}
               </div>
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 pb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-[var(--app-card-gap,14px)] pb-2">
                 {filteredCourses.map((course) => (
                   <CourseCard
                     key={course.id}
@@ -1932,7 +1932,7 @@ export default function CoursesPage({
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col gap-3.5 pb-2">
+              <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] pb-2">
                 {filteredCourses.map((course) => (
                   <CourseRow
                     key={course.id}

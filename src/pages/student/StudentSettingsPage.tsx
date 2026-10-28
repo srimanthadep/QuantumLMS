@@ -82,7 +82,7 @@ export function StudentSettingsPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner */}
       <section
         className="panel p-6 bg-white border border-zinc-100 shadow-sm"

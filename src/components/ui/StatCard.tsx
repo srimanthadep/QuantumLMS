@@ -142,7 +142,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       )}
       style={{
         filter: isActive
-          ? "drop-shadow(0 0 0 2.5px #9860e9) drop-shadow(0 8px 16px rgba(152, 96, 233, 0.3))"
+          ? "drop-shadow(0 0 0 2.5px #F0442E) drop-shadow(0 8px 16px rgba(240, 68, 46, 0.28))"
           : undefined,
         transform: isActive ? "translateY(-2px)" : undefined,
       }}
