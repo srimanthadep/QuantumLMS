@@ -112,7 +112,7 @@ export function AnalyticsHeader({
         )}
         {onOpenAiAssistant && (
           <button
-            className="px-3.5 h-[35px] rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-black transition-colors cursor-pointer"
+            className="px-3.5 h-[35px] rounded-full bg-ink-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-black transition-colors cursor-pointer"
             onClick={onOpenAiAssistant}
             aria-label="Ask AI Assistant"
           >
@@ -608,7 +608,7 @@ export default function AnalyticsPage({
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex flex-wrap items-center gap-2">
             {/* Course Filter */}
-            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
+            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
               <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Course:</span>
               <select
                 className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
@@ -625,7 +625,7 @@ export default function AnalyticsPage({
             </div>
 
             {/* Module Filter */}
-            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
+            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
               <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Module:</span>
               <select
                 className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
@@ -642,7 +642,7 @@ export default function AnalyticsPage({
             </div>
 
             {/* Student Selector Filter */}
-            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
+            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
               <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Student:</span>
               <select
                 className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
@@ -659,7 +659,7 @@ export default function AnalyticsPage({
             </div>
 
             {/* Timeframe Filter */}
-            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
+            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
               <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Window:</span>
               <select
                 className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
@@ -741,7 +741,7 @@ export default function AnalyticsPage({
                 </div>
                 <button
                   onClick={() => setStudentFilter("All")}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white border border-purple-200 text-purple-800 hover:bg-purple-100 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-surface border border-purple-200 text-purple-800 hover:bg-purple-100 transition-colors cursor-pointer"
                 >
                   View All Cohort
                 </button>
@@ -805,7 +805,7 @@ export default function AnalyticsPage({
               </div>
 
               {/* Cohort 12-Week Daily Learning Activity Histogram & Trendline */}
-              <div className="p-4 rounded-xl bg-white border border-gray-200">
+              <div className="p-4 rounded-xl bg-surface border border-gray-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-zinc-800">
                     Cohort Daily Event Histogram (12-Week Rolling Trend)
@@ -1039,7 +1039,7 @@ export default function AnalyticsPage({
                   ) || 0
 
                 return (
-                  <div key={course.id} className="p-4 rounded-xl bg-white border border-gray-200 flex flex-col gap-3">
+                  <div key={course.id} className="p-4 rounded-xl bg-surface border border-gray-200 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <img
@@ -1321,7 +1321,7 @@ export default function AnalyticsPage({
             </div>
 
             {/* Attendance Historical Trendline across live sessions */}
-            <div className="p-3.5 rounded-xl bg-white border border-gray-200 flex flex-col gap-2">
+            <div className="p-3.5 rounded-xl bg-surface border border-gray-200 flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs">
                 <strong className="font-bold text-zinc-800">Attendance Trends Over Recent Live Sessions</strong>
                 <span className="text-[11px] text-zinc-500">4 Completed Sessions</span>
@@ -1662,7 +1662,7 @@ export default function AnalyticsPage({
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="w-full max-w-2xl bg-surface rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
             {/* Modal Header */}
             <div className="px-5 py-4 bg-purple-50/70 border-b border-purple-100 flex items-start justify-between">
               <div>
@@ -1678,7 +1678,7 @@ export default function AnalyticsPage({
               </div>
 
               <button
-                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-zinc-500 hover:text-zinc-900 cursor-pointer"
+                className="w-8 h-8 rounded-full bg-surface border border-gray-200 flex items-center justify-center text-zinc-500 hover:text-zinc-900 cursor-pointer"
                 onClick={() => setInspectingAssignment(null)}
                 aria-label="Close modal"
               >
@@ -1762,7 +1762,7 @@ export default function AnalyticsPage({
                 Read-only analytics view · Grading permissions active on Assignments portal
               </span>
               <button
-                className="px-4 py-1.5 rounded-full bg-zinc-900 text-white font-bold hover:bg-black transition-colors cursor-pointer"
+                className="px-4 py-1.5 rounded-full bg-ink-900 text-white font-bold hover:bg-black transition-colors cursor-pointer"
                 onClick={() => setInspectingAssignment(null)}
               >
                 Done

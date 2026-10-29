@@ -254,12 +254,12 @@ export function StudentDropdown<T extends string | number = string>({
         onClick={() => {
           if (!disabled) setIsOpen(!isOpen)
         }}
-        className={`group flex items-center justify-between gap-2.5 w-full bg-white border font-semibold transition-all duration-150 cursor-pointer select-none ${sizeClasses} ${roundedClasses} ${
+        className={`group flex items-center justify-between gap-2.5 w-full bg-surface border font-semibold transition-all duration-150 cursor-pointer select-none ${sizeClasses} ${roundedClasses} ${
           error
             ? "border-rose-400 bg-rose-50/20 text-rose-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
             : isOpen
-              ? "border-[#905FEB] ring-2 ring-[#905FEB]/20 text-[#171526] shadow-sm"
-              : "border-zinc-200/90 hover:border-[#905FEB] hover:bg-[#F0EDFF]/20 text-[#171526]"
+              ? "border-primary ring-2 ring-primary/20 text-foreground shadow-sm"
+              : "border-zinc-200/90 hover:border-primary hover:bg-primary-soft/20 text-foreground"
         } ${disabled ? "opacity-50 cursor-not-allowed bg-zinc-100 hover:border-zinc-200" : ""} ${triggerClassName}`}
       >
         <span className="flex items-center gap-2 truncate text-left">
@@ -267,7 +267,7 @@ export function StudentDropdown<T extends string | number = string>({
             <span className="shrink-0 text-zinc-500">{selectedOption.icon}</span>
           )}
           {selectedOption ? (
-            <span className="text-[#171526] font-semibold truncate">
+            <span className="text-foreground font-semibold truncate">
               {selectedOption.label}
             </span>
           ) : (
@@ -280,7 +280,7 @@ export function StudentDropdown<T extends string | number = string>({
         {/* Clean right-aligned dropdown arrow with smooth rotation */}
         <span
           className={`shrink-0 transition-transform duration-200 ease-in-out ${
-            isOpen ? "rotate-180 text-[#905FEB]" : "text-[#514B68] group-hover:text-[#905FEB]"
+            isOpen ? "rotate-180 text-primary-text" : "text-muted-foreground group-hover:text-primary-text"
           }`}
           aria-hidden="true"
         >
@@ -307,7 +307,7 @@ export function StudentDropdown<T extends string | number = string>({
             align === "right" ? "right-0" : "left-0"
           } ${
             openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
-          } w-full min-w-[180px] bg-white rounded-2xl shadow-xl border border-zinc-200/90 p-1.5 overflow-hidden transition-all duration-150 transform origin-top animate-in fade-in zoom-in-95 ${menuClassName}`}
+          } w-full min-w-[180px] bg-surface rounded-2xl shadow-xl border border-zinc-200/90 p-1.5 overflow-hidden transition-all duration-150 transform origin-top animate-in fade-in zoom-in-95 ${menuClassName}`}
           style={{
             boxShadow: "0 12px 34px rgba(39, 28, 61, 0.12)",
           }}
@@ -325,7 +325,7 @@ export function StudentDropdown<T extends string | number = string>({
                     setHighlightedIndex(0)
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-full pl-7 pr-3 py-1.5 text-xs rounded-xl bg-[#F1F0F3]/60 border border-zinc-200 focus:outline-none focus:border-[#905FEB] focus:bg-white text-zinc-900"
+                  className="w-full pl-7 pr-3 py-1.5 text-xs rounded-xl bg-zinc-100/60 border border-zinc-200 focus:outline-none focus:border-primary focus:bg-surface text-zinc-900"
                 />
                 <span className="absolute left-2.5 top-2 text-zinc-400 text-xs pointer-events-none">
                   🔍
@@ -364,10 +364,10 @@ export function StudentDropdown<T extends string | number = string>({
                       opt.disabled
                         ? "opacity-40 cursor-not-allowed bg-transparent text-zinc-400"
                         : isSelected
-                          ? "bg-[#F0E7FF] text-[#5F2BC0] font-bold"
+                          ? "bg-primary-soft text-primary-text font-bold"
                           : isHighlighted
-                            ? "bg-[#F0EDFF]/80 text-[#5F2BC0]"
-                            : "text-[#171526] hover:bg-[#F0EDFF]/70 hover:text-[#5F2BC0]"
+                            ? "bg-primary-soft/80 text-primary-text"
+                            : "text-foreground hover:bg-primary-soft/70 hover:text-primary-text"
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -377,7 +377,7 @@ export function StudentDropdown<T extends string | number = string>({
 
                     {/* Purple checkmark on selected item */}
                     {isSelected && (
-                      <span className="text-[#905FEB] font-extrabold text-xs ml-auto shrink-0 animate-in fade-in">
+                      <span className="text-primary-text font-extrabold text-xs ml-auto shrink-0 animate-in fade-in">
                         ✓
                       </span>
                     )}

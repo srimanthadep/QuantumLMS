@@ -263,7 +263,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                             ? "border-rose-200 bg-rose-50"
                             : item.status === "Weekend"
                               ? "border-zinc-100 bg-zinc-50 text-zinc-400"
-                              : "border-zinc-100 bg-white"
+                              : "border-zinc-100 bg-surface"
                   }`}
                 >
                   <span
@@ -349,7 +349,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
           onClick={() => setIsLeaveModalOpen(false)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
@@ -398,7 +398,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                     type="date"
                     value={leaveStartDate}
                     onChange={(e) => setLeaveStartDate(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-zinc-200 bg-white text-zinc-900"
+                    className="w-full p-2 rounded-xl border border-zinc-200 bg-surface text-zinc-900"
                   />
                 </div>
                 <div>
@@ -409,7 +409,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                     type="date"
                     value={leaveEndDate}
                     onChange={(e) => setLeaveEndDate(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-zinc-200 bg-white text-zinc-900"
+                    className="w-full p-2 rounded-xl border border-zinc-200 bg-surface text-zinc-900"
                   />
                 </div>
               </div>
@@ -423,7 +423,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                   onChange={(e) => setLeaveNotes(e.target.value)}
                   placeholder="Provide supporting details for the attendance coordinator and instructor..."
                   rows={3}
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                 />
               </div>
 
@@ -454,7 +454,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
           onClick={() => setSelectedSubjectLog(null)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
@@ -499,7 +499,7 @@ export function AttendancePage({ onToast }: AttendancePageProps) {
                     { date: "Oct 16, 2026", time: "10:00 AM", topic: "Lecture 13 · Cross-Encoder Re-Ranking", status: "Present" },
                     { date: "Oct 14, 2026", time: "10:00 AM", topic: "Lecture 12 · BM25 & Dense Fusion", status: "Late (Grace)" },
                   ].map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-lg border border-zinc-100 text-[11px]">
+                    <div key={idx} className="flex items-center justify-between p-2 bg-surface rounded-lg border border-zinc-100 text-[11px]">
                       <div>
                         <strong className="text-zinc-900 block">{s.topic}</strong>
                         <span className="text-zinc-400">{s.date} • {s.time}</span>

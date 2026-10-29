@@ -266,7 +266,7 @@ function QuizzesSection({
         </p>
         <button
           onClick={handleBackToList}
-          className="px-4 py-2 rounded-full border border-zinc-300 text-xs font-bold text-zinc-700 hover:bg-white"
+          className="px-4 py-2 rounded-full border border-zinc-300 text-xs font-bold text-zinc-700 hover:bg-surface"
         >
           ← Return to Assessments
         </button>
@@ -278,7 +278,7 @@ function QuizzesSection({
   if (viewMode === "review" && activeQuiz && activeAttempt) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="panel p-4 bg-white flex items-center justify-between">
+        <div className="panel p-4 bg-surface flex items-center justify-between">
           <div>
             <h3 className="font-bold text-base text-zinc-900">{activeQuiz.title} · Review</h3>
             <span className="text-xs text-zinc-500">Scored: {activeAttempt.scoreStr} ({activeAttempt.pct}%)</span>
@@ -378,7 +378,7 @@ function QuizzesSection({
                   key={optIdx}
                   onClick={() => handleSelectAnswer(currentQIndex, optIdx)}
                   className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center gap-3 cursor-pointer ${
-                    isSelected ? "border-purple-600 bg-purple-50 text-purple-950" : "border-zinc-200 bg-white"
+                    isSelected ? "border-purple-600 bg-purple-50 text-purple-950" : "border-zinc-200 bg-surface"
                   }`}
                 >
                   <input
@@ -422,7 +422,7 @@ function QuizzesSection({
 
         {isSubmitModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl p-6 max-w-sm w-full">
+            <div className="bg-surface rounded-3xl p-6 max-w-sm w-full">
               <h3 className="font-bold text-base text-zinc-900 mb-2">Submit Assessment?</h3>
               <p className="text-xs text-zinc-600 mb-4">
                 You answered {answeredCount} of {activeQuestions.length} questions. Confirm submission?
@@ -451,7 +451,7 @@ function QuizzesSection({
   // VIEW 4: LIST
   return (
     <div className="flex flex-col gap-4">
-      <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between gap-3">
+      <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {(["All", "Active", "Upcoming", "Completed"] as const).map((tab) => (
             <button
@@ -648,18 +648,18 @@ export function AssignmentsPage({
       {/* Detail View for active assignment */}
       {activeAssignment ? (
         <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-          <div className="panel p-4 bg-white border border-zinc-100 shadow-xs rounded-3xl flex items-center justify-between">
+          <div className="panel p-4 bg-surface border border-zinc-100 shadow-xs rounded-3xl flex items-center justify-between">
             <button
               type="button"
               onClick={handleBackToList}
-              className="px-4 py-1.5 rounded-full bg-zinc-100 hover:bg-[#F0EDFF] text-zinc-700 text-xs font-bold cursor-pointer"
+              className="px-4 py-1.5 rounded-full bg-zinc-100 hover:bg-primary-soft text-zinc-700 text-xs font-bold cursor-pointer"
             >
               ← Back to Assessments List
             </button>
             <span className="text-xs font-bold text-zinc-500">{activeAssignment.course}</span>
           </div>
 
-          <section className="panel p-6 bg-white border border-zinc-100 rounded-3xl">
+          <section className="panel p-6 bg-surface border border-zinc-100 rounded-3xl">
             <h2 className="text-xl font-black text-zinc-900 mb-2">{activeAssignment.title}</h2>
             <p className="text-xs text-zinc-600 mb-4">{activeAssignment.description}</p>
             <form onSubmit={handleConfirmSubmit} className="flex flex-col gap-3">
@@ -701,13 +701,13 @@ export function AssignmentsPage({
               </div>
 
               {/* View Switcher Tabs */}
-              <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+              <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
                 <button
                   type="button"
                   onClick={() => setMainTab("assignments")}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     mainTab === "assignments"
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                       : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                   }`}
                 >
@@ -718,7 +718,7 @@ export function AssignmentsPage({
                   onClick={() => setMainTab("quizzes")}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     mainTab === "quizzes"
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                       : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                   }`}
                 >
@@ -731,7 +731,7 @@ export function AssignmentsPage({
           {/* TAB 1: ASSIGNMENTS */}
           {mainTab === "assignments" && (
             <div className="flex flex-col gap-4">
-              <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between">
+              <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-1.5 overflow-x-auto">
                   {(["All", "Pending", "Submitted", "Graded"] as const).map((tab) => (
                     <button

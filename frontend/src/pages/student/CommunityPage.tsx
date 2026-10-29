@@ -160,13 +160,13 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
           </div>
 
           {/* View Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
             <button
               type="button"
               onClick={() => setActiveTab("squads")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "squads"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -177,7 +177,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
               onClick={() => setActiveTab("discussions")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "discussions"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -188,7 +188,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
               onClick={() => setActiveTab("speech")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "speech"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -201,7 +201,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
       {/* VIEW 1: SQUADS & CHANNELS */}
       {activeTab === "squads" && (
         <div className="flex flex-col gap-4">
-          <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+          <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {["All Channels", "🏆 Hackathons", "🔬 Research & Labs", "📚 Study Groups", "💬 General"].map(
                 (c) => (
@@ -233,7 +233,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
             {filteredPosts.map((post) => (
               <div
                 key={post.id}
-                className="panel p-5 bg-white border border-zinc-100 rounded-2xl shadow-xs"
+                className="panel p-5 bg-surface border border-zinc-100 rounded-2xl shadow-xs"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2.5">
@@ -275,7 +275,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
 
           {isNewPostModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <form onSubmit={handleCreatePost} className="bg-white rounded-3xl p-6 max-w-lg w-full flex flex-col gap-3">
+              <form onSubmit={handleCreatePost} className="bg-surface rounded-3xl p-6 max-w-lg w-full flex flex-col gap-3">
                 <h3 className="font-bold text-base text-zinc-900 mb-1">Create Community Post</h3>
                 <div>
                   <label className="text-xs font-bold text-zinc-700 block mb-1">Channel</label>
@@ -336,7 +336,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
       {/* VIEW 2: COURSE DISCUSSIONS */}
       {activeTab === "discussions" && (
         <div className="flex flex-col gap-4">
-          <div className="panel p-3 bg-white border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+          <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {["All Courses", "Generative AI Masterclass", "Python for AI", "Machine Learning Foundations"].map(
                 (c) => (
@@ -368,7 +368,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
             {filteredTopics.map((topic) => (
               <div
                 key={topic.id}
-                className="panel p-4 bg-white border border-zinc-100 rounded-2xl flex items-center justify-between gap-4 hover:border-purple-200 transition-colors"
+                className="panel p-4 bg-surface border border-zinc-100 rounded-2xl flex items-center justify-between gap-4 hover:border-purple-200 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <button
@@ -407,7 +407,7 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
 
       {/* VIEW 3: SPEECH & VERBAL LAB */}
       {activeTab === "speech" && (
-        <div className="panel p-6 bg-white border border-zinc-100 rounded-3xl flex flex-col gap-4">
+        <div className="panel p-6 bg-surface border border-zinc-100 rounded-3xl flex flex-col gap-4">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
             <div>
               <h3 className="text-base font-bold text-zinc-900">AI Speech & Presentation Rehearsal Lab</h3>

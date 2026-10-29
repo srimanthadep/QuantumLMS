@@ -168,12 +168,12 @@ const ARTICLES: KbArticle[] = [
   },
 ];
 const UNIFIED_THEME = {
-  cardBorder: "border-purple-100 hover:border-[#905FEB]/60",
-  badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/25 font-bold",
-  topGradient: "from-[#905FEB] via-[#824FE7] to-[#A87DF5]",
-  buttonClass: "bg-[#905FEB] hover:bg-[#7D46E7] text-white font-bold",
-  chipActive: "bg-[#905FEB] text-white",
-  dotColor: "bg-[#905FEB]",
+  cardBorder: "border-purple-100 hover:border-primary/60",
+  badgeClass: "bg-primary-soft text-primary-text border-primary/25 font-bold",
+  topGradient: "from-primary via-[#824FE7] to-[#A87DF5]",
+  buttonClass: "bg-primary hover:bg-[#7D46E7] text-white font-bold",
+  chipActive: "bg-primary text-white",
+  dotColor: "bg-primary",
 };
 
 const CATEGORY_CONFIG: Record<
@@ -268,15 +268,15 @@ export const KnowledgeBasePage: React.FC = () => {
       </div>
 
       {/* 2. Search and Category Filter Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150 shrink-0">
+      <div className="panel p-3.5 bg-surface border border-zinc-150 shrink-0">
         <div className="space-y-2.5">
           <div className="relative">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-primary-text" />
             <Input
               placeholder="Search SOP articles, keywords, or macros..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 text-xs sm:text-sm bg-white border-[#E5DEFF] rounded-full focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20 text-[#111111] placeholder:text-zinc-400 shadow-2xs"
+              className="pl-10 h-9 text-xs sm:text-sm bg-surface border-primary-border rounded-full focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-zinc-400 shadow-2xs"
             />
           </div>
 
@@ -292,8 +292,8 @@ export const KnowledgeBasePage: React.FC = () => {
                     className={cn(
                       "h-7 px-3 text-[11px] sm:text-xs font-semibold rounded-full capitalize whitespace-nowrap cursor-pointer flex items-center border transition-all duration-150 shrink-0",
                       isActive
-                        ? "bg-[#905FEB] text-white border-[#905FEB] shadow-xs hover:bg-[#7D46E7]"
-                        : "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/20 hover:bg-[#E2DBFC]"
+                        ? "bg-primary text-white border-primary shadow-xs hover:bg-[#7D46E7]"
+                        : "bg-primary-soft text-primary-text border-primary/20 hover:bg-[#E2DBFC]"
                     )}
                   >
                     <span>{cat === "all" ? "All SOP Categories" : cat}</span>
@@ -314,14 +314,14 @@ export const KnowledgeBasePage: React.FC = () => {
             <div
               key={art.id}
               onClick={() => setActiveArticle(art)}
-              className="panel relative bg-white border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
+              className="panel relative bg-surface border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
             >
               {/* Top Colorful Category Gradient Strip */}
               <div
-                className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs"
+                className="h-1.5 w-full bg-gradient-to-r from-primary via-[#824FE7] to-[#A87DF5] shadow-xs"
               />
 
-              <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-white">
+              <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-surface">
                 <div className="space-y-2.5">
                   {/* Category Badge & Read Time */}
                   <div className="flex items-center justify-between gap-2">
@@ -336,7 +336,7 @@ export const KnowledgeBasePage: React.FC = () => {
                   </div>
 
                   {/* Article Title */}
-                  <h3 className="text-sm font-bold text-[#111111] leading-snug hover:text-[#905FEB] transition-colors">
+                  <h3 className="text-sm font-bold text-foreground leading-snug hover:text-primary-text transition-colors">
                     {art.title}
                   </h3>
 
@@ -347,7 +347,7 @@ export const KnowledgeBasePage: React.FC = () => {
                 </div>
 
                 {/* Bottom Meta & Action Area */}
-                <div className="space-y-2.5 pt-2.5 border-t border-[#F0EDFF]">
+                <div className="space-y-2.5 pt-2.5 border-t border-primary-soft">
                   <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
                     <span>Updated: {art.updatedAt}</span>
                     <span className="flex items-center gap-1">
@@ -377,7 +377,7 @@ export const KnowledgeBasePage: React.FC = () => {
                       }}
                     >
                       {copiedId === art.id ? (
-                        <Check className="h-3.5 w-3.5 text-[#3B6600] font-bold" />
+                        <Check className="h-3.5 w-3.5 text-success font-bold" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
@@ -394,7 +394,7 @@ export const KnowledgeBasePage: React.FC = () => {
       {/* Full Article Modal Dialog with Pure Solid White Background */}
       {activeArticle && (
         <Dialog open={!!activeArticle} onOpenChange={() => setActiveArticle(null)}>
-          <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto bg-white text-zinc-900 border border-slate-200 shadow-2xl rounded-2xl p-6 sm:p-7 sleek-scrollbar">
+          <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto bg-surface text-zinc-900 border border-slate-200 shadow-2xl rounded-2xl p-6 sm:p-7 sleek-scrollbar">
             <DialogHeader className="space-y-3 border-b border-slate-100 pb-4 text-left">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
@@ -422,7 +422,7 @@ export const KnowledgeBasePage: React.FC = () => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-5 py-4 text-xs leading-relaxed bg-white">
+            <div className="space-y-5 py-4 text-xs leading-relaxed bg-surface">
               {/* Agent Action Checklist */}
               <div className="p-4 sm:p-5 rounded-2xl border border-purple-200/80 bg-purple-50/40 space-y-3">
                 <h4 className="font-extrabold text-purple-900 text-xs uppercase tracking-wider flex items-center gap-2">
@@ -432,7 +432,7 @@ export const KnowledgeBasePage: React.FC = () => {
                   {activeArticle.checklist.map((item, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-2.5 p-2 rounded-xl bg-white border border-purple-100/70 shadow-2xs"
+                      className="flex items-start gap-2.5 p-2 rounded-xl bg-surface border border-purple-100/70 shadow-2xs"
                     >
                       <span className="h-5 w-5 rounded-full bg-purple-600 text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                         {idx + 1}
@@ -463,7 +463,7 @@ export const KnowledgeBasePage: React.FC = () => {
               </div>
 
               {/* Copyable Macro Box with White Card & Purple Accents */}
-              <div className="p-4 sm:p-5 rounded-2xl border-2 border-purple-200 bg-white space-y-3 shadow-xs">
+              <div className="p-4 sm:p-5 rounded-2xl border-2 border-purple-200 bg-surface space-y-3 shadow-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-extrabold text-zinc-900 text-xs flex items-center gap-1.5">
                     <Sparkles className="h-4 w-4 text-purple-600" /> Approved Response Macro
@@ -491,16 +491,16 @@ export const KnowledgeBasePage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <DialogFooter className="border-t border-slate-100 pt-3 flex flex-row items-center justify-end gap-2 bg-white">
+            <DialogFooter className="border-t border-slate-100 pt-3 flex flex-row items-center justify-end gap-2 bg-surface">
               <Button
                 variant="outline"
-                className="text-xs font-bold h-9 px-4 rounded-xl bg-white text-zinc-700 hover:bg-slate-50 border-slate-200"
+                className="text-xs font-bold h-9 px-4 rounded-xl bg-surface text-zinc-700 hover:bg-slate-50 border-slate-200"
                 onClick={() => setActiveArticle(null)}
               >
                 Close SOP
               </Button>
               <Button
-                className="text-xs font-bold h-9 px-4 rounded-xl bg-[#905FEB] hover:bg-[#7D46E7] text-white shadow-xs gap-1.5 transition-colors"
+                className="text-xs font-bold h-9 px-4 rounded-xl bg-primary hover:bg-[#7D46E7] text-white shadow-xs gap-1.5 transition-colors"
                 onClick={() => handleCopyMacro(activeArticle)}
               >
                 <Copy className="h-3.5 w-3.5" /> Copy Snippet

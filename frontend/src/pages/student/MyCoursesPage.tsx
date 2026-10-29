@@ -118,7 +118,7 @@ export function MyCoursesPage({
         <>
           {/* 1. Header and Filters Section */}
           <section
-            className="bg-white rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
+            className="bg-surface rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
             aria-label="My Courses Controls"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
@@ -127,7 +127,7 @@ export function MyCoursesPage({
                   <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
                     My Courses
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F0EDFF] text-[#5F2BC0] border border-purple-100 shrink-0">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-soft text-primary-text border border-purple-100 shrink-0">
                     {courses.length} Enrolled
                   </span>
                 </div>
@@ -160,8 +160,8 @@ export function MyCoursesPage({
                       onClick={() => setFilter(tab.id)}
                       className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? "bg-[#905FEB] text-white shadow-xs"
-                          : "bg-[#F0EDFF] text-[#5F2BC0] hover:bg-[#E4DFFD]"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-primary-soft text-primary-text hover:bg-[#E4DFFD]"
                       }`}
                     >
                       {tab.label} ({tab.count})
@@ -172,7 +172,7 @@ export function MyCoursesPage({
                 {/* Explore Catalogue Switcher Tab */}
                 <button
                   onClick={() => setViewMode("catalogue")}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-white border border-purple-200 text-[#5F2BC0] hover:bg-purple-50 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-surface border border-purple-200 text-primary-text hover:bg-purple-50 flex items-center gap-1.5 whitespace-nowrap shrink-0"
                   title="Explore Course Catalogue"
                 >
                   <Icon name="compass" size={13} />
@@ -193,7 +193,7 @@ export function MyCoursesPage({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search enrolled courses by title, instructor, or topic..."
-                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-[#905FEB] transition-all box-border"
+                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-surface focus:border-primary transition-all box-border"
                 />
                 {search && (
                   <button
@@ -247,12 +247,12 @@ export function MyCoursesPage({
               return (
                 <div
                   key={course.id}
-                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
+                  className="bg-surface rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
                 >
                   <div className="flex-1 flex flex-col min-w-0">
                     {/* A. Course Cover Image with Category & Status Badges */}
                     <div
-                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
+                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-ink-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
                       onClick={() => handleOpenCourse(course.id)}
                     >
                       <img
@@ -270,8 +270,8 @@ export function MyCoursesPage({
                         <span
                           className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase backdrop-blur-md shadow-xs shrink-0 ${
                             isCompleted
-                              ? "bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]"
-                              : "bg-[#905FEB] text-white"
+                              ? "bg-success-soft text-success border border-success"
+                              : "bg-primary text-white"
                           }`}
                         >
                           {course.status}
@@ -282,7 +282,7 @@ export function MyCoursesPage({
                     {/* B. Course Title & Instructor Details */}
                     <div className="mb-1.5 min-w-0">
                       <h3
-                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-[#905FEB] transition-colors line-clamp-2 cursor-pointer break-words"
+                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-primary-text transition-colors line-clamp-2 cursor-pointer break-words"
                         onClick={() => handleOpenCourse(course.id)}
                         title={course.title}
                       >
@@ -314,7 +314,7 @@ export function MyCoursesPage({
                             e.stopPropagation()
                             toggleDescription(course.id)
                           }}
-                          className="text-[11px] font-bold text-[#905FEB] hover:text-[#7E4BDC] hover:underline cursor-pointer mt-0.5 inline-block"
+                          className="text-[11px] font-bold text-primary-text hover:text-primary-text hover:underline cursor-pointer mt-0.5 inline-block"
                         >
                           {isExpanded ? "View Less" : "View More"}
                         </button>
@@ -329,7 +329,7 @@ export function MyCoursesPage({
                         </span>
                         <span
                           className={`text-xs sm:text-[13px] font-extrabold shrink-0 ${
-                            isCompleted ? "text-[#385000]" : "text-[#905FEB]"
+                            isCompleted ? "text-success" : "text-primary-text"
                           }`}
                         >
                           {course.progress}%
@@ -391,7 +391,7 @@ export function MyCoursesPage({
                       {isInProgress && (
                         <button
                           onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
                           title="Resume Learning"
                         >
                           <Icon name="play" size={11} />
@@ -402,7 +402,7 @@ export function MyCoursesPage({
                       {isCompleted && (
                         <button
                           onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-[#111111] hover:bg-zinc-800 text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
                           title="Review Completed Course Materials"
                         >
                           <Icon name="check" size={11} />
@@ -413,7 +413,7 @@ export function MyCoursesPage({
                       {!isInProgress && !isCompleted && (
                         <button
                           onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
                           title="Resume Learning"
                         >
                           <Icon name="play" size={11} />
@@ -433,7 +433,7 @@ export function MyCoursesPage({
                 ===================================================================== */}
             <div
               onClick={() => setViewMode("catalogue")}
-              className="bg-gradient-to-b from-[#F0EDFF]/70 via-white to-white rounded-2xl border-2 border-dashed border-purple-200 hover:border-[#905FEB] shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full cursor-pointer group min-w-0 max-w-full box-border overflow-hidden"
+              className="bg-gradient-to-b from-primary-soft/70 via-white to-white rounded-2xl border-2 border-dashed border-purple-200 hover:border-primary shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full cursor-pointer group min-w-0 max-w-full box-border overflow-hidden"
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
@@ -446,12 +446,12 @@ export function MyCoursesPage({
             >
               <div className="flex-1 flex flex-col min-w-0">
                 {/* Visual Exploration Banner matching card image height */}
-                <div className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-gradient-to-br from-[#905FEB] via-[#8048DE] to-[#5F2BC0] p-2 flex flex-col justify-between text-white flex-shrink-0 shadow-xs group-hover:scale-[1.01] transition-transform min-w-0">
+                <div className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-gradient-to-br from-primary via-[#8048DE] to-primary-hover p-2 flex flex-col justify-between text-white flex-shrink-0 shadow-xs group-hover:scale-[1.01] transition-transform min-w-0">
                   <div className="flex justify-between items-center gap-1.5 min-w-0">
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-black/30 backdrop-blur-md text-white border border-white/20 truncate">
                       Curriculum Catalogue
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase bg-[#E7FF9C] text-[#385000] shrink-0">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase bg-success-soft text-success shrink-0">
                       {catalogCount} Available
                     </span>
                   </div>
@@ -483,10 +483,10 @@ export function MyCoursesPage({
                 {/* Heading & Mandatory Description */}
                 <div className="mb-1.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 group-hover:text-[#905FEB] transition-colors leading-snug break-words">
+                    <h3 className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 group-hover:text-primary-text transition-colors leading-snug break-words">
                       Explore Courses
                     </h3>
-                    <span className="w-2 h-2 rounded-full bg-[#AEEB00] shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-success shrink-0" />
                   </div>
                   <p className="text-[11px] sm:text-xs text-zinc-600 leading-snug mt-0.5 font-normal break-words">
                     Discover new skills and explore courses available to you.
@@ -494,13 +494,13 @@ export function MyCoursesPage({
                 </div>
 
                 {/* Benefits / Curriculum Box */}
-                <div className="mb-2 bg-[#F0EDFF]/60 p-1.5 sm:p-2 rounded-xl border border-purple-100 mt-auto text-[10.5px] sm:text-[11px] text-zinc-700 space-y-0.5 min-w-0">
+                <div className="mb-2 bg-primary-soft/60 p-1.5 sm:p-2 rounded-xl border border-purple-100 mt-auto text-[10.5px] sm:text-[11px] text-zinc-700 space-y-0.5 min-w-0">
                   <div className="flex items-start gap-1.5 font-medium min-w-0">
-                    <span className="text-[#905FEB] font-bold shrink-0">✓</span>
+                    <span className="text-primary-text font-bold shrink-0">✓</span>
                     <span className="break-words">Accredited curriculum with verified faculty credits</span>
                   </div>
                   <div className="flex items-start gap-1.5 font-medium min-w-0">
-                    <span className="text-[#905FEB] font-bold shrink-0">✓</span>
+                    <span className="text-primary-text font-bold shrink-0">✓</span>
                     <span className="break-words">Self-paced video modules, lab code & certifications</span>
                   </div>
                 </div>
@@ -514,7 +514,7 @@ export function MyCoursesPage({
                     e.stopPropagation()
                     setViewMode("catalogue")
                   }}
-                  className="w-full py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-[11.5px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer group-hover:shadow-md hover:scale-[1.01]"
+                  className="w-full py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer group-hover:shadow-md hover:scale-[1.01]"
                 >
                   <Icon name="compass" size={13} />
                   <span>Explore Courses</span>
@@ -526,13 +526,13 @@ export function MyCoursesPage({
 
           {/* Empty State */}
           {filteredEnrolledCourses.length === 0 && (
-            <div className="bg-white rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
+            <div className="bg-surface rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
               <p className="text-sm text-zinc-500">
                 No enrolled courses found matching your search. Try adjusting your query or explore available courses.
               </p>
               <button
                 onClick={() => setViewMode("catalogue")}
-                className="mt-4 px-4 py-2 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7E4BDC] cursor-pointer"
+                className="mt-4 px-4 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary cursor-pointer"
               >
                 Browse Course Catalogue
               </button>
@@ -547,14 +547,14 @@ export function MyCoursesPage({
         <div className="flex flex-col gap-6 animate-in fade-in duration-300 w-full max-w-full min-w-0 box-border">
           {/* Catalogue Header Bar */}
           <section
-            className="bg-white rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
+            className="bg-surface rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
             aria-label="Course Catalogue Header"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
               <div className="min-w-0">
                 <button
                   onClick={() => setViewMode("enrolled")}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5F2BC0] hover:text-[#905FEB] transition-colors cursor-pointer mb-2 px-3 py-1 rounded-full bg-[#F0EDFF] hover:bg-purple-100 w-fit shrink-0"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-text hover:text-primary-text transition-colors cursor-pointer mb-2 px-3 py-1 rounded-full bg-primary-soft hover:bg-purple-100 w-fit shrink-0"
                 >
                   <span>←</span>
                   <span>Back to My Courses</span>
@@ -563,7 +563,7 @@ export function MyCoursesPage({
                   <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
                     Course Catalogue
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E7FF9C] text-[#385000] border border-[#AEEB00] shrink-0">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-soft text-success border border-success shrink-0">
                     {catalogCount} Available to Enroll
                   </span>
                 </div>
@@ -575,7 +575,7 @@ export function MyCoursesPage({
               {/* Back to Enrolled Courses Pill Button */}
               <button
                 onClick={() => setViewMode("enrolled")}
-                className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#111111] hover:bg-zinc-800 text-white transition-all cursor-pointer shadow-xs self-start md:self-auto flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-ink-900 hover:bg-ink-800 text-white transition-all cursor-pointer shadow-xs self-start md:self-auto flex items-center gap-1.5 shrink-0 whitespace-nowrap"
               >
                 <span>View Enrolled Courses ({courses.length})</span>
               </button>
@@ -592,7 +592,7 @@ export function MyCoursesPage({
                   value={catalogueSearch}
                   onChange={(e) => setCatalogueSearch(e.target.value)}
                   placeholder="Search catalogue by skill, title, instructor, or level..."
-                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-[#905FEB] transition-all box-border"
+                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-surface focus:border-primary transition-all box-border"
                 />
                 {catalogueSearch && (
                   <button
@@ -619,12 +619,12 @@ export function MyCoursesPage({
               return (
                 <div
                   key={course.id}
-                  className="bg-white rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
+                  className="bg-surface rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
                 >
                   <div className="flex-1 flex flex-col min-w-0">
                     {/* Cover Image with Category & Catalog Badges */}
                     <div
-                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-zinc-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
+                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-ink-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
                       onClick={() => handleOpenCourse(course.id)}
                     >
                       <img
@@ -647,7 +647,7 @@ export function MyCoursesPage({
                     {/* Title & Instructor Details */}
                     <div className="mb-1.5 min-w-0">
                       <h3
-                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-[#905FEB] transition-colors line-clamp-2 cursor-pointer break-words"
+                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-primary-text transition-colors line-clamp-2 cursor-pointer break-words"
                         onClick={() => handleOpenCourse(course.id)}
                         title={course.title}
                       >
@@ -679,7 +679,7 @@ export function MyCoursesPage({
                             e.stopPropagation()
                             toggleDescription(course.id)
                           }}
-                          className="text-[11px] font-bold text-[#905FEB] hover:text-[#7E4BDC] hover:underline cursor-pointer mt-0.5 inline-block"
+                          className="text-[11px] font-bold text-primary-text hover:text-primary-text hover:underline cursor-pointer mt-0.5 inline-block"
                         >
                           {isExpanded ? "View Less" : "View More"}
                         </button>
@@ -697,7 +697,7 @@ export function MyCoursesPage({
                           <span>📚</span>
                           <strong className="truncate">{course.totalModules} Modules</strong>
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#5F2BC0] text-[10.5px] font-bold shrink-0">
+                        <span className="px-2 py-0.5 rounded-full bg-primary-soft text-primary-text text-[10.5px] font-bold shrink-0">
                           {course.level}
                         </span>
                       </div>
@@ -730,7 +730,7 @@ export function MyCoursesPage({
                     <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                       <button
                         onClick={() => handleOpenCourse(course.id)}
-                        className="px-3 py-1.5 rounded-full bg-[#F0EDFF] hover:bg-[#E4DFFD] text-[#5F2BC0] text-[11.5px] font-bold border border-purple-200 transition-all cursor-pointer whitespace-nowrap"
+                        className="px-3 py-1.5 rounded-full bg-primary-soft hover:bg-[#E4DFFD] text-primary-text text-[11.5px] font-bold border border-purple-200 transition-all cursor-pointer whitespace-nowrap"
                         title="View Course Syllabus & Details"
                       >
                         View Details
@@ -738,7 +738,7 @@ export function MyCoursesPage({
 
                       <button
                         onClick={() => handleEnrollAndOpen(course)}
-                        className="px-3.5 py-1.5 rounded-full bg-[#111111] hover:bg-zinc-800 text-white text-[11.5px] font-bold transition-all cursor-pointer shadow-xs whitespace-nowrap flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-[11.5px] font-bold transition-all cursor-pointer shadow-xs whitespace-nowrap flex items-center gap-1.5"
                       >
                         <span>Enroll in Course</span>
                         <span>→</span>
@@ -752,7 +752,7 @@ export function MyCoursesPage({
 
           {/* Empty State for Catalogue */}
           {filteredCatalogueCourses.length === 0 && (
-            <div className="bg-white rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
+            <div className="bg-surface rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
               <p className="text-sm text-zinc-500">
                 No catalogue courses found matching &quot;{catalogueSearch}&quot;.
               </p>

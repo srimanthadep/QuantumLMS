@@ -88,9 +88,9 @@ export const StatCard: React.FC<StatCardProps> = ({
           : undefined
       }
       className={cn(
-        "metric-card bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col justify-between transition-all shadow-xs",
-        onClick && "cursor-pointer hover:border-[#F0442E]/40",
-        isActive && "ring-2 ring-[#F0442E] border-[#F0442E] -translate-y-0.5",
+        "metric-card bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col justify-between transition-all shadow-xs",
+        onClick && "cursor-pointer hover:border-primary/40",
+        isActive && "ring-2 ring-primary border-primary -translate-y-0.5",
         className
       )}
       aria-label={resolvedTitle}

@@ -121,7 +121,7 @@ export function Submissions({
   return (
     <div className="evaluator-submissions app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Unified Queue Pills Header */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" role="tablist" aria-label="Grading queue tabs">
           <button
             type="button"
@@ -190,7 +190,7 @@ export function Submissions({
       </div>
 
       {/* Search and Filters Toolbar */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-wrap">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap flex-1">
           {/* Assessment Filter */}
           <div className="flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-50 border border-zinc-200/80 rounded-xl px-3 py-1.5 min-w-[180px]">
@@ -249,7 +249,7 @@ export function Submissions({
       </div>
 
       {/* Submissions Data Table */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>

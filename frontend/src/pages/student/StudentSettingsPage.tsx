@@ -97,7 +97,7 @@ function SettingsBannerIllustration() {
 }
 
 const CapIcon = () => (
-  <svg className="w-6 h-6 text-[#905FEB]" viewBox="0 0 24 24" fill="currentColor">
+  <svg className="w-6 h-6 text-primary-text" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" />
     <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
   </svg>
@@ -259,11 +259,11 @@ export function StudentSettingsPage({
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border text-left">
       {/* 1. Header Banner */}
       <section
-        className="bg-white/95 border border-purple-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        className="bg-surface/95 border border-purple-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         aria-label="Student Account & Profile Settings"
       >
         <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-[#F0EDFF] border border-purple-100 flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-primary-soft border border-purple-100 flex items-center justify-center shrink-0 shadow-xs">
             <CapIcon />
           </div>
           <div className="min-w-0">
@@ -271,7 +271,7 @@ export function StudentSettingsPage({
               <h2 className="text-lg sm:text-xl font-bold text-zinc-900 tracking-tight">
                 Account & Profile Settings
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#F0EDFF] text-[#905FEB]">
+              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-primary-soft text-primary-text">
                 Personalized Hub
               </span>
             </div>
@@ -287,7 +287,7 @@ export function StudentSettingsPage({
             <button
               type="button"
               onClick={onLogout}
-              className="px-4 py-2 rounded-xl bg-white border border-rose-200 text-xs font-bold text-rose-500 hover:bg-rose-50/50 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-surface border border-rose-200 text-xs font-bold text-rose-500 hover:bg-rose-50/50 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <svg className="w-3.5 h-3.5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -308,7 +308,7 @@ export function StudentSettingsPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "profile"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>👤</span>
@@ -321,7 +321,7 @@ export function StudentSettingsPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "appearance"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>🎨</span>
@@ -334,7 +334,7 @@ export function StudentSettingsPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "security"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>🔒</span>
@@ -347,7 +347,7 @@ export function StudentSettingsPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "notifications"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>🔔</span>
@@ -360,7 +360,7 @@ export function StudentSettingsPage({
         <div className="flex flex-col gap-[var(--app-card-gap,14px)]">
           {/* Hero Identity Banner */}
           <section
-            className="panel p-6 bg-white border border-zinc-200/80 rounded-2xl shadow-xs"
+            className="panel p-6 bg-surface border border-zinc-200/80 rounded-2xl shadow-xs"
             aria-label="Student Identity Banner"
           >
             <div className="flex flex-col sm:flex-row items-start justify-between gap-6 text-left">
@@ -389,7 +389,7 @@ export function StudentSettingsPage({
                       {fullName}
                     </h2>
                     {/* Dynamic Student ID Badge */}
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0] border border-[#D8C2FF]/60 flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary-text border border-primary-border/60 flex items-center gap-1">
                       <span>Student ID:</span>
                       <span className="font-mono">{isLoadingStudentId ? "..." : studentId}</span>
                     </span>
@@ -529,7 +529,7 @@ export function StudentSettingsPage({
 
           {/* Academic Records & Credits Audit */}
           <section
-            className="panel p-6 bg-white border border-zinc-200/80 rounded-2xl shadow-xs"
+            className="panel p-6 bg-surface border border-zinc-200/80 rounded-2xl shadow-xs"
             aria-label="Academic Records"
           >
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-100">
@@ -554,7 +554,7 @@ export function StudentSettingsPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[var(--app-card-gap,14px)] text-xs">
               <div className="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200">
                 <span className="text-[10px] text-zinc-400 font-bold block uppercase tracking-wider">Official Student ID</span>
-                <strong className="text-sm block mt-1 font-mono text-[#5F2BC0] font-black">
+                <strong className="text-sm block mt-1 font-mono text-primary-text font-black">
                   {isLoadingStudentId ? "Fetching..." : studentId}
                 </strong>
                 <span className="text-zinc-500 text-[11px] mt-1 block">✓ Synced with Supabase</span>
@@ -596,7 +596,7 @@ export function StudentSettingsPage({
 
           {/* Edit Personal & Contact Information Form */}
           <section
-            className="panel p-6 bg-white border border-zinc-200/80 rounded-2xl shadow-xs"
+            className="panel p-6 bg-surface border border-zinc-200/80 rounded-2xl shadow-xs"
             aria-label="Edit Profile Details"
           >
             <div className="mb-4 pb-2 border-b border-zinc-100">
@@ -613,7 +613,7 @@ export function StudentSettingsPage({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="font-bold text-zinc-700 block">Student ID</label>
-                    <span className="text-[10px] font-semibold text-[#514B68] bg-[#F0EDFF] px-2 py-0.5 rounded-full border border-[#D8C2FF]/60">
+                    <span className="text-[10px] font-semibold text-muted-foreground bg-primary-soft px-2 py-0.5 rounded-full border border-primary-border/60">
                       🔒 Read-Only
                     </span>
                   </div>
@@ -622,7 +622,7 @@ export function StudentSettingsPage({
                     readOnly
                     disabled
                     value={isLoadingStudentId ? "Fetching from Supabase..." : studentId}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-zinc-50 font-mono font-bold text-[#5F2BC0] cursor-not-allowed select-all"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-zinc-50 font-mono font-bold text-primary-text cursor-not-allowed select-all"
                   />
                 </div>
 
@@ -633,7 +633,7 @@ export function StudentSettingsPage({
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
 
@@ -644,7 +644,7 @@ export function StudentSettingsPage({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
 
@@ -655,7 +655,7 @@ export function StudentSettingsPage({
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
 
@@ -666,7 +666,7 @@ export function StudentSettingsPage({
                     required
                     value={emergencyContact}
                     onChange={(e) => setEmergencyContact(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
 
@@ -677,7 +677,7 @@ export function StudentSettingsPage({
                     required
                     value={campusAddress}
                     onChange={(e) => setCampusAddress(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                   />
                 </div>
               </div>
@@ -705,7 +705,7 @@ export function StudentSettingsPage({
       {activeTab === "appearance" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           <section
-            className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
+            className="bg-surface border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
             aria-label="Brand Theme Presets"
           >
             <div>
@@ -724,7 +724,7 @@ export function StudentSettingsPage({
           </section>
 
           <section
-            className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
+            className="bg-surface border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
             aria-label="Regional & Landing Settings"
           >
             <div>
@@ -780,7 +780,7 @@ export function StudentSettingsPage({
       {activeTab === "security" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
           <section
-            className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs"
+            className="bg-surface border border-zinc-200/80 rounded-2xl p-6 shadow-xs"
             aria-label="Change Password"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -800,7 +800,7 @@ export function StudentSettingsPage({
                     required
                     value={currentPw}
                     onChange={(e) => setCurrentPw(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
                   />
                   <button
                     type="button"
@@ -820,7 +820,7 @@ export function StudentSettingsPage({
                     required
                     value={newPw}
                     onChange={(e) => setNewPw(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
                   />
                   <button
                     type="button"
@@ -840,7 +840,7 @@ export function StudentSettingsPage({
                     required
                     value={confirmPw}
                     onChange={(e) => setConfirmPw(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
+                    className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 pr-9 focus:outline-none focus:border-purple-600"
                   />
                   <button
                     type="button"
@@ -864,7 +864,7 @@ export function StudentSettingsPage({
           </section>
 
           <section
-            className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
+            className="bg-surface border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between"
             aria-label="Active Sessions & 2FA"
           >
             <div>
@@ -936,7 +936,7 @@ export function StudentSettingsPage({
       {/* TAB 4: Notifications & Preferences */}
       {activeTab === "notifications" && (
         <section
-          className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs max-w-2xl"
+          className="bg-surface border border-zinc-200/80 rounded-2xl p-6 shadow-xs max-w-2xl"
           aria-label="Notification Preferences"
         >
           <div className="flex items-center gap-2 mb-2">

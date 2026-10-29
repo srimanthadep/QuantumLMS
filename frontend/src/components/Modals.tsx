@@ -321,7 +321,7 @@ export function AskAiModal({
               <button
                 type="submit"
                 disabled={loading || !prompt.trim()}
-                className="px-5 h-9 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-1.5"
+                className="px-5 h-9 rounded-xl bg-black text-white text-xs font-bold hover:bg-ink-800 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-1.5"
               >
                 <span>✦</span>
                 <span>{loading ? "Analyzing..." : "Ask Assistant"}</span>

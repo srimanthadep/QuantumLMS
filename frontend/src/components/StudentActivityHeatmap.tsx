@@ -69,7 +69,7 @@ export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
   }
 
   return (
-    <div className="mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-gray-150 shadow-xs">
+    <div className="mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-surface border border-gray-150 shadow-xs">
       {/* Header with Title and Demo Tag */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div>
@@ -247,7 +247,7 @@ export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
             {currentSelectedDay.events.map((ev) => (
               <div
                 key={ev.id}
-                className="p-2 rounded-lg bg-white border border-purple-100 flex items-start justify-between gap-2 text-xs hover:border-purple-300 transition-colors"
+                className="p-2 rounded-lg bg-surface border border-purple-100 flex items-start justify-between gap-2 text-xs hover:border-purple-300 transition-colors"
               >
                 <div className="flex items-start gap-2 min-w-0">
                   <span className={`w-5 h-5 rounded-md grid place-items-center text-[10px] shrink-0 mt-0.5 ${ev.type === "assignment_submitted"
@@ -286,7 +286,7 @@ export function StudentActivityHeatmap({ student }: { student: StudentItem }) {
             ))}
           </div>
         ) : (
-          <div className="p-3 text-center bg-white/70 rounded-lg border border-purple-100/60 text-xs text-zinc-500">
+          <div className="p-3 text-center bg-surface/70 rounded-lg border border-purple-100/60 text-xs text-zinc-500">
             <span className="text-zinc-400 block mb-0.5">☕ No learning activity recorded on this day.</span>
             <span className="text-[10px] text-zinc-400">
               The student had no logged video streams, quizzes, or assignment submissions on this calendar date.

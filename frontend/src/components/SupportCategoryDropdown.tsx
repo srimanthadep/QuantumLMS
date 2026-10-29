@@ -134,19 +134,19 @@ export function SupportCategoryDropdown({
         onClick={() => {
           if (!disabled) setIsOpen(!isOpen)
         }}
-        className={`group flex items-center justify-between gap-2.5 w-full bg-white border font-semibold transition-all duration-150 cursor-pointer select-none ${sizeClasses} ${roundedClass} ${
+        className={`group flex items-center justify-between gap-2.5 w-full bg-surface border font-semibold transition-all duration-150 cursor-pointer select-none ${sizeClasses} ${roundedClass} ${
           error
             ? "border-rose-400 bg-rose-50/20 text-rose-900 focus:border-rose-500 ring-2 ring-rose-500/20"
             : isOpen
-              ? "border-[#905FEB] ring-2 ring-[#905FEB]/20 text-[#171526] shadow-sm"
-              : "border-zinc-200/90 hover:border-[#905FEB] text-[#171526]"
+              ? "border-primary ring-2 ring-primary/20 text-foreground shadow-sm"
+              : "border-zinc-200/90 hover:border-primary text-foreground"
         } ${disabled ? "opacity-50 cursor-not-allowed bg-zinc-100" : ""} ${triggerClassName}`}
       >
         <span
           className={`truncate text-left ${
             !value || value === "Select Issue Category"
               ? "text-zinc-400 font-normal"
-              : "text-[#171526] font-semibold"
+              : "text-foreground font-semibold"
           }`}
         >
           {displayLabel()}
@@ -155,7 +155,7 @@ export function SupportCategoryDropdown({
         {/* Clean right-aligned chevron with smooth rotation */}
         <span
           className={`shrink-0 transition-transform duration-200 ease-in-out ${
-            isOpen ? "rotate-180 text-[#905FEB]" : "text-[#514B68] group-hover:text-[#905FEB]"
+            isOpen ? "rotate-180 text-primary-text" : "text-muted-foreground group-hover:text-primary-text"
           }`}
           aria-hidden="true"
         >
@@ -176,7 +176,7 @@ export function SupportCategoryDropdown({
         <div
           role="listbox"
           aria-labelledby={`cat-dropdown-${id}`}
-          className={`absolute z-50 left-0 w-full min-w-[200px] bg-white rounded-2xl shadow-xl border border-zinc-200/80 p-1.5 transition-all duration-150 transform origin-top animate-in fade-in zoom-in-95 ${
+          className={`absolute z-50 left-0 w-full min-w-[200px] bg-surface rounded-2xl shadow-xl border border-zinc-200/80 p-1.5 transition-all duration-150 transform origin-top animate-in fade-in zoom-in-95 ${
             openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
           }`}
           style={{
@@ -198,15 +198,15 @@ export function SupportCategoryDropdown({
                   }}
                   className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between gap-2.5 transition-colors cursor-pointer select-none ${
                     selected
-                      ? "bg-[#F0E7FF] text-[#5F2BC0] font-bold"
-                      : "text-[#171526] hover:bg-[#F0EDFF]/70 hover:text-[#5F2BC0]"
+                      ? "bg-primary-soft text-primary-text font-bold"
+                      : "text-foreground hover:bg-primary-soft/70 hover:text-primary-text"
                   }`}
                 >
                   <span className="truncate">{opt}</span>
 
                   {/* Purple checkmark on selected option */}
                   {selected && (
-                    <span className="text-[#905FEB] font-extrabold text-sm ml-auto shrink-0 animate-in fade-in">
+                    <span className="text-primary-text font-extrabold text-sm ml-auto shrink-0 animate-in fade-in">
                       ✓
                     </span>
                   )}

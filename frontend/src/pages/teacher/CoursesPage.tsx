@@ -153,7 +153,7 @@ function CourseCard({
 }) {
   return (
     <div
-      className="panel p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 cursor-pointer group bg-white"
+      className="panel p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 cursor-pointer group bg-surface"
       onClick={() => onViewCourse(course)}
       role="button"
       tabIndex={0}
@@ -260,7 +260,7 @@ function CourseRow({
 }) {
   return (
     <div
-      className="panel p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 hover:shadow-md transition-all duration-200 cursor-pointer group bg-white"
+      className="panel p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 hover:shadow-md transition-all duration-200 cursor-pointer group bg-surface"
       onClick={() => onViewCourse(course)}
       role="button"
       tabIndex={0}
@@ -378,7 +378,7 @@ function NotFoundFallback({
   buttonLabel?: string
 }) {
   return (
-    <div className="panel p-8 text-center bg-white my-4 max-w-xl mx-auto shadow-sm">
+    <div className="panel p-8 text-center bg-surface my-4 max-w-xl mx-auto shadow-sm">
       <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 grid place-items-center mx-auto mb-3">
         <Icon name="help" size={24} />
       </div>
@@ -500,7 +500,7 @@ function CourseDetailsView({
   return (
     <div className="flex flex-col gap-2">
       {/* 1. Top Navigation Bar (NO BREADCRUMBS) */}
-      <div className="flex items-center justify-between gap-3 p-3 bg-white/90 backdrop-blur-xs rounded-xl border border-gray-150">
+      <div className="flex items-center justify-between gap-3 p-3 bg-surface/90 backdrop-blur-xs rounded-xl border border-gray-150">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer group"
@@ -536,7 +536,7 @@ function CourseDetailsView({
       </div>
 
       {/* 2. Course Overview Banner */}
-      <div className="panel p-5 bg-white">
+      <div className="panel p-5 bg-surface">
         <div className="flex flex-col md:flex-row gap-5 items-start">
           <img
             src={course.thumbnail}
@@ -622,7 +622,7 @@ function CourseDetailsView({
       </div>
 
       {/* 3. Combined Modules & Lessons Continuous Section */}
-      <div className="panel p-5 bg-white">
+      <div className="panel p-5 bg-surface">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h3 className="card-title text-sm sm:text-base">
@@ -739,7 +739,7 @@ function CourseDetailsView({
 
                     <button
                       type="button"
-                      className="px-3 h-8 rounded-xl bg-white border border-gray-200 hover:border-purple-300 text-purple-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      className="px-3 h-8 rounded-xl bg-surface border border-gray-200 hover:border-purple-300 text-purple-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation()
                         toggleModule(mod.id)
@@ -791,7 +791,7 @@ function CourseDetailsView({
                       {mod.lessons.map((lesson, lessonIndex) => (
                         <div
                           key={lesson.id}
-                          className="rounded-xl border border-gray-200 bg-white hover:bg-purple-50/40 hover:border-purple-300 transition-all cursor-pointer group shadow-2xs"
+                          className="rounded-xl border border-gray-200 bg-surface hover:bg-purple-50/40 hover:border-purple-300 transition-all cursor-pointer group shadow-2xs"
                           onClick={() => onOpenLesson?.(lesson.id, mod.id)}
                           role="button"
                           tabIndex={0}
@@ -869,7 +869,7 @@ function CourseDetailsView({
       </div>
 
       {/* 4. Enrolled Students Roster */}
-      <div className="panel p-5 bg-white">
+      <div className="panel p-5 bg-surface">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="card-title text-sm sm:text-base">
@@ -950,7 +950,7 @@ function ModuleDetailsView({
   return (
     <div className="space-y-4" aria-label="Module Details Container">
       {/* 1. Breadcrumb Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface/95 backdrop-blur-xs rounded-2xl border border-gray-150 shadow-xs">
         <div className="flex items-center gap-2 flex-wrap text-xs">
           <button
             onClick={onBackToCourse}
@@ -994,7 +994,7 @@ function ModuleDetailsView({
       </div>
 
       {/* 2. Module Header Overview Card */}
-      <div className="panel p-5 sm:p-6 bg-white">
+      <div className="panel p-5 sm:p-6 bg-surface">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1082,7 +1082,7 @@ function ModuleDetailsView({
       </div>
 
       {/* 4. Lessons List (The Main Focus) */}
-      <div className="panel p-5 sm:p-6 bg-white">
+      <div className="panel p-5 sm:p-6 bg-surface">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h2 className="card-title text-base sm:text-lg">
@@ -1114,7 +1114,7 @@ function ModuleDetailsView({
               return (
                 <div
                   key={lesson.id}
-                  className="p-4 sm:p-5 rounded-2xl bg-white hover:bg-purple-50/25 border border-gray-200 hover:border-purple-300 transition-all cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs hover:shadow-sm"
+                  className="p-4 sm:p-5 rounded-2xl bg-surface hover:bg-purple-50/25 border border-gray-200 hover:border-purple-300 transition-all cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs hover:shadow-sm"
                   onClick={() => onSelectLesson(lesson)}
                   role="button"
                   tabIndex={0}
@@ -1247,7 +1247,7 @@ function LessonDetailsView({
   return (
     <div className="space-y-4" aria-label="Dedicated Lesson Details Container">
       {/* 1. Clean Navigation Bar (No breadcrumb trail) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-gray-150 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-surface rounded-2xl border border-gray-150 shadow-xs">
         <button
           onClick={onBackToCourse}
           className="flex items-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer group"
@@ -1274,7 +1274,7 @@ function LessonDetailsView({
       </div>
 
       {/* 2. Compact Lesson Header */}
-      <div className="panel p-5 bg-white">
+      <div className="panel p-5 bg-surface">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">
             Lesson {lessonIndexInModule >= 0 ? lessonIndexInModule + 1 : 1} of {moduleItem.lessons.length}
@@ -1315,7 +1315,7 @@ function LessonDetailsView({
         {/* Left Column (Main Lesson Content - 8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-4 sm:gap-5">
           {/* A. Curriculum Content & Teaching Notes */}
-          <div className="panel p-5 bg-white">
+          <div className="panel p-5 bg-surface">
             <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-2.5 flex items-center gap-2">
               <Icon name="document" size={15} />
               <span>Curriculum Content & Teaching Notes</span>
@@ -1352,7 +1352,7 @@ function LessonDetailsView({
           )}
 
           {/* C. Admin-Provided Teaching Materials */}
-          <div className="panel p-5 bg-white">
+          <div className="panel p-5 bg-surface">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div>
                 <h2 className="card-title text-sm sm:text-base flex items-center gap-2">
@@ -1427,7 +1427,7 @@ function LessonDetailsView({
         {/* Right Column (Secondary Info & Persistent Module Lesson Navigation - 4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-5">
           {/* Quick Module Context Card */}
-          <div className="panel p-4 sm:p-5 bg-white flex flex-col gap-3">
+          <div className="panel p-4 sm:p-5 bg-surface flex flex-col gap-3">
             <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
               Course & Cohort Context
             </h3>
@@ -1459,7 +1459,7 @@ function LessonDetailsView({
           </div>
 
           {/* Persistent In-Module Lesson Navigation */}
-          <div className="panel p-4 sm:p-5 bg-white">
+          <div className="panel p-4 sm:p-5 bg-surface">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
                 Lessons in this Module
@@ -1498,7 +1498,7 @@ function LessonDetailsView({
 
                     <div className="flex items-center gap-1 shrink-0">
                       {isCurrent && (
-                        <span className="text-[9.5px] uppercase font-bold text-purple-800 bg-white px-1.5 py-0.2 rounded shadow-2xs">
+                        <span className="text-[9.5px] uppercase font-bold text-purple-800 bg-surface px-1.5 py-0.2 rounded shadow-2xs">
                           Active
                         </span>
                       )}
@@ -1515,7 +1515,7 @@ function LessonDetailsView({
       </div>
 
       {/* 4. Bottom Previous & Next Lesson Navigation Bar */}
-      <div className="panel p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="panel p-4 bg-surface flex flex-col sm:flex-row items-center justify-between gap-3">
         {prevItem ? (
           <button
             onClick={() => onNavigateLesson(prevItem.lesson, prevItem.module)}
@@ -1871,7 +1871,7 @@ export default function CoursesPage({
                   type="button"
                   onClick={() => handleViewModeChange("grid")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "grid"
-                      ? "bg-white text-purple-700 shadow-xs border border-gray-200"
+                      ? "bg-surface text-purple-700 shadow-xs border border-gray-200"
                       : "text-zinc-500 hover:text-zinc-800"
                     }`}
                   aria-pressed={viewMode === "grid"}
@@ -1884,7 +1884,7 @@ export default function CoursesPage({
                   type="button"
                   onClick={() => handleViewModeChange("list")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${viewMode === "list"
-                      ? "bg-white text-purple-700 shadow-xs border border-gray-200"
+                      ? "bg-surface text-purple-700 shadow-xs border border-gray-200"
                       : "text-zinc-500 hover:text-zinc-800"
                     }`}
                   aria-pressed={viewMode === "list"}

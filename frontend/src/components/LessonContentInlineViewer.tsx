@@ -43,7 +43,7 @@ export function LessonContentInlineViewer({
 
   return (
     <div
-      className="mt-3 p-4 sm:p-5 rounded-2xl bg-white border border-purple-200/90 shadow-sm space-y-4 animate-in fade-in duration-200"
+      className="mt-3 p-4 sm:p-5 rounded-2xl bg-surface border border-purple-200/90 shadow-sm space-y-4 animate-in fade-in duration-200"
       aria-label={`Inline content viewer for ${lesson.title}`}
     >
       {/* Top Banner: Lesson Meta & Teacher Read-Only Notice */}
@@ -104,7 +104,7 @@ export function LessonContentInlineViewer({
                   Your browser does not support HTML5 video playback.
                 </p>
               </video>
-              <div className="px-3.5 py-2 bg-zinc-900/90 text-[11px] text-zinc-300 flex items-center justify-between border-t border-zinc-800">
+              <div className="px-3.5 py-2 bg-ink-900/90 text-[11px] text-zinc-300 flex items-center justify-between border-t border-zinc-800">
                 <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
                   <Icon name="video" size={14} />
                   <span>Interactive High-Definition Lecture Stream</span>
@@ -151,7 +151,7 @@ export function LessonContentInlineViewer({
                     href={lesson.pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 h-8 rounded-lg bg-white border border-gray-200 hover:border-purple-300 text-purple-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                    className="px-3 h-8 rounded-lg bg-surface border border-gray-200 hover:border-purple-300 text-purple-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                   >
                     <Icon name="maximize" size={13} />
                     <span>Open in New Tab</span>
@@ -168,7 +168,7 @@ export function LessonContentInlineViewer({
               </div>
 
               {/* Embedded PDF iframe viewer */}
-              <div className="w-full h-80 rounded-lg overflow-hidden border border-purple-200 bg-white">
+              <div className="w-full h-80 rounded-lg overflow-hidden border border-purple-200 bg-surface">
                 <iframe
                   src={`${lesson.pdfUrl}#toolbar=0`}
                   title={`PDF Preview: ${lesson.title}`}
@@ -214,7 +214,7 @@ export function LessonContentInlineViewer({
           </div>
 
           {lesson.audioUrl ? (
-            <div className="bg-white p-3 rounded-lg border border-lime-200 shadow-xs">
+            <div className="bg-surface p-3 rounded-lg border border-lime-200 shadow-xs">
               <audio controls src={lesson.audioUrl} className="w-full h-10" preload="metadata">
                 Your browser does not support HTML5 audio playback.
               </audio>
@@ -329,7 +329,7 @@ export function LessonContentInlineViewer({
                       href={mat.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:border-purple-300 grid place-items-center text-purple-700 text-xs transition-colors"
+                      className="w-7 h-7 rounded-lg bg-surface border border-gray-200 hover:border-purple-300 grid place-items-center text-purple-700 text-xs transition-colors"
                       title="Open asset in new tab"
                     >
                       <Icon name="maximize" size={12} />
@@ -338,7 +338,7 @@ export function LessonContentInlineViewer({
                   <button
                     type="button"
                     onClick={() => handleDownloadMaterial(mat)}
-                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:border-purple-300 grid place-items-center text-purple-700 text-xs transition-colors cursor-pointer"
+                    className="w-7 h-7 rounded-lg bg-surface border border-gray-200 hover:border-purple-300 grid place-items-center text-purple-700 text-xs transition-colors cursor-pointer"
                     title="Download asset"
                   >
                     <Icon name="download" size={12} />

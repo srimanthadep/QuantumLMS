@@ -117,7 +117,7 @@ export default function AIMonitoringSection({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Metric 1: Engagement Score */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className={`text-[10px] uppercase font-bold tracking-wider block mb-1 ${isStudioMode ? "text-zinc-400" : "text-zinc-400"}`}>
@@ -138,7 +138,7 @@ export default function AIMonitoringSection({
 
         {/* Metric 2: Active Participation */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className={`text-[10px] uppercase font-bold tracking-wider block mb-1 ${isStudioMode ? "text-zinc-400" : "text-zinc-400"}`}>
@@ -157,7 +157,7 @@ export default function AIMonitoringSection({
 
         {/* Metric 3: Progress */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className={`text-[10px] uppercase font-bold tracking-wider block mb-1 ${isStudioMode ? "text-zinc-400" : "text-zinc-400"}`}>
@@ -178,7 +178,7 @@ export default function AIMonitoringSection({
 
         {/* Metric 4: Trend */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className={`text-[10px] uppercase font-bold tracking-wider block mb-1 ${isStudioMode ? "text-zinc-400" : "text-zinc-400"}`}>
@@ -198,7 +198,7 @@ export default function AIMonitoringSection({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         {/* Left: Attention Indicators */}
         <div
-          className={`p-4 rounded-2xl border ${isStudioMode ? "bg-zinc-900/80 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-4 rounded-2xl border ${isStudioMode ? "bg-ink-900/80 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -251,7 +251,7 @@ export default function AIMonitoringSection({
 
         {/* Right: Actionable AI Suggestions */}
         <div
-          className={`p-4 rounded-2xl border ${isStudioMode ? "bg-zinc-900/80 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-4 rounded-2xl border ${isStudioMode ? "bg-ink-900/80 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -280,7 +280,7 @@ export default function AIMonitoringSection({
                 <div
                   key={sug.id}
                   className={`p-3 rounded-xl border flex items-start justify-between gap-2.5 ${isStudioMode
-                      ? "bg-zinc-800/80 border-zinc-700 text-zinc-200"
+                      ? "bg-ink-800/80 border-zinc-700 text-zinc-200"
                       : "bg-gray-50/80 hover:bg-purple-50/30 border-gray-200 transition-colors"
                     }`}
                 >

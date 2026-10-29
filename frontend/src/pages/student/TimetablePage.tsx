@@ -125,13 +125,13 @@ export function TimetablePage({
           </div>
 
           {/* View Mode Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
             <button
               type="button"
               onClick={() => setActiveTab("timetable")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "timetable"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -142,7 +142,7 @@ export function TimetablePage({
               onClick={() => setActiveTab("events")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "events"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -153,7 +153,7 @@ export function TimetablePage({
               onClick={() => setActiveTab("announcements")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "announcements"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -218,7 +218,7 @@ export function TimetablePage({
                   link.click()
                   onToast("Schedule exported successfully! 🗓️")
                 }}
-                className="px-3 py-1 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-surface border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
               >
                 Export iCal / Text
               </button>
@@ -231,7 +231,7 @@ export function TimetablePage({
               <div
                 key={slot.id}
                 onClick={() => setActiveSlot(slot)}
-                className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between"
+                className="p-4 rounded-2xl bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -291,7 +291,7 @@ export function TimetablePage({
                   className={`ml-auto px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                     featuredEvent.registered
                       ? "bg-emerald-500 text-white"
-                      : "bg-white text-purple-900 hover:bg-purple-50"
+                      : "bg-surface text-purple-900 hover:bg-purple-50"
                   }`}
                 >
                   {featuredEvent.registered ? "✓ Registered" : "RSVP Now"}
@@ -304,11 +304,11 @@ export function TimetablePage({
             {filteredEvents.map((evt) => (
               <div
                 key={evt.id}
-                className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between"
+                className="p-4 rounded-2xl bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 dark:bg-ink-800 dark:text-zinc-300">
                       {evt.category}
                     </span>
                     <span className="text-xs text-zinc-400 font-medium">
@@ -345,7 +345,7 @@ export function TimetablePage({
       {/* VIEW 3: BULLETINS & ANNOUNCEMENTS */}
       {activeTab === "announcements" && (
         <div className="flex flex-col gap-3">
-          <div className="panel p-3 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3">
+          <div className="panel p-3 bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {(["All", "Urgent", "Academic", "Infrastructure", "General"] as const).map(
                 (c) => (
@@ -380,7 +380,7 @@ export function TimetablePage({
                 onClick={() => toggleExpand(ann.id)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                   ann.isRead
-                    ? "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800/80"
+                    ? "bg-surface dark:bg-ink-900 border-slate-200/80 dark:border-zinc-800/80"
                     : "bg-purple-50/40 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800/50 shadow-xs"
                 }`}
               >

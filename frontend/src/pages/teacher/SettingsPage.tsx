@@ -379,7 +379,7 @@ export default function SettingsPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-start">
         {/* Navigation Area: Left Sidebar (Desktop) / Horizontal Scrollable Tabs (Mobile) */}
         <aside className="lg:col-span-3">
-          <div className="panel p-3 bg-white/95 backdrop-blur-xs">
+          <div className="panel p-3 bg-surface/95 backdrop-blur-xs">
             {/* Mobile Category Dropdown Selector */}
             <div className="block sm:hidden mb-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
@@ -388,7 +388,7 @@ export default function SettingsPage({
               <select
                 value={activeCategory}
                 onChange={(e) => setActiveCategory(e.target.value as SettingsCategory)}
-                className="w-full h-10 px-3 rounded-xl border border-gray-200 text-xs font-bold text-zinc-800 bg-white"
+                className="w-full h-10 px-3 rounded-xl border border-gray-200 text-xs font-bold text-zinc-800 bg-surface"
                 aria-label="Settings Category"
               >
                 {CATEGORIES.map((c) => (
@@ -409,8 +409,8 @@ export default function SettingsPage({
                     type="button"
                     onClick={() => setActiveCategory(cat.id)}
                     className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap text-left shrink-0 ${isActive
-                        ? "bg-[#F0442E] text-white shadow-xs"
-                        : "text-zinc-600 hover:text-[#F0442E] hover:bg-[#FFF1EE]"
+                        ? "bg-primary text-white shadow-xs"
+                        : "text-zinc-600 hover:text-primary-text hover:bg-[#FFF1EE]"
                       }`}
                     role="tab"
                     aria-selected={isActive}
@@ -421,7 +421,7 @@ export default function SettingsPage({
                     </div>
                     {cat.badge && (
                       <span
-                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-[#FFF1EE] text-[#F0442E]"
+                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-[#FFF1EE] text-primary-text"
                           }`}
                       >
                         {cat.badge}
@@ -438,7 +438,7 @@ export default function SettingsPage({
         <section className="lg:col-span-9 space-y-4">
           {/* CATEGORY 1: PROFILE */}
           {activeCategory === "profile" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-5" aria-label="Profile Settings Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-5" aria-label="Profile Settings Section">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-150">
                 <div>
                   <h2 className="text-base font-bold text-zinc-900">Teacher Profile Information</h2>
@@ -510,7 +510,7 @@ export default function SettingsPage({
                     value={profileForm.fullName}
                     onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
                     className={`w-full h-9.5 px-3 rounded-xl border text-xs font-medium transition-all ${isEditingProfile
-                        ? "bg-white border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+                        ? "bg-surface border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
                         : "bg-gray-50 border-gray-200 text-zinc-700 cursor-not-allowed"
                       }`}
                   />
@@ -529,7 +529,7 @@ export default function SettingsPage({
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                     className={`w-full h-9.5 px-3 rounded-xl border text-xs font-medium transition-all ${isEditingProfile
-                        ? "bg-white border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+                        ? "bg-surface border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
                         : "bg-gray-50 border-gray-200 text-zinc-700 cursor-not-allowed"
                       }`}
                   />
@@ -548,7 +548,7 @@ export default function SettingsPage({
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                     className={`w-full h-9.5 px-3 rounded-xl border text-xs font-medium transition-all ${isEditingProfile
-                        ? "bg-white border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+                        ? "bg-surface border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
                         : "bg-gray-50 border-gray-200 text-zinc-700 cursor-not-allowed"
                       }`}
                   />
@@ -564,7 +564,7 @@ export default function SettingsPage({
                     value={profileForm.designation}
                     onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
                     className={`w-full h-9.5 px-3 rounded-xl border text-xs font-medium transition-all ${isEditingProfile
-                        ? "bg-white border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+                        ? "bg-surface border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
                         : "bg-gray-50 border-gray-200 text-zinc-700 cursor-not-allowed"
                       }`}
                   />
@@ -595,7 +595,7 @@ export default function SettingsPage({
                     value={profileForm.bio}
                     onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                     className={`w-full p-3 rounded-xl border text-xs font-medium leading-relaxed transition-all ${isEditingProfile
-                        ? "bg-white border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
+                        ? "bg-surface border-zinc-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-100"
                         : "bg-gray-50 border-gray-200 text-zinc-700 cursor-not-allowed"
                       }`}
                   />
@@ -606,7 +606,7 @@ export default function SettingsPage({
 
           {/* CATEGORY 2: ACCOUNT PREFERENCES */}
           {activeCategory === "preferences" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-5" aria-label="Account Preferences Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-5" aria-label="Account Preferences Section">
               <div className="pb-4 border-b border-gray-150">
                 <h2 className="text-base font-bold text-zinc-900">Regional & System Preferences</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -622,7 +622,7 @@ export default function SettingsPage({
                   <select
                     value={preferences.language}
                     onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-surface font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                   >
                     <option value="en-US">English (United States)</option>
                     <option value="en-GB">English (United Kingdom)</option>
@@ -639,7 +639,7 @@ export default function SettingsPage({
                   <select
                     value={preferences.timeZone}
                     onChange={(e) => setPreferences({ ...preferences, timeZone: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-surface font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                   >
                     <option value="America/New_York">Eastern Time (US & Canada) · UTC-5</option>
                     <option value="America/Chicago">Central Time (US & Canada) · UTC-6</option>
@@ -657,7 +657,7 @@ export default function SettingsPage({
                   <select
                     value={preferences.dateFormat}
                     onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-surface font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                   >
                     <option value="DD/MM/YYYY">DD/MM/YYYY (e.g. 23/10/2026)</option>
                     <option value="MM/DD/YYYY">MM/DD/YYYY (e.g. 10/23/2026)</option>
@@ -672,7 +672,7 @@ export default function SettingsPage({
                   <select
                     value={preferences.timeFormat}
                     onChange={(e) => setPreferences({ ...preferences, timeFormat: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-surface font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                   >
                     <option value="12-hour">12-hour (e.g. 10:30 AM / 4:15 PM)</option>
                     <option value="24-hour">24-hour Military (e.g. 10:30 / 16:15)</option>
@@ -686,7 +686,7 @@ export default function SettingsPage({
                   <select
                     value={preferences.landingPage}
                     onChange={(e) => setPreferences({ ...preferences, landingPage: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-surface font-medium text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                   >
                     <option value="Dashboard">Teacher Dashboard (Overview)</option>
                     <option value="My Courses">My Courses & Curriculum</option>
@@ -711,7 +711,7 @@ export default function SettingsPage({
 
           {/* CATEGORY 3: NOTIFICATIONS */}
           {activeCategory === "notifications" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-6" aria-label="Notification Preferences Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-6" aria-label="Notification Preferences Section">
               <div className="pb-4 border-b border-gray-150">
                 <h2 className="text-base font-bold text-zinc-900">Notification Alerts & Dispatches</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -845,7 +845,7 @@ export default function SettingsPage({
 
           {/* CATEGORY 4: APPEARANCE */}
           {activeCategory === "appearance" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-5" aria-label="Appearance Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-5" aria-label="Appearance Section">
               <div className="pb-4 border-b border-gray-150">
                 <h2 className="text-base font-bold text-zinc-900">Appearance & Canvas Styling</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -862,7 +862,7 @@ export default function SettingsPage({
                       Choose between spacious comfortable padding or high-density view.
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-1.5 p-1 bg-surface rounded-xl border border-gray-200">
                     <button
                       type="button"
                       onClick={() => handleUpdateAppearance("density", "comfortable")}
@@ -907,7 +907,7 @@ export default function SettingsPage({
                   <div>
                     <strong className="text-xs font-bold text-zinc-900 block">Canvas Background Hex Color</strong>
                     <span className="text-[11px] text-zinc-500">
-                      Current: <span className="font-mono font-bold text-[#F0442E]">{hexColor}</span>. Select a curated preset or use the header picker.
+                      Current: <span className="font-mono font-bold text-primary-text">{hexColor}</span>. Select a curated preset or use the header picker.
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -924,8 +924,8 @@ export default function SettingsPage({
                         type="button"
                         onClick={() => onChangeHexColor(preset.hex)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${hexColor.toLowerCase() === preset.hex.toLowerCase()
-                            ? "bg-white border-[#F0442E] ring-2 ring-[#FED7D0] text-zinc-900 shadow-xs"
-                            : "bg-white border-gray-200 text-zinc-600 hover:border-gray-300"
+                            ? "bg-surface border-primary ring-2 ring-[#FED7D0] text-zinc-900 shadow-xs"
+                            : "bg-surface border-gray-200 text-zinc-600 hover:border-gray-300"
                           }`}
                       >
                         <span
@@ -943,7 +943,7 @@ export default function SettingsPage({
 
           {/* CATEGORY 5: PRIVACY & SECURITY */}
           {activeCategory === "security" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-5" aria-label="Privacy & Security Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-5" aria-label="Privacy & Security Section">
               <div className="pb-4 border-b border-gray-150">
                 <h2 className="text-base font-bold text-zinc-900">Account Security & Active Sessions</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -1068,7 +1068,7 @@ export default function SettingsPage({
 
           {/* CATEGORY 6: ACCESSIBILITY */}
           {activeCategory === "accessibility" && (
-            <div className="panel p-5 sm:p-6 bg-white space-y-5" aria-label="Accessibility Preferences Section">
+            <div className="panel p-5 sm:p-6 bg-surface space-y-5" aria-label="Accessibility Preferences Section">
               <div className="pb-4 border-b border-gray-150">
                 <h2 className="text-base font-bold text-zinc-900">Accessibility & Visual Comfort</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -1101,7 +1101,7 @@ export default function SettingsPage({
                       Increase font readability across dashboard tables and lesson content.
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-1.5 p-1 bg-surface rounded-xl border border-gray-200">
                     {(["normal", "medium", "large"] as const).map((sz) => (
                       <button
                         key={sz}
@@ -1138,19 +1138,19 @@ export default function SettingsPage({
                 <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 space-y-2">
                   <strong className="text-xs font-bold text-purple-950 block">Quick Keyboard Navigation Guide</strong>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-purple-900">
-                    <div className="flex justify-between p-2 rounded-lg bg-white border border-purple-100">
+                    <div className="flex justify-between p-2 rounded-lg bg-surface border border-purple-100">
                       <span>Dismiss Modal / Popup:</span>
                       <kbd className="px-1.5 py-0.5 rounded bg-gray-100 border text-zinc-700 font-mono font-bold">Esc</kbd>
                     </div>
-                    <div className="flex justify-between p-2 rounded-lg bg-white border border-purple-100">
+                    <div className="flex justify-between p-2 rounded-lg bg-surface border border-purple-100">
                       <span>Activate Focused Button:</span>
                       <kbd className="px-1.5 py-0.5 rounded bg-gray-100 border text-zinc-700 font-mono font-bold">Enter</kbd>
                     </div>
-                    <div className="flex justify-between p-2 rounded-lg bg-white border border-purple-100">
+                    <div className="flex justify-between p-2 rounded-lg bg-surface border border-purple-100">
                       <span>Next Interactive Item:</span>
                       <kbd className="px-1.5 py-0.5 rounded bg-gray-100 border text-zinc-700 font-mono font-bold">Tab</kbd>
                     </div>
-                    <div className="flex justify-between p-2 rounded-lg bg-white border border-purple-100">
+                    <div className="flex justify-between p-2 rounded-lg bg-surface border border-purple-100">
                       <span>Previous Item:</span>
                       <kbd className="px-1.5 py-0.5 rounded bg-gray-100 border text-zinc-700 font-mono font-bold">Shift+Tab</kbd>
                     </div>

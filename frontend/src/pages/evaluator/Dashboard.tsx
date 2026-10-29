@@ -87,7 +87,7 @@ export function Dashboard({
       {/* 4 Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-card-gap,14px)]">
         {/* Card 1: Assigned Assessments */}
-        <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
+        <div className="bg-surface rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
               Assigned Assessments
@@ -110,7 +110,7 @@ export function Dashboard({
         </div>
 
         {/* Card 2: Pending Evaluations */}
-        <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
+        <div className="bg-surface rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
               Pending Evaluations
@@ -139,7 +139,7 @@ export function Dashboard({
         </div>
 
         {/* Card 3: Completed Evaluations */}
-        <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
+        <div className="bg-surface rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
               Completed Evaluations
@@ -165,7 +165,7 @@ export function Dashboard({
         </div>
 
         {/* Card 4: Upcoming Deadlines */}
-        <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
+        <div className="bg-surface rounded-2xl p-5 border border-zinc-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
               Upcoming Deadlines
@@ -205,7 +205,7 @@ export function Dashboard({
         <button
           type="button"
           onClick={() => onNavigateTab("Submissions")}
-          className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
+          className="p-3.5 bg-surface border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
             <div className="text-xs text-zinc-500 font-medium">Assigned Work</div>
@@ -217,7 +217,7 @@ export function Dashboard({
         <button
           type="button"
           onClick={() => onNavigateTab("Submissions", { filter: "reassessment" })}
-          className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
+          className="p-3.5 bg-surface border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
             <div className="text-xs text-zinc-500 font-medium">Student Appeals</div>
@@ -234,7 +234,7 @@ export function Dashboard({
         <button
           type="button"
           onClick={() => onNavigateTab("Reports")}
-          className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
+          className="p-3.5 bg-surface border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
             <div className="text-xs text-zinc-500 font-medium">Audit & History</div>
@@ -247,7 +247,7 @@ export function Dashboard({
       {/* Main Grid: Pending Evaluations Table & Upcoming Deadlines Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
         {/* Left 2 Cols: Pending Evaluations Table */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+        <div className="lg:col-span-2 bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h2 className="text-base font-bold text-zinc-900">
@@ -341,7 +341,7 @@ export function Dashboard({
         {/* Right Col: Upcoming Deadlines & Recent Activity */}
         <div className="space-y-6">
           {/* Upcoming Deadlines Widget */}
-          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+          <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-purple-600" />
@@ -392,7 +392,7 @@ export function Dashboard({
           </div>
 
           {/* Recent Activity Feed */}
-          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+          <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-600" />

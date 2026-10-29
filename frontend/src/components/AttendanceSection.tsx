@@ -232,7 +232,7 @@ export default function AttendanceSection({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-3.5 h-8.5 rounded-xl border border-gray-200 hover:border-purple-300 bg-white hover:bg-purple-50/50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="px-3.5 h-8.5 rounded-xl border border-gray-200 hover:border-purple-300 bg-surface hover:bg-purple-50/50 text-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
             title="Export displayed attendance table to CSV"
           >
             <Icon name="download" size={14} />
@@ -251,7 +251,7 @@ export default function AttendanceSection({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") setIsStudentsModalOpen(true)
           }}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm group ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm group ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
           title="Click to view enrolled students popup"
         >
@@ -269,7 +269,7 @@ export default function AttendanceSection({
 
         {/* Present */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 block mb-1">
@@ -283,7 +283,7 @@ export default function AttendanceSection({
 
         {/* Late */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 block mb-1">
@@ -297,7 +297,7 @@ export default function AttendanceSection({
 
         {/* Absent */}
         <div
-          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 block mb-1">
@@ -311,7 +311,7 @@ export default function AttendanceSection({
 
         {/* Attendance Percentage */}
         <div
-          className={`p-3.5 rounded-2xl border col-span-2 sm:col-span-1 ${isStudioMode ? "bg-zinc-900/90 border-zinc-800" : "bg-white border-zinc-150 shadow-xs"
+          className={`p-3.5 rounded-2xl border col-span-2 sm:col-span-1 ${isStudioMode ? "bg-ink-900/90 border-zinc-800" : "bg-surface border-zinc-150 shadow-xs"
             }`}
         >
           <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 block mb-1">
@@ -415,7 +415,7 @@ export default function AttendanceSection({
       </div>
 
       {/* 4. Attendance Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-150 bg-white shadow-xs">
+      <div className="overflow-x-auto rounded-2xl border border-gray-150 bg-surface shadow-xs">
         {displayedRecords.length === 0 ? (
           <div className="p-8 text-center text-xs text-zinc-500">
             No student records match your selected filter or search criteria.
@@ -519,7 +519,7 @@ export default function AttendanceSection({
             aria-label={`Enrolled students attendance roster for ${currentSession?.title || "Live Class"}`}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden text-zinc-900 animate-in zoom-in-95 duration-150"
+              className="bg-surface rounded-2xl shadow-2xl border border-gray-150 w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden text-zinc-900 animate-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -556,7 +556,7 @@ export default function AttendanceSection({
               </div>
 
               {/* Internal Search & Status Filter Pills */}
-              <div className="p-3 sm:px-5 sm:py-3 border-b border-gray-150 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="p-3 sm:px-5 sm:py-3 border-b border-gray-150 bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="tablist" aria-label="Filter roster by status">
                   {(["All", "Present", "Late", "Left Early", "Absent"] as const).map((st) => {
                     const count =
@@ -721,7 +721,7 @@ export default function AttendanceSection({
             aria-label={`Attendance details for ${detailStudent.studentName}`}
           >
             <div
-              className="bg-white rounded-3xl shadow-2xl border border-gray-150 w-full max-w-lg p-6 sm:p-7 relative text-zinc-900 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="bg-surface rounded-3xl shadow-2xl border border-gray-150 w-full max-w-lg p-6 sm:p-7 relative text-zinc-900 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-3.5 border-b border-gray-150">

@@ -140,7 +140,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Academic Summary Action */}
       <section
-        className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl"
+        className="panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl"
         aria-label="Grades Header"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -149,24 +149,24 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               <h3 className="card-title text-xl font-black text-zinc-900 tracking-tight">
                 Grades, GPA & Academic Transcript
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0] border border-[#D8C2FF]/60">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary-text border border-primary-border/60">
                 Dean's Honor List
               </span>
             </div>
-            <p className="text-xs text-[#514B68] mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Official semester transcripts, course credit audits, and cumulative grade point performance.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Mode Tabs */}
-            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
               <button
                 type="button"
                 onClick={() => setActiveTab("grades")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "grades"
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                     : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                 }`}
               >
@@ -177,7 +177,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 onClick={() => setActiveTab("certificates")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "certificates"
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
                     : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                 }`}
               >
@@ -188,7 +188,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             <button
               type="button"
               onClick={handleDownloadTranscript}
-              className="px-4 py-1.5 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-4 py-1.5 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Icon name="document" size={13} />
               <span>Download Transcript</span>
@@ -244,7 +244,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* Gradebook Table (7 columns on XL) */}
         <section
-          className="xl:col-span-7 panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
+          className="xl:col-span-7 panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
           aria-label="Gradebook"
         >
           <div>
@@ -253,13 +253,13 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Gradebook & Examination Performance
                 </h3>
-                <span className="text-xs text-[#514B68]">
+                <span className="text-xs text-muted-foreground">
                   Official course grade weights and grading rubrics
                 </span>
               </div>
 
               {/* Semester Filter Pills */}
-              <div className="flex items-center gap-1.5 p-1 bg-[#F0EDFF] rounded-full border border-[#E2DCEE] self-start sm:self-auto">
+              <div className="flex items-center gap-1.5 p-1 bg-primary-soft rounded-full border border-[#E2DCEE] self-start sm:self-auto">
                 {(["Fall 2026", "Spring 2026", "All Semesters"] as const).map(
                   (sem) => (
                     <button
@@ -267,8 +267,8 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                       type="button"
                       className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                         selectedSemester === sem
-                          ? "bg-[#905FEB] text-white shadow-sm"
-                          : "text-[#514B68] hover:text-[#171526]"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                       onClick={() => setSelectedSemester(sem)}
                     >
@@ -282,7 +282,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             <div className="overflow-x-auto rounded-2xl border border-zinc-100">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#F0EDFF]/50 border-b border-zinc-200 text-[#514B68] font-bold uppercase tracking-wider text-[10.5px]">
+                  <tr className="bg-primary-soft/50 border-b border-zinc-200 text-muted-foreground font-bold uppercase tracking-wider text-[10.5px]">
                     <th className="py-3 px-3">Course Code & Title</th>
                     <th className="py-3 px-2 text-center">Credits</th>
                     <th className="py-3 px-2 text-center">Midterm</th>
@@ -297,13 +297,13 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   {displayedGrades.map((item) => (
                     <tr
                       key={item.id}
-                      className="hover:bg-[#F0EDFF]/30 transition-colors"
+                      className="hover:bg-primary-soft/30 transition-colors"
                     >
                       <td className="py-3 px-3">
                         <div className="font-bold text-zinc-900">
                           {item.courseTitle}
                         </div>
-                        <div className="text-[11px] text-[#514B68]">
+                        <div className="text-[11px] text-muted-foreground">
                           {item.courseCode}
                         </div>
                       </td>
@@ -319,11 +319,11 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                       <td className="py-3 px-2 text-center text-zinc-700 font-semibold">
                         {item.finalExam}
                       </td>
-                      <td className="py-3 px-2 text-center font-black text-[#905FEB]">
+                      <td className="py-3 px-2 text-center font-black text-primary-text">
                         {item.totalScore}%
                       </td>
                       <td className="py-3 px-2 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-[#F0E7FF] text-[#5F2BC0] border border-[#D8C2FF]/60">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-primary-soft text-primary-text border border-primary-border/60">
                           {item.letterGrade}
                         </span>
                       </td>
@@ -331,8 +331,8 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             item.status === "Passed with Honors"
-                              ? "bg-[#E7FF9C] text-[#253700] border border-[#D2F66A]"
-                              : "bg-[#F0EDFF] text-[#5F2BC0] border border-[#D8C2FF]/60"
+                              ? "bg-success-soft text-[#253700] border border-[#D2F66A]"
+                              : "bg-primary-soft text-primary-text border border-primary-border/60"
                           }`}
                         >
                           {item.status}
@@ -345,7 +345,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-[#514B68]">
+          <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-muted-foreground">
             <span>Showing {displayedGrades.length} courses in {selectedSemester}</span>
             <span className="font-bold text-zinc-700">
               Total Credits: {displayedGrades.reduce((sum, g) => sum + g.credits, 0)} Units
@@ -355,7 +355,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
 
         {/* Performance Overview Graph (5 columns on XL) */}
         <section
-          className="xl:col-span-5 panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
+          className="xl:col-span-5 panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
           aria-label="Performance Overview"
         >
           <div>
@@ -364,11 +364,11 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Performance Overview
                 </h3>
-                <span className="text-xs text-[#514B68]">
+                <span className="text-xs text-muted-foreground">
                   Overall score by subject (0–100 scale)
                 </span>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#E7FF9C] text-[#253700] border border-[#D2F66A]">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-success-soft text-[#253700] border border-[#D2F66A]">
                 Avg {currentAverage}%
               </span>
             </div>
@@ -539,9 +539,9 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   const target = displayedGrades.find((g) => g.id === hoveredOverview)
                   if (!target) return null
                   return (
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-[11px] py-1 px-3 rounded-xl shadow-lg pointer-events-none flex items-center gap-2 z-10">
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-ink-900 text-white text-[11px] py-1 px-3 rounded-xl shadow-lg pointer-events-none flex items-center gap-2 z-10">
                       <span className="font-bold">{target.courseTitle}:</span>
-                      <span className="text-[#AEEB00] font-black">{target.totalScore}%</span>
+                      <span className="text-success font-black">{target.totalScore}%</span>
                       <span className="text-zinc-400">({target.letterGrade} · {target.status})</span>
                     </div>
                   )
@@ -550,13 +550,13 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             </div>
           </div>
 
-          <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-[#514B68]">
+          <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-[#905FEB]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-primary" />
               Subject Overall Score
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-0.5 bg-[#AEEB00]" />
+              <span className="w-2.5 h-0.5 bg-success" />
               Term Benchmark ({currentAverage}%)
             </span>
           </div>
@@ -567,7 +567,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* Card 1: Score vs Class Benchmark */}
         <section
-          className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
+          className="panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
           aria-label="Score vs Class Benchmark"
         >
           <div>
@@ -576,19 +576,19 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Score vs Class Benchmark
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#5F2BC0]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-soft text-primary-text">
                   Cohort Analysis
                 </span>
               </div>
-              <span className="text-xs text-[#514B68]">
+              <span className="text-xs text-muted-foreground">
                 Grouped comparison: My Score vs Class Average vs Top 10%
               </span>
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-3 text-[10.5px] font-semibold text-[#514B68] mb-3">
+            <div className="flex items-center gap-3 text-[10.5px] font-semibold text-muted-foreground mb-3">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#905FEB]" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-primary" />
                 My Score
               </span>
               <span className="flex items-center gap-1">
@@ -596,7 +596,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 Class Avg
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#AEEB00]" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-success" />
                 Top 10%
               </span>
             </div>
@@ -740,13 +740,13 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   if (!target) return null
                   const b = courseBenchmarks[target.courseCode]
                   return (
-                    <div className="absolute top-0 right-0 bg-zinc-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
+                    <div className="absolute top-0 right-0 bg-ink-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
                       <div className="font-bold border-b border-zinc-700 pb-1 mb-1">
                         {target.courseTitle}
                       </div>
                       <div>My Score: <span className="text-[#A780F1] font-bold">{target.totalScore}%</span></div>
                       <div>Class Average: <span className="text-zinc-300 font-bold">{b?.classAvg}%</span></div>
-                      <div>Top 10% Benchmark: <span className="text-[#AEEB00] font-bold">{b?.top10}%</span></div>
+                      <div>Top 10% Benchmark: <span className="text-success font-bold">{b?.top10}%</span></div>
                     </div>
                   )
                 })()
@@ -754,14 +754,14 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             </div>
           </div>
 
-          <div className="mt-2 pt-2 border-t border-zinc-100 text-[10px] text-[#514B68]">
+          <div className="mt-2 pt-2 border-t border-zinc-100 text-[10px] text-muted-foreground">
             * Class & Top 10% benchmark percentiles sourced from cohort academic baselines.
           </div>
         </section>
 
         {/* Card 2: Performance by Component */}
         <section
-          className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
+          className="panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
           aria-label="Performance by Component"
         >
           <div>
@@ -770,27 +770,27 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Performance by Component
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E7FF9C] text-[#253700]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-soft text-[#253700]">
                   Exam Breakdown
                 </span>
               </div>
-              <span className="text-xs text-[#514B68]">
+              <span className="text-xs text-muted-foreground">
                 Midterm, Assignments & Final Exam scores per subject
               </span>
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-3 text-[10.5px] font-semibold text-[#514B68] mb-3">
+            <div className="flex items-center gap-3 text-[10.5px] font-semibold text-muted-foreground mb-3">
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-sm bg-[#6E36D5]" />
                 Midterm
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#905FEB]" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-primary" />
                 Assignments
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#AEEB00]" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-success" />
                 Final Exam
               </span>
             </div>
@@ -929,13 +929,13 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   const target = displayedGrades.find((g) => g.id === hoveredComponent)
                   if (!target) return null
                   return (
-                    <div className="absolute top-0 right-0 bg-zinc-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
+                    <div className="absolute top-0 right-0 bg-ink-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
                       <div className="font-bold border-b border-zinc-700 pb-1 mb-1">
                         {target.courseTitle}
                       </div>
                       <div>Midterm: <span className="text-[#C1A6F7] font-bold">{target.midterm}/100</span></div>
                       <div>Assignments: <span className="text-[#A780F1] font-bold">{target.assignments}/100</span></div>
-                      <div>Final Exam: <span className="text-[#AEEB00] font-bold">{target.finalExam}/100</span></div>
+                      <div>Final Exam: <span className="text-success font-bold">{target.finalExam}/100</span></div>
                     </div>
                   )
                 })()
@@ -943,14 +943,14 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
             </div>
           </div>
 
-          <div className="mt-2 pt-2 border-t border-zinc-100 text-[10px] text-[#514B68]">
+          <div className="mt-2 pt-2 border-t border-zinc-100 text-[10px] text-muted-foreground">
             * Actual component weights: Midterm 30%, Assignments 30%, Final Exam 40%.
           </div>
         </section>
 
         {/* Card 3: Overall Performance Analysis (Radar Chart) */}
         <section
-          className="panel p-5 sm:p-6 bg-white border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
+          className="panel p-5 sm:p-6 bg-surface border border-zinc-200/80 shadow-[0_8px_28px_rgba(39,28,61,0.055)] rounded-3xl flex flex-col justify-between"
           aria-label="Overall Performance Analysis"
         >
           <div>
@@ -959,11 +959,11 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Overall Performance Analysis
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#5F2BC0]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-soft text-primary-text">
                   Radar Telemetry
                 </span>
               </div>
-              <span className="text-xs text-[#514B68]">
+              <span className="text-xs text-muted-foreground">
                 Multi-category evaluation against cohort average
               </span>
             </div>
@@ -1141,11 +1141,11 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   const target = radarData.find((r) => r.category === hoveredRadarCategory)
                   if (!target) return null
                   return (
-                    <div className="absolute top-1 right-1 bg-zinc-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
+                    <div className="absolute top-1 right-1 bg-ink-900 text-white text-[10px] p-2 rounded-xl shadow-lg pointer-events-none z-10 leading-snug">
                       <div className="font-bold border-b border-zinc-700 pb-0.5 mb-1">
                         {target.category}
                       </div>
-                      <div>Srimanth: <span className="text-[#AEEB00] font-bold">{target.student}%</span></div>
+                      <div>Srimanth: <span className="text-success font-bold">{target.student}%</span></div>
                       <div>Class Average: <span className="text-zinc-300 font-bold">{target.classAvg}%</span></div>
                     </div>
                   )
@@ -1156,11 +1156,11 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
 
           {/* Legend */}
           <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[10.5px]">
-            <span className="flex items-center gap-1.5 font-semibold text-[#171526]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#905FEB]" />
+            <span className="flex items-center gap-1.5 font-semibold text-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary" />
               Srimanth (Student)
             </span>
-            <span className="flex items-center gap-1.5 font-semibold text-[#514B68]">
+            <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
               <span className="w-2.5 h-2.5 rounded-full bg-[#B6AEC8]" />
               Cohort Baseline
             </span>
@@ -1192,7 +1192,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   )
                   onToast("Quantum verified credential portfolio link copied for LinkedIn! 🔗")
                 }}
-                className="px-3.5 py-1.5 rounded-full bg-zinc-900 text-white text-xs font-bold hover:bg-zinc-800 transition-colors shadow-xs"
+                className="px-3.5 py-1.5 rounded-full bg-ink-900 text-white text-xs font-bold hover:bg-ink-800 transition-colors shadow-xs"
               >
                 Sync to LinkedIn
               </button>
@@ -1234,7 +1234,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                       {cert.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface dark:bg-ink-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
                         >
                           {skill}
                         </span>
@@ -1274,7 +1274,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                         URL.revokeObjectURL(url)
                         onToast(`Downloaded verified diploma for ${cert.title}! 🎓`)
                       }}
-                      className="px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-white dark:bg-zinc-800 text-xs font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-surface dark:bg-ink-800 text-xs font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
                     >
                       Download PDF
                     </button>
@@ -1299,7 +1299,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               {inProgress.map((cert) => (
                 <div
                   key={cert.id}
-                  className="p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 flex flex-col justify-between"
+                  className="p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-ink-800/40 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -1337,19 +1337,19 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
           onClick={() => setIsCertModalOpen(false)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#F0E7FF] text-[#5F2BC0] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-full bg-primary-soft text-primary-text flex items-center justify-center font-bold">
                   <Icon name="award" size={18} />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-zinc-900">
                     Official Certificate
                   </h3>
-                  <p className="text-xs text-[#514B68]">
+                  <p className="text-xs text-muted-foreground">
                     Quantum School of AI · Verified Credential
                   </p>
                 </div>
@@ -1363,8 +1363,8 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               </button>
             </div>
 
-            <div className="my-4 p-6 border-2 border-dashed border-[#D8C2FF] rounded-2xl bg-[#F0EDFF]/40 text-center">
-              <div className="text-xs uppercase tracking-widest font-bold text-[#905FEB] mb-2">
+            <div className="my-4 p-6 border-2 border-dashed border-primary-border rounded-2xl bg-primary-soft/40 text-center">
+              <div className="text-xs uppercase tracking-widest font-bold text-primary-text mb-2">
                 Certificate of Completion & Distinction
               </div>
               <h2 className="text-2xl font-black text-zinc-900 mb-1">
@@ -1376,7 +1376,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 successfully mastered Python for Data Analysis, NumPy, Pandas,
                 and Neural Architectures with Distinction.
               </p>
-              <div className="flex justify-center items-center gap-6 text-xs text-[#514B68]">
+              <div className="flex justify-center items-center gap-6 text-xs text-muted-foreground">
                 <span>Issued: October 18, 2026</span>
                 <span>•</span>
                 <span>Credential ID: QAI-88392-PY</span>
@@ -1416,7 +1416,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-bold hover:bg-zinc-800 cursor-pointer"
+                className="px-4 py-2 rounded-full bg-ink-900 text-white text-xs font-bold hover:bg-ink-800 cursor-pointer"
                 onClick={() => {
                   navigator.clipboard?.writeText?.(
                     "https://verify.quantumschool.ai/cert/QAI-88392-PY",

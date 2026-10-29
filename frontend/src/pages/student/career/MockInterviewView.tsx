@@ -1372,7 +1372,7 @@ export function MockInterviewView({
       icon: "</>",
       description: "Data Structures, Algorithms, CS fundamentals",
       badgeBg: "bg-purple-100",
-      colorClass: "text-[#5b4fe9]",
+      colorClass: "text-primary-text",
     },
     {
       type: "HR",
@@ -1393,7 +1393,7 @@ export function MockInterviewView({
       icon: "💻",
       description: "Live coding questions and problem solving",
       badgeBg: "bg-purple-100",
-      colorClass: "text-[#5b4fe9]",
+      colorClass: "text-primary-text",
     },
     {
       type: "Aptitude",
@@ -1420,7 +1420,7 @@ export function MockInterviewView({
     return (
       <div className="interview-readiness-view w-full max-w-full min-w-0 box-border pb-12 flex flex-col gap-4 animate-in fade-in">
         {/* Top Header Card */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex items-center justify-between gap-3">
+        <div className="bg-surface rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setScreenMode("dashboard")}
@@ -1438,7 +1438,7 @@ export function MockInterviewView({
               </p>
             </div>
           </div>
-          <span className="px-3 py-1 rounded-full bg-purple-100 text-[#5b4fe9] text-xs font-bold">
+          <span className="px-3 py-1 rounded-full bg-purple-100 text-primary-text text-xs font-bold">
             Step 1 of 2: Equipment Check
           </span>
         </div>
@@ -1446,10 +1446,10 @@ export function MockInterviewView({
         {/* Main Readiness 2-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column: AI Welcome & Session Details */}
-          <div className="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-5">
+          <div className="lg:col-span-7 bg-surface rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-5">
             {/* AI Avatar Greeting Banner */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/50 to-white border border-purple-100 flex items-center gap-4">
-              <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#5b4fe9] to-indigo-700 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
+              <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-700 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
                 <span>👩‍💼</span>
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
               </div>
@@ -1506,19 +1506,19 @@ export function MockInterviewView({
               </h4>
               <ul className="space-y-2 text-xs text-zinc-600">
                 <li className="flex items-start gap-2">
-                  <span className="text-[#5b4fe9] font-bold">1.</span>
+                  <span className="text-primary-text font-bold">1.</span>
                   <span>Speak at a natural, steady pace directly into your microphone. The AI will transcribe your words in real time.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#5b4fe9] font-bold">2.</span>
+                  <span className="text-primary-text font-bold">2.</span>
                   <span>The AI interviewer is adaptive: it will ask intelligent follow-up questions tailored to your specific answers.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#5b4fe9] font-bold">3.</span>
+                  <span className="text-primary-text font-bold">3.</span>
                   <span>If you are in a noisy space or your mic fails, you can seamlessly switch to the text-answer mode anytime.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#5b4fe9] font-bold">4.</span>
+                  <span className="text-primary-text font-bold">4.</span>
                   <span>For coding interviews, a built-in interactive code editor will activate alongside the conversation.</span>
                 </li>
               </ul>
@@ -1526,7 +1526,7 @@ export function MockInterviewView({
           </div>
 
           {/* Right Column: Audio & Microphone Verification */}
-          <div className="lg:col-span-5 bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-5">
+          <div className="lg:col-span-5 bg-surface rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-5">
             <div>
               <h3 className="text-sm font-bold text-zinc-900">
                 Audio & Microphone Verification
@@ -1540,7 +1540,7 @@ export function MockInterviewView({
             <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50/70 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-purple-100 text-[#5b4fe9] flex items-center justify-center text-xs font-bold">
+                  <span className="w-7 h-7 rounded-lg bg-purple-100 text-primary-text flex items-center justify-center text-xs font-bold">
                     🎙️
                   </span>
                   <span className="text-xs font-bold text-zinc-800">
@@ -1580,7 +1580,7 @@ export function MockInterviewView({
 
               <button
                 onClick={testMicrophoneAccess}
-                className="w-full py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5b4fe9] text-xs font-bold cursor-pointer transition-colors border border-purple-200"
+                className="w-full py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-primary-text text-xs font-bold cursor-pointer transition-colors border border-purple-200"
               >
                 {micStatus === "granted" ? "Re-test Microphone" : "Allow & Test Microphone"}
               </button>
@@ -1624,7 +1624,7 @@ export function MockInterviewView({
             <div className="pt-2">
               <button
                 onClick={handleLaunchLiveSession}
-                className="w-full py-3.5 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.01]"
+                className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.01]"
               >
                 <span>▶</span>
                 <span>Enter AI Interview Room</span>
@@ -1651,9 +1651,9 @@ export function MockInterviewView({
     return (
       <div className="live-interview-room w-full max-w-full min-w-0 box-border pb-12 flex flex-col gap-3 animate-in fade-in">
         {/* Top Control Bar */}
-        <div className="bg-zinc-900 text-white rounded-2xl px-5 py-3 shadow-xl flex flex-wrap items-center justify-between gap-3 border border-zinc-800">
+        <div className="bg-ink-900 text-white rounded-2xl px-5 py-3 shadow-xl flex flex-wrap items-center justify-between gap-3 border border-zinc-800">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-[#5b4fe9] text-white flex items-center justify-center text-sm font-bold shadow-sm">
+            <span className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center text-sm font-bold shadow-sm">
               🎙️
             </span>
             <div>
@@ -1661,7 +1661,7 @@ export function MockInterviewView({
                 <span className="text-xs font-bold text-white tracking-tight">
                   {selectedType} Interview
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-purple-300 font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-ink-800 text-purple-300 font-medium">
                   {setup.jobRole}
                 </span>
               </div>
@@ -1678,7 +1678,7 @@ export function MockInterviewView({
               className={`px-3 py-1 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 ${
                 timeRemainingSeconds < 300
                   ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
-                  : "bg-zinc-800 text-purple-300 border border-zinc-700"
+                  : "bg-ink-800 text-purple-300 border border-zinc-700"
               }`}
             >
               <span>⏱</span>
@@ -1714,7 +1714,7 @@ export function MockInterviewView({
         {/* Question Progress Bar */}
         <div className="w-full bg-zinc-200/80 h-1.5 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[#5b4fe9] to-indigo-600 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-primary to-indigo-600 transition-all duration-300"
             style={{
               width: `${((currentQuestionIndex + (isFollowUpPhase ? 0.5 : 0)) / interviewQuestions.length) * 100}%`,
             }}
@@ -1724,7 +1724,7 @@ export function MockInterviewView({
         {/* Main Split Layout: AI Stage vs Transcript / Code */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-[580px]">
           {/* LEFT COLUMN: AI Interviewer Video Stage */}
-          <div className="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
             {/* Interviewer State Badge */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1739,7 +1739,7 @@ export function MockInterviewView({
               <span
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                   interviewerState === "speaking"
-                    ? "bg-purple-100 text-[#5b4fe9]"
+                    ? "bg-purple-100 text-primary-text"
                     : interviewerState === "listening"
                       ? "bg-emerald-100 text-emerald-700 animate-pulse"
                       : "bg-zinc-100 text-zinc-600"
@@ -1768,7 +1768,7 @@ export function MockInterviewView({
                 />
 
                 {/* Avatar Visual Container */}
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-[#5b4fe9] flex items-center justify-center text-5xl">
+                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-primary flex items-center justify-center text-5xl">
                   <span>👩‍💼</span>
                 </div>
               </div>
@@ -1780,7 +1780,7 @@ export function MockInterviewView({
                     key={i}
                     className={`w-1 rounded-full transition-all duration-150 ${
                       interviewerState === "speaking"
-                        ? "bg-[#5b4fe9] animate-bounce"
+                        ? "bg-primary animate-bounce"
                         : interviewerState === "listening"
                           ? "bg-emerald-500 animate-pulse"
                           : "bg-zinc-300 h-2"
@@ -1814,7 +1814,7 @@ export function MockInterviewView({
                 </span>
                 <button
                   onClick={handleReplayCurrentQuestion}
-                  className="text-xs text-[#5b4fe9] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-primary-text hover:underline font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <span>↻</span>
                   <span>Repeat Aloud</span>
@@ -1829,7 +1829,7 @@ export function MockInterviewView({
           </div>
 
           {/* RIGHT COLUMN: Live Conversational Transcript Feed & Coding Stage */}
-          <div className="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
+          <div className="lg:col-span-7 bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
             {/* Top view switcher (for coding interviews) */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-2">
@@ -1842,7 +1842,7 @@ export function MockInterviewView({
                       onClick={() => setActiveCodingTab("video")}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-colors ${
                         activeCodingTab === "video"
-                          ? "bg-white text-zinc-900 shadow-xs"
+                          ? "bg-surface text-zinc-900 shadow-xs"
                           : "text-zinc-600 hover:text-zinc-900"
                       }`}
                     >
@@ -1852,7 +1852,7 @@ export function MockInterviewView({
                       onClick={() => setActiveCodingTab("code")}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-colors ${
                         activeCodingTab === "code"
-                          ? "bg-white text-zinc-900 shadow-xs"
+                          ? "bg-surface text-zinc-900 shadow-xs"
                           : "text-zinc-600 hover:text-zinc-900"
                       }`}
                     >
@@ -1865,7 +1865,7 @@ export function MockInterviewView({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsTextInputMode((prev) => !prev)}
-                  className="text-[11px] font-semibold text-[#5b4fe9] hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-primary-text hover:underline cursor-pointer"
                 >
                   {isTextInputMode ? "Switch to Voice Mode" : "Switch to Typing"}
                 </button>
@@ -1891,7 +1891,7 @@ export function MockInterviewView({
                       className={`max-w-[88%] p-3 rounded-2xl text-xs leading-relaxed ${
                         item.speaker === "ai"
                           ? "bg-zinc-100 text-zinc-900 rounded-tl-xs border border-zinc-200/80"
-                          : "bg-[#5b4fe9] text-white rounded-tr-xs shadow-xs"
+                          : "bg-primary text-white rounded-tr-xs shadow-xs"
                       }`}
                     >
                       {item.text}
@@ -1945,12 +1945,12 @@ export function MockInterviewView({
                   rows={9}
                   value={codeEditorText}
                   onChange={(e) => setCodeEditorText(e.target.value)}
-                  className="w-full p-3 font-mono text-xs rounded-xl bg-zinc-950 text-purple-200 border border-zinc-800 focus:outline-none focus:ring-1 focus:ring-purple-500 leading-relaxed resize-none"
+                  className="w-full p-3 font-mono text-xs rounded-xl bg-ink-950 text-purple-200 border border-zinc-800 focus:outline-none focus:ring-1 focus:ring-purple-500 leading-relaxed resize-none"
                   placeholder="// Implement your solution here..."
                 />
 
                 {codeOutput && (
-                  <div className="p-2.5 rounded-lg bg-zinc-900 text-emerald-400 font-mono text-[11px] whitespace-pre-wrap border border-zinc-800">
+                  <div className="p-2.5 rounded-lg bg-ink-900 text-emerald-400 font-mono text-[11px] whitespace-pre-wrap border border-zinc-800">
                     {codeOutput}
                   </div>
                 )}
@@ -1966,7 +1966,7 @@ export function MockInterviewView({
                     value={textFallbackInput}
                     onChange={(e) => setTextFallbackInput(e.target.value)}
                     placeholder="Type your response here..."
-                    className="w-full p-2.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#5b4fe9] leading-relaxed"
+                    className="w-full p-2.5 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary leading-relaxed"
                   />
                   <div className="flex justify-between items-center text-[10px] text-zinc-400">
                     <span>Text Mode Active</span>
@@ -2001,14 +2001,14 @@ export function MockInterviewView({
               <div className="flex items-center justify-between gap-3">
                 <button
                   onClick={handleReplayCurrentQuestion}
-                  className="px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 cursor-pointer"
+                  className="px-3 py-2 rounded-xl border border-zinc-200 bg-surface hover:bg-zinc-50 text-xs font-semibold text-zinc-700 cursor-pointer"
                 >
                   ↻ Repeat Question
                 </button>
 
                 <button
                   onClick={handleCandidateSubmitResponse}
-                  className="px-6 py-2.5 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all hover:scale-[1.01]"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all hover:scale-[1.01]"
                 >
                   <span>Submit Response</span>
                   <span>→</span>
@@ -2021,7 +2021,7 @@ export function MockInterviewView({
         {/* Confirmation Modal to End Interview Early */}
         {isEndConfirmOpen && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-zinc-200 text-center space-y-4">
+            <div className="bg-surface rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-zinc-200 text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl">
                 ⚠️
               </div>
@@ -2064,7 +2064,7 @@ export function MockInterviewView({
     return (
       <div className="interview-report-view w-full max-w-full min-w-0 box-border pb-12 flex flex-col gap-4 animate-in fade-in">
         {/* Top Header Card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xl shrink-0 border border-purple-100">
               <span>🏆</span>
@@ -2085,7 +2085,7 @@ export function MockInterviewView({
                 setScreenMode("dashboard")
                 onToast("Interview saved to your history! 📄")
               }}
-              className="px-5 py-2.5 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold cursor-pointer transition-colors shadow-sm"
+              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer transition-colors shadow-sm"
             >
               Back to Dashboard
             </button>
@@ -2093,11 +2093,11 @@ export function MockInterviewView({
         </div>
 
         {/* Performance Overview Banner */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+        <div className="bg-surface rounded-2xl p-6 shadow-sm border border-zinc-200/80 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           {/* Overall Score Meter */}
           <div className="md:col-span-4 flex flex-col items-center justify-center text-center p-4 rounded-xl bg-gradient-to-b from-purple-50/50 to-white border border-purple-100">
             <div className="relative w-28 h-28 rounded-full border-8 border-purple-200 flex flex-col items-center justify-center shadow-inner">
-              <span className="text-3xl font-extrabold text-[#5b4fe9]">
+              <span className="text-3xl font-extrabold text-primary-text">
                 {completedInterviewResult.score}%
               </span>
               <span className="text-[10px] uppercase font-bold text-zinc-400">
@@ -2126,7 +2126,7 @@ export function MockInterviewView({
               </span>
               <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div
-                  className="bg-[#5b4fe9] h-full"
+                  className="bg-primary h-full"
                   style={{
                     width: `${Math.min(100, completedInterviewResult.score + 4)}%`,
                   }}
@@ -2187,7 +2187,7 @@ export function MockInterviewView({
 
         {/* Strengths & Improvement Areas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-2.5">
+          <div className="bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-2.5">
             <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider">
               <span>✓</span>
               <span>Observed Key Strengths</span>
@@ -2208,7 +2208,7 @@ export function MockInterviewView({
             </ul>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-2.5">
+          <div className="bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-2.5">
             <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-wider">
               <span>⚠️</span>
               <span>Actionable Improvement Opportunities</span>
@@ -2231,7 +2231,7 @@ export function MockInterviewView({
         </div>
 
         {/* Detailed Question-by-Question Transcript Review */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-4">
+        <div className="bg-surface rounded-2xl p-6 shadow-sm border border-zinc-200/80 space-y-4">
           <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider">
             Detailed Question Responses & Evaluator Rubrics
           </h3>
@@ -2240,13 +2240,13 @@ export function MockInterviewView({
             {completedInterviewResult.responses.map((resp, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl border border-zinc-200 bg-white space-y-2.5"
+                className="p-4 rounded-xl border border-zinc-200 bg-surface space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-xs font-bold text-zinc-900">
                     Q{idx + 1}: {resp.questionText}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-[#5b4fe9] text-xs font-bold shrink-0">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-primary-text text-xs font-bold shrink-0">
                     {resp.scorePercent}%
                   </span>
                 </div>
@@ -2289,7 +2289,7 @@ export function MockInterviewView({
         <div className="flex items-center justify-between gap-3 pt-2">
           <button
             onClick={() => handleOpenReadiness()}
-            className="px-5 py-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 cursor-pointer shadow-2xs"
+            className="px-5 py-2.5 rounded-xl border border-zinc-200 bg-surface hover:bg-zinc-50 text-xs font-semibold text-zinc-700 cursor-pointer shadow-2xs"
           >
             ↺ Retake Interview
           </button>
@@ -2298,7 +2298,7 @@ export function MockInterviewView({
               setScreenMode("dashboard")
               onToast("Returned to Mock Interview dashboard.")
             }}
-            className="px-6 py-2.5 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold cursor-pointer shadow-sm"
+            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer shadow-sm"
           >
             Return to Dashboard
           </button>
@@ -2319,7 +2319,7 @@ export function MockInterviewView({
           onClick={() => setViewingQuestion(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-zinc-200 text-left space-y-4"
+            className="bg-surface rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-zinc-200 text-left space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
@@ -2377,7 +2377,7 @@ export function MockInterviewView({
           onClick={() => setIsViewAllHistoryOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200 text-left"
+            className="bg-surface rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
@@ -2406,8 +2406,8 @@ export function MockInterviewView({
                     onClick={() => setHistoryFilterType(cat)}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                       historyFilterType === cat
-                        ? "bg-[#5b4fe9] text-white shadow-2xs"
-                        : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                        ? "bg-primary text-white shadow-2xs"
+                        : "bg-surface text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                     }`}
                   >
                     {cat}
@@ -2484,7 +2484,7 @@ export function MockInterviewView({
           onClick={() => setViewingHistoryItem(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col p-5 shadow-2xl border border-zinc-200 text-left space-y-4"
+            className="bg-surface rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col p-5 shadow-2xl border border-zinc-200 text-left space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
@@ -2505,7 +2505,7 @@ export function MockInterviewView({
             </div>
 
             <div className="flex items-center gap-4 p-3 bg-purple-50/60 rounded-xl border border-purple-100">
-              <div className="w-12 h-12 rounded-xl bg-white shadow-2xs border border-purple-200 flex flex-col items-center justify-center font-bold text-purple-700">
+              <div className="w-12 h-12 rounded-xl bg-surface shadow-2xs border border-purple-200 flex flex-col items-center justify-center font-bold text-purple-700">
                 <span className="text-base leading-none">
                   {viewingHistoryItem.score}%
                 </span>
@@ -2541,7 +2541,7 @@ export function MockInterviewView({
                     <p className="font-bold text-zinc-900">
                       Q{idx + 1}: {resp.questionText}
                     </p>
-                    <p className="text-zinc-700 bg-white p-2 rounded-lg border border-zinc-200">
+                    <p className="text-zinc-700 bg-surface p-2 rounded-lg border border-zinc-200">
                       {resp.answerText}
                     </p>
                     <p className="text-purple-700 text-[11px] font-medium">
@@ -2569,7 +2569,7 @@ export function MockInterviewView({
       )}
 
       {/* 1. TOP CARD: Header, Subtitle & History CTA */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-surface rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xl shrink-0 border border-purple-100">
             <span>🎙️</span>
@@ -2588,7 +2588,7 @@ export function MockInterviewView({
         <div>
           <button
             onClick={handleScrollToHistory}
-            className="px-4 h-[38px] rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+            className="px-4 h-[38px] rounded-xl border border-zinc-200 bg-surface hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
             title="Jump to Recent Interview History"
           >
             <Icon name="clock" size={15} />
@@ -2600,7 +2600,7 @@ export function MockInterviewView({
       {/* 2. INTERVIEW STATISTICS (Row of 4 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-card-gap,14px)]">
         {/* Total Interviews */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
+        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
           <div>
             <span className="text-xs font-semibold text-zinc-600">
               Total Interviews
@@ -2619,7 +2619,7 @@ export function MockInterviewView({
         </div>
 
         {/* Average Score */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
+        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
           <div>
             <span className="text-xs font-semibold text-zinc-600">
               Average Score
@@ -2638,7 +2638,7 @@ export function MockInterviewView({
         </div>
 
         {/* Practice Hours */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
+        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
           <div>
             <span className="text-xs font-semibold text-zinc-600">
               Practice Hours
@@ -2657,7 +2657,7 @@ export function MockInterviewView({
         </div>
 
         {/* Interviews Completed */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
+        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-zinc-200/80 flex items-start justify-between">
           <div>
             <span className="text-xs font-semibold text-zinc-600">
               Interviews Completed
@@ -2676,7 +2676,7 @@ export function MockInterviewView({
       </div>
 
       {/* 3. CHOOSE INTERVIEW TYPE (5 Horizontal Cards) */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-4">
+      <div className="bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 space-y-4">
         <div className="flex items-center gap-2">
           <span className="text-purple-600 text-sm">🎙️</span>
           <h2 className="text-sm font-bold text-zinc-900">
@@ -2721,7 +2721,7 @@ export function MockInterviewView({
                       e.stopPropagation()
                       handleOpenReadiness(item.type)
                     }}
-                    className="w-full py-2 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold cursor-pointer transition-all shadow-sm hover:scale-[1.01]"
+                    className="w-full py-2 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer transition-all shadow-sm hover:scale-[1.01]"
                   >
                     Start Interview
                   </button>
@@ -2735,10 +2735,10 @@ export function MockInterviewView({
       {/* 4. BOTTOM 3-COLUMN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] items-stretch">
         {/* COLUMN 1: INTERVIEW SETUP (Only 4 fields! NO Difficulty Level!) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-6 h-6 rounded-lg bg-purple-100 text-[#5b4fe9] flex items-center justify-center text-xs font-bold shrink-0">
+              <span className="w-6 h-6 rounded-lg bg-purple-100 text-primary-text flex items-center justify-center text-xs font-bold shrink-0">
                 ⚙️
               </span>
               <div>
@@ -2842,7 +2842,7 @@ export function MockInterviewView({
           <div className="mt-5 pt-3">
             <button
               onClick={() => handleOpenReadiness()}
-              className="w-full py-3 rounded-xl bg-[#5b4fe9] hover:bg-[#4f46e5] text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.01]"
+              className="w-full py-3 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.01]"
             >
               <span>▶</span>
               <span>Start Interview</span>
@@ -2851,7 +2851,7 @@ export function MockInterviewView({
         </div>
 
         {/* COLUMN 2: SAMPLE QUESTIONS */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
@@ -2877,14 +2877,14 @@ export function MockInterviewView({
                   title="Click to view question model answer & key concepts"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-6 h-6 rounded-lg bg-purple-100 text-[#5b4fe9] font-bold text-xs flex items-center justify-center shrink-0">
+                    <span className="w-6 h-6 rounded-lg bg-purple-100 text-primary-text font-bold text-xs flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
-                    <span className="text-xs font-medium text-zinc-800 truncate group-hover:text-[#5b4fe9] transition-colors">
+                    <span className="text-xs font-medium text-zinc-800 truncate group-hover:text-primary-text transition-colors">
                       {q.question}
                     </span>
                   </div>
-                  <span className="text-zinc-400 group-hover:text-[#5b4fe9] text-xs font-bold shrink-0">
+                  <span className="text-zinc-400 group-hover:text-primary-text text-xs font-bold shrink-0">
                     &gt;
                   </span>
                 </div>
@@ -2900,12 +2900,12 @@ export function MockInterviewView({
         {/* COLUMN 3: RECENT INTERVIEW HISTORY */}
         <div
           ref={historySectionRef}
-          className="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between"
+          className="lg:col-span-4 bg-surface rounded-2xl p-5 shadow-sm border border-zinc-200/80 flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-purple-100 text-[#5b4fe9] flex items-center justify-center text-xs font-bold shrink-0">
+                <span className="w-6 h-6 rounded-lg bg-purple-100 text-primary-text flex items-center justify-center text-xs font-bold shrink-0">
                   🕒
                 </span>
                 <h3 className="text-sm font-bold text-zinc-900">

@@ -85,7 +85,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
       </div>
 
       {/* 2. Operations Strip / Agent Status Bar */}
-      <div className="panel px-4 py-2 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white">
+      <div className="panel px-4 py-2 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-surface">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
             <span
@@ -139,7 +139,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* Left Column: Priority Tickets Queue (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
-          <div className="panel p-4 sm:p-5 bg-white flex flex-col h-full min-h-0">
+          <div className="panel p-4 sm:p-5 bg-surface flex flex-col h-full min-h-0">
             {/* Card Header matching Teacher & Admin */}
             <div className="card-header">
               <div>
@@ -152,10 +152,10 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                     </span>
                   )}
                   <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 text-[11px] font-bold shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-soft text-primary-text border border-primary/30 text-[11px] font-bold shadow-2xs"
                     title="Support Tickets Queue is scrollable"
                   >
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-[#905FEB] animate-pulse" />
+                    <ChevronsUpDown className="h-3.5 w-3.5 text-primary-text animate-pulse" />
                     <span>Scroll Queue</span>
                   </span>
                 </div>
@@ -167,14 +167,14 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => scrollQueue("up")}
-                    className="w-7 h-7 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                    className="w-7 h-7 rounded-lg border border-primary-border bg-primary-soft hover:bg-primary-soft flex items-center justify-center text-primary-text text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                     title="Scroll Up"
                   >
                     ▲
                   </button>
                   <button
                     onClick={() => scrollQueue("down")}
-                    className="w-7 h-7 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                    className="w-7 h-7 rounded-lg border border-primary-border bg-primary-soft hover:bg-primary-soft flex items-center justify-center text-primary-text text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                     title="Scroll Down"
                   >
                     ▼
@@ -276,7 +276,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
         {/* Right Column: Fast Operational Hub & Telemetry (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           {/* Quick SLA Radar Panel */}
-          <div className="panel p-4 sm:p-5 bg-white flex flex-col justify-between flex-1 min-h-0">
+          <div className="panel p-4 sm:p-5 bg-surface flex flex-col justify-between flex-1 min-h-0">
             <div>
               <div className="card-header !mb-0">
                 <h3 className="card-title text-sm">SLA Escalation Radar</h3>
@@ -324,7 +324,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
           </div>
 
           {/* Student 360 Fast Inspection Panel */}
-          <div className="panel p-4 sm:p-5 bg-white flex flex-col justify-between flex-1 min-h-0">
+          <div className="panel p-4 sm:p-5 bg-surface flex flex-col justify-between flex-1 min-h-0">
             <div>
               <div className="card-header !mb-0">
                 <h3 className="card-title text-sm">Student 360 Telemetry</h3>
@@ -339,7 +339,7 @@ export const SupportDashboard: React.FC<{ onOpenAiModal?: () => void }> = ({ onO
             </div>
 
             <Link to="/support/student-360" className="pt-2 mt-auto">
-              <button className="w-full h-8 rounded-full bg-black text-white hover:bg-zinc-800 text-xs font-bold transition-colors cursor-pointer">
+              <button className="w-full h-8 rounded-full bg-black text-white hover:bg-ink-800 text-xs font-bold transition-colors cursor-pointer">
                 Open Student 360 →
               </button>
             </Link>

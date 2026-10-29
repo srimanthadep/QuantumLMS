@@ -138,7 +138,7 @@ function SupportSidebar({
         {/* Interactive Role Switcher Popup */}
         {showRoleSwitcher && onSwitchRole && (
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
@@ -453,11 +453,11 @@ function SupportLayout({
             <div ref={searchContainerRef} className="relative">
               <form
                 onSubmit={handleSearchSubmit}
-                className="search-box !w-[160px] sm:!w-[210px] focus-within:!w-[260px] md:focus-within:!w-[300px] transition-all duration-200 border border-transparent focus-within:border-[#905FEB]/50 focus-within:shadow-md relative"
+                className="search-box !w-[160px] sm:!w-[210px] focus-within:!w-[260px] md:focus-within:!w-[300px] transition-all duration-200 border border-transparent focus-within:border-primary/50 focus-within:shadow-md relative"
               >
                 <button
                   type="submit"
-                  className="text-zinc-500 hover:text-[#7042D2] transition-colors cursor-pointer shrink-0 p-0.5 rounded-full hover:bg-purple-50 flex items-center justify-center"
+                  className="text-zinc-500 hover:text-primary-text transition-colors cursor-pointer shrink-0 p-0.5 rounded-full hover:bg-purple-50 flex items-center justify-center"
                   title="Click to search tickets & students (Enter)"
                   aria-label="Search"
                 >
@@ -497,15 +497,15 @@ function SupportLayout({
               {/* Live Search Results Dropdown */}
               {isSearchOpen && cleanSearchQuery && (
                 <div
-                  className="absolute right-0 top-full mt-2 w-[340px] sm:w-[420px] max-h-[440px] bg-white border border-[#E5DEFF] rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 text-left support-page-font"
+                  className="absolute right-0 top-full mt-2 w-[340px] sm:w-[420px] max-h-[440px] bg-surface border border-primary-border rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 text-left support-page-font"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Dropdown Header */}
-                  <div className="px-3.5 py-2.5 bg-[#FAF9FF] border-b border-[#F0EDFF] flex items-center justify-between text-xs">
-                    <span className="font-extrabold text-[#111111]">
+                  <div className="px-3.5 py-2.5 bg-primary-soft border-b border-primary-soft flex items-center justify-between text-xs">
+                    <span className="font-extrabold text-foreground">
                       Search Results for &ldquo;{headerSearchQuery}&rdquo;
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#7042D2]">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-soft text-primary-text">
                       {totalResults} {totalResults === 1 ? "match" : "matches"}
                     </span>
                   </div>
@@ -526,7 +526,7 @@ function SupportLayout({
                                 navigate(`/support/ticket/${tkt.id}`)
                                 setIsSearchOpen(false)
                               }}
-                              className="p-2 rounded-xl hover:bg-[#F0EDFF]/50 border border-transparent hover:border-[#E5DEFF] transition-all cursor-pointer flex flex-col gap-1 group"
+                              className="p-2 rounded-xl hover:bg-primary-soft/50 border border-transparent hover:border-primary-border transition-all cursor-pointer flex flex-col gap-1 group"
                             >
                               <div className="flex items-center justify-between gap-1.5">
                                 <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 group-hover:bg-purple-200">
@@ -555,7 +555,7 @@ function SupportLayout({
                                   </span>
                                 </div>
                               </div>
-                              <p className="text-xs font-bold text-zinc-900 line-clamp-1 group-hover:text-[#7042D2]">
+                              <p className="text-xs font-bold text-zinc-900 line-clamp-1 group-hover:text-primary-text">
                                 {tkt.subject}
                               </p>
                               <p className="text-[11px] text-zinc-500 truncate">
@@ -581,14 +581,14 @@ function SupportLayout({
                                 navigate(`/support/student-360`)
                                 setIsSearchOpen(false)
                               }}
-                              className="p-2 rounded-xl hover:bg-[#F0EDFF]/50 border border-transparent hover:border-[#E5DEFF] transition-all cursor-pointer flex items-center justify-between gap-2 group"
+                              className="p-2 rounded-xl hover:bg-primary-soft/50 border border-transparent hover:border-primary-border transition-all cursor-pointer flex items-center justify-between gap-2 group"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-full bg-[#F0EDFF] text-[#7042D2] font-bold text-[10px] flex items-center justify-center shrink-0 border border-[#E5DEFF]">
+                                <div className="w-7 h-7 rounded-full bg-primary-soft text-primary-text font-bold text-[10px] flex items-center justify-center shrink-0 border border-primary-border">
                                   {st.avatar}
                                 </div>
                                 <div className="min-w-0">
-                                  <h5 className="text-xs font-bold text-zinc-900 truncate group-hover:text-[#7042D2]">
+                                  <h5 className="text-xs font-bold text-zinc-900 truncate group-hover:text-primary-text">
                                     {st.name}
                                   </h5>
                                   <p className="text-[10px] text-zinc-500 truncate">
@@ -596,7 +596,7 @@ function SupportLayout({
                                   </p>
                                 </div>
                               </div>
-                              <span className="text-[10px] font-bold text-[#7042D2] px-2 py-0.5 rounded-full bg-[#F0EDFF] shrink-0">
+                              <span className="text-[10px] font-bold text-primary-text px-2 py-0.5 rounded-full bg-primary-soft shrink-0">
                                 Student 360° →
                               </span>
                             </div>
@@ -619,14 +619,14 @@ function SupportLayout({
                   </div>
 
                   {/* Dropdown Footer Actions */}
-                  <div className="p-2 bg-[#FAF9FF] border-t border-[#F0EDFF] flex items-center justify-between text-xs">
+                  <div className="p-2 bg-primary-soft border-t border-primary-soft flex items-center justify-between text-xs">
                     <span className="text-[11px] text-zinc-500">
                       Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700 font-mono text-[10px]">Enter ↵</kbd> to search
                     </span>
                     <button
                       type="button"
                       onClick={() => handleSearchSubmit()}
-                      className="text-xs font-bold text-[#7042D2] hover:underline cursor-pointer flex items-center gap-1"
+                      className="text-xs font-bold text-primary-text hover:underline cursor-pointer flex items-center gap-1"
                     >
                       <span>Open in Inbox</span>
                       <span>→</span>
@@ -651,7 +651,7 @@ function SupportLayout({
 
                 {showRoleDropdown && (
                   <div
-                    className="absolute right-0 top-full mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+                    className="absolute right-0 top-full mt-2 w-48 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">

@@ -169,7 +169,7 @@ export function Reports({ state, onToast }: ReportsProps) {
   return (
     <div className="evaluator-reports app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Header and Controls */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Report Sub-Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           <button
@@ -248,7 +248,7 @@ export function Reports({ state, onToast }: ReportsProps) {
       {reportTab === "progress" && (
         <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-[var(--app-card-gap,14px)]">
-            <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                 Overall Completion Rate
               </span>
@@ -266,7 +266,7 @@ export function Reports({ state, onToast }: ReportsProps) {
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                 Pending Workload
               </span>
@@ -278,7 +278,7 @@ export function Reports({ state, onToast }: ReportsProps) {
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                 Upcoming Deadlines
               </span>
@@ -292,7 +292,7 @@ export function Reports({ state, onToast }: ReportsProps) {
           </div>
 
           {/* Progress Breakdown per assessment */}
-          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+          <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
             <h3 className="text-sm font-bold text-zinc-900 mb-4">
               Evaluation Progress by Assessment
             </h3>
@@ -327,7 +327,7 @@ export function Reports({ state, onToast }: ReportsProps) {
 
       {/* Tab 2: Assessment Summary */}
       {reportTab === "assessment_summary" && (
-        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+        <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -374,25 +374,25 @@ export function Reports({ state, onToast }: ReportsProps) {
       {reportTab === "marks_distribution" && (
         <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-[var(--app-card-gap,14px)]">
-            <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-[11px] font-bold text-zinc-400 uppercase">Average Score</span>
               <div className="text-2xl font-black text-purple-700 mt-1">
                 {marksDistribution.avg} Marks
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-[11px] font-bold text-zinc-400 uppercase">Median Score</span>
               <div className="text-2xl font-black text-indigo-700 mt-1">
                 {marksDistribution.median}%
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-[11px] font-bold text-zinc-400 uppercase">Highest Score</span>
               <div className="text-2xl font-black text-emerald-700 mt-1">
                 {marksDistribution.highest}
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
+            <div className="bg-surface p-4 rounded-2xl border border-zinc-200/80 shadow-xs">
               <span className="text-[11px] font-bold text-zinc-400 uppercase">Evaluations Analyzed</span>
               <div className="text-2xl font-black text-zinc-800 mt-1">
                 {marksDistribution.totalScored || 0}
@@ -400,7 +400,7 @@ export function Reports({ state, onToast }: ReportsProps) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+          <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
             <h3 className="text-sm font-bold text-zinc-900 mb-4">
               Grade Distribution Brackets
             </h3>
@@ -433,7 +433,7 @@ export function Reports({ state, onToast }: ReportsProps) {
 
       {/* Tab 4: Workload Summary */}
       {reportTab === "workload" && (
-        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5">
+        <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5">
           <h3 className="text-sm font-bold text-zinc-900 mb-4">
             Pending Workload by Assessment Modality
           </h3>

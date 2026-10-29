@@ -34,7 +34,7 @@ export function MentorDetailsView({
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Mentor Switcher */}
       <section
-        className="panel p-6 bg-white border border-zinc-100 shadow-sm"
+        className="panel p-6 bg-surface border border-zinc-100 shadow-sm"
         aria-label="Mentor Details Banner"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -95,7 +95,7 @@ export function MentorDetailsView({
 
       {/* 2. Mentor Hero Card */}
       <section
-        className="panel p-6 bg-white border border-zinc-100 shadow-sm"
+        className="panel p-6 bg-surface border border-zinc-100 shadow-sm"
         aria-label="Mentor Profile Card"
       >
         <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
@@ -215,7 +215,7 @@ export function MentorDetailsView({
 
       {/* 3. 1:1 Mentor Meeting Section (Clean, Mentor-Provided Zoom Session) */}
       <section
-        className="panel p-6 bg-white border border-zinc-100 shadow-sm"
+        className="panel p-6 bg-surface border border-zinc-100 shadow-sm"
         aria-label="1:1 Mentor Meeting"
       >
         <div className="card-header mb-5 pb-3 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -238,7 +238,7 @@ export function MentorDetailsView({
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold ${
                 isMeetingScheduled
-                  ? "bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]"
+                  ? "bg-success-soft text-success border border-success"
                   : "bg-zinc-100 text-zinc-600 border border-zinc-200"
               }`}
             >
@@ -274,7 +274,7 @@ export function MentorDetailsView({
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-3 bg-white rounded-xl border border-purple-100 shadow-2xs flex items-center gap-3">
+                  <div className="p-3 bg-surface rounded-xl border border-purple-100 shadow-2xs flex items-center gap-3">
                     <span className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-base">
                       📅
                     </span>
@@ -291,7 +291,7 @@ export function MentorDetailsView({
                     </div>
                   </div>
 
-                  <div className="p-3 bg-white rounded-xl border border-purple-100 shadow-2xs flex items-center gap-3">
+                  <div className="p-3 bg-surface rounded-xl border border-purple-100 shadow-2xs flex items-center gap-3">
                     <span className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base">
                       🎥
                     </span>
@@ -322,7 +322,7 @@ export function MentorDetailsView({
             </div>
 
             {/* Right 4 cols: Join Action Card */}
-            <div className="lg:col-span-4 p-5 rounded-2xl bg-white border border-purple-200/80 shadow-xs flex flex-col justify-between gap-4 text-center">
+            <div className="lg:col-span-4 p-5 rounded-2xl bg-surface border border-purple-200/80 shadow-xs flex flex-col justify-between gap-4 text-center">
               <div className="space-y-3 pt-2">
                 <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 mx-auto flex items-center justify-center text-2xl font-bold shadow-xs">
                   📹
@@ -366,7 +366,7 @@ export function MentorDetailsView({
                 Your mentor will share the Zoom meeting link when the session is scheduled.
               </p>
             </div>
-            <div className="p-3 bg-white rounded-xl border border-zinc-200 text-[11px] text-zinc-600 max-w-md mx-auto text-left flex items-start gap-2.5">
+            <div className="p-3 bg-surface rounded-xl border border-zinc-200 text-[11px] text-zinc-600 max-w-md mx-auto text-left flex items-start gap-2.5">
               <span className="text-purple-700 text-sm mt-0.5">ℹ️</span>
               <div>
                 <strong>Regular Office Hours:</strong> {selectedMentor.officeHours}.

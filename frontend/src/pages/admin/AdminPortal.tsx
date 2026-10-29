@@ -322,7 +322,7 @@ export default function AdminPortal({
 
               {showRoleDropdown && (
                 <div
-                  className="absolute right-0 top-full mt-2 w-56 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-1"
+                  className="absolute right-0 top-full mt-2 w-56 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
@@ -386,7 +386,7 @@ export default function AdminPortal({
                   setSelectedCampus(e.target.value)
                   onToast(`Switched active context to: ${e.target.value}`)
                 }}
-                className="h-[35px] px-3 rounded-full bg-white text-zinc-800 text-xs font-bold border-none shadow-sm focus:outline-none cursor-pointer"
+                className="h-[35px] px-3 rounded-full bg-surface text-zinc-800 text-xs font-bold border-none shadow-sm focus:outline-none cursor-pointer"
               >
                 <option value="Main Campus (San Francisco)">📍 SF Campus</option>
                 <option value="Virtual Academy (Remote Multi-Zone)">🌐 Virtual</option>
@@ -453,19 +453,19 @@ export default function AdminPortal({
                               </span>
                             </div>
                             <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs">
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">CPU</div>
                                 <div className="text-xs font-bold text-zinc-800">18.4%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Memory</div>
                                 <div className="text-xs font-bold text-zinc-800">42.1%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Ping</div>
                                 <div className="text-xs font-bold text-emerald-600">18 ms</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Loss</div>
                                 <div className="text-xs font-bold text-emerald-600">0.00%</div>
                               </div>
@@ -489,19 +489,19 @@ export default function AdminPortal({
                               </span>
                             </div>
                             <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs">
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">CPU</div>
                                 <div className="text-xs font-bold text-zinc-800">24.2%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Memory</div>
                                 <div className="text-xs font-bold text-zinc-800">51.0%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Ping</div>
                                 <div className="text-xs font-bold text-emerald-600">26 ms</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Loss</div>
                                 <div className="text-xs font-bold text-emerald-600">0.00%</div>
                               </div>
@@ -525,19 +525,19 @@ export default function AdminPortal({
                               </span>
                             </div>
                             <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs">
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">CPU</div>
                                 <div className="text-xs font-bold text-zinc-800">15.8%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Memory</div>
                                 <div className="text-xs font-bold text-zinc-800">38.4%</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Ping</div>
                                 <div className="text-xs font-bold text-emerald-600">34 ms</div>
                               </div>
-                              <div className="p-1.5 rounded-lg bg-white border border-zinc-100">
+                              <div className="p-1.5 rounded-lg bg-surface border border-zinc-100">
                                 <div className="text-[9px] text-zinc-400 font-bold uppercase">Loss</div>
                                 <div className="text-xs font-bold text-emerald-600">0.00%</div>
                               </div>
@@ -716,11 +716,11 @@ export default function AdminPortal({
                         <p className="text-[11px] text-zinc-500">{c.location}</p>
 
                         <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs">
-                          <div className="p-2 rounded-xl bg-white border border-zinc-100">
+                          <div className="p-2 rounded-xl bg-surface border border-zinc-100">
                             <div className="text-[9px] text-zinc-400 font-bold uppercase">Students</div>
                             <div className="text-xs font-bold text-zinc-900 mt-0.5">{c.studentCount}</div>
                           </div>
-                          <div className="p-2 rounded-xl bg-white border border-zinc-100">
+                          <div className="p-2 rounded-xl bg-surface border border-zinc-100">
                             <div className="text-[9px] text-zinc-400 font-bold uppercase">Faculty</div>
                             <div className="text-xs font-bold text-zinc-900 mt-0.5">{c.facultyCount}</div>
                           </div>
@@ -1058,7 +1058,7 @@ export default function AdminPortal({
                           </div>
                         </div>
 
-                        <div className="mt-2.5 p-2 rounded-xl bg-white border border-zinc-100 text-[11px] flex justify-between font-medium text-zinc-600">
+                        <div className="mt-2.5 p-2 rounded-xl bg-surface border border-zinc-100 text-[11px] flex justify-between font-medium text-zinc-600">
                           <span>Classes: {f.classesAssigned.join(", ")}</span>
                           <span className="font-bold text-zinc-900">{f.studentCount} students</span>
                         </div>
@@ -1393,7 +1393,7 @@ export default function AdminPortal({
                           </div>
                         </div>
 
-                        <div className="mt-2.5 p-2 rounded-xl bg-white border border-zinc-100 text-[11px] flex justify-between font-medium text-zinc-600">
+                        <div className="mt-2.5 p-2 rounded-xl bg-surface border border-zinc-100 text-[11px] flex justify-between font-medium text-zinc-600">
                           <span>Classes: {f.classesAssigned.join(", ")}</span>
                           <span className="font-bold text-zinc-900">{f.studentCount} students</span>
                         </div>

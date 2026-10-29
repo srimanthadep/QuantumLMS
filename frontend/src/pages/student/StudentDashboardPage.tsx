@@ -794,7 +794,7 @@ export default function StudentDashboardPage({
           onClick={() => setIsCertModalOpen(false)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
@@ -868,7 +868,7 @@ export default function StudentDashboardPage({
                 Download PDF
               </button>
               <button
-                className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-zinc-800 cursor-pointer"
+                className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-ink-800 cursor-pointer"
                 onClick={() => {
                   navigator.clipboard?.writeText?.("https://verify.quantumschool.ai/cert/QAI-88392-PY")
                   setIsCertModalOpen(false)

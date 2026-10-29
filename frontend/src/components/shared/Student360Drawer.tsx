@@ -226,22 +226,22 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
           - Max height: max-h-[88vh]
           - Internal scrollable body: support-card-scroll
          ======================================================== */}
-      <DialogContent className="w-[94vw] sm:max-w-xl max-h-[88vh] p-0 gap-0 rounded-[28px] bg-white border border-[#E5DEFF] shadow-2xl flex flex-col overflow-hidden support-page-font focus:outline-none">
+      <DialogContent className="w-[94vw] sm:max-w-xl max-h-[88vh] p-0 gap-0 rounded-[28px] bg-surface border border-primary-border shadow-2xl flex flex-col overflow-hidden support-page-font focus:outline-none">
         {/* ========================================================
             POPUP HEADER (Fixed at top of popup)
            ======================================================== */}
-        <div className="p-4 sm:p-5 border-b border-[#F0EDFF] bg-gradient-to-b from-[#FAF9FF] to-white flex items-center justify-between shrink-0 pr-12">
+        <div className="p-4 sm:p-5 border-b border-primary-soft bg-gradient-to-b from-primary-soft to-white flex items-center justify-between shrink-0 pr-12">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="relative shrink-0">
-              <div className="h-12 w-12 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-extrabold text-base shadow-xs">
+              <div className="h-12 w-12 rounded-2xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-extrabold text-base shadow-xs">
                 {student.avatar}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#AEEB00] ring-2 ring-white" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-white" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <DialogTitle className="text-base sm:text-lg font-extrabold text-[#111111] leading-tight truncate">
+                <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground leading-tight truncate">
                   {student.name}
                 </DialogTitle>
                 <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5 shrink-0">
@@ -261,17 +261,17 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 support-card-scroll">
           {/* Action Success Toast Banner */}
           {proposedActionMessage && (
-            <div className="p-3 rounded-2xl bg-[#EAFCC7] border border-[#AEEB00]/60 text-[#3B6600] text-xs font-semibold flex items-center gap-2 shadow-xs animate-fadeIn">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[#3B6600]" />
+            <div className="p-3 rounded-2xl bg-success-soft border border-success/60 text-success text-xs font-semibold flex items-center gap-2 shadow-xs animate-fadeIn">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-success" />
               <span className="leading-snug">{proposedActionMessage}</span>
             </div>
           )}
 
           {/* SECTION 1: Enrolled Program Capsule */}
-          <div className="p-4 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] shadow-2xs space-y-2.5">
+          <div className="p-4 rounded-2xl border border-primary-border bg-primary-soft shadow-2xs space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#111111] flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5 text-[#905FEB]" />
+              <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5 text-primary-text" />
                 Enrolled Program
               </span>
               <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
@@ -279,25 +279,25 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
               </span>
             </div>
 
-            <p className="text-sm font-extrabold text-[#111111] leading-snug">
+            <p className="text-sm font-extrabold text-foreground leading-snug">
               {student.program}
             </p>
 
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-600 pt-2 border-t border-[#F0EDFF]">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-600 pt-2 border-t border-primary-soft">
               <span>
-                Cohort: <strong className="text-[#111111] font-bold">{student.cohort}</strong>
+                Cohort: <strong className="text-foreground font-bold">{student.cohort}</strong>
               </span>
               <span>
-                Expires: <strong className="text-[#7042D2] font-mono font-bold">{student.expires}</strong>
+                Expires: <strong className="text-primary-text font-mono font-bold">{student.expires}</strong>
               </span>
             </div>
 
             {/* Dual Telemetry Progress Bars (Figma 76% & 48%) */}
-            <div className="space-y-2 pt-1 border-t border-[#F0EDFF]">
+            <div className="space-y-2 pt-1 border-t border-primary-soft">
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-zinc-500 font-medium">Curriculum Completion</span>
-                  <span className="font-bold text-[#111111] font-mono">76%</span>
+                  <span className="font-bold text-foreground font-mono">76%</span>
                 </div>
                 <div className="progress-bar-track">
                   <div className="progress-bar-fill-purple" style={{ width: "76%" }} />
@@ -307,7 +307,7 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-zinc-500 font-medium">Live Attendance Telemetry</span>
-                  <span className="font-bold font-mono text-[#3B6600]">
+                  <span className="font-bold font-mono text-success">
                     {student.liveAttendancePercent}%
                   </span>
                 </div>
@@ -324,15 +324,15 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
           {/* SECTION 2: ACADEMIC & ATTENDANCE METRICS (2x2 Grid) */}
           <div>
             <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <Award className="h-3 w-3 text-[#905FEB]" />
+              <Award className="h-3 w-3 text-primary-text" />
               Academic &amp; Attendance Metrics
             </p>
 
             <div className="grid grid-cols-2 gap-2.5">
               {/* Card 1: Live Attendance */}
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] hover:border-[#905FEB] hover:bg-white hover:shadow-xs transition-all space-y-1">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft hover:border-primary hover:bg-surface hover:shadow-xs transition-all space-y-1">
                 <p className="text-[11px] text-zinc-500 font-medium">Live Attendance</p>
-                <p className="text-xl font-black text-[#111111] font-mono">
+                <p className="text-xl font-black text-foreground font-mono">
                   {student.liveAttendancePercent}%
                 </p>
                 <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0 inline-block truncate max-w-full">
@@ -347,9 +347,9 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
               </div>
 
               {/* Card 2: Replay Watch Time */}
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] hover:border-[#905FEB] hover:bg-white hover:shadow-xs transition-all space-y-1">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft hover:border-primary hover:bg-surface hover:shadow-xs transition-all space-y-1">
                 <p className="text-[11px] text-zinc-500 font-medium">Replay Watch Time</p>
-                <p className="text-xl font-black text-[#111111] font-mono">
+                <p className="text-xl font-black text-foreground font-mono">
                   {student.replayWatchHours}
                 </p>
                 <span className="badge-status-in-progress text-[9px] font-bold px-1.5 py-0 inline-block">
@@ -364,12 +364,12 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
               </div>
 
               {/* Card 3: Milestones Graded */}
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] hover:border-[#905FEB] hover:bg-white hover:shadow-xs transition-all space-y-1">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft hover:border-primary hover:bg-surface hover:shadow-xs transition-all space-y-1">
                 <p className="text-[11px] text-zinc-500 font-medium">Milestones Graded</p>
-                <p className="text-xl font-black text-[#111111] font-mono">
+                <p className="text-xl font-black text-foreground font-mono">
                   {student.milestonesGraded}
                 </p>
-                <span className="text-[10px] text-[#7042D2] font-bold block">
+                <span className="text-[10px] text-primary-text font-bold block">
                   Avg Score: {student.milestonesAvgScore}%
                 </span>
                 <div className="progress-bar-track mt-1.5">
@@ -378,9 +378,9 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
               </div>
 
               {/* Card 4: Total Doubts Asked */}
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] hover:border-[#905FEB] hover:bg-white hover:shadow-xs transition-all space-y-1">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft hover:border-primary hover:bg-surface hover:shadow-xs transition-all space-y-1">
                 <p className="text-[11px] text-zinc-500 font-medium">Total Doubts Asked</p>
-                <p className="text-xl font-black text-[#111111] font-mono">
+                <p className="text-xl font-black text-foreground font-mono">
                   {student.totalDoubtsAsked}
                 </p>
                 <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0 inline-block">
@@ -396,13 +396,13 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
           {/* SECTION 3: RECENT DOUBTS LOG */}
           <div>
             <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <HelpCircle className="h-3.5 w-3.5 text-[#905FEB]" />
+              <HelpCircle className="h-3.5 w-3.5 text-primary-text" />
               Recent Doubts Log
             </p>
             <div className="space-y-2">
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] hover:border-[#905FEB] transition-all text-xs space-y-1.5 shadow-2xs">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft hover:border-primary transition-all text-xs space-y-1.5 shadow-2xs">
                 <div className="flex justify-between items-center text-[11px]">
-                  <span className="font-extrabold text-[#111111] font-mono">
+                  <span className="font-extrabold text-foreground font-mono">
                     {student.recentDoubt.lecture}
                   </span>
                   <span className="badge-status-completed text-[9px] font-bold px-2 py-0.5">
@@ -413,8 +413,8 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
                   {student.recentDoubt.topic}
                 </p>
                 {student.recentDoubt.resolutionNote && (
-                  <p className="text-[10px] text-[#7042D2] font-semibold pt-1 border-t border-[#F0EDFF] flex items-center gap-1">
-                    <Sparkles className="h-3 w-3 text-[#905FEB] shrink-0" />
+                  <p className="text-[10px] text-primary-text font-semibold pt-1 border-t border-primary-soft flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-primary-text shrink-0" />
                     <span>{student.recentDoubt.resolutionNote}</span>
                   </p>
                 )}
@@ -423,7 +423,7 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
           </div>
 
           {/* SECTION 4: PRIVILEGED MENTOR ACTIONS matching Figma Buttons */}
-          <div className="pt-2 border-t border-[#F0EDFF] space-y-2.5">
+          <div className="pt-2 border-t border-primary-soft space-y-2.5">
             <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
               Privileged Mentor Actions
             </p>
@@ -433,7 +433,7 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
                 onClick={handleProposeMove}
                 className="btn-support-secondary text-xs h-9 font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
               >
-                <ArrowRightLeft className="h-3.5 w-3.5 text-[#7042D2]" />
+                <ArrowRightLeft className="h-3.5 w-3.5 text-primary-text" />
                 <span>Propose Cohort Move</span>
               </button>
 
@@ -442,7 +442,7 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
                 onClick={handleProposeExtension}
                 className="btn-support-secondary text-xs h-9 font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
               >
-                <Clock className="h-3.5 w-3.5 text-[#7042D2]" />
+                <Clock className="h-3.5 w-3.5 text-primary-text" />
                 <span>Propose Extension</span>
               </button>
             </div>

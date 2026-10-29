@@ -218,7 +218,7 @@ function EventDetailsModal({
               <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
                 Description & Notes
               </div>
-              <p className="text-xs text-zinc-700 leading-relaxed bg-white p-3 rounded-xl border border-gray-150">
+              <p className="text-xs text-zinc-700 leading-relaxed bg-surface p-3 rounded-xl border border-gray-150">
                 {event.description}
               </p>
             </div>
@@ -1031,7 +1031,7 @@ export default function CalendarPage({
         {/* LEFT COLUMN: Mini Calendar + Reminders */}
         <div className="flex flex-col gap-[var(--app-card-gap,14px)]">
           {/* 1. Mini Calendar Card */}
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+          <div className="bg-surface rounded-2xl border border-gray-150 p-4 shadow-xs">
             {/* Header: Month & Year with Chevrons */}
             <div className="flex items-center justify-between mb-3 px-1">
               <h4 className="text-sm font-bold text-zinc-900">
@@ -1091,7 +1091,7 @@ export default function CalendarPage({
           </div>
 
           {/* 2. Reminders Card with Scrollbar */}
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col">
+          <div className="bg-surface rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col">
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <h4 className="text-sm font-bold text-zinc-900">Reminder</h4>
               <button
@@ -1111,7 +1111,7 @@ export default function CalendarPage({
                 <div
                   key={r.id}
                   onClick={() => onToast?.(`Reminder: ${r.title} (${r.date})`)}
-                  className="p-2.5 rounded-xl bg-white hover:bg-gray-50/70 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                  className="p-2.5 rounded-xl bg-surface hover:bg-gray-50/70 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 >
                   <div className="min-w-0 flex-1">
                     <strong className="block text-xs font-semibold text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
@@ -1135,7 +1135,7 @@ export default function CalendarPage({
         </div>
 
         {/* RIGHT COLUMN: Date Header + Filter Dropdowns + Dynamic Views */}
-        <div className="bg-white rounded-2xl border border-gray-150 p-4 sm:p-5 shadow-xs flex flex-col flex-1 min-h-0">
+        <div className="bg-surface rounded-2xl border border-gray-150 p-4 sm:p-5 shadow-xs flex flex-col flex-1 min-h-0">
           {/* Top Controls Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-150">
             {/* Dynamic Date Heading: e.g. Saturday, 9 August 2025 */}
@@ -1152,7 +1152,7 @@ export default function CalendarPage({
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="h-8.5 px-3 pr-8 rounded-lg bg-white border border-gray-200 text-xs font-medium text-zinc-700 hover:border-gray-300 transition-colors cursor-pointer appearance-none shadow-2xs"
+                  className="h-8.5 px-3 pr-8 rounded-lg bg-surface border border-gray-200 text-xs font-medium text-zinc-700 hover:border-gray-300 transition-colors cursor-pointer appearance-none shadow-2xs"
                   aria-label="Filter events by category"
                 >
                   <option value="All">All Event</option>
@@ -1178,7 +1178,7 @@ export default function CalendarPage({
                     onClick={() => setViewMode(mode)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
                       viewMode === mode
-                        ? "bg-white text-purple-700 shadow-xs border border-gray-200 font-bold"
+                        ? "bg-surface text-purple-700 shadow-xs border border-gray-200 font-bold"
                         : "text-zinc-500 hover:text-zinc-800"
                     }`}
                     aria-pressed={viewMode === mode}
@@ -1192,7 +1192,7 @@ export default function CalendarPage({
 
           {/* VIEW 1: HORIZONTAL TIMELINE VIEW (Reference Screenshot) */}
           {viewMode === "timeline" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[520px] overflow-x-auto overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-white shadow-2xs">
+            <div className="mt-3 flex-1 min-h-[460px] max-h-[520px] overflow-x-auto overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-surface shadow-2xs">
               <div
                 style={{
                   width: `${timelineHours.length * 150}px`,
@@ -1203,7 +1203,7 @@ export default function CalendarPage({
                 className="relative"
               >
                 {/* 1. Sticky Time Header Row */}
-                <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10">
+                <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10">
                   {timelineHours.map((th) => (
                     <div
                       key={th.hour}
@@ -1273,7 +1273,7 @@ export default function CalendarPage({
                         className={`p-2 pr-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-md ${
                           card.status === "Join"
                             ? "bg-[#eff6ff] border-[#bfdbfe] ring-1 ring-blue-200/70"
-                            : "bg-white border-gray-200/90 hover:border-purple-300"
+                            : "bg-surface border-gray-200/90 hover:border-purple-300"
                         }`}
                       >
                         <img
@@ -1329,7 +1329,7 @@ export default function CalendarPage({
                 </div>
 
                 {/* Days Grid */}
-                <div className="grid grid-cols-7 auto-rows-fr border-l border-t border-gray-200 bg-white">
+                <div className="grid grid-cols-7 auto-rows-fr border-l border-t border-gray-200 bg-surface">
                   {monthGridDays.map((cell) => {
                     const dayEvents = eventsByDate.get(cell.dateStr) || []
                     const isToday = cell.dateStr === todayStr
@@ -1341,7 +1341,7 @@ export default function CalendarPage({
                           setViewMode("timeline")
                         }}
                         className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${
-                          cell.isCurrentMonth ? "bg-white" : "bg-gray-50/60 text-zinc-400"
+                          cell.isCurrentMonth ? "bg-surface" : "bg-gray-50/60 text-zinc-400"
                         } hover:bg-purple-50/20 cursor-pointer`}
                       >
                         <div className="flex items-center justify-between">
@@ -1435,7 +1435,7 @@ export default function CalendarPage({
                 </div>
 
                 {/* 7 Columns Container */}
-                <div className="grid grid-cols-7 border-l border-gray-200 min-h-[380px] bg-white">
+                <div className="grid grid-cols-7 border-l border-gray-200 min-h-[380px] bg-surface">
                   {weekDays.map((d) => {
                     const dayEvents = eventsByDate.get(d.dateStr) || []
                     return (
@@ -1494,7 +1494,7 @@ export default function CalendarPage({
                       className="p-3.5 sm:p-4 rounded-xl bg-gray-50 hover:bg-purple-50/40 border border-gray-200 hover:border-purple-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
                     >
                       <div className="flex items-start gap-3 min-w-0 flex-1">
-                        <div className="w-14 sm:w-16 text-center shrink-0 py-1 rounded-lg bg-white border border-gray-200">
+                        <div className="w-14 sm:w-16 text-center shrink-0 py-1 rounded-lg bg-surface border border-gray-200">
                           <span className="block text-[10px] font-bold text-zinc-400 uppercase">
                             {new Date(ev.startDate).toLocaleDateString("en-US", { month: "short" })}
                           </span>

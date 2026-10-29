@@ -23,11 +23,11 @@ export function CareerHubPage({
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border text-left">
       {/* 1. Career Hub Header Banner */}
       <section
-        className="bg-white/95 border border-purple-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        className="bg-surface/95 border border-purple-100 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         aria-label="Student Career Hub"
       >
         <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-[#F0EDFF] border border-purple-100 flex items-center justify-center shrink-0 shadow-xs text-xl">
+          <div className="w-12 h-12 rounded-2xl bg-primary-soft border border-purple-100 flex items-center justify-center shrink-0 shadow-xs text-xl">
             🚀
           </div>
           <div className="min-w-0">
@@ -35,7 +35,7 @@ export function CareerHubPage({
               <h2 className="text-lg sm:text-xl font-bold text-zinc-900 tracking-tight">
                 Career Hub & Placement Accelerator
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#F0EDFF] text-[#905FEB]">
+              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-primary-soft text-primary-text">
                 Industry Ready
               </span>
             </div>
@@ -65,7 +65,7 @@ export function CareerHubPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "interviews"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>🎙️</span>
@@ -78,7 +78,7 @@ export function CareerHubPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "resume"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>📄</span>
@@ -91,7 +91,7 @@ export function CareerHubPage({
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "mentorship"
               ? "bg-purple-700 text-white shadow-xs"
-              : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
+              : "bg-surface text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 border border-zinc-200"
           }`}
         >
           <span>👨‍🏫</span>

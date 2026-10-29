@@ -58,7 +58,7 @@ export function EvaluatorTopBar({
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl bg-white/70 hover:bg-white text-zinc-800 border border-zinc-200/80 shadow-xs cursor-pointer"
+          className="lg:hidden p-2 rounded-xl bg-surface/70 hover:bg-surface text-zinc-800 border border-zinc-200/80 shadow-xs cursor-pointer"
           aria-label="Open mobile navigation menu"
         >
           <Menu className="w-5 h-5" />
@@ -88,7 +88,7 @@ export function EvaluatorTopBar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assessments, students, IDs..."
-            className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm rounded-full bg-white text-zinc-800 placeholder-zinc-400 border border-zinc-200/90 shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm rounded-full bg-surface text-zinc-800 placeholder-zinc-400 border border-zinc-200/90 shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-400"
           />
           {searchQuery && (
             <button
@@ -106,7 +106,7 @@ export function EvaluatorTopBar({
           <button
             type="button"
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2.5 rounded-full bg-white text-zinc-700 hover:text-purple-700 border border-zinc-200/90 shadow-xs transition-colors cursor-pointer"
+            className="relative p-2.5 rounded-full bg-surface text-zinc-700 hover:text-purple-700 border border-zinc-200/90 shadow-xs transition-colors cursor-pointer"
             title="Evaluator Notifications"
             aria-label="Evaluator Notifications"
           >
@@ -119,7 +119,7 @@ export function EvaluatorTopBar({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200/80 dark:border-zinc-800 z-50 p-3">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface dark:bg-ink-900 rounded-2xl shadow-xl border border-zinc-200/80 dark:border-zinc-800 z-50 p-3">
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-100 dark:border-zinc-800">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
@@ -158,7 +158,7 @@ export function EvaluatorTopBar({
                       }}
                       className={`p-2.5 rounded-xl text-left cursor-pointer transition-colors ${
                         notif.read
-                          ? "bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60 opacity-75"
+                          ? "bg-transparent hover:bg-zinc-50 dark:hover:bg-ink-800/60 opacity-75"
                           : "bg-purple-50/70 dark:bg-purple-950/30 hover:bg-purple-100/70 border border-purple-100 dark:border-purple-900/40"
                       }`}
                     >

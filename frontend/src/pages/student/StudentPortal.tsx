@@ -324,7 +324,7 @@ export default function StudentPortal({
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-zinc-800 border border-zinc-200 cursor-pointer"
+          className="w-10 h-10 rounded-full bg-surface/90 backdrop-blur shadow-md flex items-center justify-center text-zinc-800 border border-zinc-200 cursor-pointer"
           aria-label="Toggle navigation drawer"
         >
           <span className="text-base font-bold">

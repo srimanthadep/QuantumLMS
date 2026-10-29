@@ -29,22 +29,22 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Login & Account",
     label: "Login & Account",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "Live Class",
     label: "Live Class",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "Assignments & Exams",
     label: "Assignments & Exams",
-    badgeClass: "bg-[#EAFCC7] text-[#3B6600] border-[#AEEB00]/40 rounded-full",
+    badgeClass: "bg-success-soft text-success border-success/40 rounded-full",
   },
   {
     id: "Course Content",
     label: "Course Content",
-    badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
+    badgeClass: "bg-warning-soft text-warning border-[#FDBA74]/40 rounded-full",
   },
   {
     id: "Technical Problem",
@@ -54,37 +54,37 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Payments & Certificates",
     label: "Payments & Certificates",
-    badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
+    badgeClass: "bg-warning-soft text-warning border-[#FDBA74]/40 rounded-full",
   },
   {
     id: "Notifications",
     label: "Notifications",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "Others",
     label: "Others",
-    badgeClass: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB] rounded-full",
+    badgeClass: "bg-zinc-100 text-[#4B5563] border-[#E5E7EB] rounded-full",
   },
   {
     id: "Account & Access Management",
     label: "Account & Access Management",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "Course & Content Management",
     label: "Course & Content Management",
-    badgeClass: "bg-[#FFF3E0] text-[#B45309] border-[#FDBA74]/40 rounded-full",
+    badgeClass: "bg-warning-soft text-warning border-[#FDBA74]/40 rounded-full",
   },
   {
     id: "Assignments & Assessments",
     label: "Assignments & Assessments",
-    badgeClass: "bg-[#EAFCC7] text-[#3B6600] border-[#AEEB00]/40 rounded-full",
+    badgeClass: "bg-success-soft text-success border-success/40 rounded-full",
   },
   {
     id: "Live Classes & Attendance",
     label: "Live Classes & Attendance",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "Technical Support",
@@ -94,12 +94,12 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Communication & Notifications",
     label: "Communication & Notifications",
-    badgeClass: "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 rounded-full",
+    badgeClass: "bg-primary-soft text-primary-text border-primary/30 rounded-full",
   },
   {
     id: "General Help & Feedback",
     label: "General Help & Feedback",
-    badgeClass: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB] rounded-full",
+    badgeClass: "bg-zinc-100 text-[#4B5563] border-[#E5E7EB] rounded-full",
   },
 ];
 

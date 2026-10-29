@@ -295,15 +295,15 @@ export const SupportAgentsPage: React.FC = () => {
       </div>
 
       {/* 2. Search and Category Filter Bar */}
-      <div className="panel p-3.5 bg-white border border-zinc-150 shrink-0">
+      <div className="panel p-3.5 bg-surface border border-zinc-150 shrink-0">
         <div className="space-y-2.5">
           <div className="relative">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-primary-text" />
             <Input
               placeholder="Search by agent name, specialty, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 text-xs sm:text-sm bg-white border-[#E5DEFF] rounded-full focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20 text-[#111111] placeholder:text-zinc-400 shadow-2xs"
+              className="pl-10 h-9 text-xs sm:text-sm bg-surface border-primary-border rounded-full focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-zinc-400 shadow-2xs"
             />
           </div>
 
@@ -320,14 +320,14 @@ export const SupportAgentsPage: React.FC = () => {
                     className={cn(
                       "h-7 px-3 text-[11px] sm:text-xs font-semibold rounded-full capitalize whitespace-nowrap cursor-pointer flex items-center gap-1.5 border transition-all duration-150",
                       isActive
-                        ? "bg-[#905FEB] text-white border-[#905FEB] shadow-xs hover:bg-[#7D46E7]"
-                        : "bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/20 hover:bg-[#E2DBFC]"
+                        ? "bg-primary text-white border-primary shadow-xs hover:bg-[#7D46E7]"
+                        : "bg-primary-soft text-primary-text border-primary/20 hover:bg-[#E2DBFC]"
                     )}
                   >
                     <span
                       className={cn(
                         "h-1.5 w-1.5 rounded-full transition-colors",
-                        isActive ? "bg-white" : "bg-[#905FEB]"
+                        isActive ? "bg-surface" : "bg-primary"
                       )}
                     />
                     <span>{tier === "all" ? "All Role Tiers" : tier}</span>
@@ -349,8 +349,8 @@ export const SupportAgentsPage: React.FC = () => {
                       className={cn(
                         "h-6.5 px-2.5 text-[10px] font-semibold rounded-full whitespace-nowrap cursor-pointer border transition-all shrink-0",
                         isActive
-                          ? "bg-[#111111] text-white border-[#111111]"
-                          : "bg-white text-zinc-600 border-[#E5DEFF] hover:bg-[#FAF9FF]"
+                          ? "bg-ink-900 text-white border-foreground"
+                          : "bg-surface text-zinc-600 border-primary-border hover:bg-primary-soft"
                       )}
                     >
                       {st.label}
@@ -366,9 +366,9 @@ export const SupportAgentsPage: React.FC = () => {
       {/* Agents Scrollable Viewport */}
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 support-queue-scrollbar">
         {filteredAgents.length === 0 ? (
-          <div className="py-12 text-center bg-white panel p-8">
+          <div className="py-12 text-center bg-surface panel p-8">
             <Users className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-[#111111]">No support agents found</p>
+            <p className="text-sm font-bold text-foreground">No support agents found</p>
             <p className="text-xs text-zinc-500 mt-1">Try resetting the search query or tier/status filters.</p>
           </div>
         ) : (
@@ -378,33 +378,33 @@ export const SupportAgentsPage: React.FC = () => {
                 <div
                   key={agt.id}
                   onClick={() => setSelectedAgent(agt)}
-                  className="panel relative bg-white border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
+                  className="panel relative bg-surface border border-zinc-150 hover:border-purple-300 flex flex-col justify-between cursor-pointer overflow-hidden transition-all duration-200"
                 >
                   {/* Top Colorful Category Gradient Strip */}
                   <div
-                    className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs"
+                    className="h-1.5 w-full bg-gradient-to-r from-primary via-[#824FE7] to-[#A87DF5] shadow-xs"
                   />
 
-                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-white">
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3.5 bg-surface">
                     <div className="space-y-3">
                       {/* Header: Avatar, Name & Status Badge */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className="h-11 w-11 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-sm shadow-xs">
+                            <div className="h-11 w-11 rounded-2xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold text-sm shadow-xs">
                               {agt.avatar}
                             </div>
                             <span
                               className={cn(
                                 "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white",
-                                agt.status === "online" ? "bg-[#AEEB00] animate-pulse" :
-                                  agt.status === "in_chat" ? "bg-[#905FEB] animate-pulse" :
+                                agt.status === "online" ? "bg-success animate-pulse" :
+                                  agt.status === "in_chat" ? "bg-primary animate-pulse" :
                                     agt.status === "away" ? "bg-amber-400" : "bg-zinc-400"
                               )}
                             />
                           </div>
                           <div>
-                            <h3 className="text-sm font-bold text-[#111111] leading-snug hover:text-[#905FEB] transition-colors">
+                            <h3 className="text-sm font-bold text-foreground leading-snug hover:text-primary-text transition-colors">
                               {agt.name}
                             </h3>
                             <p className="text-[11px] text-zinc-500 font-mono">{agt.email}</p>
@@ -440,18 +440,18 @@ export const SupportAgentsPage: React.FC = () => {
                       </p>
 
                       {/* Metrics Box */}
-                      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-[#FAF9FF] border border-[#E5DEFF] text-center">
+                      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-primary-soft border border-primary-border text-center">
                         <div>
                           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Active</p>
-                          <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.activeTickets}</p>
+                          <p className="text-sm font-bold text-foreground mt-0.5">{agt.activeTickets}</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Solved</p>
-                          <p className="text-sm font-bold text-[#3B6600] mt-0.5">{agt.solvedToday}</p>
+                          <p className="text-sm font-bold text-success mt-0.5">{agt.solvedToday}</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Response</p>
-                          <p className="text-sm font-bold text-[#111111] mt-0.5">{agt.avgResponseTime}</p>
+                          <p className="text-sm font-bold text-foreground mt-0.5">{agt.avgResponseTime}</p>
                         </div>
                       </div>
 
@@ -464,7 +464,7 @@ export const SupportAgentsPage: React.FC = () => {
                           {agt.specialties.map((spec, i) => (
                             <span
                               key={i}
-                              className="text-[10px] py-0.5 px-2.5 bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/20 rounded-full font-medium"
+                              className="text-[10px] py-0.5 px-2.5 bg-primary-soft text-primary-text border border-primary/20 rounded-full font-medium"
                             >
                               {spec}
                             </span>
@@ -474,7 +474,7 @@ export const SupportAgentsPage: React.FC = () => {
                     </div>
 
                     {/* Bottom Meta & Action Area like KnowledgeBasePage */}
-                    <div className="space-y-2 pt-2.5 border-t border-[#F0EDFF]">
+                    <div className="space-y-2 pt-2.5 border-t border-primary-soft">
                       <div className="flex items-center gap-2">
                         <button
                           className="btn-support-primary flex-1 text-xs h-8 gap-1.5 font-bold cursor-pointer"
@@ -511,8 +511,8 @@ export const SupportAgentsPage: React.FC = () => {
       {/* Agent Detail Modal like KnowledgeBasePage */}
       {selectedAgent && (
         <Dialog open={!!selectedAgent} onOpenChange={() => setSelectedAgent(null)}>
-          <DialogContent className="max-w-xl max-h-[88vh] overflow-y-auto bg-white text-zinc-900 border border-[#E5DEFF] shadow-2xl rounded-2xl p-6 sm:p-7 sleek-scrollbar">
-            <DialogHeader className="space-y-3 border-b border-[#F0EDFF] pb-4 text-left">
+          <DialogContent className="max-w-xl max-h-[88vh] overflow-y-auto bg-surface text-zinc-900 border border-primary-border shadow-2xl rounded-2xl p-6 sm:p-7 sleek-scrollbar">
+            <DialogHeader className="space-y-3 border-b border-primary-soft pb-4 text-left">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="badge-status-in-progress text-xs font-bold px-3 py-1">
                   {selectedAgent.roleTier}
@@ -530,11 +530,11 @@ export const SupportAgentsPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3 pt-1">
-                <div className="h-12 w-12 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-base shadow-xs">
+                <div className="h-12 w-12 rounded-2xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold text-base shadow-xs">
                   {selectedAgent.avatar}
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-extrabold text-[#111111]">
+                  <DialogTitle className="text-xl font-extrabold text-foreground">
                     {selectedAgent.name}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-zinc-500 font-mono mt-0.5">
@@ -545,14 +545,14 @@ export const SupportAgentsPage: React.FC = () => {
             </DialogHeader>
 
             <div className="space-y-4 py-3 text-xs">
-              <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FAF9FF] border border-[#E5DEFF] text-center">
+              <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-primary-soft border border-primary-border text-center">
                 <div>
                   <span className="text-zinc-500 font-semibold block text-[10px] uppercase">Active Queue</span>
-                  <span className="text-base font-bold text-[#111111]">{selectedAgent.activeTickets} Tickets</span>
+                  <span className="text-base font-bold text-foreground">{selectedAgent.activeTickets} Tickets</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 font-semibold block text-[10px] uppercase">Solved Today</span>
-                  <span className="text-base font-bold text-[#3B6600]">{selectedAgent.solvedToday} Closed</span>
+                  <span className="text-base font-bold text-success">{selectedAgent.solvedToday} Closed</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 font-semibold block text-[10px] uppercase">CSAT Score</span>
@@ -569,7 +569,7 @@ export const SupportAgentsPage: React.FC = () => {
                   {selectedAgent.specialties.map((spec: string, i: number) => (
                     <span
                       key={i}
-                      className="px-3 py-1 bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/25 rounded-full text-xs font-semibold"
+                      className="px-3 py-1 bg-primary-soft text-primary-text border border-primary/25 rounded-full text-xs font-semibold"
                     >
                       {spec}
                     </span>
@@ -578,7 +578,7 @@ export const SupportAgentsPage: React.FC = () => {
               </div>
             </div>
 
-            <DialogFooter className="pt-4 border-t border-[#F0EDFF] flex flex-col sm:flex-row items-center justify-end gap-2">
+            <DialogFooter className="pt-4 border-t border-primary-soft flex flex-col sm:flex-row items-center justify-end gap-2">
               <button
                 className="btn-support-secondary text-xs h-8.5 px-4 font-bold cursor-pointer"
                 onClick={() => setSelectedAgent(null)}

@@ -223,7 +223,7 @@ function StudentDetailsModal({
         <StudentActivityHeatmap student={student} />
 
         {/* Subject Breakdown */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-white border border-gray-150">
+        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-zinc-900">
               Subject Mastery Breakdown
@@ -289,7 +289,7 @@ function StudentDetailsModal({
         </div>
 
         {/* Course-Specific Information */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-white border border-gray-150">
+        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-zinc-900">
               Enrolled Courses & Academic Modules
@@ -343,7 +343,7 @@ function StudentDetailsModal({
         </div>
 
         {/* Attendance Summary & Behavioral Tags */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-white border border-gray-150">
+        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-bold text-zinc-900">
               Attendance Log Status
@@ -520,7 +520,7 @@ function StudentRosterCard({
 
   return (
     <section
-      className="roster-card panel w-full bg-white"
+      className="roster-card panel w-full bg-surface"
       aria-label="Assigned Students Roster"
     >
       {/* Top Header & Status Filter Pills */}

@@ -106,14 +106,14 @@ export function TeacherProfile({
           type="button"
           onClick={() => (onSwitchRole ? setShowRoleSwitcher(!showRoleSwitcher) : onNavigateProfile?.())}
           title={`${displayName} (${roleName}) - Switch perspective`}
-          className="w-10 h-10 rounded-xl overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-[#F0442E]/40 transition-all cursor-pointer"
+          className="w-10 h-10 rounded-xl overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer"
         >
           <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
         </button>
 
         {showRoleSwitcher && onSwitchRole && (
           <div
-            className="absolute left-full top-0 ml-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+            className="absolute left-full top-0 ml-2 w-48 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <RoleSwitcherMenu currentRole={roleName as UserRole} onSelectRole={(r) => { onSwitchRole(r); setShowRoleSwitcher(false); }} />
@@ -137,19 +137,19 @@ export function TeacherProfile({
       title={onSwitchRole ? "Click to switch role perspective" : onNavigateProfile ? "View Profile" : undefined}
     >
       <div className="flex items-center gap-2.5">
-        <img src={avatar} alt={displayName} className="w-9 h-9 rounded-xl object-cover border border-[#F0442E]/30" />
+        <img src={avatar} alt={displayName} className="w-9 h-9 rounded-xl object-cover border border-primary/30" />
         <div className="flex-1 min-w-0 text-left">
           <strong className="block text-xs font-bold text-zinc-900 truncate leading-tight">{displayName}</strong>
           <span className="text-[10px] font-medium text-zinc-500 flex items-center gap-1">
             <span>{roleName}</span>
-            {onSwitchRole && <span className="text-[9px] text-[#F0442E] font-bold">▾</span>}
+            {onSwitchRole && <span className="text-[9px] text-primary-text font-bold">▾</span>}
           </span>
         </div>
       </div>
 
       {showRoleSwitcher && onSwitchRole && (
         <div
-          className="absolute left-0 right-0 top-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
+          className="absolute left-0 right-0 top-full mt-2 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
           onClick={(e) => e.stopPropagation()}
         >
           <RoleSwitcherMenu currentRole={roleName as UserRole} onSelectRole={(r) => { onSwitchRole(r); setShowRoleSwitcher(false); }} />
@@ -189,12 +189,12 @@ function RoleSwitcherMenu({
             onClick={() => onSelectRole(r.role)}
             className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
               isSelected
-                ? "bg-[#FEF2F0] text-[#F0442E] font-bold"
+                ? "bg-[#FEF2F0] text-primary-text font-bold"
                 : "text-zinc-700 hover:bg-zinc-100 font-medium"
             }`}
           >
             <span>{r.icon} {r.label}</span>
-            {isSelected && <span className="text-[#F0442E] font-bold">✓</span>}
+            {isSelected && <span className="text-primary-text font-bold">✓</span>}
           </button>
         )
       })}
@@ -361,7 +361,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`sidebar-shell flex flex-col justify-between h-full max-h-full bg-white border-r border-zinc-200/80 transition-all duration-200 select-none ${
+      className={`sidebar-shell flex flex-col justify-between h-full max-h-full bg-surface border-r border-zinc-200/80 transition-all duration-200 select-none ${
         isCollapsed ? "w-[64px]" : "w-[240px]"
       } ${className}`}
       aria-label={`${resolvedRole} Navigation`}
@@ -406,19 +406,19 @@ export function AppSidebar({
                 isCollapsed ? "justify-center px-0" : ""
               } ${
                 active
-                  ? "bg-[#FEF2F0] text-[#F0442E] font-semibold"
+                  ? "bg-[#FEF2F0] text-primary-text font-semibold"
                   : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 font-medium"
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <span className={`shrink-0 ${active ? "text-[#F0442E]" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active ? "text-primary-text" : "text-zinc-500"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && (
                 <span className="truncate flex-1 text-left">{item.label}</span>
               )}
               {!isCollapsed && item.badge !== undefined && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.badgeColor || "bg-[#FEF2F0] text-[#F0442E]"}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.badgeColor || "bg-[#FEF2F0] text-primary-text"}`}>
                   {item.badge}
                 </span>
               )}
@@ -446,12 +446,12 @@ export function AppSidebar({
                 isCollapsed ? "justify-center px-0" : ""
               } ${
                 active
-                  ? "bg-[#FEF2F0] text-[#F0442E] font-semibold"
+                  ? "bg-[#FEF2F0] text-primary-text font-semibold"
                   : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 font-medium"
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <span className={`shrink-0 ${active ? "text-[#F0442E]" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active ? "text-primary-text" : "text-zinc-500"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && (

@@ -154,7 +154,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search notes or snippets..."
-              className="w-full pl-8 pr-7 py-1 rounded-full text-xs bg-zinc-50 border border-zinc-200 focus:outline-none focus:border-purple-500 focus:bg-white"
+              className="w-full pl-8 pr-7 py-1 rounded-full text-xs bg-zinc-50 border border-zinc-200 focus:outline-none focus:border-purple-500 focus:bg-surface"
             />
             {search && (
               <button
@@ -196,7 +196,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
 
               {/* Code Snippet Preview if present */}
               {note.snippet && (
-                <div className="p-3 bg-zinc-900 text-purple-300 font-mono text-[11px] rounded-xl mb-3 overflow-x-auto border border-zinc-800">
+                <div className="p-3 bg-ink-900 text-purple-300 font-mono text-[11px] rounded-xl mb-3 overflow-x-auto border border-zinc-800">
                   <pre>{note.snippet}</pre>
                 </div>
               )}
@@ -253,7 +253,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
           onClick={() => setActiveNote(null)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
@@ -295,7 +295,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
                       Copy Snippet
                     </button>
                   </div>
-                  <pre className="p-4 bg-zinc-950 text-purple-200 font-mono rounded-2xl text-[11px] overflow-x-auto border border-zinc-800">
+                  <pre className="p-4 bg-ink-950 text-purple-200 font-mono rounded-2xl text-[11px] overflow-x-auto border border-zinc-800">
                     {activeNote.snippet}
                   </pre>
                 </div>
@@ -330,7 +330,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
           onClick={() => setIsCreateModalOpen(false)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
@@ -364,7 +364,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Cosine Similarity vs Dot Product Analysis"
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                 />
               </div>
 
@@ -394,7 +394,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   placeholder="Summarize key takeaways, mathematical insights, or lecture questions..."
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                 />
               </div>
 
@@ -420,7 +420,7 @@ export function MyNotesPage({ onToast }: MyNotesPageProps) {
                   value={newTagsStr}
                   onChange={(e) => setNewTagsStr(e.target.value)}
                   placeholder="RAG, Math, Transformers"
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-purple-600"
+                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
                 />
               </div>
 

@@ -977,7 +977,7 @@ export function CourseDetailsPage({
   return (
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* Back button and Course Switcher Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3 rounded-2xl border border-white/50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface/70 backdrop-blur-md p-3 rounded-2xl border border-white/50">
         <button
           onClick={onBackToCourses}
           className="flex items-center gap-2 text-xs font-bold text-zinc-700 hover:text-black transition-colors cursor-pointer px-3 py-1.5 rounded-full hover:bg-zinc-100 w-fit"
@@ -1009,7 +1009,7 @@ export function CourseDetailsPage({
 
       {/* Main Course Hero Panel */}
       <section
-        className="panel p-6 bg-white border border-zinc-100"
+        className="panel p-6 bg-surface border border-zinc-100"
         aria-label="Course Header"
       >
         <div className="flex flex-col lg:flex-row gap-[var(--app-card-gap,14px)] items-start justify-between">
@@ -1084,13 +1084,13 @@ export function CourseDetailsPage({
               <div>
                 <div className="flex justify-between items-center text-xs font-bold mb-2">
                   <span className="text-zinc-700">Course Status</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-[#5F2BC0] text-xs font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-primary-text text-xs font-bold">
                     Open for Enrollment
                   </span>
                 </div>
                 <div className="w-full bg-purple-200 rounded-full h-2.5 overflow-hidden mb-3">
                   <div
-                    className="bg-[#AEEB00] h-2.5 rounded-full"
+                    className="bg-success h-2.5 rounded-full"
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -1128,7 +1128,7 @@ export function CourseDetailsPage({
                     }
                     onToast(`Enrolled in "${currentCourse.title}" successfully! 🎉`)
                   }}
-                  className="w-full py-2.5 rounded-full bg-[#111111] hover:bg-zinc-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  className="w-full py-2.5 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   <span>Enroll in Course</span>
                   <span>→</span>
@@ -1155,7 +1155,7 @@ export function CourseDetailsPage({
 
               <button
                 onClick={onOpenAiModal}
-                className="w-full py-2 rounded-full border border-purple-200 bg-white text-xs font-bold text-purple-700 hover:bg-purple-100/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2 rounded-full border border-purple-200 bg-surface text-xs font-bold text-purple-700 hover:bg-purple-100/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>✦</span>
                 <span>Ask AI Tutor About This Course</span>
@@ -1242,7 +1242,7 @@ export function CourseDetailsPage({
             <span>🎯</span>
             <span>Quizzes ({courseQuizzes.length})</span>
             {availableQuizzesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]">
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-success-soft text-success border border-success">
                 {availableQuizzesCount} Available
               </span>
             )}
@@ -1306,7 +1306,7 @@ export function CourseDetailsPage({
 
                   {/* Lessons list */}
                   {isExpanded && (
-                    <div className="divide-y divide-zinc-100 bg-white">
+                    <div className="divide-y divide-zinc-100 bg-surface">
                       {mod.lessons.map((lesson) => (
                         <div
                           key={lesson.id}
@@ -1396,7 +1396,7 @@ export function CourseDetailsPage({
                       <button
                         type="button"
                         onClick={() => setPreviewMaterial(null)}
-                        className="px-4 py-1.5 rounded-full bg-zinc-100 hover:bg-[#F0EDFF] text-zinc-700 hover:text-[#5F2BC0] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        className="px-4 py-1.5 rounded-full bg-zinc-100 hover:bg-primary-soft text-zinc-700 hover:text-primary-text text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                       >
                         <span>←</span>
                         <span>Back to Learning Materials</span>
@@ -1413,7 +1413,7 @@ export function CourseDetailsPage({
                           href={driveViewUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3.5 py-1.5 rounded-full border border-purple-300 text-[#5F2BC0] text-xs font-bold hover:bg-purple-50 transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3.5 py-1.5 rounded-full border border-purple-300 text-primary-text text-xs font-bold hover:bg-purple-50 transition-colors cursor-pointer flex items-center gap-1"
                           title="Open original resource in Google Drive"
                         >
                           <span>Open in Drive</span>
@@ -1432,7 +1432,7 @@ export function CourseDetailsPage({
                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ${
                           !isAvailable
                             ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                            : "bg-[#905FEB] text-white hover:bg-[#7b46dc] cursor-pointer"
+                            : "bg-primary text-white hover:bg-[#7b46dc] cursor-pointer"
                         }`}
                       >
                         <span>📥</span>
@@ -1461,7 +1461,7 @@ export function CourseDetailsPage({
                           {previewMaterial.type}
                         </span>
                         {driveFileId && isAvailable && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F0EDFF] text-[#5F2BC0] border border-purple-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary-soft text-primary-text border border-purple-200">
                             Google Drive Document
                           </span>
                         )}
@@ -1503,7 +1503,7 @@ export function CourseDetailsPage({
                           {previewMaterial.errorMessage ||
                             `The requested asset "${previewMaterial.fileName || previewMaterial.title}" could not be retrieved from the configured cloud storage cluster.`}
                         </p>
-                        <div className="p-3 bg-white/90 rounded-xl border border-amber-200 font-mono text-[11px] text-zinc-700 space-y-1">
+                        <div className="p-3 bg-surface/90 rounded-xl border border-amber-200 font-mono text-[11px] text-zinc-700 space-y-1">
                           <div>
                             <strong>Target Asset:</strong>{" "}
                             {previewMaterial.fileName || previewMaterial.title}
@@ -1526,14 +1526,14 @@ export function CourseDetailsPage({
                     {isAvailable && isPdfOrSlides && driveFileId && (
                       <div className="flex flex-col gap-3">
                         {/* Mode switcher & Drive link bar */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-2.5 rounded-xl bg-[#F0EDFF]/80 border border-purple-200 text-xs">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-2.5 rounded-xl bg-primary-soft/80 border border-purple-200 text-xs">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setPreviewTab("drive")}
                               className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                                 previewTab === "drive"
-                                  ? "bg-[#905FEB] text-white shadow-sm"
-                                  : "bg-white text-purple-700 hover:bg-purple-100"
+                                  ? "bg-primary text-white shadow-sm"
+                                  : "bg-surface text-purple-700 hover:bg-purple-100"
                               }`}
                             >
                               Google Drive Document Preview
@@ -1542,8 +1542,8 @@ export function CourseDetailsPage({
                               onClick={() => setPreviewTab("overview")}
                               className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                                 previewTab === "overview"
-                                  ? "bg-[#905FEB] text-white shadow-sm"
-                                  : "bg-white text-purple-700 hover:bg-purple-100"
+                                  ? "bg-primary text-white shadow-sm"
+                                  : "bg-surface text-purple-700 hover:bg-purple-100"
                               }`}
                             >
                               Academic Syllabus Outline
@@ -1555,7 +1555,7 @@ export function CourseDetailsPage({
                               href={driveViewUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="font-bold text-[#5F2BC0] hover:text-[#905FEB] flex items-center gap-1 text-[11px] hover:underline"
+                              className="font-bold text-primary-text hover:text-primary-text flex items-center gap-1 text-[11px] hover:underline"
                               title="Open original file on Google Drive in a new browser tab"
                             >
                               <span>Open in Google Drive</span>
@@ -1586,7 +1586,7 @@ export function CourseDetailsPage({
                             </div>
                           </div>
                         ) : (
-                          <div className="p-5 rounded-2xl bg-white border border-zinc-200 space-y-3 text-xs text-zinc-700">
+                          <div className="p-5 rounded-2xl bg-surface border border-zinc-200 space-y-3 text-xs text-zinc-700">
                             <h5 className="font-bold text-sm text-zinc-900">
                               {previewMaterial.title}
                             </h5>
@@ -1625,13 +1625,13 @@ export function CourseDetailsPage({
                               onToast("Code cells copied to clipboard!")
                               setTimeout(() => setCopiedNotebookOrJson(false), 2000)
                             }}
-                            className="px-3 py-1 rounded-full bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1"
+                            className="px-3 py-1 rounded-full bg-surface border border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1"
                           >
                             <span>{copiedNotebookOrJson ? "✓ Copied!" : "📋 Copy Code"}</span>
                           </button>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-zinc-900 text-zinc-100 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner space-y-3">
+                        <div className="p-4 rounded-2xl bg-ink-900 text-zinc-100 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner space-y-3">
                           <div className="text-zinc-500">// Cell [1] - Import dependencies & initialize embedding models</div>
                           <div className="text-purple-300">
                             import torch<br />
@@ -1648,7 +1648,7 @@ export function CourseDetailsPage({
                             &nbsp;&nbsp;return sorted(scores.items(), key=lambda x: x[1], reverse=True)
                           </div>
                           <div className="text-zinc-500 pt-2 border-t border-zinc-800">// Output [2]</div>
-                          <div className="text-zinc-400 bg-zinc-800/60 p-2.5 rounded-lg">
+                          <div className="text-zinc-400 bg-ink-800/60 p-2.5 rounded-lg">
                             ✓ RRF algorithm compiled in 0.002s. Latency speedup: 8.4x over Cross-Encoder forward pass.
                           </div>
                         </div>
@@ -1683,13 +1683,13 @@ export function CourseDetailsPage({
                               onToast("Dataset records copied to clipboard!")
                               setTimeout(() => setCopiedNotebookOrJson(false), 2000)
                             }}
-                            className="px-3 py-1 rounded-full bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1"
+                            className="px-3 py-1 rounded-full bg-surface border border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1"
                           >
                             <span>{copiedNotebookOrJson ? "✓ Copied!" : "📋 Copy Dataset"}</span>
                           </button>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-zinc-900 text-zinc-100 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner">
+                        <div className="p-4 rounded-2xl bg-ink-900 text-zinc-100 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner">
                           <span className="text-zinc-500">// {previewMaterial.title} - Benchmark Sample Records</span><br />
                           &#123;<br />
                           &nbsp;&nbsp;<span className="text-purple-400">"datasetName"</span>: <span className="text-amber-300">"{previewMaterial.title}"</span>,<br />
@@ -1734,7 +1734,7 @@ export function CourseDetailsPage({
                         className={`px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
                           !isAvailable
                             ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                            : "bg-[#905FEB] text-white hover:bg-[#7b46dc] cursor-pointer"
+                            : "bg-primary text-white hover:bg-[#7b46dc] cursor-pointer"
                         }`}
                       >
                         {isAvailable
@@ -1760,7 +1760,7 @@ export function CourseDetailsPage({
                     onClick={() =>
                       downloadCourseMaterialsZip(materials, currentCourse.title, onToast)
                     }
-                    className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-ink-800 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                     title="Download complete course assets archive"
                   >
                     <span>📥</span>
@@ -1781,7 +1781,7 @@ export function CourseDetailsPage({
                         className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
                           !isAvailable
                             ? "border-amber-200 bg-amber-50/40"
-                            : "border-zinc-100 bg-zinc-50/60 hover:bg-white hover:shadow-sm"
+                            : "border-zinc-100 bg-zinc-50/60 hover:bg-surface hover:shadow-sm"
                         }`}
                       >
                         <div>
@@ -1808,7 +1808,7 @@ export function CourseDetailsPage({
                                 </span>
                               )}
                               {isDriveFile && isAvailable && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#F0EDFF] text-[#5F2BC0] border border-purple-200">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-soft text-primary-text border border-purple-200">
                                   Google Drive
                                 </span>
                               )}
@@ -1836,7 +1836,7 @@ export function CourseDetailsPage({
                             className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-colors cursor-pointer text-center ${
                               !isAvailable
                                 ? "bg-zinc-200 text-zinc-500 hover:bg-zinc-300"
-                                : "bg-[#905FEB] text-white hover:bg-[#7b46dc]"
+                                : "bg-primary text-white hover:bg-[#7b46dc]"
                             }`}
                           >
                             {!isAvailable ? "File Unavailable" : "Download File"}
@@ -1873,7 +1873,7 @@ export function CourseDetailsPage({
                 onChange={(e) => setNewQuestionText(e.target.value)}
                 placeholder="Type your question about lecture concepts, lab setups, or assignment rubrics..."
                 rows={3}
-                className="w-full p-3 rounded-xl bg-white border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-purple-600 mb-3"
+                className="w-full p-3 rounded-xl bg-surface border border-zinc-200 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-purple-600 mb-3"
               />
               <div className="flex justify-between items-center">
                 <span className="text-[11px] text-zinc-400">
@@ -1893,7 +1893,7 @@ export function CourseDetailsPage({
               {questions.map((q) => (
                 <div
                   key={q.id}
-                  className="p-4 rounded-2xl border border-zinc-100 bg-white"
+                  className="p-4 rounded-2xl border border-zinc-100 bg-surface"
                 >
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-2">
@@ -1942,7 +1942,7 @@ export function CourseDetailsPage({
                     value={searchNote}
                     onChange={(e) => setSearchNote(e.target.value)}
                     placeholder="Search notes by title, topic, or tags..."
-                    className="w-full pl-9 pr-7 py-2 text-xs rounded-full border border-zinc-200 bg-white focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
+                    className="w-full pl-9 pr-7 py-2 text-xs rounded-full border border-zinc-200 bg-surface focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
                   />
                   {searchNote && (
                     <button
@@ -1974,7 +1974,7 @@ export function CourseDetailsPage({
               {/* Add Note Button */}
               <button
                 onClick={() => handleOpenCreateNote()}
-                className="px-4 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all whitespace-nowrap self-start md:self-auto"
+                className="px-4 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all whitespace-nowrap self-start md:self-auto"
               >
                 <span>+</span>
                 <span>Add Self Note</span>
@@ -1984,7 +1984,7 @@ export function CourseDetailsPage({
             {/* Notes List / Empty State */}
             {filteredNotes.length === 0 ? (
               <div className="p-8 sm:p-12 rounded-2xl bg-zinc-50/70 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-center">
-                <div className="w-14 h-14 rounded-full bg-[#F0EDFF] text-[#905FEB] flex items-center justify-center text-2xl mb-3 shadow-inner">
+                <div className="w-14 h-14 rounded-full bg-primary-soft text-primary-text flex items-center justify-center text-2xl mb-3 shadow-inner">
                   📝
                 </div>
                 <h4 className="font-bold text-sm text-zinc-900 mb-1">
@@ -2003,14 +2003,14 @@ export function CourseDetailsPage({
                       setSearchNote("")
                       setSelectedLessonFilter("All")
                     }}
-                    className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                    className="px-4 py-2 rounded-full bg-surface border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
                   >
                     Clear Search Filters
                   </button>
                 ) : (
                   <button
                     onClick={() => handleOpenCreateNote()}
-                    className="px-5 py-2.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all"
+                    className="px-5 py-2.5 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all"
                   >
                     <span>+</span>
                     <span>Create Your First Note</span>
@@ -2022,13 +2022,13 @@ export function CourseDetailsPage({
                 {filteredNotes.map((note) => (
                   <div
                     key={note.id}
-                    className="bg-white rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                    className="bg-surface rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
                   >
                     <div>
                       {/* Note Header: Lesson badge & Actions */}
                       <div className="flex items-start justify-between gap-3 mb-2">
                         {note.lesson ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0] border border-purple-200 truncate max-w-[240px]">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary-text border border-purple-200 truncate max-w-[240px]">
                             📖 {note.lesson}
                           </span>
                         ) : (
@@ -2067,7 +2067,7 @@ export function CourseDetailsPage({
 
                       {/* Optional Code Snippet */}
                       {note.snippet && (
-                        <div className="relative mb-3 bg-zinc-900 text-zinc-100 rounded-xl p-3 font-mono text-[11px] leading-relaxed border border-zinc-800">
+                        <div className="relative mb-3 bg-ink-900 text-zinc-100 rounded-xl p-3 font-mono text-[11px] leading-relaxed border border-zinc-800">
                           <div className="flex justify-between items-center text-[10px] text-zinc-400 pb-1.5 mb-1.5 border-b border-zinc-800">
                             <span>Code / Reference Snippet</span>
                             <button
@@ -2153,10 +2153,10 @@ export function CourseDetailsPage({
                 </div>
 
                 {/* 2. Assignment Overview Card */}
-                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-zinc-200/90 shadow-xs flex flex-col gap-5">
+                <div className="bg-surface rounded-2xl p-5 sm:p-6 border border-zinc-200/90 shadow-xs flex flex-col gap-5">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0] border border-purple-200">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary-text border border-purple-200">
                         {currentCourse.title}
                       </span>
                       {activeAssignment.priority === "High" && (
@@ -2229,7 +2229,7 @@ export function CourseDetailsPage({
                       Reference Materials & Course Attachments:
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div className="p-3 rounded-xl bg-white border border-zinc-200 flex items-center justify-between gap-2 hover:border-purple-300 transition-colors">
+                      <div className="p-3 rounded-xl bg-surface border border-zinc-200 flex items-center justify-between gap-2 hover:border-purple-300 transition-colors">
                         <div className="flex items-center gap-2.5 overflow-hidden">
                           <span className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             ZIP
@@ -2252,7 +2252,7 @@ export function CourseDetailsPage({
                         </button>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-white border border-zinc-200 flex items-center justify-between gap-2 hover:border-purple-300 transition-colors">
+                      <div className="p-3 rounded-xl bg-surface border border-zinc-200 flex items-center justify-between gap-2 hover:border-purple-300 transition-colors">
                         <div className="flex items-center gap-2.5 overflow-hidden">
                           <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             PDF
@@ -2279,7 +2279,7 @@ export function CourseDetailsPage({
                 </div>
 
                 {/* 3. Submission & Evaluation Section */}
-                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-zinc-200/90 shadow-xs flex flex-col gap-4">
+                <div className="bg-surface rounded-2xl p-5 sm:p-6 border border-zinc-200/90 shadow-xs flex flex-col gap-4">
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                     <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                       <span>📤</span>
@@ -2312,7 +2312,7 @@ export function CourseDetailsPage({
                           </div>
                         </div>
 
-                        <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-300 shadow-sm flex flex-col items-center justify-center self-start sm:self-auto">
+                        <div className="w-16 h-16 rounded-2xl bg-surface border border-emerald-300 shadow-sm flex flex-col items-center justify-center self-start sm:self-auto">
                           <span className="text-[10px] font-bold text-zinc-400 uppercase">Grade</span>
                           <span className="text-2xl font-black text-emerald-700">{activeAssignment.grade}</span>
                         </div>
@@ -2361,7 +2361,7 @@ export function CourseDetailsPage({
                               · Instructor Srimanth
                             </span>
                           </div>
-                          <p className="italic text-zinc-700 leading-relaxed bg-white/70 p-3 rounded-lg border border-purple-100 mt-2">
+                          <p className="italic text-zinc-700 leading-relaxed bg-surface/70 p-3 rounded-lg border border-purple-100 mt-2">
                             &ldquo;{activeAssignment.feedback}&rdquo;
                           </p>
                         </div>
@@ -2391,7 +2391,7 @@ export function CourseDetailsPage({
                       {/* Submission Confirmed Box */}
                       <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/80 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#905FEB] text-white flex items-center justify-center text-lg flex-shrink-0 shadow-xs">
+                          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg flex-shrink-0 shadow-xs">
                             ✓
                           </div>
                           <div>
@@ -2407,7 +2407,7 @@ export function CourseDetailsPage({
                         <button
                           type="button"
                           onClick={() => setIsResubmitting(true)}
-                          className="px-4 py-2 rounded-full bg-white hover:bg-purple-100 text-purple-700 border border-purple-300 text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
+                          className="px-4 py-2 rounded-full bg-surface hover:bg-purple-100 text-purple-700 border border-purple-300 text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
                         >
                           ↻ Resubmit / Replace File
                         </button>
@@ -2416,7 +2416,7 @@ export function CourseDetailsPage({
                       {/* Submitted File Details */}
                       <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 text-xs flex flex-col gap-2">
                         <span className="font-bold text-zinc-800">Your Submitted Deliverables:</span>
-                        <div className="p-3 rounded-lg bg-white border border-zinc-200 flex items-center justify-between">
+                        <div className="p-3 rounded-lg bg-surface border border-zinc-200 flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             <span className="text-base">📁</span>
                             <span className="font-semibold text-zinc-900">
@@ -2429,7 +2429,7 @@ export function CourseDetailsPage({
                         </div>
 
                         {activeAssignment.repoUrl && (
-                          <div className="p-2.5 rounded-lg bg-white border border-zinc-200 font-mono text-[11px] text-purple-800 break-all">
+                          <div className="p-2.5 rounded-lg bg-surface border border-zinc-200 font-mono text-[11px] text-purple-800 break-all">
                             🔗 Repository: <a href={activeAssignment.repoUrl} target="_blank" rel="noreferrer" className="underline">{activeAssignment.repoUrl}</a>
                           </div>
                         )}
@@ -2514,7 +2514,7 @@ export function CourseDetailsPage({
                                 e.stopPropagation()
                                 fileInputRef.current?.click()
                               }}
-                              className="mt-1 px-4 py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold shadow-xs cursor-pointer"
+                              className="mt-1 px-4 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold shadow-xs cursor-pointer"
                             >
                               Browse Files
                             </button>
@@ -2545,7 +2545,7 @@ export function CourseDetailsPage({
                               <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-3 py-1.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 text-xs font-semibold cursor-pointer"
+                                className="px-3 py-1.5 rounded-full bg-surface hover:bg-zinc-100 text-zinc-700 border border-zinc-200 text-xs font-semibold cursor-pointer"
                               >
                                 Change File
                               </button>
@@ -2615,7 +2615,7 @@ export function CourseDetailsPage({
                           )}
                           <button
                             type="submit"
-                            className="px-6 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                            className="px-6 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
                           >
                             <span>🚀</span>
                             <span>{isResubmitting ? "Submit Updated Solution" : "Submit Assignment"}</span>
@@ -2686,8 +2686,8 @@ export function CourseDetailsPage({
                           onClick={() => setAssignmentFilter(filterTab)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                             isActive
-                              ? "bg-[#905FEB] text-white shadow-xs"
-                              : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                              ? "bg-primary text-white shadow-xs"
+                              : "bg-surface text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                           }`}
                         >
                           {filterTab} ({count})
@@ -2705,7 +2705,7 @@ export function CourseDetailsPage({
                       value={assignmentSearch}
                       onChange={(e) => setAssignmentSearch(e.target.value)}
                       placeholder="Search course assignments..."
-                      className="w-full pl-9 pr-7 py-1.5 text-xs rounded-full border border-zinc-200 bg-white focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
+                      className="w-full pl-9 pr-7 py-1.5 text-xs rounded-full border border-zinc-200 bg-surface focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
                     />
                     {assignmentSearch && (
                       <button
@@ -2721,7 +2721,7 @@ export function CourseDetailsPage({
                 {/* Assignments List / Empty State */}
                 {filteredAssignments.length === 0 ? (
                   <div className="p-8 sm:p-12 rounded-2xl bg-zinc-50/70 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#F0EDFF] text-[#905FEB] flex items-center justify-center text-2xl mb-3 shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-primary-soft text-primary-text flex items-center justify-center text-2xl mb-3 shadow-inner">
                       📄
                     </div>
                     <h4 className="font-bold text-sm text-zinc-900 mb-1">
@@ -2740,7 +2740,7 @@ export function CourseDetailsPage({
                           setAssignmentSearch("")
                           setAssignmentFilter("All")
                         }}
-                        className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                        className="px-4 py-2 rounded-full bg-surface border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
                       >
                         Reset Filter
                       </button>
@@ -2757,7 +2757,7 @@ export function CourseDetailsPage({
                         <div
                           key={asg.id}
                           onClick={() => handleOpenAssignment(asg)}
-                          className="bg-white rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col gap-3.5 cursor-pointer group"
+                          className="bg-surface rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col gap-3.5 cursor-pointer group"
                         >
                           {/* Top Row: Title, Priority, Status */}
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
@@ -2840,7 +2840,7 @@ export function CourseDetailsPage({
                                 </span>
                               </div>
                               {asg.feedback && (
-                                <div className="text-xs text-zinc-700 bg-white/80 p-2 rounded-lg border border-emerald-100 italic leading-relaxed line-clamp-2">
+                                <div className="text-xs text-zinc-700 bg-surface/80 p-2 rounded-lg border border-emerald-100 italic leading-relaxed line-clamp-2">
                                   &ldquo;{asg.feedback}&rdquo;
                                 </div>
                               )}
@@ -2862,7 +2862,7 @@ export function CourseDetailsPage({
                                     e.stopPropagation()
                                     handleOpenAssignment(asg)
                                   }}
-                                  className="px-4 py-1.5 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                                  className="px-4 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                                 >
                                   <span>🚀</span>
                                   <span>Submit Solution</span>
@@ -2876,7 +2876,7 @@ export function CourseDetailsPage({
                                     e.stopPropagation()
                                     handleOpenAssignment(asg)
                                   }}
-                                  className="px-4 py-1.5 rounded-full bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                                  className="px-4 py-1.5 rounded-full bg-surface border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
                                 >
                                   <span>↻</span>
                                   <span>View / Resubmit</span>
@@ -2917,7 +2917,7 @@ export function CourseDetailsPage({
             {quizViewMode === "taking" && activeQuiz && (
               <div className="flex flex-col gap-5">
                 {/* 1. Top Test Header Bar */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-zinc-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-zinc-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <button
@@ -2954,7 +2954,7 @@ export function CourseDetailsPage({
                     <button
                       type="button"
                       onClick={() => setIsSubmitModalOpen(true)}
-                      className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold cursor-pointer shadow-xs transition-all flex items-center gap-1.5"
+                      className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer shadow-xs transition-all flex items-center gap-1.5"
                     >
                       <span>Submit Quiz</span>
                       <span>🚀</span>
@@ -2976,7 +2976,7 @@ export function CourseDetailsPage({
                   {/* Visual Progress Bar */}
                   <div className="w-full bg-zinc-200/70 rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-[#905FEB] h-2 rounded-full transition-all duration-300"
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${((currentQIndex + 1) / (activeQuestions.length || 1)) * 100}%`,
                       }}
@@ -2996,10 +2996,10 @@ export function CourseDetailsPage({
                           onClick={() => setCurrentQIndex(idx)}
                           className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ${
                             isCurrent
-                              ? "bg-[#905FEB] text-white ring-2 ring-purple-300 ring-offset-1"
+                              ? "bg-primary text-white ring-2 ring-purple-300 ring-offset-1"
                               : isAnswered
                                 ? "bg-purple-100 text-purple-800 hover:bg-purple-200"
-                                : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100"
+                                : "bg-surface border border-zinc-200 text-zinc-600 hover:bg-zinc-100"
                           }`}
                           title={`Go to Question ${idx + 1}`}
                         >
@@ -3012,11 +3012,11 @@ export function CourseDetailsPage({
 
                 {/* 3. Main Question & Options Card */}
                 {activeQuestions[currentQIndex] ? (
-                  <div className="bg-white rounded-2xl p-5 sm:p-7 border border-zinc-200/90 shadow-xs flex flex-col gap-5">
+                  <div className="bg-surface rounded-2xl p-5 sm:p-7 border border-zinc-200/90 shadow-xs flex flex-col gap-5">
                     {/* Topic and Difficulty Badges */}
                     <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-[#F0EDFF] text-[#5F2BC0] text-xs font-bold flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-primary-soft text-primary-text text-xs font-bold flex items-center justify-center">
                           {currentQIndex + 1}
                         </span>
                         <span className="text-xs font-bold text-zinc-500">
@@ -3045,14 +3045,14 @@ export function CourseDetailsPage({
                             }}
                             className={`p-4 rounded-xl border text-xs flex items-center gap-3 transition-all cursor-pointer ${
                               isSelected
-                                ? "border-[#905FEB] bg-purple-50/70 text-purple-950 font-bold ring-1 ring-purple-400 shadow-2xs"
-                                : "border-zinc-200 hover:border-purple-300 hover:bg-purple-50/20 bg-white text-zinc-800"
+                                ? "border-primary bg-purple-50/70 text-purple-950 font-bold ring-1 ring-purple-400 shadow-2xs"
+                                : "border-zinc-200 hover:border-purple-300 hover:bg-purple-50/20 bg-surface text-zinc-800"
                             }`}
                           >
                             <span
                               className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] flex-shrink-0 transition-colors ${
                                 isSelected
-                                  ? "bg-[#905FEB] text-white"
+                                  ? "bg-primary text-white"
                                   : "bg-zinc-100 text-zinc-600"
                               }`}
                             >
@@ -3078,7 +3078,7 @@ export function CourseDetailsPage({
                         className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
                           currentQIndex === 0
                             ? "bg-zinc-100 text-zinc-400 cursor-not-allowed"
-                            : "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 cursor-pointer shadow-2xs"
+                            : "bg-surface border border-zinc-200 text-zinc-700 hover:bg-zinc-50 cursor-pointer shadow-2xs"
                         }`}
                       >
                         <span>←</span>
@@ -3093,7 +3093,7 @@ export function CourseDetailsPage({
                         <button
                           type="button"
                           onClick={() => setCurrentQIndex((prev) => prev + 1)}
-                          className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                          className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                         >
                           <span>Next Question</span>
                           <span>→</span>
@@ -3124,7 +3124,7 @@ export function CourseDetailsPage({
             {quizViewMode === "review" && activeQuiz && (
               <div className="flex flex-col gap-5">
                 {/* 1. Header Bar with Back Button */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-zinc-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-zinc-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <button
@@ -3152,7 +3152,7 @@ export function CourseDetailsPage({
                     <button
                       type="button"
                       onClick={() => handleStartQuiz(activeQuiz)}
-                      className="px-4 py-2 rounded-full bg-[#F0EDFF] hover:bg-[#E4DFFD] text-[#5F2BC0] text-xs font-bold border border-purple-200 transition-all cursor-pointer"
+                      className="px-4 py-2 rounded-full bg-primary-soft hover:bg-[#E4DFFD] text-primary-text text-xs font-bold border border-purple-200 transition-all cursor-pointer"
                     >
                       ↻ Retake Quiz
                     </button>
@@ -3162,7 +3162,7 @@ export function CourseDetailsPage({
                         setQuizViewMode("list")
                         setSelectedQuizId(null)
                       }}
-                      className="px-4 py-2 rounded-full bg-[#111111] hover:bg-zinc-800 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                      className="px-4 py-2 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
                     >
                       Close Review
                     </button>
@@ -3205,7 +3205,7 @@ export function CourseDetailsPage({
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-extrabold mt-1.5 px-2.5 py-0.5 rounded-full w-fit ${
                           activeAttempt.passed
-                            ? "bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]"
+                            ? "bg-success-soft text-success border border-success"
                             : "bg-rose-100 text-rose-800 border border-rose-200"
                         }`}
                       >
@@ -3233,7 +3233,7 @@ export function CourseDetailsPage({
                       <span>💬 Faculty Feedback & Evaluation Rationale</span>
                       <span className="text-[10px] font-normal text-purple-700">· Instructor Srimanth</span>
                     </div>
-                    <p className="italic text-zinc-700 leading-relaxed bg-white/70 p-3 rounded-xl border border-purple-100 mt-2">
+                    <p className="italic text-zinc-700 leading-relaxed bg-surface/70 p-3 rounded-xl border border-purple-100 mt-2">
                       &ldquo;{activeAttempt.feedback}&rdquo;
                     </p>
                   </div>
@@ -3258,8 +3258,8 @@ export function CourseDetailsPage({
                           onClick={() => setReviewFilter(filterKey)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                             reviewFilter === filterKey
-                              ? "bg-[#905FEB] text-white shadow-xs"
-                              : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                              ? "bg-primary text-white shadow-xs"
+                              : "bg-surface text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                           }`}
                         >
                           {filterKey} ({count})
@@ -3299,10 +3299,10 @@ export function CourseDetailsPage({
                           key={q.id}
                           className={`rounded-2xl p-5 border transition-all flex flex-col gap-3.5 ${
                             isCorrect
-                              ? "border-emerald-200 bg-white"
+                              ? "border-emerald-200 bg-surface"
                               : isUnanswered
                                 ? "border-zinc-200 bg-zinc-50/50"
-                                : "border-rose-200 bg-white"
+                                : "border-rose-200 bg-surface"
                           }`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-100">
@@ -3390,8 +3390,8 @@ export function CourseDetailsPage({
                           </div>
 
                           {/* Concept Explanation Box */}
-                          <div className="p-3.5 rounded-xl bg-[#F0EDFF] border border-[#D8CFFF] text-xs mt-1">
-                            <div className="flex items-center gap-1.5 text-[#5F2BC0] font-bold mb-1">
+                          <div className="p-3.5 rounded-xl bg-primary-soft border border-[#D8CFFF] text-xs mt-1">
+                            <div className="flex items-center gap-1.5 text-primary-text font-bold mb-1">
                               <span>💡</span>
                               <span>Concept Explanation & Rationale:</span>
                             </div>
@@ -3423,14 +3423,14 @@ export function CourseDetailsPage({
                     <span className="text-[10px] text-zinc-400 mt-0.5">Course assessments</span>
                   </div>
 
-                  <div className="bg-[#E7FF9C]/40 rounded-2xl p-3.5 border border-[#AEEB00]/60 flex flex-col">
-                    <span className="text-[11px] font-bold text-[#385000] uppercase tracking-wider">
+                  <div className="bg-success-soft/40 rounded-2xl p-3.5 border border-success/60 flex flex-col">
+                    <span className="text-[11px] font-bold text-success uppercase tracking-wider">
                       Available
                     </span>
                     <span className="text-xl font-bold text-[#182600] mt-1">
                       {courseQuizzes.filter((q) => (q.status === "Active" || (q.status as string) === "Available") && !savedProgressMap[q.id]).length}
                     </span>
-                    <span className="text-[10px] text-[#385000]/80 mt-0.5">Ready to attempt</span>
+                    <span className="text-[10px] text-success/80 mt-0.5">Ready to attempt</span>
                   </div>
 
                   <div className="bg-purple-50/60 rounded-2xl p-3.5 border border-purple-200/70 flex flex-col">
@@ -3476,8 +3476,8 @@ export function CourseDetailsPage({
                           onClick={() => setQuizFilter(f)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                             isActive
-                              ? "bg-[#905FEB] text-white shadow-xs"
-                              : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                              ? "bg-primary text-white shadow-xs"
+                              : "bg-surface text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                           }`}
                         >
                           {f} ({count})
@@ -3495,7 +3495,7 @@ export function CourseDetailsPage({
                       value={quizSearch}
                       onChange={(e) => setQuizSearch(e.target.value)}
                       placeholder="Search course quizzes..."
-                      className="w-full pl-9 pr-7 py-1.5 text-xs rounded-full border border-zinc-200 bg-white focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
+                      className="w-full pl-9 pr-7 py-1.5 text-xs rounded-full border border-zinc-200 bg-surface focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all text-zinc-800"
                     />
                     {quizSearch && (
                       <button
@@ -3511,7 +3511,7 @@ export function CourseDetailsPage({
                 {/* 3. Quizzes List Cards */}
                 {filteredCourseQuizzes.length === 0 ? (
                   <div className="p-8 sm:p-12 rounded-2xl bg-zinc-50/70 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#F0EDFF] text-[#905FEB] flex items-center justify-center text-2xl mb-3 shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-primary-soft text-primary-text flex items-center justify-center text-2xl mb-3 shadow-inner">
                       🎯
                     </div>
                     <h4 className="font-bold text-sm text-zinc-900 mb-1">
@@ -3531,7 +3531,7 @@ export function CourseDetailsPage({
                           setQuizSearch("")
                           setQuizFilter("All")
                         }}
-                        className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
+                        className="px-4 py-2 rounded-full bg-surface border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 cursor-pointer"
                       >
                         Reset Filter
                       </button>
@@ -3548,7 +3548,7 @@ export function CourseDetailsPage({
                       return (
                         <div
                           key={quiz.id}
-                          className="bg-white rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col gap-3.5 group"
+                          className="bg-surface rounded-2xl p-5 border border-zinc-200/90 shadow-xs hover:shadow-md transition-all flex flex-col gap-3.5 group"
                         >
                           {/* Top Row: Title, Badges, Due Date */}
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
@@ -3562,7 +3562,7 @@ export function CourseDetailsPage({
                                         ? "bg-purple-100 text-purple-700 border border-purple-200"
                                         : isUpcoming
                                           ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                          : "bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]"
+                                          : "bg-success-soft text-success border border-success"
                                   }`}
                                 >
                                   {isCompleted
@@ -3630,7 +3630,7 @@ export function CourseDetailsPage({
                               <button
                                 type="button"
                                 onClick={() => handleStartQuiz(quiz)}
-                                className="px-3 py-1 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7E4BDC] cursor-pointer shadow-2xs whitespace-nowrap ml-2"
+                                className="px-3 py-1 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary cursor-pointer shadow-2xs whitespace-nowrap ml-2"
                               >
                                 Resume Now →
                               </button>
@@ -3651,7 +3651,7 @@ export function CourseDetailsPage({
                                   </span>
                                 </div>
                               </div>
-                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-[#E7FF9C] text-[#385000] border border-[#AEEB00]">
+                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-success-soft text-success border border-success">
                                 PASSED
                               </span>
                             </div>
@@ -3668,7 +3668,7 @@ export function CourseDetailsPage({
                                 <button
                                   type="button"
                                   onClick={() => handleStartQuiz(quiz)}
-                                  className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                                  className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                                 >
                                   <span>Start Quiz</span>
                                   <span>→</span>
@@ -3679,7 +3679,7 @@ export function CourseDetailsPage({
                                 <button
                                   type="button"
                                   onClick={() => handleStartQuiz(quiz)}
-                                  className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                                  className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                                 >
                                   <span>Resume Quiz</span>
                                   <span>→</span>
@@ -3720,7 +3720,7 @@ export function CourseDetailsPage({
                 onClick={() => setIsSubmitModalOpen(false)}
               >
                 <div
-                  className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full animate-in zoom-in-95"
+                  className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-md w-full animate-in zoom-in-95"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-3">
@@ -3775,7 +3775,7 @@ export function CourseDetailsPage({
                     <button
                       type="button"
                       onClick={() => handleFinalSubmitQuiz(false)}
-                      className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold cursor-pointer shadow-sm"
+                      className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer shadow-sm"
                     >
                       Confirm & Submit
                     </button>
@@ -3794,7 +3794,7 @@ export function CourseDetailsPage({
           onClick={() => setActiveLesson(null)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
@@ -3815,7 +3815,7 @@ export function CourseDetailsPage({
             </div>
 
             {/* Video Player Canvas Simulation */}
-            <div className="w-full h-64 bg-zinc-950 rounded-2xl flex flex-col items-center justify-center text-white relative overflow-hidden mb-4 shadow-inner">
+            <div className="w-full h-64 bg-ink-950 rounded-2xl flex flex-col items-center justify-center text-white relative overflow-hidden mb-4 shadow-inner">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
               <div className="z-10 text-center p-6">
                 <button
@@ -3902,12 +3902,12 @@ export function CourseDetailsPage({
           onClick={() => setIsNoteModalOpen(false)}
         >
           <div
-            className="relative bg-white rounded-3xl shadow-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-[#F0EDFF] text-[#905FEB] flex items-center justify-center text-sm font-bold">
+                <span className="w-7 h-7 rounded-full bg-primary-soft text-primary-text flex items-center justify-center text-sm font-bold">
                   📝
                 </span>
                 <h3 className="font-bold text-base text-zinc-900">
@@ -4006,7 +4006,7 @@ export function CourseDetailsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#905FEB] hover:bg-[#7E4BDC] text-white text-xs font-bold cursor-pointer shadow-sm"
+                  className="px-5 py-2 rounded-full bg-primary hover:bg-primary text-white text-xs font-bold cursor-pointer shadow-sm"
                 >
                   {editingNote ? "Save Changes" : "Save Personal Note"}
                 </button>

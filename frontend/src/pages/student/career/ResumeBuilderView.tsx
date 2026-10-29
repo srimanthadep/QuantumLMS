@@ -953,7 +953,7 @@ export function ResumeBuilderView({
   return (
     <div className="resume-builder-page app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] w-full max-w-full min-w-0 box-border pb-12">
       {/* 1. TOP CARD: Title, Subtitle, and Top Action Buttons */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-surface rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200/80 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xl shrink-0 border border-purple-100">
             <Icon name="document" size={22} />
@@ -976,7 +976,7 @@ export function ResumeBuilderView({
               onClick={() => setMobileView("editor")}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${
                 mobileView === "editor"
-                  ? "bg-white text-zinc-900 shadow-sm"
+                  ? "bg-surface text-zinc-900 shadow-sm"
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
@@ -986,7 +986,7 @@ export function ResumeBuilderView({
               onClick={() => setMobileView("preview")}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${
                 mobileView === "preview"
-                  ? "bg-white text-zinc-900 shadow-sm"
+                  ? "bg-surface text-zinc-900 shadow-sm"
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
@@ -997,7 +997,7 @@ export function ResumeBuilderView({
           {/* Reset Button */}
           <button
             onClick={() => setIsResetConfirmOpen(true)}
-            className="px-4 h-[38px] rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+            className="px-4 h-[38px] rounded-xl border border-zinc-200 bg-surface hover:bg-zinc-50 text-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
             title="Reset or Clear Resume"
           >
             <span>↺</span>
@@ -1009,7 +1009,7 @@ export function ResumeBuilderView({
             onClick={handleSave}
             className={`px-5 h-[38px] rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
               isSaved
-                ? "bg-[#905FEB] hover:bg-[#7e4bdc]"
+                ? "bg-primary hover:bg-primary"
                 : "bg-purple-600 hover:bg-purple-700 animate-pulse"
             }`}
           >
@@ -1020,7 +1020,7 @@ export function ResumeBuilderView({
           {/* Download PDF Button */}
           <button
             onClick={handlePrintOrDownload}
-            className="px-5 h-[38px] rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all hover:scale-[1.01]"
+            className="px-5 h-[38px] rounded-xl bg-primary hover:bg-[#4338ca] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all hover:scale-[1.01]"
             title="Download PDF"
           >
             <span>📥</span>
@@ -1036,7 +1036,7 @@ export function ResumeBuilderView({
           onClick={() => setIsResetConfirmOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-zinc-200 text-center space-y-4"
+            className="bg-surface rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-zinc-200 text-center space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl">
@@ -1076,7 +1076,7 @@ export function ResumeBuilderView({
       )}
 
       {/* 2. CATEGORY NAV PILLS ROW */}
-      <div className="bg-white rounded-2xl p-2 sm:p-2.5 shadow-sm border border-zinc-200/80 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <div className="bg-surface rounded-2xl p-2 sm:p-2.5 shadow-sm border border-zinc-200/80 flex items-center gap-2 overflow-x-auto no-scrollbar">
         {sectionPills.map((pill) => {
           const isActive = expandedSection === pill.id
           return (
@@ -1085,8 +1085,8 @@ export function ResumeBuilderView({
               onClick={() => setExpandedSection(pill.id)}
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-all flex items-center gap-2 shrink-0 ${
                 isActive
-                  ? "bg-[#5b4fe9] text-white shadow-sm font-bold"
-                  : "bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200/90 shadow-2xs"
+                  ? "bg-primary text-white shadow-sm font-bold"
+                  : "bg-surface hover:bg-zinc-50 text-zinc-700 border border-zinc-200/90 shadow-2xs"
               }`}
             >
               <span>{pill.icon}</span>
@@ -1104,7 +1104,7 @@ export function ResumeBuilderView({
             mobileView === "editor" ? "block" : "hidden lg:block"
           }`}
         >
-          <div className="bg-white rounded-2xl shadow-sm border border-zinc-200/80 overflow-hidden divide-y divide-zinc-100">
+          <div className="bg-surface rounded-2xl shadow-sm border border-zinc-200/80 overflow-hidden divide-y divide-zinc-100">
             {accordionItems.map((item) => {
               const isExpanded = expandedSection === item.id
 
@@ -1148,7 +1148,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("fullName", e.target.value)
                             }
                             placeholder="Srimanth Adepu"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1163,7 +1163,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("headline", e.target.value)
                             }
                             placeholder="AI & Machine Learning Engineer | Full Stack Developer"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1178,10 +1178,10 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("email", e.target.value)
                             }
                             placeholder="srimanth@quantum.ai"
-                            className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none bg-white ${
+                            className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none bg-surface ${
                               !isEmailValid(resume.personalInfo.email)
                                 ? "border-red-400 focus:border-red-500"
-                                : "border-zinc-200 focus:border-[#4f46e5]"
+                                : "border-zinc-200 focus:border-primary"
                             }`}
                           />
                           {!isEmailValid(resume.personalInfo.email) && (
@@ -1202,7 +1202,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("phone", e.target.value)
                             }
                             placeholder="+91 98765 43210"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1217,7 +1217,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("location", e.target.value)
                             }
                             placeholder="Hyderabad, Telangana, India"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1232,7 +1232,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("linkedin", e.target.value)
                             }
                             placeholder="linkedin.com/in/srimanthadep"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1247,7 +1247,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("github", e.target.value)
                             }
                             placeholder="github.com/srimanthadep"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
 
@@ -1262,7 +1262,7 @@ export function ResumeBuilderView({
                               handleUpdatePersonalInfo("portfolio", e.target.value)
                             }
                             placeholder="srimanth.dev"
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                           />
                         </div>
                       </div>
@@ -1282,7 +1282,7 @@ export function ResumeBuilderView({
                             setIsSaved(false)
                           }}
                           placeholder="Write a concise overview highlighting your background, core competencies, and career goals..."
-                          className="w-full p-3 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5] leading-relaxed"
+                          className="w-full p-3 text-xs rounded-xl border border-zinc-200 bg-surface focus:outline-none focus:border-primary leading-relaxed"
                         />
                         <div className="flex items-center justify-between text-[11px] text-zinc-400">
                           <span>
@@ -1298,7 +1298,7 @@ export function ResumeBuilderView({
                               }))
                               setIsSaved(false)
                             }}
-                            className="text-[#4f46e5] hover:underline font-semibold cursor-pointer"
+                            className="text-primary-text hover:underline font-semibold cursor-pointer"
                           >
                             Reset to Recommended Summary
                           </button>
@@ -1351,7 +1351,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="e.g. B.Tech in Artificial Intelligence"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1369,7 +1369,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Quantum School of AI"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1387,7 +1387,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="2023 - 2027"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1405,7 +1405,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="CGPA: 3.88 / 4.0"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1423,7 +1423,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Hyderabad, India"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1455,11 +1455,11 @@ export function ResumeBuilderView({
                               e.key === "Enter" && handleAddSkill()
                             }
                             placeholder="Type a skill and hit Enter..."
-                            className="flex-1 min-w-[140px] px-2.5 py-1.5 text-xs rounded-lg border border-purple-200 bg-white focus:outline-none"
+                            className="flex-1 min-w-[140px] px-2.5 py-1.5 text-xs rounded-lg border border-purple-200 bg-surface focus:outline-none"
                           />
                           <button
                             onClick={handleAddSkill}
-                            className="px-3 py-1.5 rounded-lg bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-primary hover:bg-[#4338ca] text-white text-xs font-bold cursor-pointer"
                           >
                             + Add Tag
                           </button>
@@ -1481,7 +1481,7 @@ export function ResumeBuilderView({
                               {resume.skills[grp.key].map((sk) => (
                                 <span
                                   key={sk}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white border border-zinc-200 text-zinc-800 shadow-2xs"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-zinc-200 text-zinc-800 shadow-2xs"
                                 >
                                   <span>{sk}</span>
                                   <button
@@ -1543,7 +1543,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="AI Research Intern"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1561,7 +1561,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="XYZ Research Labs"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1579,7 +1579,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="May 2024 - Aug 2024"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1597,7 +1597,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Hyderabad, India"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div className="sm:col-span-2">
@@ -1615,7 +1615,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="• Built data processing pipelines..."
-                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1669,7 +1669,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Enterprise RAG Knowledge Assistant"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1687,7 +1687,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Python, FastAPI, React.js"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1705,7 +1705,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="github.com/srimanthadep/enterprise-rag"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div className="sm:col-span-2">
@@ -1723,7 +1723,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="• Built an AI-powered assistant..."
-                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1774,7 +1774,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Deep Learning Specialization"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1789,7 +1789,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="DeepLearning.AI & Coursera"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1804,7 +1804,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="2025"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1855,7 +1855,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="1st Place — National AI Hackathon"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div>
@@ -1870,7 +1870,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="2024"
-                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                               <div className="sm:col-span-3">
@@ -1885,7 +1885,7 @@ export function ResumeBuilderView({
                                     )
                                   }
                                   placeholder="Description / Context..."
-                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-white focus:outline-none focus:border-[#4f46e5]"
+                                  className="w-full p-2 text-xs rounded-lg border border-zinc-200 bg-surface focus:outline-none focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1984,7 +1984,7 @@ export function ResumeBuilderView({
           >
             {/* A4 Document White Sheet */}
             <div
-              className="a4-document-sheet bg-white text-zinc-900 shadow-2xl transition-transform duration-200 origin-top box-border"
+              className="a4-document-sheet bg-surface text-zinc-900 shadow-2xl transition-transform duration-200 origin-top box-border"
               style={{
                 width: "100%",
                 maxWidth: "560px",
@@ -2018,7 +2018,7 @@ export function ResumeBuilderView({
                     <span>📍 {resume.personalInfo.location}</span>
                   )}
                 </div>
-                <div className="flex flex-wrap justify-center items-center gap-x-2.5 gap-y-0.5 text-[8.5px] text-[#4f46e5] font-medium mt-0.5">
+                <div className="flex flex-wrap justify-center items-center gap-x-2.5 gap-y-0.5 text-[8.5px] text-primary-text font-medium mt-0.5">
                   {resume.personalInfo.linkedin && (
                     <span>{resume.personalInfo.linkedin}</span>
                   )}
@@ -2035,7 +2035,7 @@ export function ResumeBuilderView({
               {resume.summary && (
                 <div className="mb-2.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>PROFESSIONAL SUMMARY</span>
                   </div>
                   <p className="text-[9px] text-zinc-700 text-justify leading-relaxed">
@@ -2050,7 +2050,7 @@ export function ResumeBuilderView({
                 resume.skills.tools.length > 0) && (
                 <div className="mb-2.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>TECHNICAL SKILLS</span>
                   </div>
                   <table className="w-full text-[8.5px] border-collapse">
@@ -2104,7 +2104,7 @@ export function ResumeBuilderView({
               {resume.experience.length > 0 && (
                 <div className="mb-2.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>EXPERIENCE & INTERNSHIPS</span>
                   </div>
                   <div className="space-y-1.5">
@@ -2139,7 +2139,7 @@ export function ResumeBuilderView({
               {resume.projects.length > 0 && (
                 <div className="mb-2.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>TECHNICAL PROJECTS</span>
                   </div>
                   <div className="space-y-1.5">
@@ -2173,7 +2173,7 @@ export function ResumeBuilderView({
               {resume.education.length > 0 && (
                 <div className="mb-2.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>EDUCATION</span>
                   </div>
                   <div className="space-y-1">
@@ -2206,7 +2206,7 @@ export function ResumeBuilderView({
               {resume.certifications.length > 0 && (
                 <div className="mb-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>CERTIFICATIONS</span>
                   </div>
                   <div className="space-y-0.5 text-[8.5px]">
@@ -2234,7 +2234,7 @@ export function ResumeBuilderView({
               {resume.achievements.length > 0 && (
                 <div className="mb-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-zinc-900 border-b border-zinc-200 pb-0.5 mb-1">
-                    <span className="w-[3px] h-3 bg-[#4f46e5] rounded-full inline-block" />
+                    <span className="w-[3px] h-3 bg-primary rounded-full inline-block" />
                     <span>ACHIEVEMENTS & LEADERSHIP</span>
                   </div>
                   <div className="space-y-1 text-[8.5px]">

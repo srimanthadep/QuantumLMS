@@ -83,7 +83,7 @@ export function ModuleAssignmentSection({
 
         {/* Detailed Instructions Box */}
         {assignment.instructions && (
-          <div className="p-3 rounded-xl bg-white border border-purple-100 text-xs">
+          <div className="p-3 rounded-xl bg-surface border border-purple-100 text-xs">
             <span className="text-[10.5px] font-bold text-purple-950 uppercase tracking-wide block mb-1.5">
               Teacher & Student Instructions
             </span>
@@ -105,7 +105,7 @@ export function ModuleAssignmentSection({
                   href={att.url || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:border-purple-300 text-purple-800 text-[11px] font-medium shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-gray-200 hover:border-purple-300 text-purple-800 text-[11px] font-medium shadow-2xs transition-colors"
                   title={`Open ${att.name}`}
                 >
                   <Icon name="document" size={12} />
@@ -247,7 +247,7 @@ export function ModuleAssignmentSection({
                         <button
                           type="button"
                           onClick={() => onToast?.(`Viewing submission: ${sub.submittedFile}`)}
-                          className="px-2 py-1 rounded-lg bg-white border border-gray-200 hover:border-purple-300 text-purple-700 text-[10.5px] font-medium shadow-2xs transition-colors cursor-pointer"
+                          className="px-2 py-1 rounded-lg bg-surface border border-gray-200 hover:border-purple-300 text-purple-700 text-[10.5px] font-medium shadow-2xs transition-colors cursor-pointer"
                           title="View submitted file"
                         >
                           View File

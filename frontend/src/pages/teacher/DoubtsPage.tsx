@@ -211,7 +211,7 @@ function DoubtDetailsModal({
         </div>
 
         {/* Question Details Box */}
-        <div className="mt-4 p-4 rounded-2xl bg-white border border-gray-150">
+        <div className="mt-4 p-4 rounded-2xl bg-surface border border-gray-150">
           <div className="text-[10.5px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
             Student Question
           </div>
@@ -239,7 +239,7 @@ function DoubtDetailsModal({
               </div>
 
               {responsesList.length === 0 ? (
-                <div className="p-4 text-center text-xs text-zinc-400 bg-white rounded-xl border border-gray-100">
+                <div className="p-4 text-center text-xs text-zinc-400 bg-surface rounded-xl border border-gray-100">
                   No responses recorded yet. Type your answer below to assist {doubt.studentName}.
                 </div>
               ) : (
@@ -249,7 +249,7 @@ function DoubtDetailsModal({
                       key={resp.id}
                       className={`p-3 rounded-xl text-xs border ${resp.authorRole === "Teacher"
                           ? "bg-purple-50/80 border-purple-200 ml-4"
-                          : "bg-white border-gray-200 mr-4"
+                          : "bg-surface border-gray-200 mr-4"
                         }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -283,7 +283,7 @@ function DoubtDetailsModal({
         })()}
 
         {/* Teacher Reply Text Area */}
-        <div className="mt-4 p-4 rounded-2xl bg-white border border-gray-150">
+        <div className="mt-4 p-4 rounded-2xl bg-surface border border-gray-150">
           <label htmlFor="doubt-reply" className="block text-xs font-bold text-zinc-900 mb-1.5">
             Your Teacher Response
           </label>

@@ -14,7 +14,7 @@ const badgeVariants = cva(
         destructive:
           "border border-red-200 bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
         outline:
-          "text-slate-700 border border-slate-200 bg-white",
+          "text-slate-700 border border-slate-200 bg-surface",
         success:
           "border border-teal-600/20 bg-teal-50 text-[#0F766E] dark:bg-teal-950/50 dark:text-teal-300",
         warning:
@@ -22,7 +22,7 @@ const badgeVariants = cva(
         info:
           "border border-sky-500/25 bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
         accent:
-          "border border-[#F0442E]/25 bg-[#FEF2F0] text-[#F0442E] font-semibold",
+          "border border-primary/25 bg-[#FEF2F0] text-primary-text font-semibold",
       },
     },
     defaultVariants: {

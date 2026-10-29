@@ -169,25 +169,25 @@ export const TicketsInboxPage: React.FC = () => {
       </div>
 
       {/* 2. Filter and Search Bar */}
-      <div className="panel p-3 bg-white border border-zinc-150 shrink-0">
+      <div className="panel p-3 bg-surface border border-zinc-150 shrink-0">
         <div className="flex flex-col md:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#905FEB]" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-primary-text" />
             <Input
               placeholder="Search students or topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] placeholder:text-zinc-400 focus:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20"
+              className="pl-9 h-9 text-xs rounded-full border border-primary-border bg-surface text-foreground placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[200px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
+              <SelectTrigger className="w-full sm:w-[200px] h-9 text-xs rounded-full border border-primary-border bg-surface text-foreground font-medium shadow-2xs hover:border-primary focus:ring-2 focus:ring-primary/20">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent align="end" className="rounded-2xl border border-[#E5DEFF] bg-white text-[#111111] shadow-xl min-w-[240px]">
+              <SelectContent align="end" className="rounded-2xl border border-primary-border bg-surface text-foreground shadow-xl min-w-[240px]">
                 <SelectItem value="all">All Categories</SelectItem>
                 {SUPPORT_CATEGORIES.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
@@ -199,10 +199,10 @@ export const TicketsInboxPage: React.FC = () => {
 
             {/* Priority Filter */}
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-full sm:w-[130px] h-9 text-xs rounded-full border border-[#E5DEFF] bg-white text-[#111111] font-medium shadow-2xs hover:border-[#905FEB] focus:ring-2 focus:ring-[#905FEB]/20">
+              <SelectTrigger className="w-full sm:w-[130px] h-9 text-xs rounded-full border border-primary-border bg-surface text-foreground font-medium shadow-2xs hover:border-primary focus:ring-2 focus:ring-primary/20">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
-              <SelectContent align="end" className="rounded-2xl border border-[#E5DEFF] bg-white text-[#111111] shadow-xl min-w-[140px]">
+              <SelectContent align="end" className="rounded-2xl border border-primary-border bg-surface text-foreground shadow-xl min-w-[140px]">
                 <SelectItem value="all">All Priorities</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
@@ -212,11 +212,11 @@ export const TicketsInboxPage: React.FC = () => {
 
             {/* Status Tabs with Escalated Filter */}
             <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
-              <TabsList className="grid grid-cols-5 w-full sm:w-auto rounded-full bg-[#F0EDFF] p-1 border border-[#905FEB]/20">
-                <TabsTrigger value="all" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+              <TabsList className="grid grid-cols-5 w-full sm:w-auto rounded-full bg-primary-soft p-1 border border-primary/20">
+                <TabsTrigger value="all" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
                   All
                 </TabsTrigger>
-                <TabsTrigger value="open" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                <TabsTrigger value="open" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
                   Open
                 </TabsTrigger>
                 <TabsTrigger value="escalated" className="text-xs rounded-full font-semibold data-[state=active]:bg-rose-600 data-[state=active]:text-white flex items-center gap-1">
@@ -225,10 +225,10 @@ export const TicketsInboxPage: React.FC = () => {
                     {escalatedCount}
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="pending" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                <TabsTrigger value="pending" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
                   Pending
                 </TabsTrigger>
-                <TabsTrigger value="resolved" className="text-xs rounded-full font-semibold data-[state=active]:bg-[#905FEB] data-[state=active]:text-white">
+                <TabsTrigger value="resolved" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
                   Resolved
                 </TabsTrigger>
               </TabsList>
@@ -238,7 +238,7 @@ export const TicketsInboxPage: React.FC = () => {
       </div>
 
       {/* 3. Tickets Queue Panel */}
-      <div className="panel bg-white border border-zinc-150 flex flex-col flex-1 min-h-0 overflow-hidden relative">
+      <div className="panel bg-surface border border-zinc-150 flex flex-col flex-1 min-h-0 overflow-hidden relative">
         {/* Pinned Card Header with Scroll Bar Symbol & Indicator */}
         <div className="card-header px-4 py-3 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-2 shrink-0 mb-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -255,7 +255,7 @@ export const TicketsInboxPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => listRef.current?.scrollBy({ top: -200, behavior: "smooth" })}
-                className="w-6.5 h-6.5 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                className="w-6.5 h-6.5 rounded-lg border border-primary-border bg-primary-soft hover:bg-primary-soft flex items-center justify-center text-primary-text text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                 title="Scroll Up"
                 aria-label="Scroll queue up"
               >
@@ -264,7 +264,7 @@ export const TicketsInboxPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => listRef.current?.scrollBy({ top: 200, behavior: "smooth" })}
-                className="w-6.5 h-6.5 rounded-lg border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] flex items-center justify-center text-[#7042D2] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                className="w-6.5 h-6.5 rounded-lg border border-primary-border bg-primary-soft hover:bg-primary-soft flex items-center justify-center text-primary-text text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
                 title="Scroll Down"
                 aria-label="Scroll queue down"
               >
@@ -292,7 +292,7 @@ export const TicketsInboxPage: React.FC = () => {
         <CardContent
           ref={listRef}
           onScroll={checkScrollState}
-          className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-white support-queue-scrollbar pr-2"
+          className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-surface support-queue-scrollbar pr-2"
         >
           {filteredTickets.length === 0 ? (
             <div className="p-8 text-center text-xs text-zinc-500">
@@ -317,14 +317,14 @@ export const TicketsInboxPage: React.FC = () => {
             filteredTickets.map((tkt) => (
               <div
                 key={tkt.id}
-                className="px-4 py-2 sm:px-5 sm:py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 hover:bg-[#F0EDFF]/30 transition-colors"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 hover:bg-primary-soft/30 transition-colors"
               >
                 <div className="space-y-0.5 flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-mono text-xs font-bold text-[#7042D2] bg-[#F0EDFF] border border-[#905FEB]/30 px-2.5 py-0.5 rounded-full">
+                    <span className="font-mono text-xs font-bold text-primary-text bg-primary-soft border border-primary/30 px-2.5 py-0.5 rounded-full">
                       {tkt.ticketNumber}
                     </span>
-                    <span className="text-xs font-bold text-[#111111]">
+                    <span className="text-xs font-bold text-foreground">
                       {tkt.studentName}
                     </span>
                     <span className="text-xs text-zinc-300">•</span>
@@ -364,32 +364,32 @@ export const TicketsInboxPage: React.FC = () => {
 
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-semibold rounded-full border-[#E5DEFF] text-[#111111] bg-white"
+                      className="text-[10px] font-semibold rounded-full border-primary-border text-foreground bg-surface"
                     >
                       {tkt.category}
                     </Badge>
 
                     {tkt.proposedAction && (
-                      <Badge variant="outline" className="text-[10px] bg-[#F0EDFF] text-[#7042D2] border-[#905FEB]/30 font-bold rounded-full">
+                      <Badge variant="outline" className="text-[10px] bg-primary-soft text-primary-text border-primary/30 font-bold rounded-full">
                         Proposed: {tkt.proposedAction.type === "batch_move" ? "Batch Move" : `${tkt.proposedAction.extensionDays || 30}-day Extension`}
                       </Badge>
                     )}
                   </div>
 
                   <Link to={`/support/ticket/${tkt.id}`} className="group block">
-                    <h3 className="text-xs sm:text-sm font-bold text-[#111111] leading-snug group-hover:text-[#905FEB] transition-colors">
+                    <h3 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-primary-text transition-colors">
                       {tkt.subject}
                     </h3>
                   </Link>
 
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/70 font-medium">
-                    <span>Batch: <strong className="text-[#111111]">{tkt.studentBatch}</strong></span>
-                    <span>Assigned Agent: <strong className="text-[#111111]">{tkt.assignedAgent || "Unassigned"}</strong></span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-foreground/70 font-medium">
+                    <span>Batch: <strong className="text-foreground">{tkt.studentBatch}</strong></span>
+                    <span>Assigned Agent: <strong className="text-foreground">{tkt.assignedAgent || "Unassigned"}</strong></span>
                     <span>Email: <span className="font-mono text-zinc-600">{tkt.studentEmail}</span></span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between lg:justify-end gap-2 pt-1 lg:pt-0 border-t lg:border-t-0 border-[#F0EDFF] shrink-0">
+                <div className="flex items-center justify-between lg:justify-end gap-2 pt-1 lg:pt-0 border-t lg:border-t-0 border-primary-soft shrink-0">
                   <Link to={`/support/ticket/${tkt.id}`}>
                     <button
                       className="btn-support-secondary text-xs h-7.5 px-3.5 gap-1.5 font-bold cursor-pointer"

@@ -319,7 +319,7 @@ export function EvaluatorPortal({
             className="fixed inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => setIsMobileDrawerOpen(false)}
           />
-          <div className="relative z-10 w-72 max-w-[85vw] bg-white h-full shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative z-10 w-72 max-w-[85vw] bg-surface h-full shadow-2xl animate-in slide-in-from-left duration-200">
             <EvaluatorSidebar
               activeTab={activeTab}
               setActiveTab={handleTabChange}

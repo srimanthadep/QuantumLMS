@@ -64,7 +64,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
   return (
     <div className="evaluator-settings app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] max-w-4xl">
       {/* Evaluator Profile Section */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
         <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
           <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
             <User className="w-5 h-5" />
@@ -149,7 +149,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
       </div>
 
       {/* Evaluation Workspace & Display Preferences */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
         <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
             <Eye className="w-5 h-5" />
@@ -177,7 +177,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
                   defaultSort: e.target.value as any,
                 }))
               }
-              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-surface text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
               <option value="deadline">Evaluation Deadline (Closest first)</option>
               <option value="submissionDate">Submission Timestamp (Recent first)</option>
@@ -198,7 +198,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
                   listView: e.target.value as any,
                 }))
               }
-              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-surface text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
               <option value="detailed">Detailed Table (Expanded columns)</option>
               <option value="compact">Compact Row View</option>
@@ -255,7 +255,7 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
       </div>
 
       {/* Notification Preferences */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
+      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
         <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
             <Bell className="w-5 h-5" />

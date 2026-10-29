@@ -41,7 +41,7 @@ export function AddFacultyModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card max-w-md w-full bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200"
+        className="modal-card max-w-md w-full bg-surface rounded-3xl p-6 shadow-2xl border border-zinc-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
@@ -173,7 +173,7 @@ export function SchoolAnnouncementModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card max-w-md w-full bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200"
+        className="modal-card max-w-md w-full bg-surface rounded-3xl p-6 shadow-2xl border border-zinc-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
@@ -279,12 +279,12 @@ export function AuditDetailModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card max-w-lg w-full bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200"
+        className="modal-card max-w-lg w-full bg-surface rounded-3xl p-6 shadow-2xl border border-zinc-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-zinc-900 text-white">
+            <span className="p-2 rounded-xl bg-ink-900 text-white">
               <Icon name="shield" size={18} />
             </span>
             <div>
@@ -336,14 +336,14 @@ export function AuditDetailModal({
 
           <div>
             <div className="text-xs font-bold text-zinc-700 uppercase mb-1">Action Description</div>
-            <div className="p-3 bg-white rounded-xl border border-zinc-200 text-xs text-zinc-800 leading-relaxed font-medium">
+            <div className="p-3 bg-surface rounded-xl border border-zinc-200 text-xs text-zinc-800 leading-relaxed font-medium">
               {log.action}
             </div>
           </div>
 
           <div>
             <div className="text-xs font-bold text-zinc-700 uppercase mb-1">Target Resource</div>
-            <div className="p-2.5 bg-zinc-900 text-zinc-100 rounded-xl font-mono text-[11px]">
+            <div className="p-2.5 bg-ink-900 text-zinc-100 rounded-xl font-mono text-[11px]">
               {log.target}
             </div>
           </div>
@@ -352,7 +352,7 @@ export function AuditDetailModal({
         <div className="mt-5 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-xs font-bold text-white bg-zinc-900 hover:bg-black rounded-xl transition-colors"
+            className="px-5 py-2 text-xs font-bold text-white bg-ink-900 hover:bg-black rounded-xl transition-colors"
           >
             Close Audit Inspector
           </button>

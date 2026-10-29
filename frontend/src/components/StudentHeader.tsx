@@ -167,7 +167,7 @@ export function StudentHeader({
 
         <button
           onClick={onSwitchToTeacher}
-          className="px-3 h-9 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          className="px-3 h-9 rounded-lg bg-surface border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           title="Switch to Teacher View"
         >
           <span>Teacher View</span>
@@ -189,25 +189,25 @@ export function StudentHeader({
               setIsNotificationsOpen((prev) => !prev)
               setIsProfileOpen(false)
             }}
-            className="relative bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 shadow-2xs"
+            className="relative bg-surface border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 shadow-2xs"
             title="Notifications & Campus Notices"
             aria-label="View notifications"
           >
             <Icon name="bell" size={16} />
-            <span className="absolute -top-1 -right-1 bg-[#F0442E] text-white text-[9.5px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            <span className="absolute -top-1 -right-1 bg-primary text-white text-[9.5px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               3
             </span>
           </button>
 
           {isNotificationsOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 text-left"
+              className="absolute right-0 top-full mt-2 w-80 bg-surface border border-slate-200 rounded-xl shadow-xl z-50 p-3 text-left"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-xs text-slate-900">Notifications</span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-[#FEF2F0] text-[#F0442E]">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-[#FEF2F0] text-primary-text">
                     3 new
                   </span>
                 </div>
@@ -216,7 +216,7 @@ export function StudentHeader({
                     setIsNotificationsOpen(false)
                     onNavigate("Events & Notices")
                   }}
-                  className="text-[11px] font-semibold text-[#F0442E] hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-primary-text hover:underline cursor-pointer"
                 >
                   View all
                 </button>
@@ -294,7 +294,7 @@ export function StudentHeader({
               setIsProfileOpen((prev) => !prev)
               setIsNotificationsOpen(false)
             }}
-            className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer text-left shadow-2xs"
+            className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-surface border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer text-left shadow-2xs"
             title="Student Account & Profile"
             aria-label="Student profile menu"
           >
@@ -318,7 +318,7 @@ export function StudentHeader({
 
           {isProfileOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-60 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 text-left"
+              className="absolute right-0 top-full mt-2 w-60 bg-surface border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 text-left"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-3">

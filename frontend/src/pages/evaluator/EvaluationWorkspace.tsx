@@ -353,9 +353,9 @@ export function EvaluationWorkspace({
   const activeFile = submission.files.find((f) => f.id === activeFileId)
 
   return (
-    <div className="evaluator-workspace flex flex-col h-[calc(100vh-140px)] min-h-[640px] bg-white rounded-3xl border border-zinc-200/90 shadow-lg overflow-hidden">
+    <div className="evaluator-workspace flex flex-col h-[calc(100vh-140px)] min-h-[640px] bg-surface rounded-3xl border border-zinc-200/90 shadow-lg overflow-hidden">
       {/* Workspace Top Toolbar */}
-      <div className="workspace-header bg-zinc-900 text-white px-5 py-3 flex items-center justify-between gap-4 shrink-0 flex-wrap">
+      <div className="workspace-header bg-ink-900 text-white px-5 py-3 flex items-center justify-between gap-4 shrink-0 flex-wrap">
         {/* Left: Back & Breadcrumbs */}
         <div className="flex items-center gap-3">
           <button
@@ -469,7 +469,7 @@ export function EvaluationWorkspace({
             ======================================================== */}
         <div className="md:col-span-3 h-full overflow-y-auto no-scrollbar p-4 bg-zinc-50/50 space-y-4 text-xs">
           {/* Student Profile Card */}
-          <div className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-3">
+          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
               <img
                 src={submission.studentAvatar}
@@ -527,7 +527,7 @@ export function EvaluationWorkspace({
           </div>
 
           {/* Assessment Instructions Card */}
-          <div className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2">
+          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2">
             <h4 className="font-bold text-zinc-900 text-xs flex items-center gap-1.5 uppercase tracking-wider">
               <Info className="w-3.5 h-3.5 text-purple-600" />
               <span>Assessment Directive</span>
@@ -538,7 +538,7 @@ export function EvaluationWorkspace({
           </div>
 
           {/* Submitted Files List */}
-          <div className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2.5">
+          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2.5">
             <h4 className="font-bold text-zinc-900 text-xs flex items-center justify-between">
               <span>Submitted Artifacts</span>
               <span className="text-[10px] text-zinc-400 font-normal">
@@ -617,9 +617,9 @@ export function EvaluationWorkspace({
         {/* ========================================================
             SECTION 2 (CENTER): SUBMISSION VIEWER (5 Cols)
             ======================================================== */}
-        <div className="md:col-span-5 h-full flex flex-col bg-zinc-950 text-zinc-100 overflow-hidden">
+        <div className="md:col-span-5 h-full flex flex-col bg-ink-950 text-zinc-100 overflow-hidden">
           {/* Viewer Tab Bar */}
-          <div className="bg-zinc-900 px-4 py-2 border-b border-zinc-800 flex items-center justify-between text-xs shrink-0">
+          <div className="bg-ink-900 px-4 py-2 border-b border-zinc-800 flex items-center justify-between text-xs shrink-0">
             <div className="flex items-center gap-2 font-mono text-zinc-300 truncate">
               {activeFileId === "questions" ? (
                 <>
@@ -630,7 +630,7 @@ export function EvaluationWorkspace({
                 <>
                   <Code className="w-3.5 h-3.5 text-blue-400" />
                   <span>{activeFile?.name}</span>
-                  <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+                  <span className="text-[10px] bg-ink-800 px-1.5 py-0.5 rounded text-zinc-400">
                     {activeFile?.language}
                   </span>
                 </>
@@ -638,7 +638,7 @@ export function EvaluationWorkspace({
                 <>
                   <FileText className="w-3.5 h-3.5 text-rose-400" />
                   <span>{activeFile?.name}</span>
-                  <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+                  <span className="text-[10px] bg-ink-800 px-1.5 py-0.5 rounded text-zinc-400">
                     PDF Document
                   </span>
                 </>
@@ -658,13 +658,13 @@ export function EvaluationWorkspace({
                 {submission.questionAnswers.map((qa) => (
                   <div
                     key={qa.id}
-                    className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3"
+                    className="bg-ink-900 p-4 rounded-xl border border-zinc-800 space-y-3"
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-purple-400">
                         Question #{qa.questionNumber} ({qa.questionType.replace("_", " ")})
                       </span>
-                      <span className="font-bold text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded">
+                      <span className="font-bold text-zinc-400 bg-ink-800 px-2 py-0.5 rounded">
                         Max {qa.maxMarks} Marks
                       </span>
                     </div>
@@ -673,7 +673,7 @@ export function EvaluationWorkspace({
                       {qa.questionText}
                     </div>
 
-                    <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/80 space-y-1">
+                    <div className="bg-ink-950 p-3 rounded-lg border border-zinc-800/80 space-y-1">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                         Student Answer:
                       </div>
@@ -704,7 +704,7 @@ export function EvaluationWorkspace({
                           onChange={(e) =>
                             handleQuestionScoreChange(qa.id, e.target.value, qa.maxMarks)
                           }
-                          className="w-16 px-2 py-1 text-center bg-zinc-800 text-white font-bold rounded-lg border border-zinc-700 text-xs focus:ring-1 focus:ring-purple-400 focus:outline-none"
+                          className="w-16 px-2 py-1 text-center bg-ink-800 text-white font-bold rounded-lg border border-zinc-700 text-xs focus:ring-1 focus:ring-purple-400 focus:outline-none"
                         />
                         <span className="text-xs text-zinc-500">/ {qa.maxMarks}</span>
                       </div>
@@ -717,7 +717,7 @@ export function EvaluationWorkspace({
               <div className="space-y-0.5 text-zinc-300 text-xs leading-5">
                 {activeFile.content ? (
                   activeFile.content.split("\n").map((line, idx) => (
-                    <div key={idx} className="flex hover:bg-zinc-900/60 px-1 rounded">
+                    <div key={idx} className="flex hover:bg-ink-900/60 px-1 rounded">
                       <span className="w-10 text-zinc-600 select-none shrink-0 text-right pr-4 font-mono text-[11px]">
                         {idx + 1}
                       </span>
@@ -735,7 +735,7 @@ export function EvaluationWorkspace({
             ) : activeFile?.type === "pdf" ? (
               /* PDF Simulation Viewer */
               <div className="space-y-4 font-sans text-zinc-200">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-inner space-y-4">
+                <div className="bg-ink-900 border border-zinc-800 p-6 rounded-2xl shadow-inner space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-zinc-800 text-xs text-zinc-400">
                     <span>Document Viewer: {activeFile.name}</span>
                     <span>Pages: 1 of {activeFile.pageCount || 1}</span>
@@ -760,7 +760,7 @@ export function EvaluationWorkspace({
         {/* ========================================================
             SECTION 3 (RIGHT): GRADING PANEL (4 Cols)
             ======================================================== */}
-        <div className="md:col-span-4 h-full overflow-y-auto no-scrollbar p-5 bg-white space-y-5 text-xs">
+        <div className="md:col-span-4 h-full overflow-y-auto no-scrollbar p-5 bg-surface space-y-5 text-xs">
           {/* Panel Header */}
           <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
             <div>
@@ -842,7 +842,7 @@ export function EvaluationWorkspace({
                         className={`w-14 px-2 py-1 text-center font-bold rounded-lg border text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 ${
                           isExceeded
                             ? "bg-red-50 text-red-700 border-red-300"
-                            : "bg-white text-zinc-900 border-zinc-300"
+                            : "bg-surface text-zinc-900 border-zinc-300"
                         }`}
                       />
                       <span className="text-[11px] font-semibold text-zinc-400">
@@ -868,7 +868,7 @@ export function EvaluationWorkspace({
                           className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer ${
                             criterionScores[criterion.id] === lvl.points
                               ? "bg-purple-600 text-white"
-                              : "bg-white hover:bg-zinc-100 text-zinc-600 border border-zinc-200"
+                              : "bg-surface hover:bg-zinc-100 text-zinc-600 border border-zinc-200"
                           }`}
                           title={lvl.description}
                         >
@@ -890,7 +890,7 @@ export function EvaluationWorkspace({
                       }))
                     }}
                     placeholder={`Notes for ${criterion.name}...`}
-                    className="w-full text-[11px] px-2.5 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                    className="w-full text-[11px] px-2.5 py-1.5 rounded-lg bg-surface border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
                   />
                 </div>
               )
@@ -998,7 +998,7 @@ export function EvaluationWorkspace({
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-surface rounded-3xl max-w-md w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
             <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
               <CheckCircle className="w-6 h-6" />
             </div>
@@ -1058,7 +1058,7 @@ export function EvaluationWorkspace({
       {/* Unsaved Changes Guard Modal */}
       {showUnsavedModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-surface rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>

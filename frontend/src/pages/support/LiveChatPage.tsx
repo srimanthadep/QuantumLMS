@@ -522,8 +522,8 @@ export const LiveChatPage: React.FC = () => {
     <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] h-full support-page-font">
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed top-4 right-4 z-50 bg-[#111111] text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in slide-in-from-top-3">
-          <Sparkles className="h-4 w-4 text-[#AEEB00]" />
+        <div className="fixed top-4 right-4 z-50 bg-ink-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in slide-in-from-top-3">
+          <Sparkles className="h-4 w-4 text-success" />
           <span>{notification}</span>
         </div>
       )}
@@ -531,14 +531,14 @@ export const LiveChatPage: React.FC = () => {
       {/* =========================================================
           FEATURE BAR FROM IMAGE 1 (With Image 2's sleek rounded UI)
          ========================================================= */}
-      <div className="panel px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white border border-zinc-150 rounded-2xl shadow-2xs">
+      <div className="panel px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-surface border border-zinc-150 rounded-2xl shadow-2xs">
         {/* Left Side: Operations Desk Info & Status Badges */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-[#F0EDFF] text-[#7042D2] flex items-center justify-center font-bold">
+            <div className="w-7 h-7 rounded-xl bg-primary-soft text-primary-text flex items-center justify-center font-bold">
               <MessageSquare className="h-4 w-4" />
             </div>
-            <h2 className="text-sm font-bold text-[#111111] tracking-tight">
+            <h2 className="text-sm font-bold text-foreground tracking-tight">
               Live Chat Operations Desk
             </h2>
           </div>
@@ -546,8 +546,8 @@ export const LiveChatPage: React.FC = () => {
           <div className="h-4 w-px bg-zinc-200 hidden sm:block" />
 
           {/* Lime Live Desk Indicator */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBFDCE] text-[#345C00] border border-[#AEEB00]/40 text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-[#AEEB00] animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBFDCE] text-[#345C00] border border-success/40 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span>Live Desk</span>
           </span>
 
@@ -568,7 +568,7 @@ export const LiveChatPage: React.FC = () => {
         {/* Right Side: Agent Presence & Instant Actions */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Agent Presence Pill */}
-          <div className="flex items-center rounded-full border border-[#E5DEFF] p-0.5 bg-[#FAF9FF] text-xs">
+          <div className="flex items-center rounded-full border border-primary-border p-0.5 bg-primary-soft text-xs">
             {(["online", "in_chat", "away"] as const).map((st) => (
               <button
                 key={st}
@@ -582,7 +582,7 @@ export const LiveChatPage: React.FC = () => {
                     ? st === "online"
                       ? "bg-emerald-600 text-white shadow-2xs"
                       : st === "in_chat"
-                      ? "bg-[#7042D2] text-white shadow-2xs"
+                      ? "bg-primary-hover text-white shadow-2xs"
                       : "bg-amber-500 text-white shadow-2xs"
                     : "text-zinc-600 hover:text-zinc-900"
                 }`}
@@ -596,7 +596,7 @@ export const LiveChatPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setIs360DrawerOpen(true)}
-            className="px-3 h-8 rounded-full border border-[#E5DEFF] text-[#7042D2] bg-[#FAF9FF] hover:bg-[#F0EDFF] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 h-8 rounded-full border border-primary-border text-primary-text bg-primary-soft hover:bg-primary-soft text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Inspect Full Student 360"
           >
             <User className="h-3.5 w-3.5" />
@@ -608,7 +608,7 @@ export const LiveChatPage: React.FC = () => {
             type="button"
             onClick={handleResolveSession}
             disabled={selectedChat.status === "resolved"}
-            className="px-3.5 h-8 rounded-full bg-[#7042D2] hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            className="px-3.5 h-8 rounded-full bg-primary-hover hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             title="Mark session as resolved"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -624,9 +624,9 @@ export const LiveChatPage: React.FC = () => {
         {/* =========================================================
             COLUMN 1: Conversation Queue (4 cols / 3.5 cols)
            ========================================================= */}
-        <div className="lg:col-span-4 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs">
+        <div className="lg:col-span-4 h-full panel flex flex-col min-h-0 overflow-hidden bg-surface border border-zinc-150 rounded-2xl shadow-2xs">
           {/* Search Bar + Filters (Image 2 UI + Image 1 Tabs) */}
-          <div className="p-3 pb-2 border-b border-[#F0EDFF] space-y-2.5 bg-white shrink-0">
+          <div className="p-3 pb-2 border-b border-primary-soft space-y-2.5 bg-surface shrink-0">
             {/* Search Pill */}
             <div className="relative">
               <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400" />
@@ -634,7 +634,7 @@ export const LiveChatPage: React.FC = () => {
                 placeholder="Search conversations or students..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-8 h-9 text-xs sm:text-sm bg-[#F0EDFF] rounded-full border border-transparent focus:border-[#905FEB] text-[#111111] placeholder:text-zinc-500 focus:outline-none transition-all"
+                className="w-full pl-10 pr-8 h-9 text-xs sm:text-sm bg-primary-soft rounded-full border border-transparent focus:border-primary text-foreground placeholder:text-zinc-500 focus:outline-none transition-all"
               />
               {searchQuery && (
                 <button
@@ -667,8 +667,8 @@ export const LiveChatPage: React.FC = () => {
                       onClick={() => setStatusTab(tab)}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize transition-all cursor-pointer whitespace-nowrap ${
                         isTabActive
-                          ? "bg-[#7042D2] text-white shadow-2xs"
-                          : "text-zinc-500 hover:text-[#7042D2] hover:bg-[#F0EDFF]"
+                          ? "bg-primary-hover text-white shadow-2xs"
+                          : "text-zinc-500 hover:text-primary-text hover:bg-primary-soft"
                       }`}
                     >
                       {tab} ({count})
@@ -684,8 +684,8 @@ export const LiveChatPage: React.FC = () => {
                 title="Filter Urgent SLA"
                 className={`h-7 px-2.5 rounded-full border transition-all text-xs flex items-center gap-1 shrink-0 cursor-pointer ${
                   urgentOnly
-                    ? "bg-[#FFF3E0] text-[#B45309] border-[#F59E0B]/50 font-bold shadow-2xs"
-                    : "bg-white border-[#E5DEFF] text-zinc-500 hover:border-[#905FEB]"
+                    ? "bg-warning-soft text-warning border-[#F59E0B]/50 font-bold shadow-2xs"
+                    : "bg-surface border-primary-border text-zinc-500 hover:border-primary"
                 }`}
               >
                 <Flame className={`h-3.5 w-3.5 ${urgentOnly ? "text-amber-600 animate-pulse" : "text-zinc-400"}`} />
@@ -712,8 +712,8 @@ export const LiveChatPage: React.FC = () => {
                   }}
                   className={`w-full p-3 rounded-2xl flex items-start gap-3 transition-all cursor-pointer text-left select-none border ${
                     isSelected
-                      ? "bg-[#F0EDFF] border-[#905FEB] text-[#111111] shadow-2xs"
-                      : "bg-white border-transparent hover:bg-[#FAF9FF]"
+                      ? "bg-primary-soft border-primary text-foreground shadow-2xs"
+                      : "bg-surface border-transparent hover:bg-primary-soft"
                   }`}
                 >
                   {/* Squircle Avatar with Image or Initial Pill */}
@@ -722,7 +722,7 @@ export const LiveChatPage: React.FC = () => {
                       <img
                         src={chat.photoUrl}
                         alt={chat.studentName}
-                        className="w-11 h-11 rounded-2xl object-cover shadow-2xs border border-[#E5DEFF]"
+                        className="w-11 h-11 rounded-2xl object-cover shadow-2xs border border-primary-border"
                       />
                     ) : (
                       <div
@@ -733,14 +733,14 @@ export const LiveChatPage: React.FC = () => {
                       </div>
                     )}
                     {chat.isOnline && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#AEEB00] ring-2 ring-white" />
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-white" />
                     )}
                   </div>
 
                   {/* Conversation Meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <h4 className="text-sm font-bold text-[#111111] truncate">
+                      <h4 className="text-sm font-bold text-foreground truncate">
                         {chat.studentName}
                       </h4>
                       <span className="text-[11px] text-zinc-400 font-medium shrink-0 ml-1">
@@ -750,12 +750,12 @@ export const LiveChatPage: React.FC = () => {
 
                     <p className="text-xs text-zinc-500 truncate leading-snug">
                       {chat.isVoiceMessage ? (
-                        <span className="text-[#7042D2] font-semibold flex items-center gap-1">
+                        <span className="text-primary-text font-semibold flex items-center gap-1">
                           <Mic className="h-3 w-3" /> Voice message
                         </span>
                       ) : chat.lastMessageSender === "you" ? (
                         <span>
-                          <span className="text-[#905FEB] font-medium">You: </span>
+                          <span className="text-primary-text font-medium">You: </span>
                           {chat.lastMessage.replace("You: ", "")}
                         </span>
                       ) : (
@@ -780,7 +780,7 @@ export const LiveChatPage: React.FC = () => {
                       )}
 
                       {chat.priority === "urgent" && (
-                        <span className="bg-[#FFF3E0] text-[#B45309] border border-[#F59E0B]/40 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="bg-warning-soft text-warning border border-[#F59E0B]/40 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Flame className="h-2.5 w-2.5 text-amber-600 animate-pulse" />
                           <span>&lt;{chat.slaMinutesLeft}m SLA</span>
                         </span>
@@ -789,10 +789,10 @@ export const LiveChatPage: React.FC = () => {
                       {/* Right Indicators: Unread Pill or Double Checkmarks */}
                       <div className="flex items-center gap-1.5 ml-auto">
                         {chat.isRead && (
-                          <CheckCheck className="h-3.5 w-3.5 text-[#7042D2]" />
+                          <CheckCheck className="h-3.5 w-3.5 text-primary-text" />
                         )}
                         {chat.unreadCount > 0 && (
-                          <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-[#7042D2] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
+                          <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary-hover text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
                             {chat.unreadCount}
                           </span>
                         )}
@@ -811,24 +811,24 @@ export const LiveChatPage: React.FC = () => {
         <div
           className={`${
             showTelemetryPanel ? "lg:col-span-5" : "lg:col-span-8"
-          } h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs transition-all`}
+          } h-full panel flex flex-col min-h-0 overflow-hidden bg-surface border border-zinc-150 rounded-2xl shadow-2xs transition-all`}
         >
           {/* Active Conversation Header (Image 2 UI + Image 1 verified/SLA badges) */}
-          <div className="px-5 py-3 border-b border-[#F0EDFF] flex items-center justify-between bg-white shrink-0">
+          <div className="px-5 py-3 border-b border-primary-soft flex items-center justify-between bg-surface shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               {/* Header Avatar Circle with Initials matching screenshot */}
               <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-full font-bold text-xs flex items-center justify-center border border-[#E5DEFF] text-[#7042D2] bg-[#F0EDFF] shadow-2xs">
+                <div className="w-10 h-10 rounded-full font-bold text-xs flex items-center justify-center border border-primary-border text-primary-text bg-primary-soft shadow-2xs">
                   {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
                 </div>
                 {selectedChat.isOnline && (
-                  <span className="absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full bg-[#AEEB00] ring-2 ring-white" />
+                  <span className="absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-white" />
                 )}
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight leading-tight truncate">
+                  <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight truncate">
                     {selectedChat.studentName}
                   </h3>
                   {selectedChat.verified && (
@@ -837,13 +837,13 @@ export const LiveChatPage: React.FC = () => {
                     </span>
                   )}
                   {selectedChat.priority === "urgent" && (
-                    <span className="bg-[#FFF3E0] text-[#B45309] border border-[#F59E0B]/40 text-[9px] font-bold px-1.5 py-0 rounded-full flex items-center gap-0.5">
+                    <span className="bg-warning-soft text-warning border border-[#F59E0B]/40 text-[9px] font-bold px-1.5 py-0 rounded-full flex items-center gap-0.5">
                       <Flame className="h-2.5 w-2.5 text-amber-600" />
                       <span>Urgent SLA</span>
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#7042D2] font-semibold truncate max-w-[280px]">
+                <p className="text-xs text-primary-text font-semibold truncate max-w-[280px]">
                   {selectedChat.courseTitle}
                 </p>
               </div>
@@ -855,8 +855,8 @@ export const LiveChatPage: React.FC = () => {
                 type="button"
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer shadow-2xs hover:shadow-xs ${
                   showTelemetryPanel
-                    ? "bg-[#7042D2] text-white shadow-xs"
-                    : "bg-[#F0EDFF] text-[#7042D2] hover:bg-[#E5DEFF]"
+                    ? "bg-primary-hover text-white shadow-xs"
+                    : "bg-primary-soft text-primary-text hover:bg-primary-border"
                 }`}
                 title={showTelemetryPanel ? 'Close "Learner 360° Telemetry" block' : 'Open "Learner 360° Telemetry" block'}
                 onClick={() => {
@@ -867,7 +867,7 @@ export const LiveChatPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                className="w-9 h-9 rounded-full bg-[#F0EDFF] text-[#7042D2] hover:bg-[#E5DEFF] flex items-center justify-center transition-colors cursor-pointer shadow-2xs hover:shadow-xs"
+                className="w-9 h-9 rounded-full bg-primary-soft text-primary-text hover:bg-primary-border flex items-center justify-center transition-colors cursor-pointer shadow-2xs hover:shadow-xs"
                 title="Refresh Thread"
                 onClick={() => showToast("Chat stream refreshed.")}
               >
@@ -877,13 +877,13 @@ export const LiveChatPage: React.FC = () => {
           </div>
 
           {/* Messages Stream Viewport: Pure Query and Resolve */}
-          <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto space-y-4 support-queue-scrollbar bg-[#FAF9FF]/30">
+          <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto space-y-4 support-queue-scrollbar bg-primary-soft/30">
             {selectedChat.messages.map((msg) => {
               if (msg.sender === "system") {
                 return (
                   <div key={msg.id} className="flex justify-center my-2">
-                    <span className="text-[11px] text-[#7042D2] bg-[#F0EDFF] border border-[#905FEB]/30 px-3.5 py-1.5 rounded-full font-bold shadow-2xs flex items-center gap-1.5">
-                      <ShieldCheck className="h-3.5 w-3.5 text-[#905FEB]" />
+                    <span className="text-[11px] text-primary-text bg-primary-soft border border-primary/30 px-3.5 py-1.5 rounded-full font-bold shadow-2xs flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-primary-text" />
                       {msg.text}
                     </span>
                   </div>
@@ -893,11 +893,11 @@ export const LiveChatPage: React.FC = () => {
               if (msg.sender === "agent") {
                 return (
                   <div key={msg.id} className="flex items-end justify-end">
-                    <div className="bg-[#7042D2] text-white rounded-[22px] rounded-br-sm p-4 text-xs sm:text-sm font-medium leading-relaxed max-w-[85%] sm:max-w-[78%] shadow-2xs">
+                    <div className="bg-primary-hover text-white rounded-[22px] rounded-br-sm p-4 text-xs sm:text-sm font-medium leading-relaxed max-w-[85%] sm:max-w-[78%] shadow-2xs">
                       <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                       <div className="text-[11px] text-white/80 mt-2 flex items-center gap-1.5 justify-end font-medium">
                         <span>{msg.time}</span>
-                        <CheckCheck className="h-3.5 w-3.5 text-[#AEEB00]" />
+                        <CheckCheck className="h-3.5 w-3.5 text-success" />
                       </div>
                     </div>
                   </div>
@@ -907,10 +907,10 @@ export const LiveChatPage: React.FC = () => {
               // Student Query message
               return (
                 <div key={msg.id} className="flex items-start gap-3 justify-start max-w-[85%] sm:max-w-[78%]">
-                  <div className="w-8.5 h-8.5 rounded-full bg-[#F0EDFF] text-[#7042D2] font-bold text-xs flex items-center justify-center border border-[#E5DEFF] shrink-0 mt-0.5 select-none shadow-2xs">
+                  <div className="w-8.5 h-8.5 rounded-full bg-primary-soft text-primary-text font-bold text-xs flex items-center justify-center border border-primary-border shrink-0 mt-0.5 select-none shadow-2xs">
                     {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="bg-white border border-[#E5DEFF] rounded-[22px] rounded-tl-sm p-4 text-[#111111] text-xs sm:text-sm font-medium leading-relaxed shadow-2xs">
+                  <div className="bg-surface border border-primary-border rounded-[22px] rounded-tl-sm p-4 text-foreground text-xs sm:text-sm font-medium leading-relaxed shadow-2xs">
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className="text-[11px] text-zinc-400 mt-2 font-medium">{msg.time}</div>
                   </div>
@@ -921,31 +921,31 @@ export const LiveChatPage: React.FC = () => {
           </div>
 
           {/* AI COPILOT & MACRO ACCELERATION BAR (From Image 1) */}
-          <div className="px-4 py-2 border-t border-[#F0EDFF] bg-[#FAF9FF] space-y-1.5 shrink-0">
+          <div className="px-4 py-2 border-t border-primary-soft bg-primary-soft space-y-1.5 shrink-0">
             {/* Top row: AI Draft Proposals */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-bold text-zinc-600 flex items-center gap-1 shrink-0 mr-1">
-                <Sparkles className="h-3.5 w-3.5 text-[#7042D2]" />
+                <Sparkles className="h-3.5 w-3.5 text-primary-text" />
                 <span>AI Draft Proposals:</span>
               </span>
               <button
                 type="button"
                 onClick={() => setInputText("Hello! I reviewed your attendance (92%) and course progress (78%). You meet all eligibility criteria, so your cohort transfer is approved.")}
-                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-surface hover:bg-primary-soft border border-primary-border text-primary-text transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
               >
                 <span>💼 Batch Shift SOP</span>
               </button>
               <button
                 type="button"
                 onClick={() => setInputText("We have reviewed your request under our medical policy guidelines and granted a 30-day course validity extension.")}
-                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-surface hover:bg-primary-soft border border-primary-border text-primary-text transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
               >
                 <span>🕒 Medical Policy</span>
               </button>
               <button
                 type="button"
                 onClick={() => setInputText("I completely understand your situation and am prioritizing your request right away so your learning progress remains smooth.")}
-                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white hover:bg-[#F0EDFF] border border-[#E5DEFF] text-[#7042D2] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-surface hover:bg-primary-soft border border-primary-border text-primary-text transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
               >
                 <span>🤝 Empathetic</span>
               </button>
@@ -958,9 +958,9 @@ export const LiveChatPage: React.FC = () => {
                   key={idx}
                   type="button"
                   onClick={() => setInputText(macro.text)}
-                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-[#E5DEFF] bg-white hover:bg-[#F0EDFF] hover:border-[#905FEB] text-[#111111] shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-primary-border bg-surface hover:bg-primary-soft hover:border-primary text-foreground shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                 >
-                  <span className="font-mono text-[#7042D2]">{macro.tag}</span>
+                  <span className="font-mono text-primary-text">{macro.tag}</span>
                   <span>{macro.label}</span>
                 </button>
               ))}
@@ -968,7 +968,7 @@ export const LiveChatPage: React.FC = () => {
           </div>
 
           {/* SLEEK PILL COMPOSER (From Image 2 with Image 1 shortcuts) */}
-          <div className="p-3 sm:p-4 bg-white border-t border-[#F0EDFF] shrink-0">
+          <div className="p-3 sm:p-4 bg-surface border-t border-primary-soft shrink-0">
             {isRecordingVoice ? (
               /* Voice Recording Bar */
               <div className="rounded-full bg-rose-50 border border-rose-200 p-2 px-4 flex items-center justify-between shadow-xs animate-in fade-in">
@@ -988,12 +988,12 @@ export const LiveChatPage: React.FC = () => {
               </div>
             ) : (
               /* Modern Pill Input Bar */
-              <div className="rounded-full bg-[#F4F3F8] p-1.5 sm:p-2 pl-4 pr-2 flex items-center gap-3 border border-[#E5DEFF] shadow-xs">
+              <div className="rounded-full bg-[#F4F3F8] p-1.5 sm:p-2 pl-4 pr-2 flex items-center gap-3 border border-primary-border shadow-xs">
                 {/* Attachment Icon */}
                 <button
                   type="button"
                   onClick={() => showToast("Attachment dialog ready. You can attach PDFs or diagrams.")}
-                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  className="text-zinc-400 hover:text-primary-text transition-colors cursor-pointer"
                   title="Attach file"
                 >
                   <Paperclip className="h-4.5 w-4.5" />
@@ -1003,7 +1003,7 @@ export const LiveChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setInputText((prev) => prev + " 👍 ")}
-                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  className="text-zinc-400 hover:text-primary-text transition-colors cursor-pointer"
                   title="Insert emoji"
                 >
                   <Smile className="h-4.5 w-4.5" />
@@ -1021,14 +1021,14 @@ export const LiveChatPage: React.FC = () => {
                       handleSendMessage();
                     }
                   }}
-                  className="flex-1 bg-transparent border-0 outline-none text-xs sm:text-sm text-[#111111] placeholder:text-zinc-400"
+                  className="flex-1 bg-transparent border-0 outline-none text-xs sm:text-sm text-foreground placeholder:text-zinc-400"
                 />
 
                 {/* Voice Record Mic */}
                 <button
                   type="button"
                   onClick={handleToggleRecord}
-                  className="text-zinc-400 hover:text-[#7042D2] transition-colors cursor-pointer"
+                  className="text-zinc-400 hover:text-primary-text transition-colors cursor-pointer"
                   title="Record Voice Message"
                 >
                   <Mic className="h-4.5 w-4.5" />
@@ -1039,7 +1039,7 @@ export const LiveChatPage: React.FC = () => {
                   type="button"
                   onClick={handleSendMessage}
                   disabled={!inputText.trim()}
-                  className="px-3.5 h-8 rounded-full bg-[#7042D2] hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40 transition-colors"
+                  className="px-3.5 h-8 rounded-full bg-primary-hover hover:bg-[#5D32B8] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40 transition-colors"
                   title="Send reply"
                 >
                   <span>Send Reply</span>
@@ -1054,11 +1054,11 @@ export const LiveChatPage: React.FC = () => {
             COLUMN 3: LEARNER 360° TELEMETRY (FEATURES FROM IMAGE 1 + UI FROM IMAGE 2)
            ========================================================= */}
         {showTelemetryPanel && (
-          <div className="lg:col-span-3 h-full panel flex flex-col min-h-0 overflow-hidden bg-white border border-zinc-150 rounded-2xl shadow-2xs animate-in slide-in-from-right-4 duration-200">
+          <div className="lg:col-span-3 h-full panel flex flex-col min-h-0 overflow-hidden bg-surface border border-zinc-150 rounded-2xl shadow-2xs animate-in slide-in-from-right-4 duration-200">
             {/* Header */}
-            <div className="p-3 border-b border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-between shrink-0">
-              <span className="text-xs font-extrabold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
-                <UserCheck className="h-4 w-4 text-[#7042D2]" />
+            <div className="p-3 border-b border-primary-soft bg-primary-soft flex items-center justify-between shrink-0">
+              <span className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <UserCheck className="h-4 w-4 text-primary-text" />
                 Learner 360° Telemetry
               </span>
               <div className="flex items-center gap-1.5">
@@ -1078,12 +1078,12 @@ export const LiveChatPage: React.FC = () => {
             {/* Scrollable Telemetry Cards */}
             <div className="p-3.5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
               {/* Student ID Card */}
-              <div className="p-3.5 rounded-2xl border border-[#E5DEFF] bg-[#FAF9FF] text-center space-y-1.5 shadow-2xs">
+              <div className="p-3.5 rounded-2xl border border-primary-border bg-primary-soft text-center space-y-1.5 shadow-2xs">
                 {selectedChat.photoUrl ? (
                   <img
                     src={selectedChat.photoUrl}
                     alt={selectedChat.studentName}
-                    className="w-12 h-12 rounded-2xl object-cover mx-auto shadow-xs border border-[#E5DEFF]"
+                    className="w-12 h-12 rounded-2xl object-cover mx-auto shadow-xs border border-primary-border"
                   />
                 ) : (
                   <div
@@ -1093,7 +1093,7 @@ export const LiveChatPage: React.FC = () => {
                     {selectedChat.avatarText || selectedChat.studentName.slice(0, 2).toUpperCase()}
                   </div>
                 )}
-                <h4 className="font-extrabold text-[#111111] text-sm leading-tight mt-1">
+                <h4 className="font-extrabold text-foreground text-sm leading-tight mt-1">
                   {selectedChat.studentName}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-mono truncate">
@@ -1116,21 +1116,21 @@ export const LiveChatPage: React.FC = () => {
               </div>
 
               {/* Course & Progress Gauges */}
-              <div className="space-y-2.5 p-3.5 rounded-2xl border border-[#E5DEFF] bg-white shadow-xs">
+              <div className="space-y-2.5 p-3.5 rounded-2xl border border-primary-border bg-surface shadow-xs">
                 <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">
                   Enrolled Curriculum
                 </span>
-                <p className="font-bold text-[#111111] text-xs leading-snug">
+                <p className="font-bold text-foreground text-xs leading-snug">
                   {selectedChat.courseTitle}
                 </p>
-                <p className="text-[11px] text-[#7042D2] font-semibold">
+                <p className="text-[11px] text-primary-text font-semibold">
                   {selectedChat.batchName}
                 </p>
 
-                <div className="space-y-1 pt-1.5 border-t border-[#F0EDFF]">
+                <div className="space-y-1 pt-1.5 border-t border-primary-soft">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-zinc-500">Course Completion</span>
-                    <span className="font-bold text-[#111111] font-mono">
+                    <span className="font-bold text-foreground font-mono">
                       {selectedChat.progressPercent}%
                     </span>
                   </div>
@@ -1145,7 +1145,7 @@ export const LiveChatPage: React.FC = () => {
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-zinc-500">Attendance Telemetry</span>
-                    <span className="font-bold font-mono text-[#3B6600]">
+                    <span className="font-bold font-mono text-success">
                       {selectedChat.attendancePercent}%
                     </span>
                   </div>
@@ -1167,27 +1167,27 @@ export const LiveChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => showToast("Cohort transfer approved for " + selectedChat.studentName)}
-                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                  className="group w-full h-9 px-3.5 rounded-full bg-primary-soft text-primary-text border border-primary-border text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-primary-hover hover:text-white hover:border-primary-hover hover:shadow-md hover:shadow-primary-hover/25"
                 >
-                  <ArrowRightLeft className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <ArrowRightLeft className="h-3.5 w-3.5 text-primary-text group-hover:text-white transition-colors shrink-0" />
                   <span>Approve Batch Shift</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => showToast("30-Day extension granted for " + selectedChat.studentName)}
-                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                  className="group w-full h-9 px-3.5 rounded-full bg-primary-soft text-primary-text border border-primary-border text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-primary-hover hover:text-white hover:border-primary-hover hover:shadow-md hover:shadow-primary-hover/25"
                 >
-                  <Clock className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <Clock className="h-3.5 w-3.5 text-primary-text group-hover:text-white transition-colors shrink-0" />
                   <span>Grant 30-Day Extension</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIs360DrawerOpen(true)}
-                  className="group w-full h-9 px-3.5 rounded-full bg-[#F0EDFF] text-[#7042D2] border border-[#E5DEFF] text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-[#7042D2] hover:text-white hover:border-[#7042D2] hover:shadow-md hover:shadow-[#7042D2]/25"
+                  className="group w-full h-9 px-3.5 rounded-full bg-primary-soft text-primary-text border border-primary-border text-xs font-bold flex items-center justify-start gap-2.5 transition-colors duration-150 cursor-pointer hover:bg-primary-hover hover:text-white hover:border-primary-hover hover:shadow-md hover:shadow-primary-hover/25"
                 >
-                  <ExternalLink className="h-3.5 w-3.5 text-[#7042D2] group-hover:text-white transition-colors shrink-0" />
+                  <ExternalLink className="h-3.5 w-3.5 text-primary-text group-hover:text-white transition-colors shrink-0" />
                   <span>Inspect Full 360° Profile</span>
                 </button>
               </div>

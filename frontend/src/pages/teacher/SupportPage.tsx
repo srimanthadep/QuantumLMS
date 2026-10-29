@@ -351,7 +351,7 @@ export function CustomDropdown<T extends string>({
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className={`w-full flex items-center justify-between gap-2.5 transition-all cursor-pointer select-none text-left ${buttonClassName} ${
-          isOpen ? "ring-2 ring-purple-400/50 border-purple-400 bg-white shadow-xs" : ""
+          isOpen ? "ring-2 ring-purple-400/50 border-purple-400 bg-surface shadow-xs" : ""
         }`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -381,7 +381,7 @@ export function CustomDropdown<T extends string>({
 
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 mt-1.5 z-50 bg-white/98 backdrop-blur-md rounded-2xl border border-zinc-200/90 shadow-xl py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${menuClassName}`}
+          className={`absolute left-0 right-0 mt-1.5 z-50 bg-surface/98 backdrop-blur-md rounded-2xl border border-zinc-200/90 shadow-xl py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${menuClassName}`}
           role="listbox"
         >
           <div className="max-h-64 overflow-y-auto divide-y divide-zinc-50">
@@ -812,7 +812,7 @@ export default function SupportPage({
       />
 
       {/* Overview Section */}
-      <section className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <section className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -844,7 +844,7 @@ export default function SupportPage({
 
 
       {/* Main Support Requests Section */}
-      <section className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+      <section className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
         {/* Table Toolbar: Filters and Search */}
         <div className="p-4 border-b border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
@@ -999,7 +999,7 @@ export default function SupportPage({
           ======================================================== */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-surface rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-zinc-900">
@@ -1054,7 +1054,7 @@ export default function SupportPage({
                   }}
                   placeholder="Select issue"
                   options={modalCategoryOptions}
-                  buttonClassName={`px-3.5 py-2.5 rounded-xl border bg-white hover:border-purple-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-2xs ${
+                  buttonClassName={`px-3.5 py-2.5 rounded-xl border bg-surface hover:border-purple-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-2xs ${
                     formErrors.category ? "border-red-400 bg-red-50/20" : "border-zinc-200"
                   }`}
                 />
@@ -1157,7 +1157,7 @@ export default function SupportPage({
           ======================================================== */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-zinc-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="bg-surface rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-zinc-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto no-scrollbar">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
@@ -1257,7 +1257,7 @@ export default function SupportPage({
                         className={`p-3.5 rounded-2xl border text-xs space-y-2 ${
                           isTeacher
                             ? "bg-purple-50/40 border-purple-200 ml-4 sm:ml-8"
-                            : "bg-white border-zinc-200/90 mr-4 sm:mr-8 shadow-xs"
+                            : "bg-surface border-zinc-200/90 mr-4 sm:mr-8 shadow-xs"
                         }`}
                       >
                         <div className="flex items-center justify-between text-[11px]">

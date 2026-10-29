@@ -299,9 +299,9 @@ export default function LiveStudioPage({
   const cohortStudents = students.slice(0, session.enrolledCount || 24)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] min-h-[620px] bg-zinc-950 text-white rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl relative select-none">
+    <div className="flex flex-col h-[calc(100vh-80px)] min-h-[620px] bg-ink-950 text-white rounded-2xl overflow-hidden border border-ink-800 shadow-2xl relative select-none">
       {/* 1. STUDIO HEADER */}
-      <header className="h-16 px-4 sm:px-6 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between gap-3 shrink-0 z-20">
+      <header className="h-16 px-4 sm:px-6 bg-ink-900/90 backdrop-blur-md border-b border-ink-800 flex items-center justify-between gap-3 shrink-0 z-20">
         {/* Left: Class Title & Status */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export default function LiveStudioPage({
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
               <span>LIVE STUDIO</span>
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-ink-800 text-ink-300 border border-ink-700">
               <span>⏱</span>
               <span>{formatTimer(secondsElapsed)}</span>
             </span>
@@ -324,7 +324,7 @@ export default function LiveStudioPage({
                 {session.courseCode}
               </span>
             </div>
-            <div className="text-[11px] text-zinc-400 truncate flex items-center gap-2">
+            <div className="text-[11px] text-ink-400 truncate flex items-center gap-2">
               <span>{session.courseName}</span>
               {session.batchName && (
                 <>
@@ -333,21 +333,21 @@ export default function LiveStudioPage({
                 </>
               )}
               <span>·</span>
-              <span className="text-zinc-300 font-medium">Instructor: {session.instructorName}</span>
+              <span className="text-ink-300 font-medium">Instructor: {session.instructorName}</span>
             </div>
           </div>
         </div>
 
         {/* Right: Studio Status & Action Buttons */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="hidden lg:flex items-center gap-2 text-xs text-zinc-400 px-3 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 font-mono">
+          <div className="hidden lg:flex items-center gap-2 text-xs text-ink-400 px-3 py-1 rounded-full bg-ink-800/80 border border-ink-700/60 font-mono">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span>HD 1080p · 60fps</span>
           </div>
 
           <button
             onClick={handleLeaveStudio}
-            className="px-3 sm:px-4 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-semibold transition-all cursor-pointer"
+            className="px-3 sm:px-4 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-ink-200 hover:text-white border border-ink-700 text-xs font-semibold transition-all cursor-pointer"
             title="Leave the live studio and return to the class schedule"
           >
             Leave Studio
@@ -366,7 +366,7 @@ export default function LiveStudioPage({
       {/* 2. MAIN STAGE & SIDE PANELS */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Main Presentation Stage */}
-        <main className="flex-1 relative bg-zinc-950 flex flex-col items-center justify-center p-3 sm:p-5 overflow-hidden">
+        <main className="flex-1 relative bg-ink-950 flex flex-col items-center justify-center p-3 sm:p-5 overflow-hidden">
           {/* Active Screen Sharing Presentation */}
           {isScreenSharing ? (
             <div className="w-full h-full relative rounded-2xl overflow-hidden bg-black border border-purple-500/30 flex items-center justify-center">
@@ -376,13 +376,13 @@ export default function LiveStudioPage({
                 playsInline
                 className="w-full h-full object-contain"
               />
-              <div className="absolute top-3 left-3 px-3 py-1 rounded-lg bg-zinc-900/90 backdrop-blur-xs text-purple-300 text-xs font-bold border border-purple-500/40 flex items-center gap-2">
+              <div className="absolute top-3 left-3 px-3 py-1 rounded-lg bg-ink-900/90 backdrop-blur-xs text-purple-300 text-xs font-bold border border-purple-500/40 flex items-center gap-2">
                 <Icon name="monitor" size={14} />
                 <span>Presenting Screen to Class</span>
               </div>
 
               {/* Picture-in-picture Teacher Camera */}
-              <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video rounded-xl overflow-hidden bg-zinc-900 border-2 border-purple-500/80 shadow-2xl z-10">
+              <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video rounded-xl overflow-hidden bg-ink-900 border-2 border-purple-500/80 shadow-2xl z-10">
                 {isCameraOn && hasPermission ? (
                   <video
                     ref={localVideoRef}
@@ -392,16 +392,16 @@ export default function LiveStudioPage({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-400 p-2 text-center">
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-ink-900 text-ink-400 p-2 text-center">
                     <img
                       src={session.instructorAvatar || "/assets/srimanth.png"}
                       alt={session.instructorName}
-                      className="w-8 h-8 rounded-full mb-1 border border-zinc-700"
+                      className="w-8 h-8 rounded-full mb-1 border border-ink-700"
                     />
-                    <span className="text-[10px] font-bold text-zinc-300">
+                    <span className="text-[10px] font-bold text-ink-300">
                       {session.instructorName}
                     </span>
-                    <span className="text-[9px] text-zinc-500">Camera Off</span>
+                    <span className="text-[9px] text-ink-500">Camera Off</span>
                   </div>
                 )}
                 <div className="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[9.5px] font-bold text-white">
@@ -411,7 +411,7 @@ export default function LiveStudioPage({
             </div>
           ) : (
             /* Main Teacher Stage */
-            <div className="w-full h-full max-w-5xl max-h-[720px] aspect-video relative rounded-2xl overflow-hidden bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 shadow-2xl flex flex-col items-center justify-center">
+            <div className="w-full h-full max-w-5xl max-h-[720px] aspect-video relative rounded-2xl overflow-hidden bg-gradient-to-b from-ink-900 to-ink-950 border border-ink-800 shadow-2xl flex flex-col items-center justify-center">
               {/* Camera Video View or Avatar Placeholder */}
               {isCameraOn && hasPermission ? (
                 <video
@@ -429,7 +429,7 @@ export default function LiveStudioPage({
                       alt={session.instructorName}
                       className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-purple-500/40 shadow-xl"
                     />
-                    <div className="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-zinc-800 border-2 border-zinc-950 flex items-center justify-center text-zinc-400">
+                    <div className="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-ink-800 border-2 border-ink-950 flex items-center justify-center text-ink-400">
                       <Icon name="video-off" size={14} />
                     </div>
                   </div>
@@ -437,11 +437,11 @@ export default function LiveStudioPage({
                   <h2 className="text-lg font-bold text-white mb-1">
                     {session.instructorName}
                   </h2>
-                  <p className="text-xs text-zinc-400 mb-3">
+                  <p className="text-xs text-ink-400 mb-3">
                     Course Instructor & Session Host · Quantum LMS
                   </p>
 
-                  <div className="px-3.5 py-2 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 max-w-sm">
+                  <div className="px-3.5 py-2 rounded-xl bg-ink-900/90 border border-ink-800 text-xs text-ink-300 max-w-sm">
                     {mediaError ? (
                       <span className="text-amber-400">
                         Camera preview simulated. Enable webcam permissions in your browser bar for live local feed.
@@ -469,7 +469,7 @@ export default function LiveStudioPage({
 
               {/* Truthful Simulated Stage Disclaimer */}
               <div className="absolute bottom-3 left-4 hidden sm:block z-10">
-                <span className="px-2.5 py-1 rounded-md bg-black/60 text-[10px] text-zinc-400 border border-zinc-800">
+                <span className="px-2.5 py-1 rounded-md bg-black/60 text-[10px] text-ink-400 border border-ink-800">
                   LMS Studio Stage · Local preview active
                 </span>
               </div>
@@ -477,12 +477,12 @@ export default function LiveStudioPage({
           )}
 
           {/* FLOATING CONTROL BAR */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 px-4 py-2.5 rounded-2xl bg-zinc-900/95 backdrop-blur-md border border-zinc-700/80 shadow-2xl max-w-[95vw] overflow-x-auto">
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 px-4 py-2.5 rounded-2xl bg-ink-900/95 backdrop-blur-md border border-ink-700/80 shadow-2xl max-w-[95vw] overflow-x-auto">
             {/* Mic Toggle */}
             <button
               onClick={handleToggleMic}
               className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isMicOn
-                  ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  ? "bg-ink-800 hover:bg-ink-700 text-ink-200"
                   : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-950"
                 }`}
               title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
@@ -497,7 +497,7 @@ export default function LiveStudioPage({
             <button
               onClick={handleToggleCamera}
               className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isCameraOn
-                  ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  ? "bg-ink-800 hover:bg-ink-700 text-ink-200"
                   : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-950"
                 }`}
               title={isCameraOn ? "Stop Video" : "Start Video"}
@@ -513,7 +513,7 @@ export default function LiveStudioPage({
               onClick={handleToggleScreenShare}
               className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${isScreenSharing
                   ? "bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-950"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
             >
@@ -523,7 +523,7 @@ export default function LiveStudioPage({
               </span>
             </button>
 
-            <div className="w-[1px] h-8 bg-zinc-700/80 mx-1 hidden sm:block"></div>
+            <div className="w-[1px] h-8 bg-ink-700/80 mx-1 hidden sm:block"></div>
 
             {/* Participants Panel Toggle */}
             <button
@@ -532,7 +532,7 @@ export default function LiveStudioPage({
               }
               className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "participants"
                   ? "bg-purple-600 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title="Participants list"
             >
@@ -550,7 +550,7 @@ export default function LiveStudioPage({
               }
               className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "chat"
                   ? "bg-purple-600 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title="Live Chat"
             >
@@ -568,7 +568,7 @@ export default function LiveStudioPage({
               }
               className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "monitoring"
                   ? "bg-purple-600 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title="AI Live Monitoring & Demo Insights"
             >
@@ -586,7 +586,7 @@ export default function LiveStudioPage({
               }
               className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "attendance"
                   ? "bg-purple-600 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title="Class Attendance"
             >
@@ -601,7 +601,7 @@ export default function LiveStudioPage({
               }
               className={`flex flex-col items-center justify-center w-12 sm:w-14 h-12 rounded-xl transition-all cursor-pointer ${activeSidePanel === "info"
                   ? "bg-purple-600 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                  : "bg-ink-800 hover:bg-ink-700 text-ink-200"
                 }`}
               title="Class Information & Notes"
             >
@@ -609,7 +609,7 @@ export default function LiveStudioPage({
               <span className="text-[9px] font-bold mt-0.5">Info</span>
             </button>
 
-            <div className="w-[1px] h-8 bg-zinc-700/80 mx-1"></div>
+            <div className="w-[1px] h-8 bg-ink-700/80 mx-1"></div>
 
             {/* End Class Button in Control Bar */}
             <button
@@ -625,15 +625,15 @@ export default function LiveStudioPage({
 
         {/* 3. SIDE PANELS (Chat / Participants / AI / Attendance / Info) */}
         {activeSidePanel && (
-          <aside className="w-full md:w-96 lg:w-[420px] bg-zinc-900 border-l border-zinc-800 flex flex-col shrink-0 z-20 h-auto md:h-full max-h-[50vh] md:max-h-full">
+          <aside className="w-full md:w-96 lg:w-[420px] bg-ink-900 border-l border-ink-800 flex flex-col shrink-0 z-20 h-auto md:h-full max-h-[50vh] md:max-h-full">
             {/* Panel Header */}
-            <div className="p-3 border-b border-zinc-800 space-y-2.5">
+            <div className="p-3 border-b border-ink-800 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {activeSidePanel === "chat" && (
                     <>
                       <Icon name="message-circle" size={16} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      <span className="text-xs font-bold uppercase tracking-wider text-ink-200">
                         Live Classroom Chat
                       </span>
                     </>
@@ -641,7 +641,7 @@ export default function LiveStudioPage({
                   {activeSidePanel === "participants" && (
                     <>
                       <Icon name="users" size={16} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      <span className="text-xs font-bold uppercase tracking-wider text-ink-200">
                         Participants ({cohortStudents.length})
                       </span>
                     </>
@@ -649,7 +649,7 @@ export default function LiveStudioPage({
                   {activeSidePanel === "monitoring" && (
                     <>
                       <Icon name="sparkles" size={16} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      <span className="text-xs font-bold uppercase tracking-wider text-ink-200">
                         AI Live Monitoring
                       </span>
                     </>
@@ -657,7 +657,7 @@ export default function LiveStudioPage({
                   {activeSidePanel === "attendance" && (
                     <>
                       <Icon name="check" size={16} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      <span className="text-xs font-bold uppercase tracking-wider text-ink-200">
                         Live Attendance
                       </span>
                     </>
@@ -665,7 +665,7 @@ export default function LiveStudioPage({
                   {activeSidePanel === "info" && (
                     <>
                       <Icon name="info" size={16} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      <span className="text-xs font-bold uppercase tracking-wider text-ink-200">
                         Session Details
                       </span>
                     </>
@@ -674,7 +674,7 @@ export default function LiveStudioPage({
 
                 <button
                   onClick={() => setActiveSidePanel(null)}
-                  className="w-7 h-7 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center text-xs font-bold cursor-pointer transition-colors"
+                  className="w-7 h-7 rounded-lg bg-ink-800 hover:bg-ink-700 text-ink-400 hover:text-white flex items-center justify-center text-xs font-bold cursor-pointer transition-colors"
                   title="Close side panel"
                 >
                   ✕
@@ -697,7 +697,7 @@ export default function LiveStudioPage({
                       onClick={() => setActiveSidePanel(tab.id as StudioPanelTab)}
                       className={`px-2 py-1 rounded-md text-[10.5px] font-semibold flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${isActive
                           ? "bg-purple-600 text-white shadow-sm"
-                          : "bg-zinc-800/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                          : "bg-ink-800/80 hover:bg-ink-800 text-ink-400 hover:text-ink-200"
                         }`}
                     >
                       <Icon name={tab.icon as any} size={11} />
@@ -710,7 +710,7 @@ export default function LiveStudioPage({
 
             {/* Panel Content: CHAT */}
             {activeSidePanel === "chat" && (
-              <div className="flex-1 flex flex-col min-h-0 bg-zinc-900/60">
+              <div className="flex-1 flex flex-col min-h-0 bg-ink-900/60">
                 {/* Chat Feed */}
                 <div className="flex-1 p-3.5 space-y-3 overflow-y-auto min-h-0 text-xs">
                   <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-200 text-[11px] leading-relaxed">
@@ -727,12 +727,12 @@ export default function LiveStudioPage({
                         <img
                           src={msg.avatar || "/assets/student-1.png"}
                           alt={msg.sender}
-                          className="w-7 h-7 rounded-full object-cover border border-zinc-700 shrink-0"
+                          className="w-7 h-7 rounded-full object-cover border border-ink-700 shrink-0"
                         />
                         <div
                           className={`max-w-[78%] p-2.5 rounded-2xl ${isMe
                               ? "bg-purple-600 text-white rounded-tr-none"
-                              : "bg-zinc-800 text-zinc-200 rounded-tl-none border border-zinc-700/60"
+                              : "bg-ink-800 text-ink-200 rounded-tl-none border border-ink-700/60"
                             }`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-1">
@@ -757,14 +757,14 @@ export default function LiveStudioPage({
                 {/* Composer */}
                 <form
                   onSubmit={handleSendMessage}
-                  className="p-3 bg-zinc-950 border-t border-zinc-800 flex items-center gap-2"
+                  className="p-3 bg-ink-950 border-t border-ink-800 flex items-center gap-2"
                 >
                   <input
                     type="text"
                     value={newChatText}
                     onChange={(e) => setNewChatText(e.target.value)}
                     placeholder="Send a message to class..."
-                    className="flex-1 h-9 px-3 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-purple-500"
+                    className="flex-1 h-9 px-3 rounded-xl bg-ink-900 border border-ink-700 text-white placeholder-ink-500 text-xs focus:outline-none focus:border-purple-500"
                   />
                   <button
                     type="submit"
@@ -779,7 +779,7 @@ export default function LiveStudioPage({
 
             {/* Panel Content: PARTICIPANTS */}
             {activeSidePanel === "participants" && (
-              <div className="flex-1 flex flex-col min-h-0 bg-zinc-900/60 overflow-y-auto p-3 space-y-2 text-xs">
+              <div className="flex-1 flex flex-col min-h-0 bg-ink-900/60 overflow-y-auto p-3 space-y-2 text-xs">
                 {/* Host Row */}
                 <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -797,10 +797,10 @@ export default function LiveStudioPage({
                           Host
                         </span>
                       </div>
-                      <span className="text-[10px] text-zinc-400">Teacher (You)</span>
+                      <span className="text-[10px] text-ink-400">Teacher (You)</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-zinc-400">
+                  <div className="flex items-center gap-1.5 text-ink-400">
                     {isMicOn ? (
                       <span className="text-emerald-400 font-bold text-xs" title="Mic active">●</span>
                     ) : (
@@ -809,7 +809,7 @@ export default function LiveStudioPage({
                   </div>
                 </div>
 
-                <div className="text-[10px] uppercase font-bold text-zinc-500 px-1 pt-2">
+                <div className="text-[10px] uppercase font-bold text-ink-500 px-1 pt-2">
                   Enrolled Students ({cohortStudents.length})
                 </div>
 
@@ -817,19 +817,19 @@ export default function LiveStudioPage({
                 {cohortStudents.map((st) => (
                   <div
                     key={st.id}
-                    className="p-2 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-between transition-colors"
+                    className="p-2 rounded-xl bg-ink-800/60 hover:bg-ink-800 border border-ink-700/50 flex items-center justify-between transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <img
                         src={st.image || "/assets/student-1.png"}
                         alt={st.name}
-                        className="w-7 h-7 rounded-lg object-cover border border-zinc-700 shrink-0"
+                        className="w-7 h-7 rounded-lg object-cover border border-ink-700 shrink-0"
                       />
                       <div className="min-w-0">
-                        <div className="text-zinc-200 font-medium truncate text-xs">
+                        <div className="text-ink-200 font-medium truncate text-xs">
                           {st.name}
                         </div>
-                        <div className="text-[10px] text-zinc-400">{st.rollNumber}</div>
+                        <div className="text-[10px] text-ink-400">{st.rollNumber}</div>
                       </div>
                     </div>
 
@@ -843,14 +843,14 @@ export default function LiveStudioPage({
                           <span>Hand Raised</span>
                         </span>
                       )}
-                      <span className="text-zinc-500" title="Muted by host">
+                      <span className="text-ink-500" title="Muted by host">
                         <Icon name="mic-off" size={13} />
                       </span>
                     </div>
                   </div>
                 ))}
 
-                <div className="p-2 text-center text-[10.5px] text-zinc-500 border-t border-zinc-800 mt-2">
+                <div className="p-2 text-center text-[10.5px] text-ink-500 border-t border-ink-800 mt-2">
                   Simulated Cohort Roster · Quantum LMS Class
                 </div>
               </div>
@@ -858,17 +858,17 @@ export default function LiveStudioPage({
 
             {/* Panel Content: CLASS INFO */}
             {activeSidePanel === "info" && (
-              <div className="flex-1 flex flex-col min-h-0 bg-zinc-900/60 overflow-y-auto p-4 space-y-4 text-xs">
+              <div className="flex-1 flex flex-col min-h-0 bg-ink-900/60 overflow-y-auto p-4 space-y-4 text-xs">
                 <div>
-                  <span className="text-zinc-400 block text-[10px] uppercase font-bold tracking-wider mb-1">
+                  <span className="text-ink-400 block text-[10px] uppercase font-bold tracking-wider mb-1">
                     Course & Schedule
                   </span>
-                  <div className="p-3 rounded-xl bg-zinc-800 border border-zinc-700 space-y-1.5">
+                  <div className="p-3 rounded-xl bg-ink-800 border border-ink-700 space-y-1.5">
                     <strong className="text-white block text-sm">{session.title}</strong>
-                    <div className="text-zinc-300">
+                    <div className="text-ink-300">
                       {session.courseCode}: {session.courseName}
                     </div>
-                    <div className="text-zinc-400 font-mono text-[11px]">
+                    <div className="text-ink-400 font-mono text-[11px]">
                       {session.scheduledDate} · {session.startTime} – {session.endTime} ({session.durationMinutes} mins)
                     </div>
                   </div>
@@ -876,7 +876,7 @@ export default function LiveStudioPage({
 
                 {session.topicsCovered && session.topicsCovered.length > 0 && (
                   <div>
-                    <span className="text-zinc-400 block text-[10px] uppercase font-bold tracking-wider mb-1.5">
+                    <span className="text-ink-400 block text-[10px] uppercase font-bold tracking-wider mb-1.5">
                       Curriculum Topics
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -894,17 +894,17 @@ export default function LiveStudioPage({
 
                 {session.classNotes && (
                   <div>
-                    <span className="text-zinc-400 block text-[10px] uppercase font-bold tracking-wider mb-1">
+                    <span className="text-ink-400 block text-[10px] uppercase font-bold tracking-wider mb-1">
                       Instructor Notes & Instructions
                     </span>
-                    <div className="p-3 rounded-xl bg-zinc-800/80 border border-zinc-700 text-zinc-300 text-xs leading-relaxed whitespace-pre-wrap">
+                    <div className="p-3 rounded-xl bg-ink-800/80 border border-ink-700 text-ink-300 text-xs leading-relaxed whitespace-pre-wrap">
                       {session.classNotes}
                     </div>
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-zinc-800">
-                  <span className="text-zinc-500 text-[10.5px] block">
+                <div className="pt-2 border-t border-ink-800">
+                  <span className="text-ink-500 text-[10.5px] block">
                     Quantum LMS In-App Studio. Academic live classes are managed and verified through School Administration.
                   </span>
                 </div>
@@ -913,7 +913,7 @@ export default function LiveStudioPage({
 
             {/* Panel Content: AI LIVE MONITORING */}
             {activeSidePanel === "monitoring" && (
-              <div className="flex-1 overflow-y-auto p-3 min-h-0 bg-zinc-900/60">
+              <div className="flex-1 overflow-y-auto p-3 min-h-0 bg-ink-900/60">
                 <AIMonitoringSection
                   monitoringData={monitoringData}
                   isStudioMode={true}
@@ -924,7 +924,7 @@ export default function LiveStudioPage({
 
             {/* Panel Content: ATTENDANCE */}
             {activeSidePanel === "attendance" && (
-              <div className="flex-1 overflow-y-auto p-3 min-h-0 bg-zinc-900/60">
+              <div className="flex-1 overflow-y-auto p-3 min-h-0 bg-ink-900/60">
                 <AttendanceSection
                   sessions={[session]}
                   activeSessionId={session.id}
@@ -947,7 +947,7 @@ export default function LiveStudioPage({
           aria-label="Confirm End Class"
         >
           <div
-            className="modal-content text-zinc-900"
+            className="modal-content text-ink-900"
             style={{ maxWidth: "440px", padding: "24px" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -955,10 +955,10 @@ export default function LiveStudioPage({
               <Icon name="phone-off" size={24} />
             </div>
 
-            <h3 className="text-base font-bold text-center text-zinc-900 mb-1">
+            <h3 className="text-base font-bold text-center text-ink-900 mb-1">
               End Live Class for Everyone?
             </h3>
-            <p className="text-xs text-center text-zinc-500 mb-5 leading-relaxed">
+            <p className="text-xs text-center text-ink-500 mb-5 leading-relaxed">
               Are you sure you want to conclude <strong>"{session.title}"</strong>? This will stop your camera and microphone broadcast and navigate directly to the <strong>Lecture Recording & AI Intelligence Review</strong> page.
             </p>
 
@@ -966,7 +966,7 @@ export default function LiveStudioPage({
               <button
                 type="button"
                 onClick={() => setShowEndModal(false)}
-                className="flex-1 h-9 rounded-xl border border-zinc-300 hover:bg-zinc-100 text-xs font-bold text-zinc-700 transition-colors cursor-pointer"
+                className="flex-1 h-9 rounded-xl border border-ink-300 hover:bg-ink-100 text-xs font-bold text-ink-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>

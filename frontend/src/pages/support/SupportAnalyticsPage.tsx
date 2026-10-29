@@ -137,11 +137,11 @@ export const SupportAnalyticsPage: React.FC = () => {
   // 6. Vibrant Rose: #EC4899
   // 7. Neutral Slate: #64748B
   const categoryFigmaColors = [
-    { bg: "#905FEB", labelColor: "text-[#7042D2]", badge: "badge-status-in-progress" },
-    { bg: "#AEEB00", labelColor: "text-[#3B6600]", badge: "badge-status-completed" },
+    { bg: "#905FEB", labelColor: "text-primary-text", badge: "badge-status-in-progress" },
+    { bg: "#AEEB00", labelColor: "text-success", badge: "badge-status-completed" },
     { bg: "#F472B6", labelColor: "text-[#BE185D]", badge: "badge-status-assigned" },
     { bg: "#7042D2", labelColor: "text-[#5B21B6]", badge: "badge-status-in-progress" },
-    { bg: "#F59E0B", labelColor: "text-[#B45309]", badge: "badge-status-assigned" },
+    { bg: "#F59E0B", labelColor: "text-warning", badge: "badge-status-assigned" },
     { bg: "#EC4899", labelColor: "text-[#9D174D]", badge: "badge-status-assigned" },
     { bg: "#64748B", labelColor: "text-[#334155]", badge: "badge-status-not-started" },
   ];
@@ -203,7 +203,7 @@ export const SupportAnalyticsPage: React.FC = () => {
       </div>
 
       {/* 2. Operations & Timeframe Toolbar */}
-      <div className="panel px-4 py-2 bg-white border border-zinc-150 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="panel px-4 py-2 bg-surface border border-zinc-150 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -224,8 +224,8 @@ export const SupportAnalyticsPage: React.FC = () => {
                 className={cn(
                   "px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer",
                   timeRange === r
-                    ? "bg-[#111111] text-white shadow-2xs"
-                    : "text-zinc-500 hover:text-[#111111]"
+                    ? "bg-ink-900 text-white shadow-2xs"
+                    : "text-zinc-500 hover:text-foreground"
                 )}
               >
                 {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : "90 Days"}
@@ -248,14 +248,14 @@ export const SupportAnalyticsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
         {/* Inquiry Category Breakdown Card (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
-          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
+          <div className="panel bg-surface border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Purple Gradient Strip */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#824FE7] to-[#A87DF5] shadow-xs" />
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-[#824FE7] to-[#A87DF5] shadow-xs" />
 
-            <CardHeader className="p-4 sm:p-5 border-b border-[#F0EDFF] flex flex-row items-center justify-between bg-white shrink-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-primary-soft flex flex-row items-center justify-between bg-surface shrink-0">
               <div>
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg font-extrabold text-[#111111] tracking-tight">
+                  <CardTitle className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
                     Inquiry Category Breakdown
                   </CardTitle>
                   <span className="badge-status-in-progress rounded-full text-[10px] font-bold px-2.5 py-0.5 shadow-2xs">
@@ -277,7 +277,7 @@ export const SupportAnalyticsPage: React.FC = () => {
               </button>
             </CardHeader>
 
-            <CardContent className="p-4 sm:p-5 flex-1 min-h-0 bg-white overflow-hidden flex flex-col">
+            <CardContent className="p-4 sm:p-5 flex-1 min-h-0 bg-surface overflow-hidden flex flex-col">
               {/* Category Breakdown Items with Smooth Scroll & Figma Pill Progress Bars */}
               <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2.5 support-queue-scrollbar">
                 {categoryStats.map((item) => {
@@ -296,7 +296,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                           >
                             <Icon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-[#111111] font-bold text-xs sm:text-sm">
+                          <span className="text-foreground font-bold text-xs sm:text-sm">
                             {item.label}
                           </span>
                         </div>
@@ -322,7 +322,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                             }}
                           />
                         </div>
-                        <span className="text-sm font-extrabold text-[#111111] font-mono min-w-[38px] text-right">
+                        <span className="text-sm font-extrabold text-foreground font-mono min-w-[38px] text-right">
                           {item.percent}%
                         </span>
                       </div>
@@ -336,14 +336,14 @@ export const SupportAnalyticsPage: React.FC = () => {
 
         {/* Mentor Performance Leaderboard (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
-          <div className="panel bg-white border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
+          <div className="panel bg-surface border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
             {/* Top Lavender Gradient Strip */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#905FEB] via-[#B89CF5] to-[#E5DEFF] shadow-xs" />
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-[#B89CF5] to-primary-border shadow-xs" />
 
-            <CardHeader className="p-4 sm:p-5 border-b border-[#F0EDFF] flex flex-row items-center justify-between bg-white shrink-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-primary-soft flex flex-row items-center justify-between bg-surface shrink-0">
               <div>
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg font-extrabold text-[#111111] tracking-tight">
+                  <CardTitle className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
                     Mentor Team Performance
                   </CardTitle>
 
@@ -362,28 +362,28 @@ export const SupportAnalyticsPage: React.FC = () => {
               </button>
             </CardHeader>
 
-            <CardContent className="p-0 divide-y divide-[#F0EDFF] bg-white flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
+            <CardContent className="p-0 divide-y divide-primary-soft bg-surface flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
               {TOP_MENTORS.map((m) => (
                 <div
                   key={m.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF9FF] transition-colors"
+                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-primary-soft transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <div className="h-10 w-10 rounded-2xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold text-xs shadow-xs">
+                      <div className="h-10 w-10 rounded-2xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold text-xs shadow-xs">
                         {m.avatar}
                       </div>
                       <span
                         className={cn(
                           "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white",
-                          m.status === "online" ? "bg-[#AEEB00] animate-pulse" :
-                            m.status === "in_chat" ? "bg-[#905FEB] animate-pulse" : "bg-amber-400"
+                          m.status === "online" ? "bg-success animate-pulse" :
+                            m.status === "in_chat" ? "bg-primary animate-pulse" : "bg-amber-400"
                         )}
                       />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-[#111111]">{m.name}</h4>
+                        <h4 className="text-xs font-bold text-foreground">{m.name}</h4>
                         <span
                           className={cn(
                             "text-[10px] font-bold px-2 py-0.5",
@@ -403,7 +403,7 @@ export const SupportAnalyticsPage: React.FC = () => {
 
                   <div className="flex items-center justify-between sm:justify-end gap-3.5">
                     <div className="text-left sm:text-right text-xs">
-                      <span className="font-bold text-[#111111] block">{m.resolvedCount} Resolved</span>
+                      <span className="font-bold text-foreground block">{m.resolvedCount} Resolved</span>
                       <span className="flex items-center gap-1 text-amber-500 font-bold text-[11px]">
                         <Star className="h-3 w-3 fill-current" /> {m.rating} CSAT
                       </span>
@@ -415,7 +415,7 @@ export const SupportAnalyticsPage: React.FC = () => {
                         className="btn-support-secondary text-[11px] h-7.5 px-3 font-bold cursor-pointer flex items-center gap-1"
                         onClick={() => navigate("/support/agents")}
                       >
-                        <LifeBuoy className="h-3 w-3 text-[#905FEB]" />
+                        <LifeBuoy className="h-3 w-3 text-primary-text" />
                         <span>Delegate</span>
                       </button>
 

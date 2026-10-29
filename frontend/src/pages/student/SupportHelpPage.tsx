@@ -469,8 +469,8 @@ export function SupportHelpPage({
         )
       case "Resolved":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E7FF9C] text-[#253700] border border-[#D2F66A]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#385000]" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-success-soft text-[#253700] border border-[#D2F66A]">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
             Resolved
           </span>
         )
@@ -587,18 +587,18 @@ export function SupportHelpPage({
     <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
       {/* 1. Header Banner & Section Switcher */}
       <section
-        className="panel p-6 bg-white border border-zinc-100 shadow-sm rounded-3xl"
+        className="panel p-6 bg-surface border border-zinc-100 shadow-sm rounded-3xl"
         aria-label="Support & Help Header"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-[#F0E7FF] text-[#5F2BC0] flex items-center justify-center font-bold text-sm">
+            <span className="w-8 h-8 rounded-full bg-primary-soft text-primary-text flex items-center justify-center font-bold text-sm">
               🎧
             </span>
             <h2 className="text-xl font-black text-zinc-900 tracking-tight">
               Support & Help Center
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F0E7FF] text-[#5F2BC0]">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary-text">
               24/7 Student Desk
             </span>
           </div>
@@ -611,7 +611,7 @@ export function SupportHelpPage({
                 setActiveSection("tickets")
                 setActiveTicketId(null)
               }}
-              className="px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-[#905FEB] text-white shadow-sm"
+              className="px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-primary text-white shadow-sm"
             >
               <span>🎧 My Tickets & Requests</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white">
@@ -623,7 +623,7 @@ export function SupportHelpPage({
             <button
               type="button"
               onClick={handleOpenCreateModal}
-              className="px-4 py-2 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-4 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <span className="text-sm font-black">+</span>
               <span>Create Ticket</span>
@@ -633,7 +633,7 @@ export function SupportHelpPage({
             <button
               type="button"
               onClick={onOpenAiModal}
-              className="px-3.5 py-2 rounded-full bg-[#111111] text-white text-xs font-bold hover:bg-zinc-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3.5 py-2 rounded-full bg-ink-900 text-white text-xs font-bold hover:bg-ink-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <span>✦</span>
               <span>Ask AI</span>
@@ -655,7 +655,7 @@ export function SupportHelpPage({
                 <button
                   type="button"
                   onClick={() => setActiveTicketId(null)}
-                  className="px-3.5 py-1.5 rounded-full bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                  className="px-3.5 py-1.5 rounded-full bg-surface border border-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
                 >
                   <span>←</span>
                   <span>Back to My Tickets</span>
@@ -666,7 +666,7 @@ export function SupportHelpPage({
                     <button
                       type="button"
                       onClick={() => handleUpdateStatus(activeTicket.id, "Resolved")}
-                      className="px-3 py-1.5 rounded-full bg-[#AEEB00] text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow-sm transition-colors"
+                      className="px-3 py-1.5 rounded-full bg-success text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow-sm transition-colors"
                     >
                       ✓ Mark as Resolved
                     </button>
@@ -692,11 +692,11 @@ export function SupportHelpPage({
               </div>
 
               {/* Ticket Details Card */}
-              <div className="panel p-6 bg-white border border-zinc-100 shadow-sm rounded-3xl">
+              <div className="panel p-6 bg-surface border border-zinc-100 shadow-sm rounded-3xl">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 pb-4 border-b border-zinc-100">
                   <div className="flex-1">
                     <div className="flex items-center gap-2.5 flex-wrap mb-2">
-                      <span className="font-mono font-bold text-xs bg-[#F0E7FF] text-[#5F2BC0] px-2.5 py-1 rounded-lg">
+                      <span className="font-mono font-bold text-xs bg-primary-soft text-primary-text px-2.5 py-1 rounded-lg">
                         {activeTicket.id}
                       </span>
                       {renderStatusBadge(activeTicket.status)}
@@ -727,7 +727,7 @@ export function SupportHelpPage({
                   <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
                     Issue Description
                   </h4>
-                  <p className="text-xs text-zinc-700 leading-relaxed bg-[#F1F0F3] p-4 rounded-2xl border border-zinc-200">
+                  <p className="text-xs text-zinc-700 leading-relaxed bg-zinc-100 p-4 rounded-2xl border border-zinc-200">
                     {activeTicket.description}
                   </p>
 
@@ -801,7 +801,7 @@ export function SupportHelpPage({
                           key={reply.id}
                           className={`p-4 rounded-2xl border transition-all ${isStudent
                             ? "bg-purple-50/40 border-purple-200 ml-0 md:ml-6"
-                            : "bg-white border-zinc-200 mr-0 md:mr-6"
+                            : "bg-surface border-zinc-200 mr-0 md:mr-6"
                             }`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-2">
@@ -822,7 +822,7 @@ export function SupportHelpPage({
                               </span>
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${isStudent
-                                  ? "bg-[#F0E7FF] text-[#5F2BC0]"
+                                  ? "bg-primary-soft text-primary-text"
                                   : reply.role === "Faculty"
                                     ? "bg-emerald-100 text-emerald-800"
                                     : "bg-indigo-100 text-indigo-800"
@@ -843,7 +843,7 @@ export function SupportHelpPage({
 
                           {reply.attachmentName && (
                             <div className="mt-2.5 pl-8 flex items-center gap-2">
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-zinc-200 text-zinc-700 text-[11px] font-medium">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-zinc-200 text-zinc-700 text-[11px] font-medium">
                                 <Icon name="document" size={12} />
                                 <span>{reply.attachmentName}</span>
                                 <button
@@ -878,7 +878,7 @@ export function SupportHelpPage({
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Provide more context, test results, or answers to staff inquiries..."
-                        className="w-full p-3 rounded-xl border border-zinc-200 bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] text-xs leading-relaxed mb-3"
+                        className="w-full p-3 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-primary text-xs leading-relaxed mb-3"
                       />
 
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -892,7 +892,7 @@ export function SupportHelpPage({
                               })
                               onToast("Attached terminal_trace_log.txt")
                             }}
-                            className="px-3 py-1.5 rounded-xl border border-dashed border-zinc-300 text-zinc-600 text-xs font-semibold hover:bg-white cursor-pointer flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-xl border border-dashed border-zinc-300 text-zinc-600 text-xs font-semibold hover:bg-surface cursor-pointer flex items-center gap-1.5"
                           >
                             <Icon name="document" size={13} />
                             <span>
@@ -914,7 +914,7 @@ export function SupportHelpPage({
 
                         <button
                           type="submit"
-                          className="px-5 py-2 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] transition-colors cursor-pointer shadow-sm"
+                          className="px-5 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary transition-colors cursor-pointer shadow-sm"
                         >
                           Send Reply
                         </button>
@@ -933,7 +933,7 @@ export function SupportHelpPage({
             /* Ticket List Overview ("My Tickets") */
             <div className="flex flex-col gap-4">
               {/* Filter, Search & Action Bar */}
-              <div className="panel p-5 bg-white border border-zinc-100 shadow-sm rounded-3xl">
+              <div className="panel p-5 bg-surface border border-zinc-100 shadow-sm rounded-3xl">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                   {/* Status Pills */}
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -944,8 +944,8 @@ export function SupportHelpPage({
                           type="button"
                           onClick={() => handleFilterChange(st)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${statusFilter === st
-                            ? "bg-[#905FEB] text-white shadow-sm"
-                            : "bg-[#F1F0F3] text-zinc-600 hover:bg-zinc-200"
+                            ? "bg-primary text-white shadow-sm"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                             }`}
                         >
                           {st}
@@ -970,7 +970,7 @@ export function SupportHelpPage({
                       size="sm"
                       rounded="full"
                       fullWidth={false}
-                      triggerClassName="min-w-[185px] bg-[#F1F0F3] border-zinc-200"
+                      triggerClassName="min-w-[185px] bg-zinc-100 border-zinc-200"
                     />
                   </div>
                 </div>
@@ -988,7 +988,7 @@ export function SupportHelpPage({
                       setCurrentPage(1)
                     }}
                     placeholder="Search by ticket ID, subject, category, or description..."
-                    className="w-full pl-10 pr-24 py-2.5 rounded-full text-xs bg-[#F1F0F3] border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#905FEB] focus:bg-white transition-colors"
+                    className="w-full pl-10 pr-24 py-2.5 rounded-full text-xs bg-zinc-100 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-primary focus:bg-surface transition-colors"
                   />
                   {ticketSearch && (
                     <button
@@ -1032,7 +1032,7 @@ export function SupportHelpPage({
                               <button
                                 type="button"
                                 onClick={handleOpenCreateModal}
-                                className="mt-2 px-4 py-2 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] cursor-pointer shadow-sm"
+                                className="mt-2 px-4 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary cursor-pointer shadow-sm"
                               >
                                 + Create First Ticket
                               </button>
@@ -1045,13 +1045,13 @@ export function SupportHelpPage({
                             key={ticket.id}
                             className="hover:bg-purple-50/30 transition-colors group"
                           >
-                            <td className="py-3.5 px-3 whitespace-nowrap font-mono font-bold text-[#5F2BC0]">
+                            <td className="py-3.5 px-3 whitespace-nowrap font-mono font-bold text-primary-text">
                               {ticket.id}
                             </td>
                             <td className="py-3.5 px-3">
                               <div
                                 onClick={() => setActiveTicketId(ticket.id)}
-                                className="font-bold text-zinc-900 group-hover:text-[#905FEB] transition-colors cursor-pointer line-clamp-1 flex items-center gap-1.5"
+                                className="font-bold text-zinc-900 group-hover:text-primary-text transition-colors cursor-pointer line-clamp-1 flex items-center gap-1.5"
                                 title={ticket.subject}
                               >
                                 <span>{ticket.subject}</span>
@@ -1080,7 +1080,7 @@ export function SupportHelpPage({
                               <button
                                 type="button"
                                 onClick={() => setActiveTicketId(ticket.id)}
-                                className="px-3.5 py-1.5 rounded-full bg-[#F0E7FF] text-[#5F2BC0] text-xs font-bold hover:bg-[#905FEB] hover:text-white transition-all cursor-pointer shadow-xs"
+                                className="px-3.5 py-1.5 rounded-full bg-primary-soft text-primary-text text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer shadow-xs"
                               >
                                 View Details →
                               </button>
@@ -1151,7 +1151,7 @@ export function SupportHelpPage({
               {guideCards.map((card) => (
                 <div
                   key={card.title}
-                  className="p-4 bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                  className="p-4 bg-surface rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -1177,7 +1177,7 @@ export function SupportHelpPage({
                           onNavigate(card.page)
                         }
                       }}
-                      className="text-xs font-bold text-[#905FEB] hover:text-[#5F2BC0] transition-colors cursor-pointer flex items-center gap-1"
+                      className="text-xs font-bold text-primary-text hover:text-primary-text transition-colors cursor-pointer flex items-center gap-1"
                     >
                       <span>{card.btnLabel}</span>
                     </button>
@@ -1189,7 +1189,7 @@ export function SupportHelpPage({
 
           {/* Knowledge Base FAQs with Search */}
           <section
-            className="panel p-6 bg-white border border-zinc-100 shadow-sm rounded-3xl"
+            className="panel p-6 bg-surface border border-zinc-100 shadow-sm rounded-3xl"
             aria-label="Knowledge Base FAQs"
           >
             <div className="card-header mb-4 flex-wrap gap-3">
@@ -1217,7 +1217,7 @@ export function SupportHelpPage({
                     type="button"
                     onClick={() => setSelectedFaqCategory(cat)}
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${selectedFaqCategory === cat
-                      ? "bg-[#905FEB] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                       }`}
                   >
@@ -1237,7 +1237,7 @@ export function SupportHelpPage({
                 value={faqSearch}
                 onChange={(e) => setFaqSearch(e.target.value)}
                 placeholder="Search troubleshooting guidance, submissions, timetables, or leaves..."
-                className="w-full pl-10 pr-24 py-2.5 rounded-full text-xs bg-[#F1F0F3] border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#905FEB] focus:bg-white transition-colors"
+                className="w-full pl-10 pr-24 py-2.5 rounded-full text-xs bg-zinc-100 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-primary focus:bg-surface transition-colors"
               />
               {faqSearch && (
                 <button
@@ -1269,10 +1269,10 @@ export function SupportHelpPage({
                         className="flex items-center justify-between cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 pr-4">
-                          <span className="w-5 h-5 rounded-md bg-[#F0E7FF] text-[#5F2BC0] flex items-center justify-center font-extrabold text-[11px] flex-shrink-0">
+                          <span className="w-5 h-5 rounded-md bg-primary-soft text-primary-text flex items-center justify-center font-extrabold text-[11px] flex-shrink-0">
                             ?
                           </span>
-                          <span className="text-xs font-bold text-zinc-900 group-hover:text-[#905FEB] transition-colors">
+                          <span className="text-xs font-bold text-zinc-900 group-hover:text-primary-text transition-colors">
                             {faq.question}
                           </span>
                           <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500">
@@ -1286,7 +1286,7 @@ export function SupportHelpPage({
 
                       {isExpanded && (
                         <div className="mt-3 pl-7 pr-2 flex flex-col gap-2.5">
-                          <p className="text-xs text-zinc-600 leading-relaxed bg-[#F0E7FF]/40 p-3.5 rounded-xl border border-purple-100">
+                          <p className="text-xs text-zinc-600 leading-relaxed bg-primary-soft/40 p-3.5 rounded-xl border border-purple-100">
                             {faq.answer}
                           </p>
 
@@ -1310,7 +1310,7 @@ export function SupportHelpPage({
                                     }
                                   }
                                 }}
-                                className="px-3.5 py-1.5 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] transition-colors cursor-pointer shadow-sm inline-flex items-center gap-1.5"
+                                className="px-3.5 py-1.5 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary transition-colors cursor-pointer shadow-sm inline-flex items-center gap-1.5"
                               >
                                 <span>
                                   {faq.linkLabel || `Go to ${faq.linkTarget} →`}
@@ -1343,7 +1343,7 @@ export function SupportHelpPage({
               <button
                 type="button"
                 onClick={onOpenAiModal}
-                className="px-5 py-2.5 rounded-full bg-white text-purple-900 text-xs font-bold hover:bg-purple-50 cursor-pointer shadow"
+                className="px-5 py-2.5 rounded-full bg-surface text-purple-900 text-xs font-bold hover:bg-purple-50 cursor-pointer shadow"
               >
                 ✦ Ask AI Assistant
               </button>
@@ -1353,7 +1353,7 @@ export function SupportHelpPage({
                   setActiveSection("tickets")
                   handleOpenCreateModal()
                 }}
-                className="px-5 py-2.5 rounded-full bg-[#AEEB00] text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow"
+                className="px-5 py-2.5 rounded-full bg-success text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow"
               >
                 + Create Support Ticket →
               </button>
@@ -1374,7 +1374,7 @@ export function SupportHelpPage({
           onClick={() => setIsCreateModalOpen(false)}
         >
           <div
-            className="bg-white rounded-3xl border border-purple-100 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 relative animate-in fade-in zoom-in-95"
+            className="bg-surface rounded-3xl border border-purple-100 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 relative animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between pb-3.5 border-b border-zinc-100 mb-4">
@@ -1442,7 +1442,7 @@ export function SupportHelpPage({
                     }
                   }}
                   placeholder="e.g. Account credentials issue or course access error"
-                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] ${
+                  className={`w-full p-2.5 rounded-xl border bg-surface text-zinc-900 focus:outline-none focus:border-primary ${
                     formErrors.subject ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
                   }`}
                 />
@@ -1468,7 +1468,7 @@ export function SupportHelpPage({
                     }
                   }}
                   placeholder="Provide precise details, steps to reproduce, course codes, error traces, or student ID..."
-                  className={`w-full p-2.5 rounded-xl border bg-white text-zinc-900 focus:outline-none focus:border-[#905FEB] leading-relaxed ${
+                  className={`w-full p-2.5 rounded-xl border bg-surface text-zinc-900 focus:outline-none focus:border-primary leading-relaxed ${
                     formErrors.description ? "border-rose-400 bg-rose-50/30" : "border-zinc-200"
                   }`}
                 />
@@ -1501,10 +1501,10 @@ export function SupportHelpPage({
                 {!newAttachment ? (
                   <div
                     onClick={() => attachmentInputRef.current?.click()}
-                    className="p-3.5 rounded-2xl border border-dashed border-zinc-300 hover:border-[#905FEB] bg-zinc-50/70 hover:bg-[#F0E7FF]/20 cursor-pointer transition-colors flex items-center justify-between gap-3 group"
+                    className="p-3.5 rounded-2xl border border-dashed border-zinc-300 hover:border-primary bg-zinc-50/70 hover:bg-primary-soft/20 cursor-pointer transition-colors flex items-center justify-between gap-3 group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#5F2BC0] flex items-center justify-center text-sm group-hover:scale-105 transition-transform">
+                      <div className="w-8 h-8 rounded-xl bg-purple-100 text-primary-text flex items-center justify-center text-sm group-hover:scale-105 transition-transform">
                         📎
                       </div>
                       <div>
@@ -1516,7 +1516,7 @@ export function SupportHelpPage({
                         </span>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-lg bg-white border border-zinc-200 text-zinc-600 text-[11px] font-bold shadow-2xs group-hover:border-[#905FEB] group-hover:text-[#5F2BC0]">
+                    <span className="px-2.5 py-1 rounded-lg bg-surface border border-zinc-200 text-zinc-600 text-[11px] font-bold shadow-2xs group-hover:border-primary group-hover:text-primary-text">
                       Browse
                     </span>
                   </div>
@@ -1538,7 +1538,7 @@ export function SupportHelpPage({
                     <button
                       type="button"
                       onClick={handleRemoveAttachment}
-                      className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold cursor-pointer transition-colors shrink-0"
+                      className="px-2.5 py-1 rounded-lg bg-surface hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold cursor-pointer transition-colors shrink-0"
                     >
                       Remove
                     </button>
@@ -1564,7 +1564,7 @@ export function SupportHelpPage({
                 <button
                   type="submit"
                   disabled={isSubmittingTicket}
-                  className="px-5 py-2 rounded-full bg-[#905FEB] text-white text-xs font-bold hover:bg-[#7D4BD8] cursor-pointer shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary cursor-pointer shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
                   {isSubmittingTicket ? (
                     <>
@@ -1590,7 +1590,7 @@ export function SupportHelpPage({
           onClick={() => setCreatedConfirmation(null)}
         >
           <div
-            className="bg-white rounded-3xl border border-purple-100 shadow-2xl max-w-lg w-full p-6 sm:p-8 text-center relative animate-in fade-in zoom-in-95"
+            className="bg-surface rounded-3xl border border-purple-100 shadow-2xl max-w-lg w-full p-6 sm:p-8 text-center relative animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1614,7 +1614,7 @@ export function SupportHelpPage({
             </div>
 
             {/* Center Light-Green Circular Success Icon with Green Checkmark */}
-            <div className="w-16 h-16 rounded-full bg-[#E7FF9C] text-[#253700] mx-auto flex items-center justify-center text-3xl font-black mb-4 shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-success-soft text-[#253700] mx-auto flex items-center justify-center text-3xl font-black mb-4 shadow-xs">
               <svg
                 className="w-8 h-8 text-[#253700]"
                 fill="none"
@@ -1638,9 +1638,9 @@ export function SupportHelpPage({
 
             {/* Dynamically Generated Ticket ID inside Light-Purple Outlined Pill */}
             <div className="flex items-center justify-center mb-6">
-              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[#D8C2FF] bg-[#F0E7FF] text-[#5F2BC0] font-bold text-xs sm:text-sm shadow-2xs">
-                <span className="text-[#514B68] font-medium text-xs">Ticket ID:</span>
-                <span className="font-mono font-black text-[#5F2BC0] tracking-wide">
+              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-primary-border bg-primary-soft text-primary-text font-bold text-xs sm:text-sm shadow-2xs">
+                <span className="text-muted-foreground font-medium text-xs">Ticket ID:</span>
+                <span className="font-mono font-black text-primary-text tracking-wide">
                   {createdConfirmation.id}
                 </span>
               </div>
@@ -1651,7 +1651,7 @@ export function SupportHelpPage({
               <button
                 type="button"
                 onClick={handleCreateAnotherRequest}
-                className="w-full py-3 px-6 rounded-full bg-[#905FEB] hover:bg-[#7D4BD8] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 px-6 rounded-full bg-primary hover:bg-primary text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Create Another Request</span>
               </button>
@@ -1663,7 +1663,7 @@ export function SupportHelpPage({
                   setCreatedConfirmation(null)
                   setActiveTicketId(id)
                 }}
-                className="text-xs text-[#5F2BC0] hover:text-[#905FEB] font-bold py-1.5 cursor-pointer hover:underline"
+                className="text-xs text-primary-text hover:text-primary-text font-bold py-1.5 cursor-pointer hover:underline"
               >
                 View Ticket Details & Activity →
               </button>

@@ -149,8 +149,8 @@ export const TicketDetailPage: React.FC = () => {
       {/* Toast Notification */}
       {actionToast && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
-          <div className="bg-[#111111] text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold border border-[#905FEB]/40">
-            <CheckCircle2 className="h-4 w-4 text-[#AEEB00] shrink-0" />
+          <div className="bg-ink-900 text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold border border-primary/40">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
             <span>{actionToast}</span>
             <button
               onClick={() => setActionToast(null)}
@@ -163,7 +163,7 @@ export const TicketDetailPage: React.FC = () => {
       )}
 
       {/* TOP CONTROL BAR matching canonical panel */}
-      <div className="panel py-2 px-3 sm:px-4 bg-white border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+      <div className="panel py-2 px-3 sm:px-4 bg-surface border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/support/inbox">
             <button
@@ -177,7 +177,7 @@ export const TicketDetailPage: React.FC = () => {
 
           <span className="hidden sm:inline text-zinc-300">•</span>
 
-          <span className="font-mono text-xs font-extrabold text-[#7042D2] bg-[#F0EDFF] px-2.5 py-0.5 rounded-full shadow-xs border border-[#905FEB]/30">
+          <span className="font-mono text-xs font-extrabold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-full shadow-xs border border-primary/30">
             {ticket.ticketNumber}
           </span>
 
@@ -204,7 +204,7 @@ export const TicketDetailPage: React.FC = () => {
 
           {proposedStatus && (
             <span className="badge-status-assigned text-[10px] gap-1 font-bold px-2 py-0.5 shadow-2xs">
-              <Clock className="h-2.5 w-2.5 text-[#B45309]" />
+              <Clock className="h-2.5 w-2.5 text-warning" />
               <span>
                 Proposal: {proposedStatus === "batch_move" ? "Cohort Transfer" : "Validity Extension"}
               </span>
@@ -220,7 +220,7 @@ export const TicketDetailPage: React.FC = () => {
             className="btn-support-secondary text-xs font-bold h-7.5 px-3 cursor-pointer flex items-center gap-1.5 shadow-2xs hover:shadow-xs"
             title="Inspect Student 360° Profile"
           >
-            <User className="h-3.5 w-3.5 text-[#7042D2]" />
+            <User className="h-3.5 w-3.5 text-primary-text" />
             <span>Student 360°</span>
           </button>
 
@@ -243,11 +243,11 @@ export const TicketDetailPage: React.FC = () => {
            ======================================================== */}
         <div className="lg:col-span-8 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-hidden">
           {/* Compact Ticket Overview Capsule */}
-          <div className="panel p-3 bg-white border border-zinc-150 space-y-1.5 shrink-0">
+          <div className="panel p-3 bg-surface border border-zinc-150 space-y-1.5 shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="space-y-0.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm sm:text-base font-extrabold text-[#111111] leading-tight truncate">
+                  <h2 className="text-sm sm:text-base font-extrabold text-foreground leading-tight truncate">
                     {ticket.subject}
                   </h2>
                   <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
@@ -263,31 +263,31 @@ export const TicketDetailPage: React.FC = () => {
                     {ticket.priority.toUpperCase()} Priority
                   </span>
                   <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5 flex items-center gap-1">
-                    <CreditCard className="h-3 w-3 text-[#3B6600]" />
+                    <CreditCard className="h-3 w-3 text-success" />
                     <span>Razorpay Verified</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 flex-wrap">
-                  <span className="font-semibold text-[#111111]">{ticket.studentName}</span>
+                  <span className="font-semibold text-foreground">{ticket.studentName}</span>
                   <span>•</span>
                   <span className="font-mono text-zinc-400 text-[11px]">{ticket.studentEmail}</span>
                   <span>•</span>
-                  <span className="text-[#7042D2] font-semibold text-[11px]">{ticket.studentBatch}</span>
+                  <span className="text-primary-text font-semibold text-[11px]">{ticket.studentBatch}</span>
                 </div>
               </div>
 
               {/* Inline Transaction Reference Badge */}
-              <div className="flex items-center gap-2 shrink-0 bg-[#FAF9FF] border border-[#E5DEFF] px-2.5 py-1 rounded-xl shadow-2xs">
-                <Receipt className="h-3.5 w-3.5 text-[#7042D2] shrink-0" />
+              <div className="flex items-center gap-2 shrink-0 bg-primary-soft border border-primary-border px-2.5 py-1 rounded-xl shadow-2xs">
+                <Receipt className="h-3.5 w-3.5 text-primary-text shrink-0" />
                 <span className="text-[11px] font-mono text-zinc-600">
-                  <strong className="text-[#7042D2]">order_Qz89106</strong> (₹39,999)
+                  <strong className="text-primary-text">order_Qz89106</strong> (₹39,999)
                 </span>
                 <button
                   type="button"
                   onClick={() => handleAiCopilotGenerate("refund")}
                   className="btn-support-secondary text-[10px] h-6 px-2 font-bold cursor-pointer shrink-0"
                 >
-                  <Sparkles className="h-2.5 w-2.5 text-[#905FEB]" />
+                  <Sparkles className="h-2.5 w-2.5 text-primary-text" />
                   <span>Refund SOP</span>
                 </button>
               </div>
@@ -295,7 +295,7 @@ export const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Conversation History Stream & AI Composer */}
-          <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-3.5 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-3.5 rounded-2xl bg-surface border border-primary-border shadow-2xs overflow-hidden">
             <div className="flex items-center justify-between shrink-0 mb-1.5">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
@@ -320,8 +320,8 @@ export const TicketDetailPage: React.FC = () => {
                     key={msg.id}
                     className={`p-2.5 sm:p-3 rounded-2xl border transition-all space-y-1.5 ${
                       isAgent
-                        ? "bg-[#905FEB] text-white border-[#7D46E7] ml-4 sm:ml-8 shadow-sm shadow-[#905FEB]/20"
-                        : "bg-[#FAF9FF] text-[#111111] border-[#E5DEFF] mr-4 sm:mr-8 shadow-2xs"
+                        ? "bg-primary text-white border-[#7D46E7] ml-4 sm:ml-8 shadow-sm shadow-primary/20"
+                        : "bg-primary-soft text-foreground border-primary-border mr-4 sm:mr-8 shadow-2xs"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -329,15 +329,15 @@ export const TicketDetailPage: React.FC = () => {
                         <div
                           className={`h-7 w-7 rounded-xl flex items-center justify-center text-[10px] font-extrabold shrink-0 shadow-xs ${
                             isAgent
-                              ? "bg-white text-[#905FEB]"
-                              : "bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30"
+                              ? "bg-surface text-primary-text"
+                              : "bg-primary-soft text-primary-text border border-primary/30"
                           }`}
                         >
                           {isAgent ? "MS" : "DP"}
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className={`text-xs font-extrabold leading-none ${isAgent ? "text-white" : "text-[#111111]"}`}>
+                            <p className={`text-xs font-extrabold leading-none ${isAgent ? "text-white" : "text-foreground"}`}>
                               {msg.sender}
                             </p>
                             {isAgent && (
@@ -355,12 +355,12 @@ export const TicketDetailPage: React.FC = () => {
                       {isAgent && (
                         <div className="flex items-center gap-1 text-[10px] text-white/90 font-mono">
                           <span>Delivered</span>
-                          <CheckCheck className="h-3.5 w-3.5 text-[#AEEB00]" />
+                          <CheckCheck className="h-3.5 w-3.5 text-success" />
                         </div>
                       )}
                     </div>
 
-                    <p className={`text-xs leading-relaxed whitespace-pre-wrap pl-0.5 font-medium ${isAgent ? "text-white" : "text-[#111111]"}`}>
+                    <p className={`text-xs leading-relaxed whitespace-pre-wrap pl-0.5 font-medium ${isAgent ? "text-white" : "text-foreground"}`}>
                       {msg.message}
                     </p>
                   </div>
@@ -370,10 +370,10 @@ export const TicketDetailPage: React.FC = () => {
             </div>
 
             {/* AI Copilot & Macro Acceleration Bar */}
-            <div className="shrink-0 pt-2 border-t border-[#F0EDFF] space-y-1.5">
+            <div className="shrink-0 pt-2 border-t border-primary-soft space-y-1.5">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 support-card-scroll">
-                <span className="font-extrabold text-[#111111] text-[10px] flex items-center gap-1 shrink-0">
-                  <Sparkles className="h-3 w-3 text-[#905FEB]" />
+                <span className="font-extrabold text-foreground text-[10px] flex items-center gap-1 shrink-0">
+                  <Sparkles className="h-3 w-3 text-primary-text" />
                   <span>Copilot:</span>
                 </span>
                 <button
@@ -411,9 +411,9 @@ export const TicketDetailPage: React.FC = () => {
                     key={idx}
                     type="button"
                     onClick={() => setReplyText(macro.text)}
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold border border-[#E5DEFF] bg-white hover:bg-[#F0EDFF] hover:border-[#905FEB] text-[#111111] shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                    className="px-2 py-0.5 rounded-full text-[10px] font-bold border border-primary-border bg-surface hover:bg-primary-soft hover:border-primary text-foreground shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                   >
-                    <span className="font-mono text-[#7042D2]">{macro.tag}</span>
+                    <span className="font-mono text-primary-text">{macro.tag}</span>
                     <span>{macro.label}</span>
                   </button>
                 ))}
@@ -426,7 +426,7 @@ export const TicketDetailPage: React.FC = () => {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Draft your reply to the student... (Markdown supported)"
-                  className="w-full text-xs p-2 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] text-[#111111] resize-none focus:outline-none focus:border-[#905FEB] focus:ring-1 focus:ring-[#905FEB]/20 font-sans leading-relaxed h-13 sm:h-15"
+                  className="w-full text-xs p-2 rounded-xl border border-primary-border bg-primary-soft text-foreground resize-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-sans leading-relaxed h-13 sm:h-15"
                 />
 
                 <div className="flex items-center justify-between">
@@ -472,7 +472,7 @@ export const TicketDetailPage: React.FC = () => {
            ======================================================== */}
         <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-y-auto support-queue-scrollbar pr-0.5">
           {/* Learner 360° Profile Telemetry Card */}
-          <div className="p-3 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-2 shrink-0">
+          <div className="p-3 rounded-2xl bg-surface border border-primary-border shadow-2xs space-y-2 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
                 Learner 360° Profile
@@ -486,28 +486,28 @@ export const TicketDetailPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+              <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary-text border border-primary/30 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
                 DP
               </div>
               <div className="min-w-0">
-                <h4 className="font-extrabold text-[#111111] text-xs truncate">
+                <h4 className="font-extrabold text-foreground text-xs truncate">
                   {ticket.studentName}
                 </h4>
                 <p className="text-[10px] text-zinc-500 font-mono truncate">
                   {ticket.studentEmail}
                 </p>
-                <p className="text-[9px] text-[#7042D2] font-semibold truncate mt-0.5">
+                <p className="text-[9px] text-primary-text font-semibold truncate mt-0.5">
                   {ticket.studentBatch}
                 </p>
               </div>
             </div>
 
             {/* Dual Telemetry Progress Bars (Figma 76% & 48%) */}
-            <div className="space-y-1.5 pt-1.5 border-t border-[#F0EDFF]">
+            <div className="space-y-1.5 pt-1.5 border-t border-primary-soft">
               <div className="space-y-0.5">
                 <div className="flex justify-between text-[9px]">
                   <span className="text-zinc-500 font-medium">Curriculum Completion</span>
-                  <span className="font-bold text-[#111111] font-mono">76%</span>
+                  <span className="font-bold text-foreground font-mono">76%</span>
                 </div>
                 <div className="progress-bar-track h-1.5">
                   <div className="progress-bar-fill-purple" style={{ width: "76%" }} />
@@ -517,7 +517,7 @@ export const TicketDetailPage: React.FC = () => {
               <div className="space-y-0.5">
                 <div className="flex justify-between text-[9px]">
                   <span className="text-zinc-500 font-medium">Live Attendance</span>
-                  <span className="font-bold font-mono text-[#3B6600]">48%</span>
+                  <span className="font-bold font-mono text-success">48%</span>
                 </div>
                 <div className="progress-bar-track h-1.5">
                   <div className="progress-bar-fill-lime" style={{ width: "48%" }} />
@@ -536,15 +536,15 @@ export const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Mentor Governance Actions Card */}
-          <div className="p-3 rounded-2xl bg-white border border-[#E5DEFF] shadow-2xs space-y-2 flex-1 min-h-0 flex flex-col justify-between">
+          <div className="p-3 rounded-2xl bg-surface border border-primary-border shadow-2xs space-y-2 flex-1 min-h-0 flex flex-col justify-between">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-xl bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center font-bold shadow-2xs shrink-0">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#905FEB]" />
+                <div className="h-7 w-7 rounded-xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold shadow-2xs shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary-text" />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-[#111111] text-xs leading-tight">
+                  <h4 className="font-extrabold text-foreground text-xs leading-tight">
                     Mentor Governance Actions
                   </h4>
                   <p className="text-[9px] text-zinc-500 font-medium">
@@ -563,14 +563,14 @@ export const TicketDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleAiCopilotGenerate("refund")}
-                className="w-full p-2 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#EAFCC7]/30 hover:border-[#AEEB00] transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
+                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-success-soft/30 hover:border-success transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-6.5 w-6.5 rounded-lg bg-[#EAFCC7] text-[#3B6600] border border-[#AEEB00]/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-6.5 w-6.5 rounded-lg bg-success-soft text-success border border-success/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <CreditCard className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-[#111111] truncate group-hover:text-[#3B6600] transition-colors leading-tight">
+                    <p className="text-[11px] font-bold text-foreground truncate group-hover:text-success transition-colors leading-tight">
                       Verify Gateway Refund
                     </p>
                     <p className="text-[9px] text-zinc-500 font-medium truncate">
@@ -579,7 +579,7 @@ export const TicketDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-[#EAFCC7] group-hover:text-[#3B6600] transition-all">
+                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-success-soft group-hover:text-success transition-all">
                   Verify →
                 </span>
               </button>
@@ -588,14 +588,14 @@ export const TicketDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsBatchMoveModalOpen(true)}
-                className="w-full p-2 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] hover:border-[#905FEB] transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
+                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-primary-soft hover:border-primary transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-6.5 w-6.5 rounded-lg bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-6.5 w-6.5 rounded-lg bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <ArrowRightLeft className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-[#111111] truncate group-hover:text-[#7042D2] transition-colors leading-tight">
+                    <p className="text-[11px] font-bold text-foreground truncate group-hover:text-primary-text transition-colors leading-tight">
                       Propose Cohort Transfer
                     </p>
                     <p className="text-[9px] text-zinc-500 font-medium truncate">
@@ -604,7 +604,7 @@ export const TicketDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-[#905FEB] group-hover:text-white transition-all">
+                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-white transition-all">
                   Transfer →
                 </span>
               </button>
@@ -613,14 +613,14 @@ export const TicketDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsExtensionModalOpen(true)}
-                className="w-full p-2 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#F0EDFF] hover:border-[#905FEB] transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
+                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-primary-soft hover:border-primary transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-6.5 w-6.5 rounded-lg bg-[#F0EDFF] text-[#7042D2] border border-[#905FEB]/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-6.5 w-6.5 rounded-lg bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <Clock className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-[#111111] truncate group-hover:text-[#7042D2] transition-colors leading-tight">
+                    <p className="text-[11px] font-bold text-foreground truncate group-hover:text-primary-text transition-colors leading-tight">
                       Propose Validity Extension
                     </p>
                     <p className="text-[9px] text-zinc-500 font-medium truncate">
@@ -629,7 +629,7 @@ export const TicketDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-[#905FEB] group-hover:text-white transition-all">
+                <span className="btn-support-secondary text-[9px] h-5.5 px-2 font-bold shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-white transition-all">
                   Extend →
                 </span>
               </button>
@@ -638,14 +638,14 @@ export const TicketDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => showNotification("Escalation logged: Lead Instructor Prof. Rajesh Verma notified.")}
-                className="w-full p-2 rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] hover:bg-[#FFF3E0] hover:border-[#F59E0B]/60 transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
+                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-warning-soft hover:border-[#F59E0B]/60 transition-all flex items-center justify-between gap-2 text-left group cursor-pointer shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-6.5 w-6.5 rounded-lg bg-[#FFF3E0] text-[#B45309] border border-[#F59E0B]/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-6.5 w-6.5 rounded-lg bg-warning-soft text-warning border border-[#F59E0B]/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <AlertTriangle className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-[#111111] truncate group-hover:text-[#B45309] transition-colors leading-tight">
+                    <p className="text-[11px] font-bold text-foreground truncate group-hover:text-warning transition-colors leading-tight">
                       Escalate to Instructor
                     </p>
                     <p className="text-[9px] text-zinc-500 font-medium truncate">
@@ -673,7 +673,7 @@ export const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Ticket SLA & Assignment Telemetry */}
-          <div className="panel p-3 bg-white border border-zinc-150 space-y-1.5 text-xs shrink-0">
+          <div className="panel p-3 bg-surface border border-zinc-150 space-y-1.5 text-xs shrink-0">
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-zinc-400 block">
               SLA Audit &amp; Ownership
             </span>
@@ -687,11 +687,11 @@ export const TicketDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center text-[11px]">
                 <span className="text-zinc-500">Target Resolution</span>
-                <span className="font-mono font-bold text-[#111111]">Today by 11:45 AM</span>
+                <span className="font-mono font-bold text-foreground">Today by 11:45 AM</span>
               </div>
               <div className="flex justify-between items-center text-[11px]">
                 <span className="text-zinc-500">Assigned Agent</span>
-                <span className="font-bold text-[#7042D2]">{ticket.assignedAgent || "Meera Sen"}</span>
+                <span className="font-bold text-primary-text">{ticket.assignedAgent || "Meera Sen"}</span>
               </div>
             </div>
           </div>
@@ -700,37 +700,37 @@ export const TicketDetailPage: React.FC = () => {
 
       {/* Propose Batch Move Modal */}
       <Dialog open={isBatchMoveModalOpen} onOpenChange={setIsBatchMoveModalOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-white border border-[#E5DEFF] shadow-2xl overflow-hidden support-page-font">
-          <DialogHeader className="p-5 border-b border-[#F0EDFF] bg-gradient-to-b from-[#FAF9FF] to-white text-left">
-            <DialogTitle className="text-base font-extrabold text-[#111111] flex items-center gap-2">
-              <ArrowRightLeft className="h-4 w-4 text-[#905FEB]" />
+        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-surface border border-primary-border shadow-2xl overflow-hidden support-page-font">
+          <DialogHeader className="p-5 border-b border-primary-soft bg-gradient-to-b from-primary-soft to-white text-left">
+            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4 text-primary-text" />
               <span>Propose Cohort Batch Transfer</span>
             </DialogTitle>
           </DialogHeader>
 
           <div className="p-5 space-y-4 text-xs">
             <p className="text-zinc-500 leading-relaxed">
-              Select destination cohort for <strong className="text-[#111111]">{ticket.studentName}</strong>.
+              Select destination cohort for <strong className="text-foreground">{ticket.studentName}</strong>.
               Historical milestone submissions and grades transfer seamlessly.
             </p>
 
             <div className="space-y-1">
-              <label className="font-bold text-[#111111] block">Current Cohort</label>
-              <div className="p-2.5 rounded-xl bg-[#FAF9FF] border border-[#E5DEFF] font-semibold text-zinc-700">
+              <label className="font-bold text-foreground block">Current Cohort</label>
+              <div className="p-2.5 rounded-xl bg-primary-soft border border-primary-border font-semibold text-zinc-700">
                 {ticket.studentBatch}
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-[#111111] block">Target Destination Cohort</label>
-              <select className="w-full text-xs rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] p-2.5 focus:border-[#905FEB] focus:outline-none">
+              <label className="font-bold text-foreground block">Target Destination Cohort</label>
+              <select className="w-full text-xs rounded-xl border border-primary-border bg-primary-soft p-2.5 focus:border-primary focus:outline-none">
                 <option>Full-Stack AI &amp; LLM Systems - Cohort 7 (Live + Replay)</option>
                 <option>Autonomous Multi-Agent Bootcamp (Weekend Intensive)</option>
               </select>
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-end gap-2">
+          <DialogFooter className="p-4 border-t border-primary-soft bg-primary-soft flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setIsBatchMoveModalOpen(false)}
@@ -751,23 +751,23 @@ export const TicketDetailPage: React.FC = () => {
 
       {/* Propose Extension Modal */}
       <Dialog open={isExtensionModalOpen} onOpenChange={setIsExtensionModalOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-white border border-[#E5DEFF] shadow-2xl overflow-hidden support-page-font">
-          <DialogHeader className="p-5 border-b border-[#F0EDFF] bg-gradient-to-b from-[#FAF9FF] to-white text-left">
-            <DialogTitle className="text-base font-extrabold text-[#111111] flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#905FEB]" />
+        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-surface border border-primary-border shadow-2xl overflow-hidden support-page-font">
+          <DialogHeader className="p-5 border-b border-primary-soft bg-gradient-to-b from-primary-soft to-white text-left">
+            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary-text" />
               <span>Propose Access Validity Extension</span>
             </DialogTitle>
           </DialogHeader>
 
           <div className="p-5 space-y-4 text-xs">
             <p className="text-zinc-500 leading-relaxed">
-              Specify duration extension to grant <strong className="text-[#111111]">{ticket.studentName}</strong> for
+              Specify duration extension to grant <strong className="text-foreground">{ticket.studentName}</strong> for
               course completion buffer.
             </p>
 
             <div className="space-y-1">
-              <label className="font-bold text-[#111111] block">Extension Duration</label>
-              <select className="w-full text-xs rounded-xl border border-[#E5DEFF] bg-[#FAF9FF] p-2.5 focus:border-[#905FEB] focus:outline-none">
+              <label className="font-bold text-foreground block">Extension Duration</label>
+              <select className="w-full text-xs rounded-xl border border-primary-border bg-primary-soft p-2.5 focus:border-primary focus:outline-none">
                 <option value="15">15 Days Extension</option>
                 <option value="30">30 Days Extension (Standard Medical/Work)</option>
                 <option value="60">60 Days Extension</option>
@@ -775,7 +775,7 @@ export const TicketDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-[#F0EDFF] bg-[#FAF9FF] flex items-center justify-end gap-2">
+          <DialogFooter className="p-4 border-t border-primary-soft bg-primary-soft flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setIsExtensionModalOpen(false)}
