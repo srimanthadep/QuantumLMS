@@ -705,7 +705,7 @@ body:has(.teacher-portal-shell) {
   padding: 0 14px;
   border-radius: 999px;
   background: var(--surface);
-  color: #55525f;
+  color: var(--muted-foreground);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -722,7 +722,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .search-box input::placeholder {
-  color: #726f81;
+  color: var(--muted-foreground);
 }
 
 /* ========================================================
@@ -808,7 +808,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .hex-input-inner input::placeholder {
-  color: #9491a1;
+  color: var(--subtle-foreground);
   font-weight: 400;
 }
 
@@ -1525,7 +1525,7 @@ body:has(.teacher-portal-shell) {
   display: grid;
   grid-template-columns: minmax(190px, 2.1fr) minmax(180px, 1.9fr) minmax(105px, 1.1fr) minmax(105px, 1.1fr) minmax(125px, 1.3fr) minmax(95px, 1fr) 105px;
   gap: 12px;
-  color: #666373;
+  color: var(--muted-foreground);
   font-size: 10.5px;
   font-weight: 600;
   padding: 0 8px 8px;
@@ -1720,7 +1720,7 @@ select option {
   font-size: 12px;
   line-height: 15px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1780,7 +1780,7 @@ select option {
 .spotlight-stat strong {
   font-size: 15px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   margin-top: 1px;
 }
 
@@ -1850,7 +1850,7 @@ select option {
   justify-content: space-between;
   font-size: 10px;
   font-weight: 500;
-  color: #666373;
+  color: var(--muted-foreground);
 }
 
 /* ========================================================
@@ -1918,7 +1918,7 @@ select option {
 .report-meta-box strong {
   font-size: 13px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1947,7 +1947,7 @@ select option {
 .report-preview-header h3 {
   font-size: 16px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   line-height: 1.25;
 }
 
@@ -1976,7 +1976,7 @@ select option {
 .report-preview-stat strong {
   font-size: 15px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   margin-top: 2px;
 }
 
@@ -1987,7 +1987,7 @@ select option {
   border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
   font-size: 11px;
   line-height: 1.5;
-  color: #43247c;
+  color: var(--foreground);
   font-weight: 400;
 }
 
@@ -2010,7 +2010,7 @@ select option {
 
 .schedule-row strong {
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   display: block;
 }
 
@@ -2048,7 +2048,7 @@ select option {
 .btn-outline {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
-  color: #0f172a !important;
+  color: var(--foreground) !important;
   font-weight: 600 !important;
   transition: all 0.15s ease;
 }
@@ -2213,7 +2213,7 @@ select option {
   background: var(--surface);
   border-color: #000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  color: #000;
+  color: var(--foreground);
   font-weight: 700;
 }
 
@@ -2300,7 +2300,7 @@ select option {
 .diagnostic-info strong {
   font-size: 12px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2426,7 +2426,7 @@ select option {
 .quadrant-student-meta strong {
   font-size: 11.5px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2500,7 +2500,7 @@ select option {
 .timeliness-stat-box strong {
   font-size: 14px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
 }
 
 /* AI Pedagogical Digest Card (Dark glowing aesthetic) */
@@ -2973,7 +2973,7 @@ select option {
   gap: 8px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #3f3f46;
+  color: var(--muted-foreground);
 }
 
 .auth-bullet-icon {
@@ -3071,7 +3071,7 @@ select option {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #3f3f46;
+  color: var(--muted-foreground);
 }
 
 .auth-input-wrapper {
@@ -3201,7 +3201,7 @@ select option {
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #fbfbfb;
-  color: #3f3f46;
+  color: var(--muted-foreground);
   font-size: 11.5px;
   font-weight: 700;
   display: flex;
@@ -3386,7 +3386,7 @@ select option {
 
 .student-ask-ai-sub {
   font-size: 9.5px;
-  color: #6b7280;
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4048,7 +4048,7 @@ select option {
 
 .student-last-watched-title {
   font-size: 9.5px;
-  color: #3f3f46;
+  color: var(--muted-foreground);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -4666,7 +4666,7 @@ select option {
   padding: 0 10px;
   font-size: 12px;
   font-weight: 500;
-  color: #000;
+  color: var(--foreground);
   background: transparent;
   transition: all 0.15s ease;
 }
@@ -4701,7 +4701,7 @@ select option {
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: #7A748E;
+  color: var(--muted-foreground);
   user-select: none;
   line-height: 1.2;
 }
@@ -5057,7 +5057,7 @@ select option {
 .student-course-title {
   font-size: 11px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   line-height: 1.25;
   margin: 0 0 5px;
   white-space: nowrap;
@@ -5088,7 +5088,7 @@ select option {
 .student-course-pct {
   font-size: 8.5px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
 }
 
 .student-course-bottom {
@@ -5114,7 +5114,7 @@ select option {
 .student-watched-topic {
   font-size: 8.5px;
   font-weight: 600;
-  color: #000;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5179,7 +5179,7 @@ select option {
 .student-rec-title {
   font-size: 11px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
   margin: 0 0 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -5244,7 +5244,7 @@ select option {
 .student-cert-title {
   font-size: 13px;
   font-weight: 700;
-  color: #000;
+  color: var(--foreground);
 }
 
 .student-cert-sub {
