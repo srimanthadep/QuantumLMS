@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react"
 import {
-  BrowserRouter,
   Routes,
   Route,
   Link,
@@ -11,7 +10,6 @@ import {
 import type { UserRole, CurrentUser, IconName } from "@/types"
 import { Icon } from "@/components/Icon"
 import { ThemeAccentPicker } from "@/components/ui/ThemeAccentPicker"
-import { NotificationProvider } from "@/context/NotificationContext"
 
 // Import all Support sub-pages
 import { SupportDashboard } from "./SupportDashboard"
@@ -731,31 +729,26 @@ function SupportLayout({
   )
 }
 
+/** Mounted by AppRoutes under /support/*; route paths are relative to it. */
 export function SupportPortal(props: SupportPortalProps) {
   return (
-    <NotificationProvider>
-      <BrowserRouter>
-        <SupportLayout {...props}>
-          <Routes>
-            <Route path="/support" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
-            <Route path="/support/dashboard" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
-            <Route path="/support/inbox" element={<TicketsInboxPage />} />
-            <Route path="/support/tickets" element={<TicketsInboxPage />} />
-            <Route path="/support/ticket/:ticketId" element={<TicketDetailPage />} />
-            <Route path="/support/tickets/:ticketId" element={<TicketDetailPage />} />
-            <Route path="/support/live-chat" element={<LiveChatPage />} />
-            <Route path="/support/knowledge-base" element={<KnowledgeBasePage />} />
-            <Route path="/support/sla-escalations" element={<Navigate to="/support/inbox?filter=escalated" replace />} />
-            <Route path="/support/agents" element={<SupportAgentsPage />} />
-            <Route path="/support/analytics" element={<SupportAnalyticsPage />} />
-            <Route path="/support/student-360" element={<Navigate to="/support/inbox" replace />} />
-            <Route path="/support/settings" element={<SupportSettingsPage />} />
-            <Route path="*" element={<Navigate to="/support" replace />} />
-          </Routes>
-        </SupportLayout>
-      </BrowserRouter>
-    </NotificationProvider>
+    <SupportLayout {...props}>
+      <Routes>
+        <Route index element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
+        <Route path="dashboard" element={<SupportDashboard onOpenAiModal={props.onOpenAiModal} />} />
+        <Route path="inbox" element={<TicketsInboxPage />} />
+        <Route path="tickets" element={<TicketsInboxPage />} />
+        <Route path="ticket/:ticketId" element={<TicketDetailPage />} />
+        <Route path="tickets/:ticketId" element={<TicketDetailPage />} />
+        <Route path="live-chat" element={<LiveChatPage />} />
+        <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+        <Route path="sla-escalations" element={<Navigate to="/support/inbox?filter=escalated" replace />} />
+        <Route path="agents" element={<SupportAgentsPage />} />
+        <Route path="analytics" element={<SupportAnalyticsPage />} />
+        <Route path="student-360" element={<Navigate to="/support/inbox" replace />} />
+        <Route path="settings" element={<SupportSettingsPage />} />
+        <Route path="*" element={<Navigate to="/support" replace />} />
+      </Routes>
+    </SupportLayout>
   )
-}
-
-export default SupportPortal
+}export default SupportPortal

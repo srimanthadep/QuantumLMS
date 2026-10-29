@@ -61,7 +61,7 @@ export type IconName =
   | "terminal"
   | "layers"
 
-export type UserRole = "Super Admin" | "Admin" | "Teacher" | "Student" | "Parent" | "Support" | "Evaluator"
+export type UserRole = "Super Admin" | "Admin" | "Teacher" | "Student" | "Support" | "Evaluator"
 
 export interface CurrentUser {
   id: string

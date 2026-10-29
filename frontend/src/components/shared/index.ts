@@ -4,7 +4,6 @@
  */
 export { Student360Drawer } from "./Student360Drawer"
 export { StatCard as MetricCard, FolderTabBackground } from "../ui/StatCard"
-export { HexColorField } from "../HexColorField"
 export { ThemeAccentPicker } from "../ui/ThemeAccentPicker"
 export { Icon } from "../Icon"
 export {

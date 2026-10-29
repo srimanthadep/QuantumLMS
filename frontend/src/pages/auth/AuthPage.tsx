@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Icon } from "../../components/Icon"
 import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
-import { demoAccounts } from "../../data/adminMockData"
+import { demoAccounts } from "../../data/demoAccounts"
 import type { UserRole } from "../../types"
 
 interface AuthPageProps {
@@ -12,15 +12,13 @@ interface AuthPageProps {
     avatar?: string
     title?: string
   }) => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
+  /** @deprecated replaced by the theme system */
+  hexColor?: string
+  /** @deprecated replaced by the theme system */
+  onChangeHexColor?: (color: string) => void
 }
 
-export default function AuthPage({
-  onLogin,
-  hexColor,
-  onChangeHexColor,
-}: AuthPageProps) {
+export default function AuthPage({ onLogin }: AuthPageProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin")
   const [role, setRole] = useState<UserRole>("Teacher")
   const [email, setEmail] = useState("srimanth@quantum-lms.edu")

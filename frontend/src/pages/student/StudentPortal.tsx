@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import { AppSidebar } from "../../components/Sidebar"
 import { StudentHeader } from "../../components/StudentHeader"
 import type {
@@ -9,17 +9,18 @@ import type {
   AssessmentAttempt,
 } from "./studentTypes"
 import StudentDashboardPage from "./StudentDashboardPage"
-import { MyCoursesPage } from "./MyCoursesPage"
-import { CourseDetailsPage } from "./CourseDetailsPage"
-import { TimetablePage } from "./TimetablePage"
-import { AttendancePage } from "./AttendancePage"
-import { AssignmentsPage } from "./AssignmentsPage"
-import { GradesPage } from "./GradesPage"
-import { CommunityPage } from "./CommunityPage"
-import { CareerHubPage } from "./CareerHubPage"
-import { StudentSettingsPage } from "./StudentSettingsPage"
-import { SupportHelpPage } from "./SupportHelpPage"
-import { MyNotesPage } from "./MyNotesPage"
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
+const MyCoursesPage = lazy(() => import("./MyCoursesPage").then((m) => ({ default: m.MyCoursesPage })))
+const CourseDetailsPage = lazy(() => import("./CourseDetailsPage").then((m) => ({ default: m.CourseDetailsPage })))
+const TimetablePage = lazy(() => import("./TimetablePage").then((m) => ({ default: m.TimetablePage })))
+const AttendancePage = lazy(() => import("./AttendancePage").then((m) => ({ default: m.AttendancePage })))
+const AssignmentsPage = lazy(() => import("./AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })))
+const GradesPage = lazy(() => import("./GradesPage").then((m) => ({ default: m.GradesPage })))
+const CommunityPage = lazy(() => import("./CommunityPage").then((m) => ({ default: m.CommunityPage })))
+const CareerHubPage = lazy(() => import("./CareerHubPage").then((m) => ({ default: m.CareerHubPage })))
+const StudentSettingsPage = lazy(() => import("./StudentSettingsPage").then((m) => ({ default: m.StudentSettingsPage })))
+const SupportHelpPage = lazy(() => import("./SupportHelpPage").then((m) => ({ default: m.SupportHelpPage })))
+const MyNotesPage = lazy(() => import("./MyNotesPage").then((m) => ({ default: m.MyNotesPage })))
 import {
   initialStudentCourses,
   catalogCourses,
@@ -27,6 +28,19 @@ import {
   initialQuizzesList,
   initialQuizAttempts,
 } from "./studentMockData"
+
+function StudentPageFallback() {
+  return (
+    <div className="mt-4 space-y-4" role="status" aria-label="Loading">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Skeleton className="h-40" />
+        <Skeleton className="h-40" />
+        <Skeleton className="h-40" />
+      </div>
+      <SkeletonText lines={4} />
+    </div>
+  )
+}
 
 interface StudentPortalProps {
   onOpenAiModal: () => void
@@ -403,6 +417,7 @@ export default function StudentPortal({
             />
 
             {/* Direct Page Router without proxy */}
+            <Suspense fallback={<StudentPageFallback />}>
             <div className="mt-4 flex-1 min-h-0">
               {activeTab === "My Courses" && (
                 <MyCoursesPage
@@ -507,6 +522,7 @@ export default function StudentPortal({
                 <MyNotesPage onToast={onToast} />
               )}
             </div>
+            </Suspense>
           </div>
         )}
       </main>

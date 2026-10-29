@@ -46,8 +46,10 @@ interface AdminPortalProps {
   onSwitchRole: (role: UserRole) => void
   onLogout: () => void
   onToast: (msg: string) => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
+  /** @deprecated replaced by the theme system */
+  hexColor?: string
+  /** @deprecated replaced by the theme system */
+  onChangeHexColor?: (color: string) => void
   isLightBg?: boolean
 }
 
