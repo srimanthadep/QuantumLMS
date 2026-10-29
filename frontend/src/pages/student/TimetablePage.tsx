@@ -399,7 +399,7 @@ export function TimetablePage({
                       {ann.title}
                     </h4>
                   </div>
-                  <span className="text-xs text-zinc-400">{ann.date}</span>
+                  <span className="text-xs text-zinc-400">{ann.timestamp}</span>
                 </div>
                 <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
                   {expandedIds[ann.id] ? ann.content : ann.content.slice(0, 120) + "..."}

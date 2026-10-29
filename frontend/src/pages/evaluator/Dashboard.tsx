@@ -204,7 +204,7 @@ export function Dashboard({
 
         <button
           type="button"
-          onClick={() => onNavigateTab("Assessments")}
+          onClick={() => onNavigateTab("Submissions")}
           className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
@@ -216,7 +216,7 @@ export function Dashboard({
 
         <button
           type="button"
-          onClick={() => onNavigateTab("Reassessment")}
+          onClick={() => onNavigateTab("Submissions", { filter: "reassessment" })}
           className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
@@ -233,7 +233,7 @@ export function Dashboard({
 
         <button
           type="button"
-          onClick={() => onNavigateTab("Results & Feedback")}
+          onClick={() => onNavigateTab("Reports")}
           className="p-3.5 bg-white border border-zinc-200/80 text-zinc-800 rounded-2xl shadow-xs hover:bg-zinc-50 transition-colors flex items-center justify-between text-left cursor-pointer"
         >
           <div>
@@ -258,7 +258,7 @@ export function Dashboard({
               </p>
             </div>
             <button
-              onClick={() => onNavigateTab("My Evaluations")}
+              onClick={() => onNavigateTab("Submissions")}
               className="text-xs font-bold text-purple-700 hover:text-purple-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
             >
               <span>View All Evaluations</span>

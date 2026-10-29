@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
 import {
   Select,
   SelectContent,

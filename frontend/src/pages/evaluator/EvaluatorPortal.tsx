@@ -240,14 +240,18 @@ export function EvaluatorPortal({
   const pendingCount = useMemo(
     () =>
       evaluatorState.submissions.filter(
-        (s) => s.status === "pending" || s.status === "in_review"
+        (s) =>
+          s.status === "Submitted" ||
+          s.status === "In Progress" ||
+          s.status === "Draft Saved" ||
+          s.status === "Resubmitted"
       ).length,
     [evaluatorState.submissions]
   )
 
   const reassessmentCount = useMemo(
     () =>
-      evaluatorState.submissions.filter((s) => s.status === "reassessment_requested")
+      evaluatorState.submissions.filter((s) => s.status === "Reassessment Requested")
         .length,
     [evaluatorState.submissions]
   )

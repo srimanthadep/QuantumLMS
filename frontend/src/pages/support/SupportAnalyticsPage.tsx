@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/StatCard";
+import type { MetricItem } from "@/types";
 import { cn } from "@/lib/utils";
 import { getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
 

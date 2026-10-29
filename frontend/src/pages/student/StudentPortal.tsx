@@ -408,7 +408,7 @@ export default function StudentPortal({
                 <MyCoursesPage
                   onNavigate={navigateTo}
                   onToast={onToast}
-                  onOpenAiModal={onOpenAiModal}
+                  onSelectCourse={setSelectedCourseId}
                   onEnrollCourse={handleEnrollCourse}
                   courses={courses}
                   catalog={catalog}
@@ -456,7 +456,7 @@ export default function StudentPortal({
               {(activeTab === "Grades & Certificates" || activeTab === "Grades" || activeTab === "Certificates") && (
                 <GradesPage
                   onToast={onToast}
-                  initialTab={activeTab === "Certificates" ? "credentials" : "grades"}
+                  initialView={activeTab === "Certificates" ? "certificates" : "grades"}
                 />
               )}
 
@@ -500,7 +500,7 @@ export default function StudentPortal({
               )}
 
               {(activeTab === "Support & Help" || activeTab === "Support" || activeTab === "Help Center") && (
-                <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} />
+                <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} onNavigate={navigateTo} />
               )}
 
               {activeTab === "My Notes" && (
