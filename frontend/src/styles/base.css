@@ -1,0 +1,175 @@
+/* ==========================================================================
+   Base element styles: typography, colours, focus, selection, scrollbars,
+   reduced motion. Kept outside Tailwind layers on purpose only where noted.
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    font-size: 14px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font-family: inherit;
+    font-feature-settings: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 32%, transparent);
+    color: var(--foreground);
+  }
+
+  ::placeholder {
+    color: var(--subtle-foreground);
+    opacity: 1;
+  }
+
+  /* Thin, themed scrollbars (replaces the old globally hidden scrollbars). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--foreground) 28%, transparent);
+  }
+}
+
+/* Visible focus ring for keyboard users everywhere. Unlayered so legacy
+   `outline: none` rules and utility resets cannot hide it. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Skip link (rendered by the app shell). */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  transform: translateY(-160%);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Opt-in scrollbar hiding for horizontal chip rows and carousels. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skeleton shimmer: a translucent band moved with transform only. */
+@keyframes q-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes q-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes q-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Respect reduced motion globally (framer-motion uses MotionConfig reducedMotion="user"). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

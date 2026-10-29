@@ -1,132 +1,135 @@
+/**
+ * Theme service: colour mode (dark | light | system) and accent.
+ * Applies `.dark` and `data-accent` to <html> and dispatches
+ * `quantum-theme-change` so React (ThemeProvider) can re-render.
+ * The pre-paint script in index.html mirrors applyToDocument() so the first
+ * paint already has the right theme.
+ */
+
+export type ThemeMode = "dark" | "light" | "system"
+export type ThemeAccentId = "violet" | "blue" | "emerald" | "amber"
+
 export interface ThemeAccent {
-  id: string;
-  name: string;
-  primaryHsl: string;
-  ringHsl: string;
-  colorHex: string;
-  gradient: string;
+  id: ThemeAccentId
+  name: string
+  /** Solid swatch colour used by the picker. */
+  colorHex: string
 }
 
 export const THEME_ACCENTS: ThemeAccent[] = [
-  {
-    id: "apex-rose",
-    name: "Crimson Rose",
-    primaryHsl: "347 77% 50%",
-    ringHsl: "347 77% 50%",
-    colorHex: "#e11d48",
-    gradient: "linear-gradient(145deg, #e11d48 0%, #9f1239 100%)",
-  },
-  {
-    id: "apex-royal",
-    name: "Apex Royal Blue",
-    primaryHsl: "220 80% 35%",
-    ringHsl: "220 80% 45%",
-    colorHex: "#1241a1",
-    gradient: "linear-gradient(145deg, #1241a1 0%, #0a2768 100%)",
-  },
-  {
-    id: "cobalt",
-    name: "Vibrant Cobalt",
-    primaryHsl: "220 90% 48%",
-    ringHsl: "220 90% 48%",
-    colorHex: "#1d58d8",
-    gradient: "linear-gradient(135deg, #1d58d8, #3b82f6)",
-  },
-  {
-    id: "violet",
-    name: "Royal Violet",
-    primaryHsl: "270 75% 45%",
-    ringHsl: "270 75% 45%",
-    colorHex: "#7c3aed",
-    gradient: "linear-gradient(135deg, hsl(270 75% 45%), hsl(290 60% 50%))",
-  },
-  {
-    id: "amber",
-    name: "Sunset Amber",
-    primaryHsl: "35 92% 45%",
-    ringHsl: "35 92% 45%",
-    colorHex: "#d97706",
-    gradient: "linear-gradient(135deg, hsl(35 92% 45%), hsl(20 80% 50%))",
-  },
-];
+  { id: "violet", name: "Violet", colorHex: "#6d4aff" },
+  { id: "blue", name: "Blue", colorHex: "#2563eb" },
+  { id: "emerald", name: "Emerald", colorHex: "#047857" },
+  { id: "amber", name: "Amber", colorHex: "#b45309" },
+]
 
-const ACCENT_STORAGE_KEY = "app_theme_accent";
-const MODE_STORAGE_KEY = "app_theme_mode";
+export const THEME_MODES: { id: ThemeMode; name: string }[] = [
+  { id: "light", name: "Light" },
+  { id: "dark", name: "Dark" },
+  { id: "system", name: "System" },
+]
 
-class ThemeService {
-  getActiveAccent(): ThemeAccent {
-    try {
-      const saved = localStorage.getItem(ACCENT_STORAGE_KEY);
-      if (saved) {
-        if (saved === "apex-royal" || saved === "apex-forest") {
-          localStorage.removeItem(ACCENT_STORAGE_KEY);
-          return THEME_ACCENTS[0];
-        }
-        const found = THEME_ACCENTS.find((a) => a.id === saved || (saved === "rose" && a.id === "apex-rose"));
-        if (found) return found;
-      }
-    } catch {
-      // ignore
-    }
-    return THEME_ACCENTS[0];
-  }
+export const THEME_CHANGE_EVENT = "quantum-theme-change"
+const MODE_STORAGE_KEY = "app_theme_mode"
+const ACCENT_STORAGE_KEY = "app_theme_accent"
 
-  setAccent(accentId: string): void {
-    const accent = THEME_ACCENTS.find((a) => a.id === accentId) || THEME_ACCENTS[0];
-    try {
-      localStorage.setItem(ACCENT_STORAGE_KEY, accent.id);
-    } catch {}
-    this.applyAccent(accent);
-  }
+export interface ThemeState {
+  mode: ThemeMode
+  accent: ThemeAccentId
+  /** The mode actually applied after resolving "system". */
+  resolved: "dark" | "light"
+}
 
-  applyAccent(accent?: ThemeAccent): void {
-    const active = accent || this.getActiveAccent();
-    const isDark = this.isDarkMode();
-    if (isDark && (active.id === "apex-rose" || active.id === "rose")) {
-      document.documentElement.style.setProperty("--primary", "347 85% 62%");
-      document.documentElement.style.setProperty("--ring", "347 85% 62%");
-    } else if (isDark && active.id === "apex-royal") {
-      document.documentElement.style.setProperty("--primary", "220 85% 55%");
-      document.documentElement.style.setProperty("--ring", "220 85% 55%");
-    } else {
-      document.documentElement.style.setProperty("--primary", active.primaryHsl);
-      document.documentElement.style.setProperty("--ring", active.ringHsl);
-    }
-    document.documentElement.style.setProperty("--gradient-primary", active.gradient);
-  }
-
-  isDarkMode(): boolean {
-    try {
-      const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      if (saved !== null) {
-        return saved === "dark";
-      }
-    } catch {}
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }
-
-  setDarkMode(isDark: boolean): void {
-    try {
-      localStorage.setItem(MODE_STORAGE_KEY, isDark ? "dark" : "light");
-    } catch {}
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    // Reapply accent in case dark mode has different contrast needs
-    this.applyAccent();
-  }
-
-  init(): void {
-    const isDark = this.isDarkMode();
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    this.applyAccent();
+function read(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
   }
 }
 
-export const themeService = new ThemeService();
+function write(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // storage unavailable (private mode); theme still applies for this session
+  }
+}
+
+function systemPrefersDark(): boolean {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
+}
+
+class ThemeService {
+  getMode(): ThemeMode {
+    const saved = read(MODE_STORAGE_KEY)
+    return saved === "light" || saved === "dark" || saved === "system" ? saved : "dark"
+  }
+
+  getAccent(): ThemeAccentId {
+    const saved = read(ACCENT_STORAGE_KEY)
+    const found = THEME_ACCENTS.find((a) => a.id === saved)
+    if (!found && saved !== null) write(ACCENT_STORAGE_KEY, "violet") // migrate legacy ids (apex-rose, cobalt, ...)
+    return found ? found.id : "violet"
+  }
+
+  /** Kept for older callers. */
+  getActiveAccent(): ThemeAccent {
+    const id = this.getAccent()
+    return THEME_ACCENTS.find((a) => a.id === id) ?? THEME_ACCENTS[0]
+  }
+
+  resolve(mode: ThemeMode = this.getMode()): "dark" | "light" {
+    if (mode === "system") return systemPrefersDark() ? "dark" : "light"
+    return mode
+  }
+
+  getState(): ThemeState {
+    const mode = this.getMode()
+    return { mode, accent: this.getAccent(), resolved: this.resolve(mode) }
+  }
+
+  isDarkMode(): boolean {
+    return this.resolve() === "dark"
+  }
+
+  setMode(mode: ThemeMode): void {
+    write(MODE_STORAGE_KEY, mode)
+    this.applyToDocument()
+  }
+
+  /** Kept for older callers. */
+  setDarkMode(isDark: boolean): void {
+    this.setMode(isDark ? "dark" : "light")
+  }
+
+  setAccent(accent: ThemeAccentId | string): void {
+    const found = THEME_ACCENTS.find((a) => a.id === accent)
+    write(ACCENT_STORAGE_KEY, found ? found.id : "violet")
+    this.applyToDocument()
+  }
+
+  applyToDocument(): void {
+    if (typeof document === "undefined") return
+    const state = this.getState()
+    const root = document.documentElement
+    root.classList.toggle("dark", state.resolved === "dark")
+    root.setAttribute("data-accent", state.accent)
+    root.style.colorScheme = state.resolved
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute("content", state.resolved === "dark" ? "#09090b" : "#fafafa")
+    window.dispatchEvent(new CustomEvent<ThemeState>(THEME_CHANGE_EVENT, { detail: state }))
+  }
+
+  init(): () => void {
+    this.applyToDocument()
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)")
+    const onChange = () => {
+      if (this.getMode() === "system") this.applyToDocument()
+    }
+    mq?.addEventListener?.("change", onChange)
+    return () => mq?.removeEventListener?.("change", onChange)
+  }
+}
+
+export const themeService = new ThemeService()

@@ -1,0 +1,154 @@
+/* ==========================================================================
+   Quantum School of AI design tokens
+   Light values live on :root, dark values on .dark (dark is the default and
+   is applied by the pre-paint script in index.html). Accent overrides are
+   applied with data-accent on <html>. Exposed to Tailwind in index.css.
+   Contrast is verified by .agents tools/contrast.mjs (see design.md).
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #ffffff;
+  --border: #e4e4e7;
+  --border-strong: #8e8e96;
+
+  /* Text */
+  --foreground: #09090b;
+  --muted-foreground: #52525b;
+  --subtle-foreground: #6b6b76;
+
+  /* Accent (violet default) */
+  --primary: #6d4aff;
+  --primary-hover: #5b3df5;
+  --primary-foreground: #ffffff;
+  --primary-text: #5b3df5;
+  --primary-soft: color-mix(in srgb, var(--primary) 8%, transparent);
+  --primary-border: color-mix(in srgb, var(--primary) 28%, transparent);
+
+  /* Restrained secondary (cyan) */
+  --secondary: #0891b2;
+  --secondary-text: #0e7490;
+  --secondary-soft: rgb(8 145 178 / 0.08);
+
+  /* Status */
+  --success: #047857;
+  --success-soft: rgb(4 120 87 / 0.1);
+  --warning: #a14a07;
+  --warning-soft: rgb(180 83 9 / 0.1);
+  --danger: #c81e1e;
+  --danger-soft: rgb(220 38 38 / 0.08);
+  --info: #2563eb;
+  --info-soft: rgb(37 99 235 / 0.08);
+
+  --ring: #6d4aff;
+  --overlay: rgb(9 9 11 / 0.45);
+
+  /* Radii (override Tailwind's rounded-* scale) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+
+  /* Elevation: use as shadow-[var(--elev-md)] */
+  --elev-xs: 0 1px 2px rgb(9 9 11 / 0.05);
+  --elev-sm: 0 1px 3px rgb(9 9 11 / 0.06), 0 1px 2px rgb(9 9 11 / 0.04);
+  --elev-md: 0 4px 12px -2px rgb(9 9 11 / 0.08), 0 2px 4px -2px rgb(9 9 11 / 0.05);
+  --elev-lg: 0 16px 40px -12px rgb(9 9 11 / 0.18), 0 4px 12px -4px rgb(9 9 11 / 0.08);
+  --glow-primary: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent),
+    0 8px 30px -6px color-mix(in srgb, var(--primary) 45%, transparent);
+
+  /* Focal gradient (hero, primary CTA, live badge, player only) */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 55%, var(--secondary)) 100%);
+
+  /* Layout */
+  --shell-sidebar-w: 248px;
+  --shell-rail-w: 68px;
+  --shell-topbar-h: 56px;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #09090b;
+  --surface: #111113;
+  --surface-2: #18181b;
+  --surface-3: #202024;
+  --border: #26262b;
+  --border-strong: #63636b;
+
+  --foreground: #ededef;
+  --muted-foreground: #a1a1aa;
+  --subtle-foreground: #8a8a93;
+
+  --primary: #6d4aff;
+  --primary-hover: #7c5cff;
+  --primary-foreground: #ffffff;
+  --primary-text: #a397ff;
+  --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
+  --primary-border: color-mix(in srgb, var(--primary) 40%, transparent);
+
+  --secondary: #22d3ee;
+  --secondary-text: #67e8f9;
+  --secondary-soft: rgb(34 211 238 / 0.12);
+
+  --success: #34d399;
+  --success-soft: rgb(52 211 153 / 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 0.12);
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.12);
+  --info: #60a5fa;
+  --info-soft: rgb(96 165 250 / 0.12);
+
+  --ring: #8b7cff;
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --elev-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-sm: 0 1px 3px rgb(0 0 0 / 0.45);
+  --elev-md: 0 6px 16px -4px rgb(0 0 0 / 0.55);
+  --elev-lg: 0 24px 48px -12px rgb(0 0 0 / 0.7);
+}
+
+/* Accent overrides. Violet is the default above. */
+[data-accent="blue"] {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-text: #1d4ed8;
+  --ring: #2563eb;
+}
+.dark[data-accent="blue"] {
+  --primary-hover: #3b82f6;
+  --primary-text: #60a5fa;
+  --ring: #60a5fa;
+}
+
+[data-accent="emerald"] {
+  --primary: #047857;
+  --primary-hover: #065f46;
+  --primary-text: #047857;
+  --ring: #047857;
+}
+.dark[data-accent="emerald"] {
+  --primary-hover: #059669;
+  --primary-text: #34d399;
+  --ring: #34d399;
+}
+
+[data-accent="amber"] {
+  --primary: #b45309;
+  --primary-hover: #92400e;
+  --primary-text: #9a4508;
+  --ring: #b45309;
+}
+.dark[data-accent="amber"] {
+  --primary-hover: #d97706;
+  --primary-text: #fbbf24;
+  --ring: #fbbf24;
+}

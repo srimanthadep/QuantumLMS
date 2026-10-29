@@ -278,20 +278,6 @@ export default function App() {
 
   const { isLight: isLightBg } = useMemo(() => getHexContrast(hexColor), [hexColor])
 
-  // Synchronize entire page background and CSS custom properties dynamically
-  useEffect(() => {
-    document.body.style.backgroundColor = hexColor
-    document.documentElement.style.setProperty("--bg-custom", hexColor)
-    document.documentElement.style.setProperty("--bg-grid-line", "transparent")
-    if (isLightBg) {
-      document.documentElement.style.setProperty("--header-text-color", "#172033")
-      document.documentElement.style.setProperty("--header-subtitle-color", "#64748B")
-    } else {
-      document.documentElement.style.setProperty("--header-text-color", "#ffffff")
-      document.documentElement.style.setProperty("--header-subtitle-color", "rgba(255, 255, 255, 0.95)")
-    }
-  }, [hexColor, isLightBg])
-
   const handleHexColorChange = (newHex: string) => {
     if (isValidHexColor(newHex)) {
       const normalized = normalizeHexColor(newHex)

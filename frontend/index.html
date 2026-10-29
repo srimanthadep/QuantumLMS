@@ -1,12 +1,33 @@
 <!doctype html>
-<html lang="<!-- figma:lang -->">
+<html lang="<!-- figma:lang -->" class="dark" data-accent="violet">
   <head>
     <!-- figma:head-start -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#09090b" />
     <title>Quantum School of AI</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    <script>
+      // Pre-paint theme: mirrors themeService.applyToDocument() so the first paint has the right theme.
+      ;(function () {
+        var root = document.documentElement
+        var mode = "dark"
+        var accent = "violet"
+        try {
+          var m = localStorage.getItem("app_theme_mode")
+          if (m === "light" || m === "dark" || m === "system") mode = m
+          var a = localStorage.getItem("app_theme_accent")
+          if (a === "violet" || a === "blue" || a === "emerald" || a === "amber") accent = a
+        } catch (e) {}
+        var dark = mode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : mode === "dark"
+        root.classList.toggle("dark", dark)
+        root.setAttribute("data-accent", accent)
+        root.style.colorScheme = dark ? "dark" : "light"
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute("content", dark ? "#09090b" : "#fafafa")
+      })()
+    </script>
     <!-- figma:head-end -->
   </head>
   <body>
