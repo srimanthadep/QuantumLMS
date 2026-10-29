@@ -1,16 +1,14 @@
 import { useState, useMemo, useEffect, type ReactNode } from "react"
 import type {
   CurrentUser,
-  UserRole,
   FacultyMember,
   AuditLogItem,
   CampusTenant,
   ClassRoomInfo,
 } from "../../types"
 import { Icon } from "../../components/Icon"
-import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { StatCard as MetricCard } from "../../components/ui/StatCard"
-import { AppSidebar as AdminSidebar } from "../../components/Sidebar"
+import AppShell from "../../components/shell/AppShell"
 import {
   AddFacultyModal,
   SchoolAnnouncementModal,
@@ -40,11 +38,26 @@ function CardHeader({
   )
 }
 
+/** Shell nav id <-> legacy admin tab. Ids without a tab yet are hidden until Phase 7 adds the page. */
+const ADMIN_NAV: Record<string, string> = {
+  overview: "Overview",
+  batches: "Class Schedules",
+  teachers: "Faculty Directory",
+  students: "Student Roster",
+  reports: "School Reports",
+  settings: "School Settings",
+}
+const SUPER_NAV: Record<string, string> = {
+  health: "System Health",
+  tenants: "Campuses",
+  access: "Access Control",
+  audit: "Audit Logs",
+  ai: "AI Engine",
+}
+
 interface AdminPortalProps {
   role: "Super Admin" | "Admin"
   currentUser: CurrentUser
-  onSwitchRole: (role: UserRole) => void
-  onLogout: () => void
   onToast: (msg: string) => void
   /** @deprecated replaced by the theme system */
   hexColor?: string
@@ -56,8 +69,6 @@ interface AdminPortalProps {
 export default function AdminPortal({
   role,
   currentUser,
-  onSwitchRole,
-  onLogout,
   onToast,
   hexColor,
   onChangeHexColor,
@@ -66,7 +77,6 @@ export default function AdminPortal({
   const [activeTab, setActiveTab] = useState<string>(
     role === "Super Admin" ? "System Health" : "Overview"
   )
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
 
   // Automatically reset active tab to role default if current tab is not supported by target role
   useEffect(() => {
@@ -253,25 +263,17 @@ export default function AdminPortal({
     })
   }, [auditLogs, auditSeverityFilter, searchQuery])
 
-  return (
-    <div
-      className="dashboard-shell"
-      style={{
-        backgroundColor: hexColor,
-      }}
-    >
-      {/* Admin Sidebar - matches teacher sidebar design, fonts, avatar, and navigation */}
-      <AdminSidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        role={role}
-        currentUser={currentUser}
-        onSwitchRole={onSwitchRole}
-        onLogout={onLogout}
-      />
+  const navMap = role === "Super Admin" ? SUPER_NAV : ADMIN_NAV
+  const activeNav = Object.keys(navMap).find((id) => navMap[id] === activeTab)
 
-      {/* Main Content Area */}
-      <main className="dashboard-content">
+  return (
+    <AppShell
+      role={role}
+      activeId={activeNav}
+      availableIds={Object.keys(navMap)}
+      onNavigate={(id) => navMap[id] && setActiveTab(navMap[id])}
+    >
+      <div className="dashboard-content min-w-0">
         {/* Top Header - identical structure, height, and spacing to teacher's .dashboard-header */}
         <header className="dashboard-header">
           <div className="min-w-fit flex-shrink-0">
@@ -310,76 +312,6 @@ export default function AdminPortal({
               )}
             </div>
 
-            {/* Quick Role Switcher Pill - matches Teacher page Student Portal pill */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="px-3 h-[35px] rounded-full bg-[#172033] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#253350] transition-colors cursor-pointer whitespace-nowrap"
-                aria-label="Switch active role view"
-              >
-                <span>🔄 {role === "Super Admin" ? "Super Admin" : "School Admin"}</span>
-                <span className="text-[10px] opacity-80">▾</span>
-              </button>
-
-              {showRoleDropdown && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-56 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
-                    Switch Perspective
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSwitchRole("Super Admin")
-                      setShowRoleDropdown(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-zinc-100 cursor-pointer ${
-                      role === "Super Admin" ? "bg-red-50 text-red-800 font-bold" : "text-zinc-700"
-                    }`}
-                  >
-                    <span>⚡ Super Admin Console</span>
-                    {role === "Super Admin" && <span className="text-red-600">✓</span>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSwitchRole("Admin")
-                      setShowRoleDropdown(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-zinc-100 cursor-pointer ${
-                      role === "Admin" ? "bg-purple-50 text-purple-800 font-bold" : "text-zinc-700"
-                    }`}
-                  >
-                    <span>🏫 School Admin Portal</span>
-                    {role === "Admin" && <span className="text-purple-600">✓</span>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSwitchRole("Teacher")
-                      setShowRoleDropdown(false)
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                  >
-                    <span>🎓 Teacher Workspace</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSwitchRole("Student")
-                      setShowRoleDropdown(false)
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                  >
-                    <span>🎒 Student Portal</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Campus Selector for Super Admin */}
             {role === "Super Admin" && (
               <select
@@ -396,7 +328,6 @@ export default function AdminPortal({
               </select>
             )}
 
-            <ThemeAccentPicker />
 
             <button
               type="button"
@@ -1661,7 +1592,7 @@ export default function AdminPortal({
             )}
           </>
         )}
-      </main>
+      </div>
 
       {/* Modals */}
       <AddFacultyModal
@@ -1680,6 +1611,6 @@ export default function AdminPortal({
         log={inspectAuditLog}
         onClose={() => setInspectAuditLog(null)}
       />
-    </div>
+    </AppShell>
   )
 }

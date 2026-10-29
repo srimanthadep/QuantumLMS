@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useState, type ComponentType, type ReactNode } from "react"
+import { lazy, Suspense, useCallback, type ComponentType, type ReactNode } from "react"
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom"
 import type { UserRole } from "@/types"
 import { useToast } from "@/components/ui/toast"
-import { AskAiModal } from "@/components/Modals"
+import { AiAssistantProvider, useAiAssistant } from "@/components/shell/AiAssistantDialog"
 import { ROLE_HOME, useSession, type LoginInput } from "./session"
 import RequireRole from "./RequireRole"
 import RouteFallback from "./RouteFallback"
@@ -38,12 +38,6 @@ function usePortalProps() {
   return { currentUser: session.user, onToast, onSwitchRole, onLogout }
 }
 
-/** Temporary Ask AI host until the app shell (AiAssistantDialog) owns it. */
-function useAiModal() {
-  const [open, setOpen] = useState(false)
-  return { open: () => setOpen(true), node: <AskAiModal isOpen={open} onClose={() => setOpen(false)} /> }
-}
-
 function Guard({ role, children }: { role: UserRole; children: ReactNode }) {
   return (
     <RequireRole role={role}>
@@ -73,60 +67,44 @@ function AuthRoute() {
 
 function StudentRoute() {
   const p = usePortalProps()
-  const ai = useAiModal()
+  const ai = useAiAssistant()
   return (
-    <>
-      <StudentPortal
-        onOpenAiModal={ai.open}
-        onSwitchToTeacher={() => p.onSwitchRole("Teacher")}
-        onLogout={p.onLogout}
-        onToast={p.onToast}
-        hexColor={LEGACY_BG}
-        onChangeHexColor={noopHexChange}
-      />
-      {ai.node}
-    </>
+    <StudentPortal
+      onOpenAiModal={() => ai.open()}
+      onSwitchToTeacher={() => p.onSwitchRole("Teacher")}
+      onLogout={p.onLogout}
+      onToast={p.onToast}
+      hexColor={LEGACY_BG}
+      onChangeHexColor={noopHexChange}
+    />
   )
 }
 
 function TeacherRoute() {
   const p = usePortalProps()
-  return <TeacherPortal currentUser={p.currentUser} onSwitchRole={p.onSwitchRole} onLogout={p.onLogout} onToast={p.onToast} />
+  return <TeacherPortal onToast={p.onToast} />
 }
 
 function EvaluatorRoute() {
   const p = usePortalProps()
-  return <EvaluatorPortal currentUser={p.currentUser} onSwitchRole={p.onSwitchRole} onLogout={p.onLogout} onToast={p.onToast} hexColor={LEGACY_BG} />
+  return <EvaluatorPortal currentUser={p.currentUser} onToast={p.onToast} />
 }
 
 function SupportRoute() {
   const p = usePortalProps()
-  const ai = useAiModal()
-  return (
-    <>
-      <SupportPortal
-        currentUser={p.currentUser}
-        onSwitchRole={p.onSwitchRole}
-        onOpenAiModal={ai.open}
-        onSwitchToTeacher={() => p.onSwitchRole("Teacher")}
-        onSwitchToStudent={() => p.onSwitchRole("Student")}
-        onLogout={p.onLogout}
-        onToast={p.onToast}
-        hexColor={LEGACY_BG}
-      />
-      {ai.node}
-    </>
-  )
+  const ai = useAiAssistant()
+  return <SupportPortal currentUser={p.currentUser} onOpenAiModal={() => ai.open()} onToast={p.onToast} />
 }
 
 function AdminRoute({ role }: { role: "Admin" | "Super Admin" }) {
   const p = usePortalProps()
-  return <AdminPortal role={role} currentUser={p.currentUser} onSwitchRole={p.onSwitchRole} onLogout={p.onLogout} onToast={p.onToast} hexColor={LEGACY_BG} />
+  return <AdminPortal role={role} currentUser={p.currentUser} onToast={p.onToast} />
 }
 
 /** The whole route table. Every page is lazy-loaded into its own chunk. */
 export default function AppRoutes() {
   return (
+    <AiAssistantProvider>
     <Routes>
       {/* Phase 2 replaces this redirect with the marketing landing page. */}
       <Route path="/" element={<Navigate to="/auth" replace />} />
@@ -199,5 +177,6 @@ export default function AppRoutes() {
         }
       />
     </Routes>
+    </AiAssistantProvider>
   )
 }

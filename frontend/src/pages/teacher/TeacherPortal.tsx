@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import type { AssignmentItem, CurrentUser, LiveSessionItem, ReportItem, StudentItem, UserRole } from "@/types"
+import type { AssignmentItem, LiveSessionItem, ReportItem, StudentItem } from "@/types"
 import {
   initialAnalyticsMetrics,
   initialAssignments,
@@ -11,8 +11,9 @@ import {
   initialStudentMetrics,
   initialStudents,
 } from "@/data/mockData"
-import { DesktopSidebar, MobileDrawer, MobileTopBar } from "@/components/Sidebar"
-import { AddStudentModal, AskAiModal, NewAssignmentModal, ReportSenderModal } from "@/components/Modals"
+import { AddStudentModal, NewAssignmentModal, ReportSenderModal } from "@/components/Modals"
+import AppShell from "@/components/shell/AppShell"
+import { useAiAssistant } from "@/components/shell/AiAssistantDialog"
 import { LEGACY_BG, noopHexChange } from "@/app/legacy"
 import {
   AnalyticsPage,
@@ -26,10 +27,41 @@ import {
 } from "./index"
 
 interface TeacherPortalProps {
-  currentUser: CurrentUser
-  onSwitchRole: (role: UserRole) => void
-  onLogout: () => void
   onToast: (msg: string) => void
+}
+
+/** Shell nav id -> teacher route. */
+const NAV_PATHS: Record<string, string> = {
+  dashboard: "/teacher",
+  courses: "/teacher/courses",
+  live: "/teacher/live-class",
+  recordings: "/teacher/live-class/recordings",
+  students: "/teacher/students",
+  doubts: "/teacher/doubts",
+  calendar: "/teacher/calendar",
+  analytics: "/teacher/analytics",
+  support: "/teacher/support",
+  settings: "/teacher/settings",
+}
+
+/** Nav items with a page today. "recordings" has no page until Phase 4 builds the recordings library and review screen. */
+const AVAILABLE_NAV = Object.keys(NAV_PATHS).filter((id) => id !== "recordings")
+
+/** Legacy tab name -> shell nav id. */
+const TAB_TO_NAV: Record<string, string> = {
+  Dashboard: "dashboard",
+  Class: "dashboard",
+  "My Courses": "courses",
+  "Live Class": "live",
+  "Live Studio": "live",
+  "My Students": "students",
+  Students: "students",
+  Doubts: "doubts",
+  Calendar: "calendar",
+  Analytics: "analytics",
+  Settings: "settings",
+  "Help & Support": "support",
+  Support: "support",
 }
 
 const LIVE_SESSIONS_KEY = "quantum_teacher_live_sessions_v1"
@@ -61,7 +93,7 @@ function loadLiveSessions(): LiveSessionItem[] {
   return initialLiveSessions
 }
 
-export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onToast }: TeacherPortalProps) {
+export default function TeacherPortal({ onToast }: TeacherPortalProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(() => tabFromPath(location.pathname))
@@ -88,7 +120,6 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
   }, [location.pathname, navigate])
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [activeFilter, setActiveFilter] = useState("All")
 
   const [assignments, setAssignments] = useState(initialAssignments)
@@ -99,7 +130,6 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
 
   const [isNewAssignmentOpen, setIsNewAssignmentOpen] = useState(false)
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportTargetStudent, setReportTargetStudent] = useState<string | undefined>(undefined)
   const [assignmentInitialTitle, setAssignmentInitialTitle] = useState<string | undefined>(undefined)
@@ -108,12 +138,6 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
   const handleOpenAssignWithTopic = (topic: string, subjectType: string) => {
     setAssignmentInitialTitle(topic)
     setAssignmentInitialSubject(subjectType)
-    setIsNewAssignmentOpen(true)
-  }
-
-  const handleOpenNewAssignment = () => {
-    setAssignmentInitialTitle(undefined)
-    setAssignmentInitialSubject(undefined)
     setIsNewAssignmentOpen(true)
   }
 
@@ -191,32 +215,14 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
     setIsReportModalOpen(true)
   }
 
-  const openAi = () => setIsAiModalOpen(true)
+  const ai = useAiAssistant()
+  const openAi = () => ai.open()
+  // Review and recording paths render the live page until Phase 4, so they highlight "Live Classes".
+  const activeNav = TAB_TO_NAV[activeTab] ?? "dashboard"
 
   return (
-    <div className="dashboard-shell teacher-portal-shell" style={{ backgroundColor: LEGACY_BG }}>
-      <DesktopSidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onLogout={onLogout}
-        currentUser={currentUser}
-        onSwitchRole={onSwitchRole}
-      />
-
-      <MobileDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onLogout={onLogout}
-        hexColor={LEGACY_BG}
-        onChangeHexColor={noopHexChange}
-        currentUser={currentUser}
-        onSwitchRole={onSwitchRole}
-      />
-
-      <main className="dashboard-content">
-        <MobileTopBar onOpenDrawer={() => setIsDrawerOpen(true)} onOpenNewAssignment={handleOpenNewAssignment} />
+    <AppShell role="Teacher" activeId={activeNav} availableIds={AVAILABLE_NAV} onNavigate={(id) => navigate(NAV_PATHS[id] ?? "/teacher")}>
+      <div className="dashboard-content teacher-content">
 
         {(activeTab === "Dashboard" || activeTab === "Class" || activeTab === "My Courses") && (
           <CoursesPage
@@ -333,7 +339,7 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
             onToast={onToast}
           />
         )}
-      </main>
+      </div>
 
       <NewAssignmentModal
         isOpen={isNewAssignmentOpen}
@@ -347,7 +353,6 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
         initialSubject={assignmentInitialSubject}
       />
       <AddStudentModal isOpen={isAddStudentOpen} onClose={() => setIsAddStudentOpen(false)} onSubmit={handleAddStudent} />
-      <AskAiModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
       <ReportSenderModal
         isOpen={isReportModalOpen}
         onClose={() => {
@@ -357,6 +362,6 @@ export default function TeacherPortal({ currentUser, onSwitchRole, onLogout, onT
         onSent={handleSendReport}
         initialTarget={reportTargetStudent}
       />
-    </div>
+    </AppShell>
   )
 }

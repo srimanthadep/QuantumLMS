@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from "react"
-import { AppSidebar } from "../../components/Sidebar"
+import AppShell from "@/components/shell/AppShell"
 import { StudentHeader } from "../../components/StudentHeader"
 import type {
   StudentNavPage,
@@ -28,6 +28,60 @@ import {
   initialQuizzesList,
   initialQuizAttempts,
 } from "./studentMockData"
+
+/** Shell nav id -> student page. */
+const NAV_TO_PAGE: Record<string, StudentNavPage> = {
+  dashboard: "Dashboard",
+  courses: "My Courses",
+  schedule: "Schedule",
+  assessments: "Assessments",
+  grades: "Grades & Certificates",
+  notes: "My Notes",
+  community: "Community",
+  career: "Career Hub",
+  support: "Support & Help",
+  settings: "Settings",
+}
+
+function navIdFor(page: StudentNavPage): string {
+  switch (page) {
+    case "My Courses":
+    case "Course Details":
+      return "courses"
+    case "Schedule":
+    case "Timetable":
+    case "Attendance":
+      return "schedule"
+    case "Assessments":
+    case "Assignments":
+    case "Quizzes":
+      return "assessments"
+    case "Grades & Certificates":
+    case "Grades":
+    case "Certificates":
+      return "grades"
+    case "My Notes":
+      return "notes"
+    case "Community":
+    case "Communication":
+    case "Discussions":
+      return "community"
+    case "Career Hub":
+    case "Mock Interview":
+    case "Resume Building":
+    case "Mentor Details":
+      return "career"
+    case "Support & Help":
+    case "Support":
+    case "Help Center":
+      return "support"
+    case "Settings":
+    case "Profile":
+      return "settings"
+    default:
+      return "dashboard"
+  }
+}
 
 function StudentPageFallback() {
   return (
@@ -169,7 +223,6 @@ export default function StudentPortal({
     }
     return initialQuizAttempts
   })
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [headerSearch, setHeaderSearch] = useState("")
 
   // Navigate helper that updates URL history cleanly
@@ -179,7 +232,6 @@ export default function StudentPortal({
       if (courseId) {
         setSelectedCourseId(courseId)
       }
-      setIsMobileMenuOpen(false)
 
       if (typeof window !== "undefined") {
         try {
@@ -327,56 +379,8 @@ export default function StudentPortal({
   }
 
   return (
-    <div
-      className="dashboard-shell student-dashboard-shell relative w-full max-w-full min-w-0 box-border h-screen max-h-screen overflow-hidden flex"
-      style={{
-        backgroundColor: hexColor,
-      }}
-    >
-      {/* Mobile Drawer Toggle */}
-      <div className="lg:hidden fixed top-3 left-3 z-50">
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 rounded-full bg-surface/90 backdrop-blur shadow-md flex items-center justify-center text-zinc-800 border border-zinc-200 cursor-pointer"
-          aria-label="Toggle navigation drawer"
-        >
-          <span className="text-base font-bold">
-            {isMobileMenuOpen ? "✕" : "☰"}
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile Drawer Backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Unified AppSidebar for Student Portal */}
-      <div
-        className={`lg:block shrink-0 ${
-          isMobileMenuOpen
-            ? "fixed inset-y-0 left-0 z-50 shadow-2xl block animate-in slide-in-from-left"
-            : "hidden lg:block h-full min-h-0"
-        }`}
-      >
-        <AppSidebar
-          role="Student"
-          activeItem={activeTab}
-          onNavigate={(id) => navigateTo(id)}
-          onOpenAiModal={onOpenAiModal}
-          onSwitchRole={(r) => {
-            if (r === "Teacher") onSwitchToTeacher()
-          }}
-          onLogout={onLogout}
-        />
-      </div>
-
-      {/* Main Student Content Viewport */}
-      <main className="dashboard-content flex-1 w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border bg-slate-50/60">
+    <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")}>
+      <div className="dashboard-content w-full min-w-0 flex flex-col" style={{ backgroundColor: hexColor }}>
         {activeTab === "Dashboard" ? (
           <StudentDashboardPage
             onNavigate={navigateTo}
@@ -391,7 +395,7 @@ export default function StudentPortal({
             quizzes={quizzes}
           />
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto w-full">
+          <div className="flex flex-col w-full">
             {/* Standard Header Banner */}
             <StudentHeader
               title={
@@ -525,7 +529,7 @@ export default function StudentPortal({
             </Suspense>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }

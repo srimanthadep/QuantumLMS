@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import type { CurrentUser, UserRole } from "../../types"
+import type { CurrentUser } from "../../types"
 import type { EvaluatorTab, StudentSubmission } from "./types"
-import { AppSidebar as EvaluatorSidebar } from "../../components/Sidebar"
-import { EvaluatorTopBar } from "./components/EvaluatorTopBar"
+import AppShell from "../../components/shell/AppShell"
+import { useAiAssistant } from "../../components/shell/AiAssistantDialog"
+import type { NotificationSource } from "../../components/shell/NotificationsMenu"
+import PageHeader from "../../components/ui/page-header"
 import { Dashboard } from "./Dashboard"
 import { Submissions } from "./Submissions"
 import { EvaluationWorkspace } from "./EvaluationWorkspace"
@@ -16,16 +18,11 @@ import {
   markAllNotificationsRead,
   type EvaluatorState,
 } from "./data/evaluatorStorage"
-import { AskAiModal } from "../../components/Modals"
 
+/** Role switching, sign-out and theme now live in the app shell. */
 export interface EvaluatorPortalProps {
   currentUser?: CurrentUser
-  onSwitchRole?: (role: UserRole) => void
-  onLogout: () => void
   onToast: (msg: string) => void
-  hexColor?: string
-  onChangeHexColor?: (hex: string) => void
-  isLightBg?: boolean
 }
 
 // Parse initial tab or workspace route from window.location
@@ -69,15 +66,7 @@ function parseInitialRoute(): {
   return { tab: "Dashboard", submissionId: null }
 }
 
-export function EvaluatorPortal({
-  currentUser,
-  onSwitchRole,
-  onLogout,
-  onToast,
-  hexColor = "#9860e9",
-  onChangeHexColor = () => {},
-  isLightBg = false,
-}: EvaluatorPortalProps) {
+export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) {
   // Evaluator State synchronized with localStorage
   const [evaluatorState, setEvaluatorState] = useState<EvaluatorState>(() =>
     loadEvaluatorState()
@@ -94,8 +83,10 @@ export function EvaluatorPortal({
   >(undefined)
 
   const [searchQuery, setSearchQuery] = useState<string>("")
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false)
-  const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false)
+  const [queueTab, setQueueTab] = useState<"all" | "reassessment">(() =>
+    typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("reassessment") ? "reassessment" : "all"
+  )
+  const ai = useAiAssistant()
 
   // Listen to cross-component evaluator updates
   useEffect(() => {
@@ -125,7 +116,7 @@ export function EvaluatorPortal({
     (newTab: EvaluatorTab, context?: any) => {
       setActiveTab(newTab)
       setActiveSubmissionId(null) // Exit workspace when switching sidebar tabs
-      setIsMobileDrawerOpen(false)
+      setQueueTab(context?.filter === "reassessment" ? "reassessment" : "all")
 
       if (context?.assessmentId) {
         setAssessmentFilterContext(context.assessmentId)
@@ -135,7 +126,9 @@ export function EvaluatorPortal({
         newTab === "Dashboard"
           ? "dashboard"
           : newTab === "Submissions"
-          ? "submissions"
+          ? context?.filter === "reassessment"
+            ? "reassessments"
+            : "submissions"
           : newTab === "Reports"
           ? "reports"
           : "settings"
@@ -289,58 +282,48 @@ export function EvaluatorPortal({
     }
   }, [activeTab, pendingCount])
 
+  const notificationSource: NotificationSource = {
+    items: evaluatorState.notifications.map((n) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      timestamp: n.timestamp,
+      read: n.read,
+      kind: n.category === "System" ? "system" : "assessment",
+    })),
+    onSelect: (item) => {
+      const notif = evaluatorState.notifications.find((n) => n.id === item.id)
+      setEvaluatorState(markNotificationRead(evaluatorState, item.id))
+      const sub = notif?.relatedId ? evaluatorState.submissions.find((x) => x.id === notif.relatedId) : undefined
+      if (sub) handleOpenWorkspace(sub)
+      else handleTabChange("Submissions")
+    },
+    onMarkAllRead: () => {
+      setEvaluatorState(markAllNotificationsRead(evaluatorState))
+      onToast("All notifications marked as read.")
+    },
+  }
+
+  const activeNav =
+    activeTab === "Submissions" ? (queueTab === "reassessment" ? "reevaluations" : "queue") : activeTab.toLowerCase()
+
+  const onShellNavigate = (id: string) => {
+    if (id === "queue") handleTabChange("Submissions")
+    else if (id === "reevaluations") handleTabChange("Submissions", { filter: "reassessment" })
+    else if (id === "reports") handleTabChange("Reports")
+    else if (id === "settings") handleTabChange("Settings")
+    else handleTabChange("Dashboard")
+  }
+
   return (
-    <div
-      className="dashboard-shell evaluator-portal-shell flex flex-row min-h-screen w-full relative"
-      style={{
-        backgroundColor: hexColor,
-      }}
+    <AppShell
+      role="Evaluator"
+      activeId={activeNav}
+      onNavigate={onShellNavigate}
+      badges={{ queue: pendingCount, reevaluations: reassessmentCount }}
+      notifications={notificationSource}
     >
-      {/* Persistent Desktop Sidebar */}
-      <div className="hidden lg:block shrink-0">
-        <EvaluatorSidebar
-          activeTab={activeTab}
-          setActiveTab={handleTabChange}
-          profile={evaluatorState.settings.profile}
-          pendingCount={pendingCount}
-          reassessmentCount={reassessmentCount}
-          unreadNotifsCount={unreadNotifsCount}
-          onLogout={onLogout}
-          onSwitchRole={onSwitchRole}
-          currentUser={currentUser}
-          onOpenAiModal={() => setIsAiModalOpen(true)}
-        />
-      </div>
-
-      {/* Mobile Slide-over Drawer */}
-      {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-            onClick={() => setIsMobileDrawerOpen(false)}
-          />
-          <div className="relative z-10 w-72 max-w-[85vw] bg-surface h-full shadow-2xl animate-in slide-in-from-left duration-200">
-            <EvaluatorSidebar
-              activeTab={activeTab}
-              setActiveTab={handleTabChange}
-              profile={evaluatorState.settings.profile}
-              pendingCount={pendingCount}
-              reassessmentCount={reassessmentCount}
-              unreadNotifsCount={unreadNotifsCount}
-              onLogout={onLogout}
-              onSwitchRole={onSwitchRole}
-              currentUser={currentUser}
-              onOpenAiModal={() => {
-                setIsMobileDrawerOpen(false)
-                setIsAiModalOpen(true)
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Main Viewport Content */}
-      <main className="dashboard-content flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto no-scrollbar">
+      <div className="dashboard-content evaluator-content min-w-0">
         {/* If in Workspace: Fullscreen grading experience */}
         {activeWorkspaceSubmission && activeWorkspaceAssessment ? (
           <EvaluationWorkspace
@@ -358,40 +341,7 @@ export function EvaluatorPortal({
         ) : (
           /* Normal Tab Content */
           <>
-            <EvaluatorTopBar
-              onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              profile={evaluatorState.settings.profile}
-              hexColor={hexColor}
-              onChangeHexColor={onChangeHexColor}
-              unreadCount={unreadNotifsCount}
-              notifications={evaluatorState.notifications}
-              onMarkNotificationRead={(id) => {
-                const nextState = markNotificationRead(evaluatorState, id)
-                setEvaluatorState(nextState)
-              }}
-              onMarkAllNotificationsRead={() => {
-                const nextState = markAllNotificationsRead(evaluatorState)
-                setEvaluatorState(nextState)
-                onToast("All notifications marked as read.")
-              }}
-              onNotificationSelect={(notif) => {
-                if (notif.relatedId) {
-                  const sub = evaluatorState.submissions.find(
-                    (s) => s.id === notif.relatedId
-                  )
-                  if (sub) {
-                    handleOpenWorkspace(sub)
-                    return
-                  }
-                }
-                handleTabChange("Submissions")
-              }}
-              onOpenAiAssistant={() => setIsAiModalOpen(true)}
-              title={headerInfo.title}
-              subtitle={headerInfo.subtitle}
-            />
+            <PageHeader title={headerInfo.title} description={headerInfo.subtitle} />
 
             {activeTab === "Dashboard" && (
               <Dashboard
@@ -408,6 +358,8 @@ export function EvaluatorPortal({
                 setSearchQuery={setSearchQuery}
                 onOpenWorkspace={handleOpenWorkspace}
                 initialAssessmentFilter={assessmentFilterContext}
+                initialQueueTab={queueTab}
+                key={queueTab}
               />
             )}
 
@@ -424,14 +376,8 @@ export function EvaluatorPortal({
             )}
           </>
         )}
-      </main>
-
-      {/* AI Assistant Modal */}
-      <AskAiModal
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-      />
-    </div>
+      </div>
+    </AppShell>
   )
 }
 

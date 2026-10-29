@@ -7,9 +7,9 @@ import {
   useNavigate,
   Navigate,
 } from "react-router-dom"
-import type { UserRole, CurrentUser, IconName } from "@/types"
+import type { CurrentUser } from "@/types"
 import { Icon } from "@/components/Icon"
-import { ThemeAccentPicker } from "@/components/ui/ThemeAccentPicker"
+import AppShell from "@/components/shell/AppShell"
 
 // Import all Support sub-pages
 import { SupportDashboard } from "./SupportDashboard"
@@ -31,227 +31,14 @@ const LEARNERS_SEARCH_INDEX = [
   { id: "usr-student-6", name: "Aditya Verma", email: "aditya.v@learner.ai", avatar: "AV", batch: "Cohort 6", course: "Advanced ML Pipelines & LLMOps" },
 ]
 
+/** Role switching, sign-out and theme now live in the app shell. */
 export interface SupportPortalProps {
   currentUser?: CurrentUser
-  onSwitchRole?: (role: UserRole) => void
   onOpenAiModal?: () => void
-  onSwitchToTeacher?: () => void
-  onSwitchToStudent?: () => void
-  onLogout?: () => void
   onToast?: (msg: string) => void
-  hexColor?: string
-  onChangeHexColor?: (c: string) => void
-  isLightBg?: boolean
 }
 
-type SupportTab =
-  | "dashboard"
-  | "inbox"
-  | "live-chat"
-  | "knowledge-base"
-  | "agents"
-  | "analytics"
-  | "settings"
-
-interface NavItem {
-  key: SupportTab
-  label: string
-  path: string
-  icon: IconName
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", path: "/support/dashboard", icon: "home" },
-  { key: "inbox", label: "Tickets Inbox", path: "/support/inbox", icon: "mail" },
-  { key: "live-chat", label: "Live Chat", path: "/support/live-chat", icon: "message-circle" },
-  { key: "knowledge-base", label: "Knowledge Base", path: "/support/knowledge-base", icon: "book" },
-  { key: "agents", label: "Support Agents", path: "/support/agents", icon: "users" },
-  { key: "analytics", label: "Analytics", path: "/support/analytics", icon: "analytics" },
-  { key: "settings", label: "Settings", path: "/support/settings", icon: "settings" },
-]
-
-function SupportSidebar({
-  currentUser,
-  onSwitchRole,
-  onLogout,
-  onCloseDrawer,
-}: {
-  currentUser?: CurrentUser
-  onSwitchRole?: (role: UserRole) => void
-  onLogout?: () => void
-  onCloseDrawer?: () => void
-}) {
-  const location = useLocation()
-  const currentPath = location.pathname.toLowerCase()
-  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false)
-
-  const isItemActive = (item: NavItem) => {
-    if (
-      item.key === "dashboard" &&
-      (currentPath === "/support" ||
-        currentPath === "/support/" ||
-        currentPath === "/support/dashboard")
-    ) {
-      return true
-    }
-    if (
-      item.key === "inbox" &&
-      (currentPath.startsWith("/support/inbox") || currentPath.startsWith("/support/tickets"))
-    ) {
-      return true
-    }
-    return currentPath.startsWith(item.path)
-  }
-
-  const userDisplayName = currentUser?.name || "Alex Rivera"
-  const userAvatar = currentUser?.avatar || "/assets/student-3.png"
-
-  return (
-    <aside className="sidebar" aria-label="Support sidebar">
-      {/* Brand Logo - identical to teacher and admin sidebar */}
-      <div className="logo" aria-label="Quantum School of AI">
-        <Link to="/support/dashboard" onClick={onCloseDrawer} className="flex items-center gap-2.5">
-          <img src="/assets/logo.png" alt="Quantum School of AI" className="h-7 w-auto object-contain" />
-          <div className="flex flex-col text-left leading-none">
-            <span className="font-extrabold text-sm tracking-tight text-zinc-900">Quantum</span>
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">School of AI</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Support User Profile Block - matches canonical .teacher layout */}
-      <div
-        className="teacher relative"
-        style={{ cursor: "pointer" }}
-        onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-        title="Click to switch perspective"
-      >
-        <img src={userAvatar} alt={userDisplayName} />
-        <strong>{userDisplayName}</strong>
-        <span className="flex items-center justify-center gap-1">
-          <span>Support Desk</span>
-          <span className="text-[9px] text-purple-600 font-bold">▾</span>
-        </span>
-
-        {/* Interactive Role Switcher Popup */}
-        {showRoleSwitcher && onSwitchRole && (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
-              Switch Perspective
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                onSwitchRole("Super Admin")
-                setShowRoleSwitcher(false)
-                onCloseDrawer?.()
-              }}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-            >
-              <span>⚡ Super Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSwitchRole("Admin")
-                setShowRoleSwitcher(false)
-                onCloseDrawer?.()
-              }}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-            >
-              <span>🏫 School Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSwitchRole("Teacher")
-                setShowRoleSwitcher(false)
-                onCloseDrawer?.()
-              }}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-            >
-              <span>🎓 Teacher</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSwitchRole("Student")
-                setShowRoleSwitcher(false)
-                onCloseDrawer?.()
-              }}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-            >
-              <span>🎒 Student</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSwitchRole("Support")
-                setShowRoleSwitcher(false)
-              }}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between bg-cyan-50 text-cyan-800 cursor-pointer"
-            >
-              <span>🎧 Support Desk</span>
-              <span className="text-cyan-600 font-bold">✓</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation List - matches teacher and admin navigation styles */}
-      <nav aria-label="Support navigation">
-        {NAV_ITEMS.map((item) => {
-          const active = isItemActive(item)
-          return (
-            <Link
-              key={item.key}
-              to={item.path}
-              onClick={onCloseDrawer}
-              className={active ? "nav-item active" : "nav-item"}
-              title={item.label}
-            >
-              <Icon name={item.icon} size={18} />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Logout Button - identical to teacher and admin sidebar */}
-      {onLogout && (
-        <button
-          className="logout-btn"
-          onClick={() => {
-            onCloseDrawer?.()
-            onLogout()
-          }}
-          aria-label="Log Out"
-        >
-          <Icon name="logout" size={15} />
-          <span>Log Out</span>
-        </button>
-      )}
-    </aside>
-  )
-}
-
-function SupportLayout({
-  children,
-  currentUser,
-  onSwitchRole,
-  onSwitchToTeacher,
-  onSwitchToStudent,
-  onLogout,
-  onOpenAiModal,
-  hexColor,
-  onChangeHexColor,
-  isLightBg,
-}: SupportPortalProps & { children: React.ReactNode }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
+function SupportLayout({ children, currentUser }: SupportPortalProps & { children: React.ReactNode }) {
   const [headerSearchQuery, setHeaderSearchQuery] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const searchContainerRef = useRef<HTMLDivElement>(null)
@@ -352,86 +139,14 @@ function SupportLayout({
 
   const userFirstName = (currentUser?.name || "Alex").split(" ")[0]
 
+  const path = location.pathname.toLowerCase()
+  const activeNav = /\/support\/(inbox|tickets?)/.test(path)
+    ? "inbox"
+    : (["live-chat", "knowledge-base", "agents", "analytics", "settings"].find((id) => path.startsWith(`/support/${id}`)) ?? "dashboard")
+
   return (
-    <div
-      className="dashboard-shell support-portal-root"
-      style={{
-        backgroundColor: hexColor || "var(--bg-custom, #F8FAFC)",
-      }}
-    >
-      {/* Desktop Persistent Sidebar */}
-      <SupportSidebar
-        currentUser={currentUser}
-        onSwitchRole={onSwitchRole}
-        onLogout={onLogout}
-      />
-
-      {/* Mobile Top Header */}
-      <div className="mobile-top-bar col-span-full">
-        <div className="flex items-center gap-3">
-          <button
-            className="mobile-nav-btn"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-          >
-            <Icon name="menu" size={20} />
-          </button>
-          <div className="logo flex items-center gap-2">
-            <img src="/assets/logo.png" alt="Quantum School of AI" className="h-6 w-auto object-contain" />
-            <span className="font-extrabold text-xs tracking-tight text-zinc-900">Quantum</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeAccentPicker />
-          <img
-            src={currentUser?.avatar || "/assets/student-3.png"}
-            alt={currentUser?.name || "Support"}
-            className="w-8 h-8 rounded-full object-cover border border-purple-300"
-          />
-        </div>
-      </div>
-
-      {/* Mobile Slide-out Drawer */}
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="drawer-overlay"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            className="drawer-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Support Navigation drawer"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-purple-200/50">
-              <div className="logo flex items-center gap-2">
-                <img src="/assets/logo.png" alt="Quantum School of AI" className="h-6 w-auto object-contain" />
-                <span className="font-extrabold text-xs tracking-tight text-zinc-900">Quantum</span>
-              </div>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors text-zinc-700"
-                aria-label="Close menu"
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-            <div className="mt-2">
-              <SupportSidebar
-                currentUser={currentUser}
-                onSwitchRole={onSwitchRole}
-                onLogout={onLogout}
-                onCloseDrawer={() => setIsMobileMenuOpen(false)}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Main Support Content Viewport */}
-      <main className="dashboard-content">
+    <AppShell role="Support" activeId={activeNav} onNavigate={(id) => navigate(id === "dashboard" ? "/support" : `/support/${id}`)}>
+      <div className="dashboard-content support-portal-root min-w-0">
         {/* Canonical Dashboard Header - perfectly aligned with Teacher & Admin */}
         <header className="dashboard-header">
           <div className="min-w-fit flex-shrink-0">
@@ -634,89 +349,6 @@ function SupportLayout({
               )}
             </div>
 
-            {/* Quick Role Switcher Pill */}
-            {onSwitchRole && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                  className="px-3 h-[35px] rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-cyan-700 transition-colors cursor-pointer whitespace-nowrap"
-                  aria-label="Switch active role view"
-                >
-                  <span>🎧 Support Desk</span>
-                  <span className="text-[10px] text-cyan-200">▾</span>
-                </button>
-
-                {showRoleDropdown && (
-                  <div
-                    className="absolute right-0 top-full mt-2 w-48 bg-surface border border-zinc-200 rounded-2xl shadow-xl z-50 p-1.5 flex flex-col gap-1 text-left"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
-                      Switch Role View
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchRole("Teacher")
-                        setShowRoleDropdown(false)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                    >
-                      <span>🎓 Teacher Portal</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchRole("Student")
-                        setShowRoleDropdown(false)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                    >
-                      <span>🎒 Student Portal</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchRole("Admin")
-                        setShowRoleDropdown(false)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                    >
-                      <span>🏫 School Admin</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchRole("Super Admin")
-                        setShowRoleDropdown(false)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between text-zinc-700 hover:bg-zinc-100 cursor-pointer"
-                    >
-                      <span>⚡ Super Admin</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Curated Theme Accent Picker */}
-            <div className="hidden sm:block">
-              <ThemeAccentPicker />
-            </div>
-
-            {/* Ask AI Pill */}
-            {onOpenAiModal && (
-              <button
-                type="button"
-                className="ask-ai cursor-pointer"
-                onClick={onOpenAiModal}
-                aria-label="Ask Support AI"
-              >
-                <span>✦</span>
-                Ask AI
-              </button>
-            )}
           </div>
         </header>
 
@@ -724,8 +356,8 @@ function SupportLayout({
         <div className="support-view-container flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] pb-0 overflow-hidden">
           {children}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }
 

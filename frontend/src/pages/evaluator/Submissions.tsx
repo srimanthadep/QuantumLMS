@@ -22,6 +22,8 @@ interface SubmissionsProps {
   setSearchQuery: (q: string) => void
   onOpenWorkspace: (submission: StudentSubmission) => void
   initialAssessmentFilter?: string
+  /** Queue pill to open on (the shell's Re-evaluations item opens "reassessment"). */
+  initialQueueTab?: "all" | "assigned" | "reassessment" | "published"
 }
 
 export function Submissions({
@@ -30,8 +32,9 @@ export function Submissions({
   setSearchQuery,
   onOpenWorkspace,
   initialAssessmentFilter,
+  initialQueueTab = "all",
 }: SubmissionsProps) {
-  const [queueTab, setQueueTab] = useState<"all" | "assigned" | "reassessment" | "published">("all")
+  const [queueTab, setQueueTab] = useState<"all" | "assigned" | "reassessment" | "published">(initialQueueTab)
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>(
     initialAssessmentFilter || "All"
   )

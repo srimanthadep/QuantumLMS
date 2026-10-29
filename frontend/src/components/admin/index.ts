@@ -2,7 +2,6 @@
  * Admin Components Barrel
  * Components dedicated to Institution and Super Admin operations.
  */
-export { AppSidebar as AdminSidebar } from "../Sidebar"
 export {
   AddFacultyModal,
   SchoolAnnouncementModal,
