@@ -1,44 +1,67 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+export type BadgeTone = "neutral" | "primary" | "secondary" | "success" | "warning" | "danger" | "info" | "live"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 select-none",
+  "inline-flex select-none items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4",
   {
     variants: {
-      variant: {
-        default:
-          "border-transparent bg-[#172033] text-white hover:bg-[#172033]/90",
-        secondary:
-          "border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200/80",
-        destructive:
-          "border border-red-200 bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
-        outline:
-          "text-slate-700 border border-slate-200 bg-surface",
-        success:
-          "border border-teal-600/20 bg-teal-50 text-[#0F766E] dark:bg-teal-950/50 dark:text-teal-300",
-        warning:
-          "border border-amber-500/25 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
-        info:
-          "border border-sky-500/25 bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
-        accent:
-          "border border-primary/25 bg-[#FEF2F0] text-primary-text font-semibold",
+      tone: {
+        neutral: "border-border bg-surface-2 text-muted-foreground",
+        primary: "border-primary-border bg-primary-soft text-primary-text",
+        secondary: "border-transparent bg-secondary-soft text-secondary-text",
+        success: "border-transparent bg-success-soft text-success",
+        warning: "border-transparent bg-warning-soft text-warning",
+        danger: "border-transparent bg-danger-soft text-danger",
+        info: "border-transparent bg-info-soft text-info",
+        live: "border-transparent bg-danger text-white shadow-[0_0_16px_-2px_color-mix(in_srgb,var(--danger)_70%,transparent)] dark:text-ink-950",
+      },
+      size: {
+        sm: "px-1.5 py-0 text-[10px]",
+        md: "",
       },
     },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+    defaultVariants: { tone: "neutral", size: "md" },
+  },
+)
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+/** Legacy `variant` names map onto tones. */
+const VARIANT_TO_TONE: Record<string, BadgeTone> = {
+  default: "neutral",
+  secondary: "neutral",
+  outline: "neutral",
+  destructive: "danger",
+  success: "success",
+  warning: "warning",
+  info: "info",
+  accent: "primary",
 }
 
-export { Badge, badgeVariants };
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {
+  /** @deprecated use `tone` */
+  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "accent"
+  /** Leading status dot (pulses for the live tone). */
+  dot?: boolean
+}
+
+function Badge({ className, tone, variant, size, dot, children, ...props }: BadgeProps) {
+  const resolved: BadgeTone = tone ?? (variant ? VARIANT_TO_TONE[variant] : "neutral")
+  return (
+    <span className={cn(badgeVariants({ tone: resolved, size }), className)} {...props}>
+      {dot && (
+        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+          {resolved === "live" && (
+            <span className="absolute inline-flex h-full w-full animate-[q-pulse-ring_1.4s_ease-out_infinite] rounded-full bg-current" />
+          )}
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
+        </span>
+      )}
+      {children}
+    </span>
+  )
+}
+
+export { Badge, badgeVariants }
+export default Badge

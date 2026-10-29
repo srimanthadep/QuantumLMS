@@ -145,6 +145,30 @@
   }
 }
 
+/* Floating surfaces (popover, dropdown, select, tooltip). Radix waits for the
+   closing animation before unmounting. */
+@keyframes q-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes q-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
 @keyframes q-spin {
   to {
     transform: rotate(360deg);
