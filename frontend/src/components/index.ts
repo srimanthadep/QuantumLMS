@@ -5,9 +5,8 @@
  * - /teacher - Teacher & Faculty UI (Sidebar, Attendance, Assignments, Studio suggestions)
  * - /student - Student UI (StudentSidebar, learning widgets)
  * - /admin   - Institutional Admin UI (AdminSidebar, AdminModals, AI Monitoring)
- * - /shared  - Cross-role components (Modals, MetricCard, HexColorField, VideoPlayer, AI Tutor, Drawers)
+ * - /shared  - Cross-role components (Modals, MetricCard, HexColorField, Drawers)
  * - /ui      - Atomic design system components (buttons, badges, cards, dialogs, tabs)
- * - /icons   - Brand & currency icons
  */
 
 export * as TeacherComponents from "./teacher"
@@ -15,13 +14,10 @@ export * as StudentComponents from "./student"
 export * as AdminComponents from "./admin"
 export * as SharedComponents from "./shared"
 export * as UI from "./ui"
-export * as Icons from "./icons"
 
 // Direct convenience exports
 export { Icon } from "./Icon"
 export { HexColorField } from "./HexColorField"
-export { MetricCard, FolderTabBackground } from "./MetricCard"
-export { AdminSidebar } from "./AdminSidebar"
-export { StudentSidebar } from "./StudentSidebar"
+export { StatCard as MetricCard, FolderTabBackground } from "./ui/StatCard"
+export { AppSidebar as AdminSidebar, AppSidebar as StudentSidebar } from "./Sidebar"
 export { StudentHeader } from "./StudentHeader"
-

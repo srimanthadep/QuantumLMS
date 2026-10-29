@@ -1,1 +1,0 @@
-export { RupeeIcon } from "./RupeeIcon"

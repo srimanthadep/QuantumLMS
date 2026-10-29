@@ -78,11 +78,10 @@ src/
 │   ├── teacher/              # Teacher-specific UI (Sidebar, attendance, assignments)
 │   ├── student/              # Student-specific UI (StudentSidebar)
 │   ├── admin/                # Admin-specific UI (AdminSidebar, AdminModals, AI monitoring)
-│   ├── shared/               # Cross-role components (Modals, MetricCard, VideoPlayer, 360 Drawer)
-│   ├── ui/                   # Reusable atomic UI components (button, card, dialog, tabs)
-│   └── icons/                # SVG icon library & brand symbols
+│   ├── shared/               # Cross-role components (Modals, StatCard, 360 Drawer)
+│   └── ui/                   # Reusable atomic UI components (button, card, dialog, tabs)
 │
-├── context/                  # React Contexts (AuthContext, NotificationContext)
+├── context/                  # React Contexts (NotificationContext)
 ├── data/                     # Global mock datasets & schemas
 ├── types/                    # Core TypeScript definitions (UserRole, CourseItem, etc.)
 └── utils/                    # Shared color utilities and formatters
@@ -110,6 +109,6 @@ import { TeacherPages, StudentPages, AdminPages } from "@/pages"
 import { DesktopSidebar } from "@/components/teacher"
 import { StudentSidebar } from "@/components/student"
 import { AdminSidebar, AdminModals } from "@/components/admin"
-import { MetricCard, GroundedAiTutor } from "@/components/shared"
+import { Student360Drawer } from "@/components/shared"
 import { Button, Card, Dialog } from "@/components/ui"
 ```
