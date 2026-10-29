@@ -28,6 +28,11 @@ import {
   initialReports,
 } from "../../data/mockData"
 
+/** Module ids (m1, m2, ...) restart in every course, so the module filter value is scoped to its course. */
+function moduleFilterValue(courseId: string, moduleId: string) {
+  return `${courseId}:${moduleId}`
+}
+
 function getStudentActivityStats(student: StudentItem) {
   const summary = getStudentActivityHeatmap(student)
   const flatDays = summary.weeks.flatMap((w) => w.days)
@@ -434,12 +439,12 @@ export default function AnalyticsPage({
 
   // 4. Assignments List with Module Association (Section 2.D)
   const assignmentsList: ModuleAssignmentItem[] = useMemo(() => {
-    const list = Object.values(MODULE_ASSIGNMENTS)
+    let list = Object.values(MODULE_ASSIGNMENTS)
     if (courseFilter !== "All") {
-      return list.filter((a) => a.courseId === courseFilter)
+      list = list.filter((a) => a.courseId === courseFilter)
     }
     if (moduleFilter !== "All") {
-      return list.filter((a) => a.moduleId === moduleFilter)
+      list = list.filter((a) => moduleFilterValue(a.courseId, a.moduleId) === moduleFilter)
     }
     return list
   }, [courseFilter, moduleFilter])
@@ -634,7 +639,8 @@ export default function AnalyticsPage({
               >
                 <option value="All">All Modules ({availableModules.length})</option>
                 {availableModules.map((m) => (
-                  <option key={m.id} value={m.id}>
+                  // Module ids (m1, m2, ...) repeat across courses, so key and value include the course.
+                  <option key={moduleFilterValue(m.courseId, m.id)} value={moduleFilterValue(m.courseId, m.id)}>
                     {m.id.toUpperCase()}: {m.title.slice(0, 32)}...
                   </option>
                 ))}
