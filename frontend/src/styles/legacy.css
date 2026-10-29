@@ -152,8 +152,10 @@ body:has(.teacher-portal-shell) {
   height: 0 !important;
 }
 
-/* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling) */
-@media (max-height: 860px) {
+/* Height-adaptive scaling for laptops (1366x768, 1440x900, 125%/150% Windows scaling).
+   Desktop widths only: these rules pin .metrics-grid to one 112px row, which made
+   the stacked 2- and 1-column KPI cards (<= 1024px) overlap on phones and tablets. */
+@media (max-height: 860px) and (min-width: 1025px) {
   :root {
     --app-card-gap: 14px;
     --app-card-gap-metrics: 14px;
@@ -283,7 +285,8 @@ body:has(.teacher-portal-shell) {
   }
 }
 
-@media (max-height: 740px) {
+/* Desktop widths only, for the same reason as the 860px block above. */
+@media (max-height: 740px) and (min-width: 1025px) {
   :root {
     --app-card-gap: 14px;
     --app-card-gap-metrics: 14px;
