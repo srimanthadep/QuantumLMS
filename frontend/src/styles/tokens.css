@@ -88,7 +88,8 @@
   --subtle-foreground: #8a8a93;
 
   --primary: #6d4aff;
-  --primary-hover: #7c5cff;
+  /* Lightest hover that keeps white text at AA (4.60:1). */
+  --primary-hover: #7557ff;
   --primary-foreground: #ffffff;
   --primary-text: #a397ff;
   --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
@@ -123,8 +124,9 @@
   --primary-text: #1d4ed8;
   --ring: #2563eb;
 }
+/* Dark hovers are the lightest shade that keeps white text at AA. */
 .dark[data-accent="blue"] {
-  --primary-hover: #3b82f6;
+  --primary-hover: #2c6eef;
   --primary-text: #60a5fa;
   --ring: #60a5fa;
 }
@@ -136,7 +138,7 @@
   --ring: #047857;
 }
 .dark[data-accent="emerald"] {
-  --primary-hover: #059669;
+  --primary-hover: #06855f;
   --primary-text: #34d399;
   --ring: #34d399;
 }
@@ -148,7 +150,7 @@
   --ring: #b45309;
 }
 .dark[data-accent="amber"] {
-  --primary-hover: #d97706;
+  --primary-hover: #bb5908;
   --primary-text: #fbbf24;
   --ring: #fbbf24;
 }
