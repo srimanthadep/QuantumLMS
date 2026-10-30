@@ -1,7 +1,7 @@
 export { default as StudentPortal } from "./StudentPortal"
 export { default as StudentDashboardPage } from "./StudentDashboardPage"
 export { CareerHubPage } from "./CareerHubPage"
-export { CommunityPage } from "./CommunityPage"
+export { default as CommunityPage } from "./CommunityPage"
 export { default as SchedulePage } from "./SchedulePage"
 export { default as AssessmentsPage } from "./AssessmentsPage"
 export { default as GradesPage } from "./GradesPage"

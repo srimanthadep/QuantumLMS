@@ -1,455 +1,583 @@
-import { useState } from "react"
-import { Icon } from "../../components/Icon"
+import { useMemo, useRef, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import {
+  Bookmark,
+  Briefcase,
+  Check,
+  FlaskConical,
+  Flame,
+  Hash,
+  Heart,
+  Layers,
+  MessageCircle,
+  MessagesSquare,
+  PenSquare,
+  Send,
+  Share2,
+  Trophy,
+  Users,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { spring, transition } from "@/lib/motion"
+import { useSession } from "@/app/session"
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  SegmentedControl,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "@/components/ui"
 import type { CommunityPost } from "./studentTypes"
 import { initialCommunityPosts } from "./studentMockData"
+import { copyText } from "./studentUtils"
 
 interface CommunityPageProps {
   onToast: (msg: string) => void
-  initialTab?: "squads" | "discussions" | "speech"
 }
 
-interface ForumTopic {
+interface Reply {
   id: string
-  course: string
-  title: string
   author: string
-  avatar: string
-  replies: number
-  upvotes: number
-  isSolved: boolean
-  lastActive: string
-  tags: string[]
+  avatar?: string
+  text: string
+  time: string
+}
+type Post = Omit<CommunityPost, "channel"> & { channel: Channel; replyList: Reply[]; saved?: boolean; createdAt: number }
+
+const CHANNELS = [
+  { id: "Hackathons", icon: Trophy },
+  { id: "Research & Labs", icon: FlaskConical },
+  { id: "Study Groups", icon: Users },
+  { id: "General", icon: MessagesSquare },
+  { id: "Career", icon: Briefcase },
+] as const
+type Channel = (typeof CHANNELS)[number]["id"]
+const CHANNEL_ICON = Object.fromEntries(CHANNELS.map((c) => [c.id, c.icon])) as Record<Channel, typeof Trophy>
+
+const stripEmoji = (s: string) => s.replace(/[^\p{L}\p{N}&\s-]/gu, "").trim()
+const asChannel = (s: string): Channel => (CHANNELS.find((c) => c.id === stripEmoji(s))?.id ?? "General") as Channel
+
+const SEED_REPLIES: Record<string, Reply[]> = {
+  "cp-1": [
+    { id: "r1", author: "Rohit Verma", avatar: "/assets/student-3.png", text: "I can take the frontend. Built a Next.js dashboard for last year's hackathon.", time: "1 hour ago" },
+    { id: "r2", author: "Sneha Patel", avatar: "/assets/student-4.png", text: "Interested in the vector DB side. DM me?", time: "45 min ago" },
+  ],
+  "cp-2": [{ id: "r3", author: "Priya Sharma", avatar: "/assets/student-2.png", text: "Super useful. Did you try a reranker on top of the 512-token chunks?", time: "3 hours ago" }],
+  "cp-3": [{ id: "r4", author: "Aarav Patel", avatar: "/assets/student-1.png", text: "Count me in. I'll bring my SVM dual notes.", time: "20 hours ago" }],
 }
 
-const initialForumTopics: ForumTopic[] = [
-  {
-    id: "ft-1",
-    course: "Generative AI Masterclass",
-    title: "How to tune temperature vs top_p in multi-turn agent tool-calling?",
-    author: "Arjun Mehta",
-    avatar: "/assets/student-1.png",
-    replies: 7,
-    upvotes: 19,
-    isSolved: true,
-    lastActive: "15 mins ago",
-    tags: ["RAG", "Tool Calling", "Agents"],
-  },
-  {
-    id: "ft-2",
-    course: "Python for AI",
-    title: "Best practice for vectorized embeddings indexing in pgvector vs Qdrant?",
-    author: "Srimanth",
-    avatar: "/assets/srimanth.png",
-    replies: 12,
-    upvotes: 34,
-    isSolved: true,
-    lastActive: "1 hour ago",
-    tags: ["Vector DB", "Embeddings", "FastAPI"],
-  },
-  {
-    id: "ft-3",
-    course: "Machine Learning Foundations",
-    title: "Gradient vanishing in deep RNNs vs LSTM forget gate dynamics",
-    author: "Priya Patel",
-    avatar: "/assets/student-2.png",
-    replies: 4,
-    upvotes: 8,
-    isSolved: false,
-    lastActive: "3 hours ago",
-    tags: ["Neural Nets", "Backprop"],
-  },
+const SQUADS = [
+  { id: "sq-1", name: "RAG Builders", members: 18, next: "Thu · 7:00 PM", joined: true },
+  { id: "sq-2", name: "ML Math Circle", members: 24, next: "Wed · 6:30 PM", joined: false },
+  { id: "sq-3", name: "Agents & Evals", members: 12, next: "Fri · 5:00 PM", joined: false },
+]
+const TRENDING = ["LangGraph", "Hackathon2026", "LoRA", "Midterms", "VectorDB", "Evals"]
+const HELPERS = [
+  { name: "Priya Sharma", avatar: "/assets/student-2.png", points: 342 },
+  { name: "Rohit Verma", avatar: "/assets/student-3.png", points: 298 },
+  { name: "Sneha Patel", avatar: "/assets/student-4.png", points: 251 },
 ]
 
-export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageProps) {
-  const [activeTab, setActiveTab] = useState<"squads" | "discussions" | "speech">(initialTab)
+export default function CommunityPage({ onToast }: CommunityPageProps) {
+  const { user } = useSession()
+  const [posts, setPosts] = useState<Post[]>(() =>
+    initialCommunityPosts.map((p, i) => ({ ...p, channel: asChannel(p.channel), replyList: SEED_REPLIES[p.id] ?? [], createdAt: Date.now() - (i + 1) * 3_600_000 })),
+  )
+  const [channel, setChannel] = useState<Channel | "All">("All")
+  const [sort, setSort] = useState<"latest" | "top">("latest")
+  const [composing, setComposing] = useState(false)
+  const [draft, setDraft] = useState({ title: "", content: "", channel: "General" as Channel })
+  const [draftError, setDraftError] = useState<string | null>(null)
+  const [squads, setSquads] = useState(SQUADS)
+  const composerRef = useRef<HTMLDivElement>(null)
 
-  // SQUADS & POSTS STATE
-  const [posts, setPosts] = useState<CommunityPost[]>(initialCommunityPosts)
-  const [selectedChannel, setSelectedChannel] = useState<string>("All Channels")
-  const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false)
-  const [newReplyText, setNewReplyText] = useState("")
-  const [postTitle, setPostTitle] = useState("")
-  const [postChannel, setPostChannel] = useState("🏆 Hackathons")
-  const [postContent, setPostContent] = useState("")
+  const visible = useMemo(() => {
+    const list = posts.filter((p) => channel === "All" || p.channel === channel)
+    return sort === "top" ? [...list].sort((a, b) => b.likes + b.replyList.length * 2 - (a.likes + a.replyList.length * 2)) : [...list].sort((a, b) => b.createdAt - a.createdAt)
+  }, [posts, channel, sort])
 
-  // DISCUSSIONS STATE
-  const [forumTopics, setForumTopics] = useState<ForumTopic[]>(initialForumTopics)
-  const [selectedCourseFilter, setSelectedCourseFilter] = useState("All Courses")
-  const [discussionSearch, setDiscussionSearch] = useState("")
+  const counts = useMemo(() => {
+    const m = new Map<string, number>()
+    posts.forEach((p) => m.set(p.channel, (m.get(p.channel) ?? 0) + 1))
+    return m
+  }, [posts])
 
-  // SPEECH LAB STATE
-  const [isRecording, setIsRecording] = useState(false)
-  const [speechTimer, setSpeechTimer] = useState(0)
-  const [selectedSpeechTopic, setSelectedSpeechTopic] = useState("Explain Flash Attention to an AI Architect")
+  const update = (id: string, fn: (p: Post) => Post) => setPosts((list) => list.map((p) => (p.id === id ? fn(p) : p)))
 
-  const handleToggleLike = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const nextLiked = !p.isLiked
-          return {
-            ...p,
-            isLiked: nextLiked,
-            likes: nextLiked ? p.likes + 1 : p.likes - 1,
-          }
-        }
-        return p
-      }),
-    )
+  const openComposer = () => {
+    setComposing(true)
+    requestAnimationFrame(() => composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }))
   }
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  const publish = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!postTitle.trim() || !postContent.trim()) return
-    const newPost: CommunityPost = {
+    if (draft.title.trim().length < 6) {
+      setDraftError("Add a title with at least 6 characters.")
+      return
+    }
+    const post: Post = {
       id: `cp-${Date.now()}`,
-      author: "Srimanth",
-      avatar: "/assets/srimanth.png",
-      badge: "Student · Maple Class",
+      author: user.name,
+      avatar: user.avatar ?? "",
+      badge: "Student",
       time: "Just now",
-      channel: postChannel,
-      title: postTitle,
-      content: postContent,
-      likes: 1,
+      channel: draft.channel,
+      title: draft.title.trim(),
+      content: draft.content.trim(),
+      likes: 0,
       replies: 0,
-      isLiked: true,
+      replyList: [],
+      createdAt: Date.now(),
     }
-    setPosts([newPost, ...posts])
-    setIsNewPostModalOpen(false)
-    setPostTitle("")
-    setPostContent("")
-    onToast("Posted to student community board! 🎉")
+    setPosts((list) => [post, ...list])
+    setDraft({ title: "", content: "", channel: draft.channel })
+    setComposing(false)
+    setChannel("All")
+    setSort("latest")
+    onToast(`Posted to ${post.channel}`)
   }
-
-  const handleUpvoteTopic = (id: string) => {
-    setForumTopics((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, upvotes: t.upvotes + 1 } : t))
-    )
-    onToast("Upvoted discussion question!")
-  }
-
-  const filteredPosts =
-    selectedChannel === "All Channels"
-      ? posts
-      : posts.filter((p) => p.channel === selectedChannel)
-
-  const filteredTopics = forumTopics.filter((t) => {
-    if (selectedCourseFilter !== "All Courses" && t.course !== selectedCourseFilter) return false
-    if (discussionSearch.trim()) {
-      const q = discussionSearch.toLowerCase()
-      return t.title.toLowerCase().includes(q) || t.author.toLowerCase().includes(q)
-    }
-    return true
-  })
 
   return (
-    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
-      {/* Top Header Hub */}
-      <section className="panel" aria-label="Community Header">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="card-title">Community & Peer Collaboration Hub</h3>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
-                Cohort 2026
-              </span>
-            </div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Connect with study squads, ask questions in technical forums, and practice verbal AI communication.
-            </p>
-          </div>
+    <div className="flex flex-col">
+      <PageHeader
+        eyebrow="Community"
+        title="Community"
+        description="Ask questions, find hackathon teammates and study together."
+        actions={
+          <Button leftIcon={<PenSquare aria-hidden="true" />} onClick={openComposer}>
+            New post
+          </Button>
+        }
+      />
 
-          {/* View Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-full border border-zinc-200/60">
-            <button
-              type="button"
-              onClick={() => setActiveTab("squads")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "squads"
-                  ? "bg-surface text-zinc-900 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              Squads & Channels
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("discussions")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "discussions"
-                  ? "bg-surface text-zinc-900 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              Course Discussions ({forumTopics.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("speech")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "speech"
-                  ? "bg-surface text-zinc-900 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              Speech & Verbal Lab
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* VIEW 1: SQUADS & CHANNELS */}
-      {activeTab === "squads" && (
-        <div className="flex flex-col gap-4">
-          <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {["All Channels", "🏆 Hackathons", "🔬 Research & Labs", "📚 Study Groups", "💬 General"].map(
-                (c) => (
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[210px_minmax(0,1fr)_300px]">
+        {/* Channels */}
+        <nav aria-label="Channels" className="min-w-0 lg:col-span-2 xl:col-span-1">
+          <ul className="no-scrollbar flex gap-1 overflow-x-auto xl:sticky xl:top-0 xl:flex-col">
+            {[{ id: "All" as const, icon: Layers }, ...CHANNELS].map((c) => {
+              const active = channel === c.id
+              const count = c.id === "All" ? posts.length : (counts.get(c.id) ?? 0)
+              return (
+                <li key={c.id} className="shrink-0">
                   <button
-                    key={c}
                     type="button"
-                    onClick={() => setSelectedChannel(c)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                      selectedChannel === c
-                        ? "bg-purple-600 text-white"
-                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                    }`}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setChannel(c.id)}
+                    className={cn(
+                      "relative flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                    )}
                   >
-                    {c}
+                    {active && <motion.span layoutId="community-channel" transition={spring.snappy} aria-hidden="true" className="absolute inset-0 rounded-md border border-border bg-surface-2" />}
+                    <c.icon className="relative h-4 w-4" aria-hidden="true" />
+                    <span className="relative whitespace-nowrap">{c.id === "All" ? "All posts" : c.id}</span>
+                    <span className="relative ml-auto pl-2 text-caption tabular-nums text-subtle-foreground">{count}</span>
                   </button>
-                )
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsNewPostModalOpen(true)}
-              className="px-4 py-1.5 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 shadow-xs ml-auto"
-            >
-              + Create Post
-            </button>
-          </div>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
 
-          <div className="flex flex-col gap-3">
-            {filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                className="panel p-5 bg-surface border border-zinc-100 rounded-2xl shadow-xs"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={post.avatar || "/assets/srimanth.png"}
-                      alt={post.author}
-                      className="w-8 h-8 rounded-full object-cover border border-purple-200"
-                    />
-                    <div>
-                      <strong className="text-xs text-zinc-900 block">{post.author}</strong>
-                      <span className="text-[10px] text-zinc-400">{post.badge} · {post.time}</span>
+        {/* Feed */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <div ref={composerRef}>
+            <Card className="overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                {composing ? (
+                  <motion.form
+                    key="open"
+                    onSubmit={publish}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, transition: transition.fast }}
+                    transition={transition.base}
+                    className="grid gap-4 p-5"
+                    noValidate
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar src={user.avatar} name={user.name} size="sm" />
+                      <p className="text-sm font-medium text-foreground">New post</p>
                     </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700">
-                    {post.channel}
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-zinc-900 mb-1">{post.title}</h4>
-                <p className="text-xs text-zinc-600 leading-relaxed mb-3">{post.content}</p>
-                <div className="flex items-center gap-4 pt-2 border-t border-zinc-100 text-xs text-zinc-500">
-                  <button
+                    <Field label="Title" required error={draftError}>
+                      <Input
+                        autoFocus
+                        value={draft.title}
+                        onChange={(e) => {
+                          setDraft((d) => ({ ...d, title: e.target.value }))
+                          setDraftError(null)
+                        }}
+                        placeholder="What do you want to discuss?"
+                      />
+                    </Field>
+                    <Field label="Details">
+                      <Textarea value={draft.content} onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))} placeholder="Add context, links or code…" />
+                    </Field>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <Select value={draft.channel} onValueChange={(v) => setDraft((d) => ({ ...d, channel: v as Channel }))}>
+                        <SelectTrigger aria-label="Channel" className="sm:w-52">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CHANNELS.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="ghost" onClick={() => setComposing(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" leftIcon={<Send aria-hidden="true" />}>
+                          Publish
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.form>
+                ) : (
+                  <motion.button
+                    key="closed"
                     type="button"
-                    onClick={() => handleToggleLike(post.id)}
-                    className={`flex items-center gap-1 font-semibold ${
-                      post.isLiked ? "text-rose-600" : "hover:text-zinc-800"
-                    }`}
+                    onClick={openComposer}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: transition.fast }}
+                    className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface-2"
                   >
-                    <span>{post.isLiked ? "❤️" : "🤍"}</span>
-                    <span>{post.likes}</span>
-                  </button>
-                  <span className="flex items-center gap-1">
-                    <span>💬</span>
-                    <span>{post.replies} Replies</span>
-                  </span>
-                </div>
-              </div>
-            ))}
+                    <Avatar src={user.avatar} name={user.name} size="sm" />
+                    <span className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm text-muted-foreground">Share something with your cohort…</span>
+                    <PenSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </Card>
           </div>
 
-          {isNewPostModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <form onSubmit={handleCreatePost} className="bg-surface rounded-3xl p-6 max-w-lg w-full flex flex-col gap-3">
-                <h3 className="font-bold text-base text-zinc-900 mb-1">Create Community Post</h3>
-                <div>
-                  <label className="text-xs font-bold text-zinc-700 block mb-1">Channel</label>
-                  <select
-                    value={postChannel}
-                    onChange={(e) => setPostChannel(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
-                  >
-                    <option value="🏆 Hackathons">🏆 Hackathons</option>
-                    <option value="🔬 Research & Labs">🔬 Research & Labs</option>
-                    <option value="📚 Study Groups">📚 Study Groups</option>
-                    <option value="💬 General">💬 General</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-zinc-700 block mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={postTitle}
-                    onChange={(e) => setPostTitle(e.target.value)}
-                    placeholder="E.g. Squad forming for Agents Hackathon"
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-zinc-700 block mb-1">Content</label>
-                  <textarea
-                    rows={4}
-                    value={postContent}
-                    onChange={(e) => setPostContent(e.target.value)}
-                    placeholder="Details about your squad or research inquiry..."
-                    className="w-full p-2.5 rounded-xl border border-zinc-200 text-xs"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsNewPostModalOpen(false)}
-                    className="px-4 py-2 rounded-full border border-zinc-200 text-xs font-bold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800"
-                  >
-                    Publish Post
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* VIEW 2: COURSE DISCUSSIONS */}
-      {activeTab === "discussions" && (
-        <div className="flex flex-col gap-4">
-          <div className="panel p-3 bg-surface border border-zinc-150 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {["All Courses", "Generative AI Masterclass", "Python for AI", "Machine Learning Foundations"].map(
-                (c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setSelectedCourseFilter(c)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                      selectedCourseFilter === c
-                        ? "bg-purple-600 text-white"
-                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                )
-              )}
-            </div>
-            <input
-              type="text"
-              placeholder="Search topics..."
-              value={discussionSearch}
-              onChange={(e) => setDiscussionSearch(e.target.value)}
-              className="px-3 py-1 rounded-full border border-zinc-200 text-xs w-48"
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">{channel === "All" ? "All posts" : channel}</p>
+            <SegmentedControl
+              size="sm"
+              aria-label="Sort posts"
+              options={[
+                { value: "latest" as const, label: "Latest" },
+                { value: "top" as const, label: "Top", icon: <Flame className="h-3.5 w-3.5" aria-hidden="true" /> },
+              ]}
+              value={sort}
+              onChange={setSort}
             />
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            {filteredTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="panel p-4 bg-surface border border-zinc-100 rounded-2xl flex items-center justify-between gap-4 hover:border-purple-200 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleUpvoteTopic(topic.id)}
-                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 min-w-10 text-xs font-bold cursor-pointer"
-                  >
-                    <span>▲</span>
-                    <span>{topic.upvotes}</span>
-                  </button>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-zinc-400">{topic.course}</span>
-                      {topic.isSolved && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
-                          ✓ Solved
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="text-sm font-bold text-zinc-900 line-clamp-1">{topic.title}</h4>
-                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-1">
-                      <span>Asked by {topic.author}</span>
-                      <span>·</span>
-                      <span>{topic.lastActive}</span>
-                    </div>
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={<MessagesSquare aria-hidden="true" />}
+              title="No posts in this channel yet"
+              description="Start the conversation."
+              action={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (channel !== "All") setDraft((d) => ({ ...d, channel }))
+                    openComposer()
+                  }}
+                >
+                  Write a post
+                </Button>
+              }
+            />
+          ) : (
+            <motion.div layout className="flex flex-col gap-4">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {visible.map((p) => (
+                  <PostCard
+                    key={p.id}
+                    post={p}
+                    userName={user.name}
+                    userAvatar={user.avatar}
+                    onLike={() => update(p.id, (x) => ({ ...x, isLiked: !x.isLiked, likes: x.likes + (x.isLiked ? -1 : 1) }))}
+                    onSave={() => {
+                      update(p.id, (x) => ({ ...x, saved: !x.saved }))
+                      if (!p.saved) onToast("Saved to your bookmarks")
+                    }}
+                    onShare={async () => {
+                      await copyText(`https://community.quantumschool.ai/post/${p.id}`)
+                      onToast("Link to post copied")
+                    }}
+                    onReply={(text) =>
+                      update(p.id, (x) => ({ ...x, replyList: [...x.replyList, { id: `r-${Date.now()}`, author: user.name, avatar: user.avatar, text, time: "Just now" }] }))
+                    }
+                    onTag={(t) => onToast(`Showing posts tagged #${t}`)}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Rail */}
+        <aside className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Study squads</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {squads.map((s) => (
+                <div key={s.id} className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
+                    <p className="truncate text-caption text-muted-foreground">
+                      {s.members + (s.joined ? 1 : 0)} members · {s.next}
+                    </p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant={s.joined ? "secondary" : "outline"}
+                    aria-pressed={s.joined}
+                    onClick={() => {
+                      setSquads((list) => list.map((x) => (x.id === s.id ? { ...x, joined: !x.joined } : x)))
+                      onToast(s.joined ? `Left ${s.name}` : `Joined ${s.name}. Next session ${s.next}`)
+                    }}
+                    leftIcon={
+                      s.joined ? (
+                        <motion.span initial={{ scale: 0.4 }} animate={{ scale: 1 }} transition={spring.snappy} className="flex">
+                          <Check className="text-success" aria-hidden="true" />
+                        </motion.span>
+                      ) : undefined
+                    }
+                  >
+                    {s.joined ? "Joined" : "Join"}
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-zinc-500 font-semibold">💬 {topic.replies}</span>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Trending</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-1.5">
+              {TRENDING.map((t, i) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => onToast(`#${t} is trending in your cohort`)}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-caption font-medium text-muted-foreground transition-colors hover:border-primary-border hover:text-primary-text"
+                >
+                  <Hash className="h-3 w-3" aria-hidden="true" />
+                  {t}
+                  {i < 2 && <Flame className="h-3 w-3 text-warning" aria-label="Hot" />}
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Top helpers this week</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {HELPERS.map((h, i) => (
+                <div key={h.name} className="flex items-center gap-3">
+                  <span className={cn("w-4 text-center text-sm font-semibold tabular-nums", i === 0 ? "text-warning" : "text-subtle-foreground")}>{i + 1}</span>
+                  <Avatar src={h.avatar} name={h.name} size="sm" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{h.name}</span>
+                  <span className="text-caption tabular-nums text-muted-foreground">{h.points} pts</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 3: SPEECH & VERBAL LAB */}
-      {activeTab === "speech" && (
-        <div className="panel p-6 bg-surface border border-zinc-100 rounded-3xl flex flex-col gap-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-            <div>
-              <h3 className="text-base font-bold text-zinc-900">AI Speech & Presentation Rehearsal Lab</h3>
-              <p className="text-xs text-zinc-500">Record your technical presentation and receive real-time clarity feedback.</p>
-            </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-700">
-              🎙️ Interactive Audio Mode
-            </span>
-          </div>
-
-          <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-100">
-            <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider block mb-1">
-              Active Speaking Prompt:
-            </span>
-            <strong className="text-sm text-zinc-900 block">{selectedSpeechTopic}</strong>
-          </div>
-
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-purple-200 rounded-2xl bg-zinc-50/50">
-            <button
-              type="button"
-              onClick={() => {
-                const next = !isRecording
-                setIsRecording(next)
-                onToast(next ? "Recording session started! Speak clearly into your mic." : "Recording captured! AI analysis completed.")
-              }}
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-md transition-all cursor-pointer ${
-                isRecording
-                  ? "bg-rose-600 text-white animate-pulse"
-                  : "bg-purple-700 text-white hover:bg-purple-800"
-              }`}
-            >
-              {isRecording ? "⏹" : "🎙️"}
-            </button>
-            <span className="text-xs font-bold text-zinc-700 mt-3">
-              {isRecording ? "Recording in progress... Click to finish" : "Click microphone to start rehearsal"}
-            </span>
-            <span className="text-[11px] text-zinc-400 mt-1">Evaluates cadence, technical depth, and filler words</span>
-          </div>
-        </div>
-      )}
+              ))}
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
     </div>
   )
 }
 
-export default CommunityPage
+function PostCard({
+  post,
+  userName,
+  userAvatar,
+  onLike,
+  onSave,
+  onShare,
+  onReply,
+  onTag,
+}: {
+  post: Post
+  userName: string
+  userAvatar?: string
+  onLike: () => void
+  onSave: () => void
+  onShare: () => void
+  onReply: (text: string) => void
+  onTag: (t: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [reply, setReply] = useState("")
+  const [burst, setBurst] = useState(0)
+  const Icon = CHANNEL_ICON[post.channel]
+  const replyCount = post.replyList.length + Math.max(0, post.replies - (SEED_REPLIES[post.id]?.length ?? 0))
+  const send = () => {
+    const t = reply.trim()
+    if (!t) return
+    onReply(t)
+    setReply("")
+  }
+  const tags = (post.title.match(/\b(RAG|LangGraph|LoRA|SVM|Hackathon|Midterm)\w*/gi) ?? []).slice(0, 2)
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98, transition: transition.fast }}
+      transition={transition.base}
+      className="rounded-lg border border-border bg-surface p-5 shadow-[var(--elev-xs)] transition-[border-color] duration-200 hover:border-border-strong/60"
+    >
+      <header className="flex items-start gap-3">
+        <Avatar src={post.avatar} name={post.author} size="md" />
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-sm">
+            <span className="font-semibold text-foreground">{post.author}</span>
+            <span className="text-caption text-subtle-foreground">· {post.badge}</span>
+          </p>
+          <p className="text-caption text-muted-foreground">{post.time}</p>
+        </div>
+        <Badge tone="neutral">
+          <Icon className="h-3 w-3" aria-hidden="true" />
+          {post.channel}
+        </Badge>
+      </header>
+      <h3 className="mt-3 text-[15px] font-semibold leading-6 text-foreground">{post.title}</h3>
+      {post.content && <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{post.content}</p>}
+      {tags.length > 0 && (
+        <div className="mt-3 flex gap-1">
+          {tags.map((t) => (
+            <button key={t} type="button" onClick={() => onTag(t)} className="rounded-full px-1.5 py-0.5 text-caption font-medium text-primary-text transition-colors hover:bg-primary-soft">
+              #{t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <footer className="mt-4 flex items-center gap-1 border-t border-border pt-3">
+        <motion.button
+          type="button"
+          onClick={() => {
+            if (!post.isLiked) setBurst((b) => b + 1)
+            onLike()
+          }}
+          aria-pressed={!!post.isLiked}
+          aria-label={`${post.isLiked ? "Unlike" : "Like"}, ${post.likes} likes`}
+          whileTap={{ scale: 0.92 }}
+          transition={spring.snappy}
+          className={cn(
+            "relative inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-caption font-semibold transition-colors",
+            post.isLiked ? "text-danger" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+          )}
+        >
+          <motion.span key={burst} initial={burst ? { scale: 0.6 } : false} animate={{ scale: [0.6, 1.3, 1] }} transition={{ duration: 0.35 }} className="flex">
+            <Heart className={cn("h-4 w-4", post.isLiked && "fill-current")} aria-hidden="true" />
+          </motion.span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span key={post.likes} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -8, opacity: 0 }} transition={transition.fast} className="tabular-nums">
+              {post.likes}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-caption font-semibold transition-colors",
+            open ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+          )}
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          <span className="tabular-nums">{replyCount}</span>
+          <span className="hidden sm:inline">{replyCount === 1 ? "reply" : "replies"}</span>
+        </button>
+        <span className="flex-1" />
+        <motion.button
+          type="button"
+          onClick={onSave}
+          aria-pressed={!!post.saved}
+          aria-label={post.saved ? "Remove bookmark" : "Bookmark post"}
+          whileTap={{ scale: 0.9 }}
+          transition={spring.snappy}
+          className={cn("inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors", post.saved ? "text-primary-text" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground")}
+        >
+          <Bookmark className={cn("h-4 w-4", post.saved && "fill-current")} aria-hidden="true" />
+        </motion.button>
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label="Copy link to post"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+        >
+          <Share2 className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </footer>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, transition: transition.fast }}
+            transition={transition.base}
+            className="mt-3 flex flex-col gap-3"
+          >
+            {post.replyList.map((r) => (
+              <motion.div key={r.id} layout initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={transition.base} className="flex gap-2.5">
+                <Avatar src={r.avatar} name={r.author} size="xs" className="mt-0.5" />
+                <div className="min-w-0 flex-1 rounded-md bg-surface-2 px-3 py-2">
+                  <p className="text-caption">
+                    <span className="font-semibold text-foreground">{r.author}</span> <span className="text-subtle-foreground">· {r.time}</span>
+                  </p>
+                  <p className="mt-0.5 text-sm leading-6 text-foreground">{r.text}</p>
+                </div>
+              </motion.div>
+            ))}
+            <div className="flex items-center gap-2.5">
+              <Avatar src={userAvatar} name={userName} size="xs" />
+              <Input
+                aria-label="Write a reply"
+                placeholder="Write a reply…"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    send()
+                  }
+                }}
+                trailing={
+                  <button type="button" aria-label="Send reply" onClick={send} disabled={!reply.trim()} className="flex rounded p-1 text-primary-text transition-opacity disabled:opacity-40">
+                    <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                }
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.article>
+  )
+}

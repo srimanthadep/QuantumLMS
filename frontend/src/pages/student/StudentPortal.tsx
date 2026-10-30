@@ -14,11 +14,11 @@ const CourseDetailsPage = lazy(() => import("./CourseDetailsPage"))
 const SchedulePage = lazy(() => import("./SchedulePage"))
 const AssessmentsPage = lazy(() => import("./AssessmentsPage"))
 const GradesPage = lazy(() => import("./GradesPage"))
-const CommunityPage = lazy(() => import("./CommunityPage").then((m) => ({ default: m.CommunityPage })))
+const CommunityPage = lazy(() => import("./CommunityPage"))
 const CareerHubPage = lazy(() => import("./CareerHubPage").then((m) => ({ default: m.CareerHubPage })))
 const StudentSettingsPage = lazy(() => import("./StudentSettingsPage").then((m) => ({ default: m.StudentSettingsPage })))
 const SupportHelpPage = lazy(() => import("./SupportHelpPage").then((m) => ({ default: m.SupportHelpPage })))
-const MyNotesPage = lazy(() => import("./MyNotesPage").then((m) => ({ default: m.MyNotesPage })))
+const MyNotesPage = lazy(() => import("./MyNotesPage"))
 import {
   initialStudentCourses,
   catalogCourses,
@@ -423,16 +423,7 @@ export default function StudentPortal({
               )}
 
               {(activeTab === "Community" || activeTab === "Communication" || activeTab === "Discussions") && (
-                <CommunityPage
-                  onToast={onToast}
-                  initialTab={
-                    activeTab === "Communication"
-                      ? "speech"
-                      : activeTab === "Discussions"
-                      ? "discussions"
-                      : "squads"
-                  }
-                />
+                <CommunityPage onToast={onToast} />
               )}
 
               {(activeTab === "Career Hub" || activeTab === "Mock Interview" || activeTab === "Resume Building" || activeTab === "Mentor Details") && (

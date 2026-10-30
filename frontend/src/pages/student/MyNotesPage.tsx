@@ -1,448 +1,418 @@
-import { useState, useMemo } from "react"
-import { Icon } from "../../components/Icon"
-import { StudentDropdown } from "../../components/StudentDropdown"
+import { useEffect, useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Code2, Download, FilePlus2, Hash, NotebookPen, Pencil, Pin, PinOff, Search, Trash2, Undo2, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { spring, transition } from "@/lib/motion"
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  Tooltip,
+} from "@/components/ui"
+import CopyButton from "@/components/student/CopyButton"
 import type { NoteItem } from "./studentTypes"
-import { initialNotesList } from "./studentMockData"
+import { initialNotesList, initialStudentCourses } from "./studentMockData"
+import { downloadTextFile } from "./studentUtils"
 
 interface MyNotesPageProps {
   onToast: (msg: string) => void
 }
 
-export function MyNotesPage({ onToast }: MyNotesPageProps) {
-  const [notes, setNotes] = useState<NoteItem[]>(initialNotesList)
-  const [selectedTag, setSelectedTag] = useState<string>("All")
-  const [search, setSearch] = useState("")
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [activeNote, setActiveNote] = useState<NoteItem | null>(null)
+type Note = NoteItem & { pinned?: boolean }
 
-  // New Note form state
-  const [newTitle, setNewTitle] = useState("")
-  const [newCourse, setNewCourse] = useState("Generative AI Masterclass")
-  const [newContent, setNewContent] = useState("")
-  const [newSnippet, setNewSnippet] = useState("")
-  const [newTagsStr, setNewTagsStr] = useState("")
+const STORAGE_KEY = "quantum_student_notes_v2"
+const COURSES = initialStudentCourses.map((c) => c.title)
 
-  const allTags = useMemo(() => {
-    const set = new Set<string>()
-    notes.forEach((n) => n.tags.forEach((t) => set.add(t)))
-    return ["All", ...Array.from(set)]
+function loadNotes(): Note[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as Note[]
+  } catch {
+    // fall through to seed data
+  }
+  return initialNotesList.map((n, i) => ({ ...n, pinned: i === 0 }))
+}
+
+const EMPTY = { title: "", course: COURSES[0] ?? "", tags: "", content: "", snippet: "" }
+
+export default function MyNotesPage({ onToast }: MyNotesPageProps) {
+  const [notes, setNotes] = useState<Note[]>(loadNotes)
+  const [query, setQuery] = useState("")
+  const [course, setCourse] = useState("all")
+  const [tag, setTag] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Note | "new" | null>(null)
+  const [form, setForm] = useState(EMPTY)
+  const [titleError, setTitleError] = useState<string | null>(null)
+  const [trash, setTrash] = useState<{ note: Note; index: number } | null>(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
+    } catch {
+      // storage unavailable; notes stay in memory
+    }
   }, [notes])
 
-  const filtered = useMemo(() => {
-    let list = notes
-    if (selectedTag !== "All") {
-      list = list.filter((n) => n.tags.includes(selectedTag))
-    }
-    if (!search.trim()) return list
-    const q = search.toLowerCase()
-    return list.filter(
-      (n) =>
-        n.title.toLowerCase().includes(q) ||
-        n.content.toLowerCase().includes(q) ||
-        n.course.toLowerCase().includes(q) ||
-        n.tags.some((t) => t.toLowerCase().includes(q)),
-    )
-  }, [notes, selectedTag, search])
+  useEffect(() => {
+    if (!trash) return
+    const t = setTimeout(() => setTrash(null), 5000)
+    return () => clearTimeout(t)
+  }, [trash])
 
-  const handleCreateNote = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTitle.trim()) return
-    const tags = newTagsStr
-      ? newTagsStr
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
-      : ["General"]
-    const item: NoteItem = {
-      id: `nt-${Date.now()}`,
-      title: newTitle,
-      course: newCourse,
+  const tags = useMemo(() => {
+    const counts = new Map<string, number>()
+    notes.forEach((n) => n.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)))
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [notes])
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return notes
+      .filter((n) => course === "all" || n.course === course)
+      .filter((n) => !tag || n.tags.includes(tag))
+      .filter((n) => !q || [n.title, n.content, n.snippet ?? "", n.tags.join(" ")].some((v) => v.toLowerCase().includes(q)))
+      .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned))
+  }, [notes, course, tag, query])
+
+  const openEditor = (n: Note | "new") => {
+    setEditing(n)
+    setTitleError(null)
+    setForm(n === "new" ? EMPTY : { title: n.title, course: n.course, tags: n.tags.join(", "), content: n.content, snippet: n.snippet ?? "" })
+  }
+
+  const save = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!form.title.trim()) {
+      setTitleError("Give the note a title.")
+      return
+    }
+    const data = {
+      title: form.title.trim(),
+      course: form.course,
+      content: form.content.trim(),
+      snippet: form.snippet.trim() || undefined,
+      tags: form.tags
+        .split(",")
+        .map((t) => t.trim().replace(/^#/, ""))
+        .filter(Boolean),
       lastModified: "Just now",
-      content: newContent,
-      snippet: newSnippet || undefined,
-      tags,
     }
-    setNotes([item, ...notes])
-    setIsCreateModalOpen(false)
-    setNewTitle("")
-    setNewContent("")
-    setNewSnippet("")
-    setNewTagsStr("")
-    onToast(`Study note "${item.title}" created successfully! 📝`)
+    if (editing === "new") {
+      setNotes((list) => [{ id: `nt-${Date.now()}`, ...data }, ...list])
+      onToast("Note created")
+    } else if (editing) {
+      setNotes((list) => list.map((n) => (n.id === editing.id ? { ...n, ...data } : n)))
+      onToast("Note saved")
+    }
+    setEditing(null)
   }
 
-  const handleDeleteNote = (id: string, title: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id))
-    if (activeNote?.id === id) setActiveNote(null)
-    onToast(`Deleted note "${title}".`)
+  const remove = (n: Note) => {
+    const index = notes.findIndex((x) => x.id === n.id)
+    setNotes((list) => list.filter((x) => x.id !== n.id))
+    setTrash({ note: n, index })
   }
+  const undo = () => {
+    if (!trash) return
+    setNotes((list) => {
+      const next = [...list]
+      next.splice(Math.min(trash.index, next.length), 0, trash.note)
+      return next
+    })
+    setTrash(null)
+  }
+  const togglePin = (id: string) => setNotes((list) => list.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)))
+
+  const exportMd = () => {
+    const md = visible
+      .map((n) => [`## ${n.title}`, `_${n.course} · ${n.lastModified}_`, "", n.content, n.snippet ? `\n\`\`\`python\n${n.snippet}\n\`\`\`` : "", n.tags.length ? `\nTags: ${n.tags.map((t) => `#${t}`).join(" ")}` : ""].join("\n"))
+      .join("\n\n---\n\n")
+    downloadTextFile(`# Study notes\n\n${md}\n`, "Quantum_Study_Notes.md", "text/markdown;charset=utf-8")
+    onToast(`Exported ${visible.length} note${visible.length === 1 ? "" : "s"} as Markdown`)
+  }
+
+  const filtersActive = !!query || course !== "all" || !!tag
 
   return (
-    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
-      {/* Header Panel */}
-      <section className="panel" aria-label="Notes Header">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="card-title">My Study Notes & Code Snippets</h3>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
-                {notes.length} Notes Saved
-              </span>
-            </div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Personalized lecture annotations, mathematical formulas, code
-              templates, and review guides.
-            </p>
-          </div>
+    <div className="flex flex-col">
+      <PageHeader
+        eyebrow="Study notes"
+        title="Notes"
+        description="Lecture annotations, formulas and code snippets, saved on this device."
+        actions={
+          <>
+            <Button variant="outline" leftIcon={<Download aria-hidden="true" />} onClick={exportMd} disabled={visible.length === 0}>
+              Export .md
+            </Button>
+            <Button leftIcon={<FilePlus2 aria-hidden="true" />} onClick={() => openEditor("new")}>
+              New note
+            </Button>
+          </>
+        }
+      />
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const mdContent =
-                  "# Quantum School of AI - Student Study Notes\n\n" +
-                  `Student: Srimanth | Exported: ${new Date().toLocaleDateString()}\n\n` +
-                  notes
-                    .map(
-                      (n) =>
-                        `## ${n.title}\n**Course:** ${n.course} | **Tags:** ${n.tags.join(", ")} | **Last Modified:** ${n.lastModified}\n\n${n.content}\n` +
-                        (n.snippet ? `\n\`\`\`python\n${n.snippet}\n\`\`\`\n` : "") +
-                        "\n---\n",
-                    )
-                    .join("\n")
-                const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8;" })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement("a")
-                a.href = url
-                a.download = "Quantum_Study_Notes_Srimanth.md"
-                a.click()
-                URL.revokeObjectURL(url)
-                onToast("Study notes exported as Markdown notebook (.md)! 📝")
-              }}
-              className="px-3.5 py-1.5 rounded-full border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
-            >
-              Export Notes (.md)
-            </button>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-1.5 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <span>+ New Note</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Filter Tags & Search */}
-        <div className="mt-4 pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="filter-pills overflow-x-auto pb-1 sm:pb-0">
-            {allTags.map((tag) => (
-              <button
-                key={tag}
-                className={`filter-pill ${selectedTag === tag ? "active" : ""}`}
-                onClick={() => setSelectedTag(tag)}
-              >
-                {tag}
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+        <Input
+          aria-label="Search notes"
+          placeholder="Search titles, content, code and tags"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          leading={<Search aria-hidden="true" />}
+          trailing={
+            query ? (
+              <button type="button" aria-label="Clear search" onClick={() => setQuery("")} className="flex rounded p-0.5 hover:text-foreground">
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
+            ) : null
+          }
+          wrapperClassName="sm:max-w-md"
+        />
+        <Select value={course} onValueChange={setCourse}>
+          <SelectTrigger aria-label="Filter by course" className="sm:w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All courses</SelectItem>
+            {COURSES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
             ))}
-          </div>
-
-          <div className="relative w-full max-w-xs">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-              <Icon name="search" size={13} />
-            </div>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search notes or snippets..."
-              className="w-full pl-8 pr-7 py-1 rounded-full text-xs bg-zinc-50 border border-zinc-200 focus:outline-none focus:border-purple-500 focus:bg-surface"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute inset-y-0 right-0 pr-2 flex items-center text-xs text-zinc-400 hover:text-zinc-700"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Notes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--app-card-gap,14px)]">
-        {filtered.map((note) => (
-          <div
-            key={note.id}
-            onClick={() => setActiveNote(note)}
-            className="panel p-5 flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer border border-zinc-100"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
-                  {note.course}
-                </span>
-                <span className="text-[10px] text-zinc-400">
-                  {note.lastModified}
-                </span>
-              </div>
-
-              <h4 className="font-bold text-base text-zinc-900 mb-2 leading-snug">
-                {note.title}
-              </h4>
-
-              <p className="text-xs text-zinc-600 leading-relaxed mb-3 line-clamp-3">
-                {note.content}
-              </p>
-
-              {/* Code Snippet Preview if present */}
-              {note.snippet && (
-                <div className="p-3 bg-ink-900 text-purple-300 font-mono text-[11px] rounded-xl mb-3 overflow-x-auto border border-zinc-800">
-                  <pre>{note.snippet}</pre>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-              <div className="flex flex-wrap gap-1">
-                {note.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700"
-                  >
-                    #{t}
-                  </span>
-                ))}
-              </div>
-
-              <div
-                className="flex items-center gap-1.5"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => {
-                    if (note.snippet) {
-                      navigator.clipboard?.writeText(note.snippet)
-                      onToast("Code snippet copied to clipboard!")
-                    } else {
-                      navigator.clipboard?.writeText(note.content)
-                      onToast("Note text copied to clipboard!")
-                    }
-                  }}
-                  className="px-2.5 py-1 rounded-full border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:bg-zinc-100 transition-colors cursor-pointer"
-                  title="Copy Content"
-                >
-                  Copy
-                </button>
-                <button
-                  onClick={() => handleDeleteNote(note.id, note.title)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors text-xs cursor-pointer"
-                  title="Delete Note"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Note View / Edit Modal */}
-      {activeNote && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setActiveNote(null)}
-        >
-          <div
-            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
-              <div>
-                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
-                  {activeNote.course}
-                </span>
-                <h3 className="font-bold text-lg text-zinc-900">
-                  {activeNote.title}
-                </h3>
-                <span className="text-[11px] text-zinc-400">
-                  Modified: {activeNote.lastModified}
-                </span>
-              </div>
-              <button
-                onClick={() => setActiveNote(null)}
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3 text-xs mb-6">
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 leading-relaxed text-zinc-800">
-                {activeNote.content}
-              </div>
-
-              {activeNote.snippet && (
-                <div>
-                  <div className="flex justify-between items-center text-xs text-zinc-500 mb-1 font-bold">
-                    <span>Executable Code Snippet:</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard?.writeText(activeNote.snippet || "")
-                        onToast("Code snippet copied!")
-                      }}
-                      className="text-purple-700 hover:underline cursor-pointer"
-                    >
-                      Copy Snippet
-                    </button>
-                  </div>
-                  <pre className="p-4 bg-ink-950 text-purple-200 font-mono rounded-2xl text-[11px] overflow-x-auto border border-zinc-800">
-                    {activeNote.snippet}
-                  </pre>
-                </div>
+      <div className="no-scrollbar mb-5 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by tag">
+        {tags.map(([t, count]) => {
+          const active = tag === t
+          return (
+            <motion.button
+              key={t}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setTag(active ? null : t)}
+              whileTap={{ scale: 0.94 }}
+              transition={spring.snappy}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
+                active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface text-muted-foreground hover:border-border-strong/60 hover:text-foreground",
               )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setActiveNote(null)}
-                className="px-4 py-2 rounded-full border border-zinc-200 font-bold text-zinc-700 hover:bg-zinc-50 cursor-pointer text-xs"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  onToast(`Exporting note "${activeNote.title}" as PDF...`)
-                  setActiveNote(null)
-                }}
-                className="px-5 py-2 rounded-full bg-purple-700 text-white font-bold hover:bg-purple-800 cursor-pointer shadow-sm text-xs"
-              >
-                Download Note PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Note Modal */}
-      {isCreateModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setIsCreateModalOpen(false)}
-        >
-          <div
-            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
-              <div>
-                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
-                  New Study Note
-                </span>
-                <h3 className="font-bold text-lg text-zinc-900">
-                  Create Lecture Annotation
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleCreateNote}
-              className="flex flex-col gap-3 text-xs"
             >
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Note Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Cosine Similarity vs Dot Product Analysis"
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
+              <Hash className="h-3 w-3" aria-hidden="true" />
+              {t}
+              <span className={cn("tabular-nums", active ? "text-primary-foreground" : "text-subtle-foreground")}>{count}</span>
+            </motion.button>
+          )
+        })}
+      </div>
 
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Subject Course
-                </label>
-                <StudentDropdown
-                  value={newCourse}
-                  onChange={setNewCourse}
-                  options={[
-                    "Generative AI Masterclass",
-                    "Python for AI",
-                    "Machine Learning Foundations",
-                    "AI Agents Bootcamp"
-                  ]}
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Lecture Notes / Observations
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Summarize key takeaways, mathematical insights, or lecture questions..."
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Python / Code Snippet (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={newSnippet}
-                  onChange={(e) => setNewSnippet(e.target.value)}
-                  placeholder="def cosine_sim(a, b): return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))"
-                  className="w-full p-2.5 rounded-xl font-mono text-[11px] border border-zinc-200 bg-zinc-50 text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-zinc-700 block mb-1">
-                  Tags (Comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={newTagsStr}
-                  onChange={(e) => setNewTagsStr(e.target.value)}
-                  placeholder="RAG, Math, Transformers"
-                  className="w-full p-2.5 rounded-xl border border-zinc-200 bg-surface text-zinc-900 focus:outline-none focus:border-purple-600"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-full border border-zinc-200 font-bold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-purple-700 text-white font-bold hover:bg-purple-800 cursor-pointer shadow-sm"
-                >
-                  Save Note
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={<NotebookPen aria-hidden="true" />}
+          title={filtersActive ? "No notes match" : "No notes yet"}
+          description={filtersActive ? "Try another search or clear the filters." : "Capture formulas, insights and code while you learn."}
+          action={
+            filtersActive ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setQuery("")
+                  setCourse("all")
+                  setTag(null)
+                }}
+              >
+                Clear filters
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => openEditor("new")}>
+                Write your first note
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <motion.div layout className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {visible.map((n) => (
+              <motion.article
+                key={n.id}
+                layout
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95, transition: transition.fast }}
+                transition={transition.base}
+                className={cn(
+                  "group flex flex-col gap-3 rounded-lg border bg-surface p-5 shadow-[var(--elev-xs)] transition-[border-color,box-shadow] duration-200 hover:shadow-[var(--elev-md)]",
+                  n.pinned ? "border-primary-border" : "border-border hover:border-border-strong/60",
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Badge tone="neutral" className="max-w-full">
+                      <span className="truncate">{n.course}</span>
+                    </Badge>
+                    <h3 className="mt-2 text-[15px] font-semibold leading-6 text-foreground">{n.title}</h3>
+                  </div>
+                  <div className="-mr-2 -mt-1 flex shrink-0 items-center opacity-100 transition-opacity duration-150 focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    <Tooltip content={n.pinned ? "Unpin" : "Pin to top"}>
+                      <Button variant="ghost" size="icon-sm" aria-label={n.pinned ? "Unpin note" : "Pin note"} aria-pressed={!!n.pinned} onClick={() => togglePin(n.id)}>
+                        {n.pinned ? <PinOff aria-hidden="true" /> : <Pin aria-hidden="true" />}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="Edit">
+                      <Button variant="ghost" size="icon-sm" aria-label="Edit note" onClick={() => openEditor(n)}>
+                        <Pencil aria-hidden="true" />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="Delete">
+                      <Button variant="ghost" size="icon-sm" aria-label="Delete note" onClick={() => remove(n)} className="hover:text-danger">
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                </div>
+                {n.content && <p className="text-sm leading-6 text-muted-foreground">{n.content}</p>}
+                {n.snippet && (
+                  <div className="relative overflow-hidden rounded-md border border-border bg-ink-950">
+                    <div className="flex items-center justify-between border-b border-white/10 px-3 py-1.5">
+                      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/80">
+                        <Code2 className="h-3 w-3" aria-hidden="true" /> python
+                      </span>
+                      <CopyButton text={n.snippet} size="icon-sm" className="h-6 w-6 text-white/80 hover:bg-white/10 hover:text-white" onCopied={() => onToast("Snippet copied")} />
+                    </div>
+                    <pre className="overflow-x-auto px-3 py-2.5 font-mono text-[12px] leading-5 text-white/90">
+                      <code>{n.snippet}</code>
+                    </pre>
+                  </div>
+                )}
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex flex-wrap gap-1">
+                    {n.tags.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTag(t)}
+                        className="rounded-full px-1.5 py-0.5 text-caption font-medium text-primary-text transition-colors hover:bg-primary-soft"
+                      >
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="flex items-center gap-1 text-caption text-subtle-foreground">
+                    {n.pinned && <Pin className="h-3 w-3 text-primary-text" aria-label="Pinned" />}
+                    {n.lastModified}
+                  </span>
+                </div>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
+
+      <AnimatePresence>
+        {trash && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: 16, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 16, x: "-50%", transition: transition.fast }}
+            transition={spring.soft}
+            className="fixed bottom-6 left-1/2 z-40 flex items-center gap-3 rounded-lg border border-border bg-surface-3 py-2 pl-4 pr-2 text-sm text-foreground shadow-[var(--elev-lg)]"
+          >
+            <span>
+              Deleted <span className="font-medium">“{trash.note.title.length > 32 ? `${trash.note.title.slice(0, 32)}…` : trash.note.title}”</span>
+            </span>
+            <Button size="sm" variant="secondary" leftIcon={<Undo2 aria-hidden="true" />} onClick={undo}>
+              Undo
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <form
+            onSubmit={save}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                e.preventDefault()
+                save()
+              }
+            }}
+            className="grid gap-4"
+            noValidate
+          >
+            <DialogHeader>
+              <DialogTitle>{editing === "new" ? "New note" : "Edit note"}</DialogTitle>
+              <DialogDescription>Ctrl + S saves. Notes are stored on this device.</DialogDescription>
+            </DialogHeader>
+            <Field label="Title" required error={titleError}>
+              <Input
+                autoFocus
+                value={form.title}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, title: e.target.value }))
+                  setTitleError(null)
+                }}
+                placeholder="e.g. Attention as soft dictionary lookup"
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Course">
+                <Select value={form.course} onValueChange={(v) => setForm((f) => ({ ...f, course: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Tags" hint="Separate with commas">
+                <Input value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} placeholder="RAG, Embeddings" />
+              </Field>
+            </div>
+            <Field label="Note">
+              <Textarea value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} placeholder="What did you learn?" className="min-h-[110px]" />
+            </Field>
+            <Field label="Code snippet" hint="Optional">
+              <Textarea
+                value={form.snippet}
+                onChange={(e) => setForm((f) => ({ ...f, snippet: e.target.value }))}
+                placeholder="import numpy as np"
+                spellCheck={false}
+                className="min-h-[96px] font-mono text-[13px]"
+              />
+            </Field>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+                Cancel
+              </Button>
+              <Button type="submit">{editing === "new" ? "Create note" : "Save changes"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
