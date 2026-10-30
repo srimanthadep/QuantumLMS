@@ -15,7 +15,7 @@ const SchedulePage = lazy(() => import("./SchedulePage"))
 const AssessmentsPage = lazy(() => import("./AssessmentsPage"))
 const GradesPage = lazy(() => import("./GradesPage"))
 const CommunityPage = lazy(() => import("./CommunityPage"))
-const CareerHubPage = lazy(() => import("./CareerHubPage").then((m) => ({ default: m.CareerHubPage })))
+const CareerHubPage = lazy(() => import("./CareerHubPage"))
 const StudentSettingsPage = lazy(() => import("./StudentSettingsPage").then((m) => ({ default: m.StudentSettingsPage })))
 const SupportHelpPage = lazy(() => import("./SupportHelpPage").then((m) => ({ default: m.SupportHelpPage })))
 const MyNotesPage = lazy(() => import("./MyNotesPage"))
@@ -427,7 +427,7 @@ export default function StudentPortal({
               )}
 
               {(activeTab === "Career Hub" || activeTab === "Mock Interview" || activeTab === "Resume Building" || activeTab === "Mentor Details") && (
-                <CareerHubPage
+                <CareerHubPage key={activeTab}
                   onToast={onToast}
                   onNavigate={navigateTo}
                   onOpenAiModal={onOpenAiModal}
