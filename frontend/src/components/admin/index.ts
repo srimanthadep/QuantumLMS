@@ -7,4 +7,3 @@ export {
   SchoolAnnouncementModal,
   AuditDetailModal,
 } from "../AdminModals"
-export { default as AIMonitoringSection } from "../AIMonitoringSection"

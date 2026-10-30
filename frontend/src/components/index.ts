@@ -2,10 +2,10 @@
  * Quantum LMS - Role-Segregated Components Architecture
  *
  * Professional component hierarchy:
- * - /teacher - Teacher & Faculty UI (Sidebar, Attendance, Assignments, Studio suggestions)
- * - /student - Student UI (StudentSidebar, learning widgets)
- * - /admin   - Institutional Admin UI (AdminSidebar, AdminModals, AI Monitoring)
- * - /shared  - Cross-role components (Modals, MetricCard, Drawers)
+ * - /teacher - Teacher portal building blocks (live class hero, student drawer, grading sheet, dialogs)
+ * - /student - Student portal building blocks (course card, quiz runner, dialogs)
+ * - /admin   - Institutional Admin UI (AdminModals)
+ * - /shared  - Cross-role components (CourseCover, Student360Drawer, MetricCard)
  * - /ui      - Atomic design system components (buttons, badges, cards, dialogs, tabs)
  * - /shell   - AppShell (sidebar, top bar, mobile nav, command palette, Clover) shared by every portal
  * - /motion  - Motion primitives (PageTransition, Stagger, Reveal, AnimatedNumber, Pressable)
