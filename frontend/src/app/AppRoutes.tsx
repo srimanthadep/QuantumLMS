@@ -69,14 +69,7 @@ function StudentRoute() {
   const p = usePortalProps()
   const ai = useAiAssistant()
   return (
-    <StudentPortal
-      onOpenAiModal={() => ai.open()}
-      onSwitchToTeacher={() => p.onSwitchRole("Teacher")}
-      onLogout={p.onLogout}
-      onToast={p.onToast}
-      hexColor={LEGACY_BG}
-      onChangeHexColor={noopHexChange}
-    />
+    <StudentPortal onOpenAiModal={() => ai.open()} onLogout={p.onLogout} onToast={p.onToast} />
   )
 }
 

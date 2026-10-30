@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from "react"
+import { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
+import PageTransition from "@/components/motion/PageTransition"
 import type {
   StudentNavPage,
   CourseItem,
@@ -16,8 +17,8 @@ const AssessmentsPage = lazy(() => import("./AssessmentsPage"))
 const GradesPage = lazy(() => import("./GradesPage"))
 const CommunityPage = lazy(() => import("./CommunityPage"))
 const CareerHubPage = lazy(() => import("./CareerHubPage"))
-const StudentSettingsPage = lazy(() => import("./StudentSettingsPage").then((m) => ({ default: m.StudentSettingsPage })))
-const SupportHelpPage = lazy(() => import("./SupportHelpPage").then((m) => ({ default: m.SupportHelpPage })))
+const StudentSettingsPage = lazy(() => import("./StudentSettingsPage"))
+const SupportHelpPage = lazy(() => import("./SupportHelpPage"))
 const MyNotesPage = lazy(() => import("./MyNotesPage"))
 import {
   initialStudentCourses,
@@ -96,12 +97,8 @@ function StudentPageFallback() {
 
 interface StudentPortalProps {
   onOpenAiModal: () => void
-  onSwitchToTeacher: () => void
   onLogout: () => void
   onToast: (msg: string) => void
-  hexColor: string
-  onChangeHexColor: (c: string) => void
-  isLightBg?: boolean
 }
 
 // Normalize any route or query string to a valid StudentNavPage
@@ -191,14 +188,7 @@ function parseInitialTab(): StudentNavPage {
   return "Dashboard"
 }
 
-export default function StudentPortal({
-  onOpenAiModal,
-  onSwitchToTeacher,
-  onLogout,
-  onToast,
-  hexColor,
-  onChangeHexColor,
-}: StudentPortalProps) {
+export default function StudentPortal({ onOpenAiModal, onLogout, onToast }: StudentPortalProps) {
   const [activeTab, setActiveTabState] = useState<StudentNavPage>(() =>
     parseInitialTab(),
   )
@@ -228,6 +218,7 @@ export default function StudentPortal({
       if (courseId) {
         setSelectedCourseId(courseId)
       }
+      document.getElementById("main")?.scrollTo({ top: 0 })
 
       if (typeof window !== "undefined") {
         try {
@@ -333,137 +324,103 @@ export default function StudentPortal({
     }
   }
 
-  return (
-    <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")}>
-      <div className="dashboard-content w-full min-w-0 flex flex-col" style={{ backgroundColor: hexColor }}>
-        {activeTab === "Dashboard" ? (
-          <StudentDashboardPage
+  const renderPage = () => {
+    switch (activeTab) {
+      case "My Courses":
+        return (
+          <MyCoursesPage
+            onNavigate={navigateTo}
+            onToast={onToast}
+            onSelectCourse={setSelectedCourseId}
+            onEnrollCourse={handleEnrollCourse}
+            courses={courses}
+            catalog={catalog}
+          />
+        )
+      case "Course Details":
+        return (
+          <CourseDetailsPage
+            selectedCourseId={selectedCourseId}
+            courses={[...courses, ...catalog]}
+            onSelectCourse={(id) => navigateTo("Course Details", id)}
+            onBackToCourses={() => navigateTo("My Courses")}
+            onNavigate={navigateTo}
+            onToast={onToast}
+            onOpenAiModal={onOpenAiModal}
+            onEnrollCourse={handleEnrollCourse}
+            assignments={assignments}
+            onSubmitAssignment={handleSubmitAssignment}
+            quizzes={quizzes}
+            onCompleteQuiz={handleCompleteQuiz}
+            quizAttempts={quizAttempts}
+          />
+        )
+      case "Schedule":
+      case "Timetable":
+      case "Attendance":
+      case "Events & Notices":
+      case "Announcements":
+        return (
+          <SchedulePage
+            onToast={onToast}
+            initialTab={
+              activeTab === "Attendance" ? "attendance" : activeTab === "Events & Notices" ? "events" : activeTab === "Announcements" ? "announcements" : "timetable"
+            }
+          />
+        )
+      case "Assessments":
+      case "Assignments":
+      case "Quizzes":
+        return (
+          <AssessmentsPage
+            assignments={assignments}
+            onSubmitAssignment={handleSubmitAssignment}
+            quizzes={quizzes}
+            onCompleteQuiz={handleCompleteQuiz}
+            quizAttempts={quizAttempts}
+            onToast={onToast}
+            initialTab={activeTab === "Quizzes" ? "quizzes" : "assignments"}
+          />
+        )
+      case "Grades & Certificates":
+      case "Grades":
+      case "Certificates":
+        return <GradesPage onToast={onToast} onNavigate={navigateTo} initialView={activeTab === "Certificates" ? "certificates" : "grades"} />
+      case "Community":
+      case "Communication":
+      case "Discussions":
+        return <CommunityPage onToast={onToast} />
+      case "Career Hub":
+      case "Mock Interview":
+      case "Resume Building":
+      case "Mentor Details":
+        return (
+          <CareerHubPage
+            onToast={onToast}
             onNavigate={navigateTo}
             onOpenAiModal={onOpenAiModal}
-            onSwitchToTeacher={onSwitchToTeacher}
-            onLogout={onLogout}
-            onToast={onToast}
-            hexColor={hexColor}
-            onChangeHexColor={onChangeHexColor}
-            courses={courses}
-            assignments={assignments}
-            quizzes={quizzes}
+            initialTab={activeTab === "Resume Building" ? "resume" : activeTab === "Mentor Details" ? "mentorship" : "interviews"}
           />
-        ) : (
-          <div className="flex flex-col w-full">
-            {/* Direct Page Router without proxy */}
-            <Suspense fallback={<StudentPageFallback />}>
-            <div className="flex-1 min-h-0">
-              {activeTab === "My Courses" && (
-                <MyCoursesPage
-                  onNavigate={navigateTo}
-                  onToast={onToast}
-                  onSelectCourse={setSelectedCourseId}
-                  onEnrollCourse={handleEnrollCourse}
-                  courses={courses}
-                  catalog={catalog}
-                />
-              )}
+        )
+      case "Settings":
+      case "Profile":
+        return <StudentSettingsPage onToast={onToast} onNavigate={navigateTo} onLogout={onLogout} initialTab="profile" />
+      case "Support & Help":
+      case "Support":
+      case "Help Center":
+        return <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} onNavigate={navigateTo} />
+      case "My Notes":
+        return <MyNotesPage onToast={onToast} />
+      default:
+        return <StudentDashboardPage onNavigate={navigateTo} onToast={onToast} courses={courses} assignments={assignments} quizzes={quizzes} />
+    }
+  }
 
-              {activeTab === "Course Details" && (
-                <CourseDetailsPage
-                  selectedCourseId={selectedCourseId}
-                  courses={[...courses, ...catalog]}
-                  onSelectCourse={setSelectedCourseId}
-                  onBackToCourses={() => navigateTo("My Courses")}
-                  onNavigate={navigateTo}
-                  onToast={onToast}
-                  onOpenAiModal={onOpenAiModal}
-                  onEnrollCourse={handleEnrollCourse}
-                  assignments={assignments}
-                  onSubmitAssignment={handleSubmitAssignment}
-                  quizzes={quizzes}
-                  onCompleteQuiz={handleCompleteQuiz}
-                  quizAttempts={quizAttempts}
-                />
-              )}
-
-              {(activeTab === "Schedule" ||
-                activeTab === "Timetable" ||
-                activeTab === "Attendance" ||
-                activeTab === "Events & Notices" ||
-                activeTab === "Announcements") && (
-                <SchedulePage
-                  key={activeTab}
-                  onToast={onToast}
-                  initialTab={
-                    activeTab === "Attendance"
-                      ? "attendance"
-                      : activeTab === "Events & Notices"
-                        ? "events"
-                        : activeTab === "Announcements"
-                          ? "announcements"
-                          : "timetable"
-                  }
-                />
-              )}
-
-              {(activeTab === "Assessments" || activeTab === "Assignments" || activeTab === "Quizzes") && (
-                <AssessmentsPage key={activeTab}
-                  assignments={assignments}
-                  onSubmitAssignment={handleSubmitAssignment}
-                  quizzes={quizzes}
-                  onCompleteQuiz={handleCompleteQuiz}
-                  quizAttempts={quizAttempts}
-                  onToast={onToast}
-                  initialTab={activeTab === "Quizzes" ? "quizzes" : "assignments"}
-                />
-              )}
-
-              {(activeTab === "Grades & Certificates" || activeTab === "Grades" || activeTab === "Certificates") && (
-                <GradesPage key={activeTab} onNavigate={navigateTo}
-                  onToast={onToast}
-                  initialView={activeTab === "Certificates" ? "certificates" : "grades"}
-                />
-              )}
-
-              {(activeTab === "Community" || activeTab === "Communication" || activeTab === "Discussions") && (
-                <CommunityPage onToast={onToast} />
-              )}
-
-              {(activeTab === "Career Hub" || activeTab === "Mock Interview" || activeTab === "Resume Building" || activeTab === "Mentor Details") && (
-                <CareerHubPage key={activeTab}
-                  onToast={onToast}
-                  onNavigate={navigateTo}
-                  onOpenAiModal={onOpenAiModal}
-                  initialTab={
-                    activeTab === "Resume Building"
-                      ? "resume"
-                      : activeTab === "Mentor Details"
-                      ? "mentorship"
-                      : "interviews"
-                  }
-                />
-              )}
-
-              {(activeTab === "Settings" || activeTab === "Profile") && (
-                <StudentSettingsPage
-                  onToast={onToast}
-                  onNavigate={navigateTo}
-                  onLogout={onLogout}
-                  hexColor={hexColor}
-                  onChangeHexColor={onChangeHexColor}
-                  initialTab={activeTab === "Profile" ? "profile" : "appearance"}
-                />
-              )}
-
-              {(activeTab === "Support & Help" || activeTab === "Support" || activeTab === "Help Center") && (
-                <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} onNavigate={navigateTo} />
-              )}
-
-              {activeTab === "My Notes" && (
-                <MyNotesPage onToast={onToast} />
-              )}
-            </div>
-            </Suspense>
-          </div>
-        )}
-      </div>
+  return (
+    <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")}>
+      <PageTransition transitionKey={activeTab === "Course Details" ? `course-${selectedCourseId}` : activeTab} className="w-full">
+        <Suspense fallback={<StudentPageFallback />}>{renderPage()}</Suspense>
+      </PageTransition>
     </AppShell>
   )
 }

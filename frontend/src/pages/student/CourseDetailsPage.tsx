@@ -37,7 +37,6 @@ import {
   CardTitle,
   EmptyState,
   PageHeader,
-  Progress,
   Select,
   SelectContent,
   SelectItem,

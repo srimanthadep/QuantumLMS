@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CalendarCheck, CalendarPlus, Clock, Mail, MapPin, Phone, Send, Video } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { spring, transition } from "@/lib/motion"
+import { spring } from "@/lib/motion"
 import {
   Avatar,
   Badge,

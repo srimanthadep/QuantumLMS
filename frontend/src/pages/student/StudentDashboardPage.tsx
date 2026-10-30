@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import {
   ArrowRight,
   Award,
@@ -9,11 +9,9 @@ import {
   Calendar,
   ClipboardList,
   Clock,
-  Download,
   FileText,
   Play,
   Radio,
-  Share2,
   Sparkles,
   Star,
   TrendingUp,
@@ -31,15 +29,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   EmptyState,
   PageHeader,
-  Progress,
   SegmentedControl,
   StatCard,
 } from "@/components/ui"
@@ -48,16 +39,15 @@ import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import Reveal from "@/components/motion/Reveal"
 import CourseCover from "@/components/shared/CourseCover"
 import type { StudentNavPage, CourseItem, AssignmentData, QuizData } from "./studentTypes"
-import { initialStudentCourses } from "./studentMockData"
+import CourseCard from "@/components/student/CourseCard"
+import CertificateDialog from "@/components/student/CertificateDialog"
+import { initialCertificatesList, initialStudentCourses } from "./studentMockData"
+
+const CERTIFICATE = initialCertificatesList.find((c) => c.status === "Earned") ?? initialCertificatesList[0]
 
 interface StudentDashboardProps {
   onNavigate: (page: StudentNavPage, courseId?: string) => void
-  onOpenAiModal: () => void
-  onSwitchToTeacher: () => void
-  onLogout?: () => void
   onToast: (msg: string) => void
-  hexColor: string
-  onChangeHexColor: (c: string) => void
   courses?: CourseItem[]
   assignments?: AssignmentData[]
   quizzes?: QuizData[]
@@ -78,9 +68,6 @@ function tileKeyDown(onClick: () => void) {
 
 const INTERACTIVE_TILE =
   "group cursor-pointer overflow-hidden rounded-lg border border-border bg-surface transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)] active:translate-y-0"
-
-const COVER_BADGE =
-  "absolute left-3 top-3 z-10 rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm"
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -202,7 +189,7 @@ export default function StudentDashboardPage({
 
   const [courseFilter, setCourseFilter] = useState<CourseFilter>("All")
   const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isCertModalOpen, setIsCertModalOpen] = useState(false)
+  const [certOpen, setCertOpen] = useState(false)
   const [chartTimeframe, setChartTimeframe] = useState<Timeframe>("This Week")
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({})
 
@@ -230,34 +217,6 @@ export default function StudentDashboardPage({
     if (next) onToast(`Completed task: "${task.title}"!`)
   }
 
-  const downloadCertificate = () => {
-    const certText =
-      "===========================================================\n" +
-      "       QUANTUM SCHOOL OF AI - CERTIFICATE OF DISTINCTION  \n" +
-      "===========================================================\n" +
-      "Recipient: Srimanth (QS-2024-8821)\n" +
-      "Course: Python for AI (PY-201)\n" +
-      "Grade: A+ (98.4%) · Dean's Honor List\n" +
-      "Credential ID: QAI-88392-PY\n" +
-      "Issue Date: October 18, 2026\n" +
-      "Blockchain Verification Hash: 0x98A1B2C3D4E5F67890ABCDEF\n" +
-      "Issuer: Quantum School of AI Academic Registry\n"
-    const blob = new Blob([certText], { type: "text/plain;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "Quantum_Certificate_Python_for_AI.txt"
-    a.click()
-    URL.revokeObjectURL(url)
-    setIsCertModalOpen(false)
-    onToast("Certificate downloaded successfully! 🎓")
-  }
-
-  const shareCertificate = () => {
-    navigator.clipboard?.writeText?.("https://verify.quantumschool.ai/cert/QAI-88392-PY")
-    setIsCertModalOpen(false)
-    onToast("Credential verification link copied to clipboard! 🔗")
-  }
 
   return (
     <div className="flex w-full min-w-0 flex-col">
@@ -334,11 +293,11 @@ export default function StudentDashboardPage({
                   Continue learning
                 </span>
                 <h2 className="mt-3 text-h2 text-white">Generative AI Masterclass</h2>
-                <p className="mt-1 text-sm font-medium text-white/85">Module 4 · RAG Applications</p>
-                <p className="mt-0.5 text-caption text-white/70">Lesson 3 of 8 · 18 min left</p>
+                <p className="mt-1 text-sm font-medium text-white">Module 4 · RAG Applications</p>
+                <p className="mt-0.5 text-caption text-white">Lesson 3 of 8 · 18 min left</p>
 
                 <div className="mt-5 max-w-sm">
-                  <div className="flex items-center justify-between text-caption font-medium text-white/80">
+                  <div className="flex items-center justify-between text-caption font-medium text-white">
                     <span>Course progress</span>
                     <span className="tabular-nums">64%</span>
                   </div>
@@ -425,61 +384,13 @@ export default function StudentDashboardPage({
                       }
                     />
                   ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      {filteredCourses.map((course) => {
-                        const done = course.status === "Completed"
-                        const open = () => {
-                          onToast(`Opening "${course.title}"...`)
-                          onNavigate("Course Details", course.id)
-                        }
-                        return (
-                          <div
-                            key={course.id}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Resume ${course.title}, ${course.progress}% complete`}
-                            onClick={open}
-                            onKeyDown={tileKeyDown(open)}
-                            className={INTERACTIVE_TILE}
-                          >
-                            <CourseCover title={course.title} category={course.category} image={course.image} showTitle={false}>
-                              <span className={COVER_BADGE}>{course.status}</span>
-                            </CourseCover>
-                            <div className="flex flex-col gap-2.5 p-4">
-                              <div className="min-w-0">
-                                <h3 className="truncate text-sm font-semibold text-foreground" title={course.title}>
-                                  {course.title}
-                                </h3>
-                                <p className="truncate text-caption text-muted-foreground">
-                                  {course.instructor} · {course.completedModules}/{course.totalModules} modules
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Progress
-                                  value={course.progress}
-                                  tone={done ? "success" : "primary"}
-                                  size="xs"
-                                  className="flex-1"
-                                  label={`${course.title} progress`}
-                                />
-                                <span className="text-caption font-medium tabular-nums text-muted-foreground">{course.progress}%</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
-                                <p className="truncate text-caption text-subtle-foreground" title={course.lastWatched}>
-                                  {course.lastWatched}
-                                </p>
-                                <span
-                                  aria-hidden="true"
-                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-200 group-hover:scale-110"
-                                >
-                                  <Play className="ml-0.5 h-3 w-3 fill-current" />
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {filteredCourses.map((course) => (
+                          <CourseCard key={course.id} course={course} onOpen={() => onNavigate("Course Details", course.id)} />
+                        ))}
+                      </AnimatePresence>
+                    </motion.div>
                   )}
                 </CardContent>
               </Card>
@@ -681,10 +592,10 @@ export default function StudentDashboardPage({
                         <Award className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">Python for AI</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{CERTIFICATE.title}</p>
                         <p className="truncate text-caption text-muted-foreground">Verified credential · With distinction</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setIsCertModalOpen(true)}>
+                      <Button variant="outline" size="sm" onClick={() => setCertOpen(true)}>
                         View
                       </Button>
                     </div>
@@ -738,37 +649,7 @@ export default function StudentDashboardPage({
         </StaggerItem>
       </Stagger>
 
-      {/* Certificate dialog */}
-      <Dialog open={isCertModalOpen} onOpenChange={setIsCertModalOpen}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Official Certificate</DialogTitle>
-            <DialogDescription>Quantum School of AI · Verified Credential</DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-lg border border-dashed border-primary-border bg-primary-soft p-6 text-center">
-            <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface text-primary-text ring-1 ring-inset ring-primary-border">
-              <Award className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-primary-text">Certificate of Completion</p>
-            <h3 className="mt-1 text-h3 text-foreground">Python for AI</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              This credential certifies that <strong className="font-semibold text-foreground">Srimanth</strong> has successfully mastered
-              Python for Data Analysis, NumPy, Pandas, and Neural Architectures.
-            </p>
-            <p className="mt-3 text-caption text-subtle-foreground">Issued October 18, 2026 · Credential ID QAI-88392-PY</p>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" leftIcon={<Download aria-hidden="true" />} onClick={downloadCertificate}>
-              Download
-            </Button>
-            <Button variant="secondary" leftIcon={<Share2 aria-hidden="true" />} onClick={shareCertificate}>
-              Copy verification link
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CertificateDialog certificate={certOpen ? CERTIFICATE : null} recipient={user.name} onClose={() => setCertOpen(false)} onToast={onToast} />
     </div>
   )
 }
