@@ -1,7 +1,10 @@
 /**
  * Teacher Components Barrel
- * Components dedicated to Teacher and Faculty workflows.
+ * Building blocks shared by the teacher portal pages.
  */
-export { default as AttendanceSection } from "../AttendanceSection"
-export { ModuleAssignmentSection } from "../ModuleAssignmentSection"
-export { LessonContentInlineViewer } from "../LessonContentInlineViewer"
+export { default as IconTile } from "./IconTile"
+export { default as LiveSessionHero } from "./LiveSessionHero"
+export { default as StudentDrawer } from "./StudentDrawer"
+export { default as GradingSheet } from "./GradingSheet"
+export { default as ScheduleSessionDialog } from "./ScheduleSessionDialog"
+export { default as SendReportDialog } from "./SendReportDialog"
