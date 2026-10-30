@@ -25,4 +25,4 @@ export * as Charts from "./charts"
 export { Icon } from "./Icon"
 export { StatCard as MetricCard, FolderTabBackground } from "./ui/StatCard"
 export { AppShell } from "./shell"
-export { StudentHeader } from "./StudentHeader"
+

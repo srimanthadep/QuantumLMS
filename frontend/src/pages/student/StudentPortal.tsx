@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
-import { StudentHeader } from "../../components/StudentHeader"
 import type {
   StudentNavPage,
   CourseItem,
@@ -223,8 +222,6 @@ export default function StudentPortal({
     }
     return initialQuizAttempts
   })
-  const [headerSearch, setHeaderSearch] = useState("")
-
   // Navigate helper that updates URL history cleanly
   const navigateTo = useCallback(
     (page: StudentNavPage, courseId?: string) => {
@@ -337,47 +334,6 @@ export default function StudentPortal({
     }
   }
 
-  const getSubHeader = () => {
-    switch (activeTab) {
-      case "My Courses":
-        return "Continue ongoing coursework, review syllabus progress, and explore catalogs."
-      case "Course Details":
-        return "Full module curriculum, video lectures, downloadable lab code, and course Q&A."
-      case "Schedule":
-      case "Timetable":
-        return "Daily and weekly lecture periods, campus events, and academic bulletins."
-      case "Attendance":
-        return "Semester regularity percentage, subject-wise attendance logs, and leave requests."
-      case "Assessments":
-      case "Assignments":
-      case "Quizzes":
-        return "Upload GitHub code solutions, timed quiz evaluations, and grading rubrics."
-      case "Grades & Certificates":
-      case "Grades":
-      case "Certificates":
-        return "Cumulative GPA performance, official semester gradebooks, and verifiable credentials."
-      case "Community":
-      case "Communication":
-      case "Discussions":
-        return "Squad study channels, course discussions, technical Q&A, and speech verbal lab."
-      case "Career Hub":
-      case "Mock Interview":
-      case "Resume Building":
-      case "Mentor Details":
-        return "AI-driven interview practice, ATS-compliant resume builder, and 1:1 faculty meetings."
-      case "My Notes":
-        return "Lecture annotations, mathematical formulas, and executable code snippets."
-      case "Profile":
-      case "Settings":
-        return "Student identity credentials, theme preferences, and security passwords."
-      case "Support & Help":
-      case "Support":
-        return "Help desk ticketing, live faculty support, and frequently asked questions."
-      default:
-        return "Academic progress, active classes, upcoming tasks, and quick actions."
-    }
-  }
-
   return (
     <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")}>
       <div className="dashboard-content w-full min-w-0 flex flex-col" style={{ backgroundColor: hexColor }}>
@@ -396,33 +352,9 @@ export default function StudentPortal({
           />
         ) : (
           <div className="flex flex-col w-full">
-            {/* Standard Header Banner */}
-            <StudentHeader
-              title={
-                activeTab === "Schedule"
-                  ? "Schedule & Timetable"
-                  : activeTab === "Assessments"
-                  ? "Assessments & Quizzes"
-                  : activeTab === "Grades & Certificates"
-                  ? "Grades & Certificates"
-                  : activeTab === "Career Hub"
-                  ? "Career Hub"
-                  : activeTab
-              }
-              subtitle={getSubHeader()}
-              onOpenAiModal={onOpenAiModal}
-              onSwitchToTeacher={onSwitchToTeacher}
-              onLogout={onLogout}
-              hexColor={hexColor}
-              onChangeHexColor={onChangeHexColor}
-              onNavigate={navigateTo}
-              searchQuery={headerSearch}
-              onSearchChange={setHeaderSearch}
-            />
-
             {/* Direct Page Router without proxy */}
             <Suspense fallback={<StudentPageFallback />}>
-            <div className="mt-4 flex-1 min-h-0">
+            <div className="flex-1 min-h-0">
               {activeTab === "My Courses" && (
                 <MyCoursesPage
                   onNavigate={navigateTo}
