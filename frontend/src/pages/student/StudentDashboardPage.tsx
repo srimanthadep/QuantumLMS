@@ -1,14 +1,53 @@
-import { useState, useMemo } from "react"
-import { Icon } from "../../components/Icon"
-import { StudentHeader } from "../../components/StudentHeader"
-import { StatCard } from "../../components/ui/StatCard"
-import { StudentDropdown } from "../../components/StudentDropdown"
-import type {
-  StudentNavPage,
-  CourseItem,
-  AssignmentData,
-  QuizData,
-} from "./studentTypes"
+import { useMemo, useState, type ReactNode } from "react"
+import { motion } from "framer-motion"
+import {
+  ArrowRight,
+  Award,
+  BadgeCheck,
+  BookOpen,
+  Bookmark,
+  Calendar,
+  ClipboardList,
+  Clock,
+  Download,
+  FileText,
+  Play,
+  Radio,
+  Share2,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Users,
+  Video,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { ease } from "@/lib/motion"
+import { useSession } from "@/app/session"
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  PageHeader,
+  Progress,
+  SegmentedControl,
+  StatCard,
+} from "@/components/ui"
+import BarChart, { type BarDatum } from "@/components/charts/BarChart"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import Reveal from "@/components/motion/Reveal"
+import CourseCover from "@/components/shared/CourseCover"
+import type { StudentNavPage, CourseItem, AssignmentData, QuizData } from "./studentTypes"
 import { initialStudentCourses } from "./studentMockData"
 
 interface StudentDashboardProps {
@@ -24,863 +63,712 @@ interface StudentDashboardProps {
   quizzes?: QuizData[]
 }
 
+type CourseFilter = "All" | "In Progress" | "Completed"
+type Timeframe = "This Week" | "Last Week" | "This Month"
+
+/** Enter/Space activation for clickable tiles (same contract as StatCard). */
+function tileKeyDown(onClick: () => void) {
+  return (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onClick()
+    }
+  }
+}
+
+const INTERACTIVE_TILE =
+  "group cursor-pointer overflow-hidden rounded-lg border border-border bg-surface transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)] active:translate-y-0"
+
+const COVER_BADGE =
+  "absolute left-3 top-3 z-10 rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm"
+
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning"
+  if (h < 17) return "Good afternoon"
+  return "Good evening"
+}
+
+const SCHEDULE = [
+  { month: "Oct", day: "21", title: "Building AI Agents", instructor: "Srimanth", time: "06:00 PM - 07:30 PM", live: true },
+  { month: "Oct", day: "22", title: "RAG Systems Lab", instructor: "Srimanth", time: "10:00 AM - 11:30 AM", live: false },
+  { month: "Oct", day: "23", title: "Neural Networks Lab", instructor: "Srimanth", time: "02:00 PM - 03:30 PM", live: false },
+]
+
+interface Task {
+  id: string
+  title: string
+  meta: string
+  icon: ReactNode
+  tile: string
+  badge: string
+  badgeTone: "warning" | "info" | "neutral"
+  toggleable: boolean
+}
+
+const TASKS: Task[] = [
+  {
+    id: "t1",
+    title: "Submit Project 1: RAG Pipeline",
+    meta: "Generative AI Masterclass",
+    icon: <FileText className="h-4 w-4" aria-hidden="true" />,
+    tile: "bg-primary-soft text-primary-text ring-primary-border",
+    badge: "Due Oct 22",
+    badgeTone: "warning",
+    toggleable: true,
+  },
+  {
+    id: "t2",
+    title: "Quiz 4: Vector Embeddings",
+    meta: "Module 4 · 10 MCQs",
+    icon: <Clock className="h-4 w-4" aria-hidden="true" />,
+    tile: "bg-warning-soft text-warning ring-warning/20",
+    badge: "Due Oct 24",
+    badgeTone: "warning",
+    toggleable: false,
+  },
+  {
+    id: "t3",
+    title: "Peer Review: Agent Architectures",
+    meta: "AI Agents Bootcamp",
+    icon: <Users className="h-4 w-4" aria-hidden="true" />,
+    tile: "bg-info-soft text-info ring-info/20",
+    badge: "Pending",
+    badgeTone: "info",
+    toggleable: true,
+  },
+  {
+    id: "t4",
+    title: "Complete Lesson 5",
+    meta: "Machine Learning Foundations",
+    icon: <Play className="h-4 w-4" aria-hidden="true" />,
+    tile: "bg-surface-2 text-muted-foreground ring-border",
+    badge: "Not started",
+    badgeTone: "neutral",
+    toggleable: true,
+  },
+]
+
+const RECOMMENDED = [
+  { id: "rec-1", title: "Prompt Engineering Deep Dive", category: "Prompt Engineering", image: "/assets/rec_prompt.jpg", rating: "4.8", reviews: "2.1k" },
+  { id: "rec-2", title: "AI Agents in Practice", category: "Agentic Systems", image: "/assets/student_hero_robot.jpg", rating: "4.9", reviews: "1.8k" },
+  { id: "rec-3", title: "Computer Vision with Python", category: "Computer Vision", image: "/assets/rec_cv.jpg", rating: "4.7", reviews: "1.2k" },
+]
+
+const CHART: Record<Timeframe, { data: BarDatum[]; stats: [string, string, string] }> = {
+  "This Week": {
+    data: [
+      { label: "Mon", value: 1.5 },
+      { label: "Tue", value: 2.6 },
+      { label: "Wed", value: 2.0 },
+      { label: "Thu", value: 3.4, highlight: true },
+      { label: "Fri", value: 1.0 },
+      { label: "Sat", value: 2.4 },
+      { label: "Sun", value: 1.6 },
+    ],
+    stats: ["14.5h", "12", "3"],
+  },
+  "Last Week": {
+    data: [
+      { label: "Mon", value: 2.2 },
+      { label: "Tue", value: 2.8 },
+      { label: "Wed", value: 2.4, highlight: true },
+      { label: "Thu", value: 1.8 },
+      { label: "Fri", value: 3.2 },
+      { label: "Sat", value: 1.2 },
+      { label: "Sun", value: 2.0 },
+    ],
+    stats: ["15.6h", "14", "4"],
+  },
+  "This Month": {
+    data: [
+      { label: "W1", value: 12 },
+      { label: "W2", value: 15 },
+      { label: "W3", value: 17, highlight: true },
+      { label: "W4", value: 13.6 },
+    ],
+    stats: ["57.6h", "48", "11"],
+  },
+}
+
 export default function StudentDashboardPage({
   onNavigate,
-  onOpenAiModal,
-  onSwitchToTeacher,
-  onLogout,
   onToast,
-  hexColor,
-  onChangeHexColor,
   courses = initialStudentCourses,
 }: StudentDashboardProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [courseFilter, setCourseFilter] =
-    useState<"All" | "In Progress" | "Completed">("All")
+  const { user } = useSession()
+  const firstName = user.name.split(" ")[0]
+  const todayLabel = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })
+
+  const [courseFilter, setCourseFilter] = useState<CourseFilter>("All")
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isCertModalOpen, setIsCertModalOpen] = useState(false)
-  const [chartTimeframe, setChartTimeframe] =
-    useState<"This Week" | "Last Week" | "This Month">("This Week")
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(
-    {},
-  )
+  const [chartTimeframe, setChartTimeframe] = useState<Timeframe>("This Week")
+  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({})
 
   const filteredCourses = useMemo(() => {
-    let list = courses
-    if (courseFilter === "In Progress")
-      list = courses.filter((c) => c.status === "In Progress")
-    else if (courseFilter === "Completed")
-      list = courses.filter((c) => c.status === "Completed")
-    if (!searchQuery.trim()) return list
-    const q = searchQuery.toLowerCase()
-    return list.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        c.category.toLowerCase().includes(q) ||
-        c.instructor.toLowerCase().includes(q),
-    )
-  }, [courses, courseFilter, searchQuery])
+    if (courseFilter === "All") return courses
+    return courses.filter((c) => c.status === courseFilter)
+  }, [courses, courseFilter])
 
-  // Recommended courses
-  const recommendedCourses = [
-    {
-      id: "rec-1",
-      title: "Prompt Engineering Deep Dive",
-      image: "/assets/rec_prompt.jpg",
-      rating: "4.8",
-      reviews: "2.1k",
-    },
-    {
-      id: "rec-2",
-      title: "AI Agents in Practice",
-      image: "/assets/student_hero_robot.jpg",
-      rating: "4.9",
-      reviews: "1.8k",
-    },
-    {
-      id: "rec-3",
-      title: "Computer Vision with Python",
-      image: "/assets/rec_cv.jpg",
-      rating: "4.7",
-      reviews: "1.2k",
-    },
-  ]
+  const filterOptions = useMemo(
+    () =>
+      (["All", "In Progress", "Completed"] as const).map((f) => ({
+        value: f as CourseFilter,
+        label: `${f} (${f === "All" ? courses.length : courses.filter((c) => c.status === f).length})`,
+      })),
+    [courses],
+  )
 
-  const toggleTask = (taskId: string, title: string) => {
-    const nextState = !completedTasks[taskId]
-    setCompletedTasks((prev) => ({ ...prev, [taskId]: nextState }))
-    if (nextState) {
-      onToast(`Completed task: "${title}"!`)
+  const activateTask = (task: Task) => {
+    if (!task.toggleable) {
+      onNavigate("Quizzes")
+      return
     }
+    const next = !completedTasks[task.id]
+    setCompletedTasks((prev) => ({ ...prev, [task.id]: next }))
+    if (next) onToast(`Completed task: "${task.title}"!`)
+  }
+
+  const downloadCertificate = () => {
+    const certText =
+      "===========================================================\n" +
+      "       QUANTUM SCHOOL OF AI - CERTIFICATE OF DISTINCTION  \n" +
+      "===========================================================\n" +
+      "Recipient: Srimanth (QS-2024-8821)\n" +
+      "Course: Python for AI (PY-201)\n" +
+      "Grade: A+ (98.4%) · Dean's Honor List\n" +
+      "Credential ID: QAI-88392-PY\n" +
+      "Issue Date: October 18, 2026\n" +
+      "Blockchain Verification Hash: 0x98A1B2C3D4E5F67890ABCDEF\n" +
+      "Issuer: Quantum School of AI Academic Registry\n"
+    const blob = new Blob([certText], { type: "text/plain;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "Quantum_Certificate_Python_for_AI.txt"
+    a.click()
+    URL.revokeObjectURL(url)
+    setIsCertModalOpen(false)
+    onToast("Certificate downloaded successfully! 🎓")
+  }
+
+  const shareCertificate = () => {
+    navigator.clipboard?.writeText?.("https://verify.quantumschool.ai/cert/QAI-88392-PY")
+    setIsCertModalOpen(false)
+    onToast("Credential verification link copied to clipboard! 🔗")
   }
 
   return (
-    <div className="student-dashboard-content w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border">
-      {/* 1. Dashboard Header - Shared, stationary, responsive */}
-      <StudentHeader
-        showGreeting={true}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search courses, lessons or topics..."
-        onSwitchToTeacher={onSwitchToTeacher}
-        hexColor={hexColor}
-        onChangeHexColor={onChangeHexColor}
-        onOpenAiModal={onOpenAiModal}
-        onNavigate={onNavigate}
-        onLogout={onLogout}
+    <div className="flex w-full min-w-0 flex-col">
+      <PageHeader
+        eyebrow={todayLabel}
+        title={`${greeting()}, ${firstName}`}
+        description="Track your ongoing courses, upcoming live classes, and pending milestones."
       />
 
-      {/* 2. Independently Scrollable Dashboard Body */}
-      <div className="student-scroll-viewport flex-1 min-h-0 w-full max-w-full overflow-y-auto pr-1 pb-12 box-border">
-        {/* Top Metric Cards (4) - Square Status Cards */}
-        <section className="metrics-grid" aria-label="Student Learning Metrics">
-          <StatCard
-            item={{
-              label: "Active Courses",
-              value: `${courses.length}`,
-              trend: "↗ +2 this term",
-              tone: "lavender",
-              icon: "book",
-            }}
-            onClick={() => onNavigate("My Courses")}
-          />
-          <StatCard
-            item={{
-              label: "Attendance Rate",
-              value: "96.2%",
-              trend: "↗ Top 5% rank",
-              tone: "lime",
-              icon: "check",
-            }}
-            onClick={() => onNavigate("Attendance")}
-          />
-          <StatCard
-            item={{
-              label: "Pending Tasks",
-              value: "3 Due",
-              trend: "2 labs, 1 quiz",
-              tone: "pink",
-              icon: "document",
-            }}
-            onClick={() => onNavigate("Assignments")}
-          />
-          <StatCard
-            item={{
-              label: "Current GPA",
-              value: "3.88 / 4.0",
-              trend: "↗ Dean's List",
-              tone: "yellow",
-              icon: "trend",
-            }}
-            onClick={() => onNavigate("Grades")}
-          />
-        </section>
+      <Stagger className="flex flex-col gap-4" stagger={0.06}>
+        {/* Learning metrics */}
+        <StaggerItem>
+          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Student learning metrics">
+            <StaggerItem>
+              <StatCard
+                title="Active Courses"
+                value={`${courses.length}`}
+                trend={{ value: "+2 this term", isPositive: true }}
+                tone="primary"
+                icon={BookOpen}
+                sparkline={[1, 2, 2, 3, 4]}
+                onClick={() => onNavigate("My Courses")}
+              />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard
+                title="Attendance Rate"
+                value="96.2%"
+                trend={{ value: "Top 5% rank", isPositive: true }}
+                tone="success"
+                icon={BadgeCheck}
+                sparkline={[93.5, 94.8, 95.2, 95.9, 96.2]}
+                onClick={() => onNavigate("Attendance")}
+              />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard
+                title="Pending Tasks"
+                value="3 Due"
+                trend="2 labs · 1 quiz"
+                tone="warning"
+                icon={ClipboardList}
+                onClick={() => onNavigate("Assignments")}
+              />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard
+                title="Current GPA"
+                value="3.88 / 4.0"
+                trend={{ value: "Dean's List", isPositive: true }}
+                tone="info"
+                icon={TrendingUp}
+                sparkline={[3.62, 3.7, 3.74, 3.81, 3.88]}
+                onClick={() => onNavigate("Grades")}
+              />
+            </StaggerItem>
+          </Stagger>
+        </StaggerItem>
 
-      {/* 3. Main Content Grid - Same 2-Column Responsive Split */}
-      <div className="content-grid">
-        {/* Left Column (Hero Continue Learning, My Courses, Recommendations) */}
-        <div className="left-column">
-          {/* Featured Hero: Continue Learning Banner (Teacher Maple Class Theme) */}
+        {/* Focal hero: continue learning */}
+        <StaggerItem>
           <section
-            className="student-hero-banner student-hero-lime"
-            aria-label="Continue Learning"
+            aria-label="Continue learning"
+            className="relative overflow-hidden rounded-xl shadow-[var(--glow-primary)]"
+            style={{ backgroundImage: "var(--gradient-primary)" }}
           >
-            <div className="student-hero-content">
-              <span className="student-hero-badge-black">
-                CONTINUE LEARNING
-              </span>
-              <h2 className="student-hero-title-dark">
-                Generative AI Masterclass
-              </h2>
-              <p className="student-hero-sub-dark">
-                Module 4 · RAG Applications
-              </p>
-              <div className="student-hero-meta-dark">
-                Lesson 3 of 8 · 18 min left
+            <div aria-hidden="true" className="pointer-events-none absolute -top-32 right-10 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/3 h-72 w-72 rounded-full bg-ink-950/25 blur-3xl" />
+
+            <div className="relative flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+              <div className="max-w-xl">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />
+                  Continue learning
+                </span>
+                <h2 className="mt-3 text-h2 text-white">Generative AI Masterclass</h2>
+                <p className="mt-1 text-sm font-medium text-white/85">Module 4 · RAG Applications</p>
+                <p className="mt-0.5 text-caption text-white/70">Lesson 3 of 8 · 18 min left</p>
+
+                <div className="mt-5 max-w-sm">
+                  <div className="flex items-center justify-between text-caption font-medium text-white/80">
+                    <span>Course progress</span>
+                    <span className="tabular-nums">64%</span>
+                  </div>
+                  <div
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={64}
+                    aria-label="Generative AI Masterclass progress"
+                    className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-black/25"
+                  >
+                    <motion.div
+                      className="h-full w-full origin-left rounded-full bg-white"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 0.64 }}
+                      transition={{ duration: 0.9, ease: ease.out, delay: 0.25 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToast("Opening Generative AI Masterclass curriculum...")
+                      onNavigate("Course Details", "c-1")
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-950 px-5 text-sm font-semibold text-white shadow-[var(--elev-sm)] transition-[transform,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-ink-800 hover:shadow-[var(--elev-md)] active:translate-y-0"
+                  >
+                    <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                    Continue learning
+                  </button>
+                  <Button
+                    variant="glass"
+                    size="icon"
+                    aria-label={isBookmarked ? "Remove bookmark" : "Bookmark module"}
+                    aria-pressed={isBookmarked}
+                    onClick={() => {
+                      setIsBookmarked(!isBookmarked)
+                      onToast(isBookmarked ? "Removed from bookmarks" : "Bookmarked module for later!")
+                    }}
+                  >
+                    <Bookmark className={isBookmarked ? "fill-current" : ""} aria-hidden="true" />
+                  </Button>
+                </div>
               </div>
 
-              <div className="student-hero-actions">
-                <button
-                  className="student-hero-btn-dark cursor-pointer"
-                  onClick={() => {
-                    onToast("Opening Generative AI Masterclass curriculum...")
-                    onNavigate("Course Details", "c-1")
-                  }}
-                >
-                  <Icon name="play" size={14} />
-                  <span>Continue Learning</span>
-                </button>
-                <button
-                  className={`student-hero-bookmark-dark cursor-pointer ${
-                    isBookmarked ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    setIsBookmarked(!isBookmarked)
-                    onToast(
-                      isBookmarked
-                        ? "Removed from bookmarks"
-                        : "Bookmarked module for later!",
-                    )
-                  }}
-                  aria-label="Bookmark module"
-                >
-                  <Icon name="bookmark" size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Seamless Blended Floating AI Robot Visual */}
-            <div className="student-hero-visual-seamless">
               <img
                 src="/assets/robot_transparent.png"
-                alt="AI Assistant 3D Visual"
-                className="student-hero-robot-blend"
+                alt=""
+                aria-hidden="true"
+                className="hidden w-52 shrink-0 select-none drop-shadow-[0_16px_32px_rgb(0_0_0/0.35)] lg:block xl:w-64"
               />
-              <div className="student-hero-progress-lime">
-                <span className="student-progress-label-lime">
-                  64% complete
-                </span>
-                <div className="student-progress-track-lime">
-                  <div
-                    className="student-progress-fill-lime"
-                    style={{ width: "64%" }}
-                  />
-                </div>
-              </div>
             </div>
           </section>
+        </StaggerItem>
 
-          {/* My Courses Card */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="My Courses"
-          >
-            <div className="card-header">
-              <h3 className="card-title">My Courses</h3>
-              <div className="student-filter-pills">
-                {(["All", "In Progress", "Completed"] as const).map(
-                  (filter) => {
-                    const count =
-                      filter === "All"
-                        ? courses.length
-                        : filter === "In Progress"
-                          ? courses.filter((c) => c.status === "In Progress")
-                              .length
-                          : courses.filter((c) => c.status === "Completed")
-                              .length
-                    const isActive = courseFilter === filter
-                    return (
-                      <button
-                        key={filter}
-                        className={`student-filter-pill ${
-                          isActive ? "active" : ""
-                        }`}
-                        onClick={() => setCourseFilter(filter)}
-                      >
-                        {filter} ({count})
-                      </button>
-                    )
-                  },
-                )}
-                <button
-                  className="view-all ml-1 cursor-pointer"
-                  onClick={() => onNavigate("My Courses")}
-                >
-                  View all
-                </button>
-              </div>
-            </div>
-
-            {/* Courses Grid */}
-            <div className="student-courses-grid">
-              {filteredCourses.map((course) => (
-                <div key={course.id} className="student-course-card">
-                  <div className="student-course-thumb-box">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="student-course-thumb"
-                    />
-                    <div className="student-course-status-pill">
-                      {course.status}
-                    </div>
+        {/* Main grid */}
+        <StaggerItem>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+            {/* Left column */}
+            <div className="flex min-w-0 flex-col gap-4">
+              <Card>
+                <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                  <CardTitle>My Courses</CardTitle>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SegmentedControl size="sm" aria-label="Filter courses" options={filterOptions} value={courseFilter} onChange={setCourseFilter} />
+                    <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("My Courses")}>
+                      View all
+                    </Button>
                   </div>
-
-                  <div className="student-course-info">
-                    <h4 className="student-course-title" title={course.title}>
-                      {course.title}
-                    </h4>
-
-                    {/* Progress Bar & Percentage */}
-                    <div className="student-course-bar-row">
-                      <div className="student-course-track">
-                        <div
-                          className="student-course-fill"
-                          style={{
-                            width: `${course.progress}%`,
-                            backgroundColor: course.progressColor,
-                          }}
-                        />
-                      </div>
-                      <span className="student-course-pct">
-                        {course.progress}%
-                      </span>
-                    </div>
-
-                    {/* Last Watched & Action */}
-                    <div className="student-course-bottom">
-                      <div className="student-course-watched">
-                        <span className="student-watched-label">
-                          Last watched
-                        </span>
-                        <span
-                          className="student-watched-topic"
-                          title={course.lastWatched}
-                        >
-                          {course.lastWatched}
-                        </span>
-                      </div>
-                      <button
-                        className="student-play-circle-btn cursor-pointer"
-                        onClick={() => {
+                </CardHeader>
+                <CardContent>
+                  {filteredCourses.length === 0 ? (
+                    <EmptyState
+                      size="sm"
+                      icon={<BookOpen aria-hidden="true" />}
+                      title="No courses here yet"
+                      description="Courses matching this filter will appear here."
+                      action={
+                        <Button variant="secondary" size="sm" onClick={() => setCourseFilter("All")}>
+                          Show all courses
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {filteredCourses.map((course) => {
+                        const done = course.status === "Completed"
+                        const open = () => {
                           onToast(`Opening "${course.title}"...`)
                           onNavigate("Course Details", course.id)
-                        }}
-                        title={`Resume ${course.title}`}
-                      >
-                        <Icon name="play" size={11} />
-                      </button>
+                        }
+                        return (
+                          <div
+                            key={course.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Resume ${course.title}, ${course.progress}% complete`}
+                            onClick={open}
+                            onKeyDown={tileKeyDown(open)}
+                            className={INTERACTIVE_TILE}
+                          >
+                            <CourseCover title={course.title} category={course.category} image={course.image} showTitle={false}>
+                              <span className={COVER_BADGE}>{course.status}</span>
+                            </CourseCover>
+                            <div className="flex flex-col gap-2.5 p-4">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-sm font-semibold text-foreground" title={course.title}>
+                                  {course.title}
+                                </h3>
+                                <p className="truncate text-caption text-muted-foreground">
+                                  {course.instructor} · {course.completedModules}/{course.totalModules} modules
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Progress
+                                  value={course.progress}
+                                  tone={done ? "success" : "primary"}
+                                  size="xs"
+                                  className="flex-1"
+                                  label={`${course.title} progress`}
+                                />
+                                <span className="text-caption font-medium tabular-nums text-muted-foreground">{course.progress}%</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
+                                <p className="truncate text-caption text-subtle-foreground" title={course.lastWatched}>
+                                  {course.lastWatched}
+                                </p>
+                                <span
+                                  aria-hidden="true"
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-200 group-hover:scale-110"
+                                >
+                                  <Play className="ml-0.5 h-3 w-3 fill-current" />
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Recommended for You Card */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="Recommended for You"
-          >
-            <div className="card-header">
-              <h3 className="card-title">Recommended Programs</h3>
-              <button
-                className="view-all cursor-pointer"
-                onClick={() => onNavigate("My Courses")}
-              >
-                View all
-              </button>
+              <Reveal>
+                <Card>
+                  <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                    <CardTitle>Recommended Programs</CardTitle>
+                    <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("My Courses")}>
+                      View all
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {RECOMMENDED.map((item) => {
+                        const open = () => onNavigate("My Courses")
+                        return (
+                          <div
+                            key={item.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Preview ${item.title}`}
+                            onClick={open}
+                            onKeyDown={tileKeyDown(open)}
+                            className={INTERACTIVE_TILE}
+                          >
+                            <CourseCover title={item.title} category={item.category} image={item.image} showTitle={false} />
+                            <div className="flex items-center justify-between gap-2 p-4">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-sm font-semibold text-foreground" title={item.title}>
+                                  {item.title}
+                                </h3>
+                                <p className="mt-0.5 flex items-center gap-1 text-caption text-muted-foreground">
+                                  <Star className="h-3 w-3 fill-warning text-warning" aria-hidden="true" />
+                                  <span className="font-medium tabular-nums text-foreground">{item.rating}</span>({item.reviews})
+                                </p>
+                              </div>
+                              <span
+                                aria-hidden="true"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors duration-200 group-hover:border-primary-border group-hover:text-primary-text"
+                              >
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Reveal>
             </div>
 
-            <div className="student-rec-grid">
-              {recommendedCourses.map((item) => (
-                <div key={item.id} className="student-rec-card">
-                  <div className="student-rec-img-box">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="student-rec-img"
-                    />
-                  </div>
-                  <div className="student-rec-body">
-                    <h4 className="student-rec-title" title={item.title}>
-                      {item.title}
-                    </h4>
-                    <div className="student-rec-bottom-row">
-                      <div className="student-rec-rating">
-                        <span className="text-amber-500 text-xs">★</span>
-                        <strong className="text-xs font-bold text-zinc-900">
-                          {item.rating}
-                        </strong>
-                        <span className="text-[11px] text-zinc-400">
-                          ({item.reviews})
-                        </span>
+            {/* Right rail */}
+            <div className="flex min-w-0 flex-col gap-4">
+              <Card>
+                <CardHeader className="flex-row items-center justify-between gap-2">
+                  <CardTitle>Today's Schedule</CardTitle>
+                  <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Timetable")}>
+                    Timetable
+                  </Button>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  {SCHEDULE.map((cls) => (
+                    <div
+                      key={cls.title}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border p-3",
+                        cls.live ? "border-danger/30 bg-danger-soft" : "border-border",
+                      )}
+                    >
+                      <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-md border border-border bg-surface text-center">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-subtle-foreground">{cls.month}</span>
+                        <span className="text-sm font-semibold leading-4 tabular-nums text-foreground">{cls.day}</span>
                       </div>
-                      <button
-                        className="student-rec-arrow-btn cursor-pointer"
-                        onClick={() => onNavigate("My Courses")}
-                        title="Enroll / Preview"
-                      >
-                        <Icon name="chevron-right" size={13} />
-                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-sm font-medium text-foreground">{cls.title}</p>
+                          {cls.live && (
+                            <Badge tone="live" dot size="sm">
+                              Live
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="truncate text-caption text-muted-foreground">
+                          {cls.time} · {cls.instructor}
+                        </p>
+                      </div>
+                      {cls.live ? (
+                        <Button
+                          size="sm"
+                          leftIcon={<Radio aria-hidden="true" />}
+                          onClick={() => onToast("Connecting to live interactive stream...")}
+                        >
+                          Join
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-label={`Add ${cls.title} to calendar`}
+                          onClick={() => onToast(`Added '${cls.title}' to calendar!`)}
+                        >
+                          <Calendar aria-hidden="true" />
+                        </Button>
+                      )}
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-        {/* Right Column (Upcoming Live Classes, Tasks, Certificates, Learning Progress) */}
-        <div className="right-column">
-          {/* 1. Upcoming Live Classes Card */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="Upcoming Live Classes"
-          >
-            <div className="card-header">
-              <h3 className="card-title">Today's Class Schedule</h3>
-              <button
-                className="view-all cursor-pointer"
-                onClick={() => onNavigate("Timetable")}
-              >
-                View Timetable →
-              </button>
-            </div>
-
-            <div className="student-classes-list">
-              {/* Class 1 - LIVE */}
-              <div className="student-class-item live-active">
-                <div className="student-date-box lavender">
-                  <span className="student-date-month">OCT</span>
-                  <span className="student-date-day">21</span>
-                </div>
-                <div className="student-class-details">
-                  <div className="student-class-title">Building AI Agents</div>
-                  <div className="student-class-instructor">with Srimanth</div>
-                  <div className="student-class-time">
-                    <span className="live-dot" />
-                    <span>06:00 PM - 07:30 PM</span>
-                  </div>
-                </div>
-                <button
-                  className="student-join-live-btn cursor-pointer"
-                  onClick={() =>
-                    onToast("Connecting to live interactive stream...")
-                  }
-                >
-                  <Icon name="radio" size={13} />
-                  <span>Join Live</span>
-                </button>
-              </div>
-
-              {/* Class 2 */}
-              <div className="student-class-item">
-                <div className="student-date-box lavender">
-                  <span className="student-date-month">OCT</span>
-                  <span className="student-date-day">22</span>
-                </div>
-                <div className="student-class-details">
-                  <div className="student-class-title">RAG Systems Lab</div>
-                  <div className="student-class-instructor">with Srimanth</div>
-                  <div className="student-class-time">
-                    <span>10:00 AM - 11:30 AM</span>
-                  </div>
-                </div>
-                <button
-                  className="student-cal-btn cursor-pointer"
-                  onClick={() =>
-                    onToast("Added 'RAG Systems Lab' to calendar reminder!")
-                  }
-                >
-                  <Icon name="calendar" size={13} />
-                  <span>Calendar</span>
-                </button>
-              </div>
-
-              {/* Class 3 */}
-              <div className="student-class-item">
-                <div className="student-date-box lavender">
-                  <span className="student-date-month">OCT</span>
-                  <span className="student-date-day">23</span>
-                </div>
-                <div className="student-class-details">
-                  <div className="student-class-title">Neural Networks Lab</div>
-                  <div className="student-class-instructor">with Srimanth</div>
-                  <div className="student-class-time">
-                    <span>02:00 PM - 03:30 PM</span>
-                  </div>
-                </div>
-                <button
-                  className="student-cal-btn cursor-pointer"
-                  onClick={() =>
-                    onToast("Added 'Neural Networks Lab' to calendar!")
-                  }
-                >
-                  <Icon name="calendar" size={13} />
-                  <span>Calendar</span>
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Assigned Faculty Mentor Widget */}
-          <section
-            className="panel student-shared-panel p-4 bg-gradient-to-r from-purple-50/70 to-white border border-purple-100 shadow-sm"
-            aria-label="Faculty Mentor"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                  Assigned Mentor
-                </span>
-                <span className="text-emerald-600 font-bold text-[10px] flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Available Now
-                </span>
-              </div>
-              <button
-                className="text-xs font-bold text-purple-700 hover:text-purple-900 cursor-pointer"
-                onClick={() => onNavigate("Mentor Details")}
-              >
-                Profile & Hours →
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <img
-                src="/assets/srimanth.png"
-                alt="Prof. Srimanth Adep"
-                className="w-11 h-11 rounded-2xl object-cover border border-purple-200 shadow-sm"
-              />
-              <div className="flex-1 min-w-0 text-xs">
-                <strong className="text-zinc-900 font-bold block truncate">
-                  Prof. Srimanth Adep
-                </strong>
-                <span className="text-zinc-500 text-[11px] block truncate">
-                  Lead Professor · AI Research Fellow
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  onToast("Opening Mentor Details & 1:1 Meeting...")
-                  onNavigate("Mentor Details")
-                }}
-                className="px-3 py-1.5 rounded-full bg-purple-700 text-white text-[11px] font-bold hover:bg-purple-800 transition-colors cursor-pointer shadow-sm whitespace-nowrap"
-              >
-                1:1 Meeting
-              </button>
-            </div>
-          </section>
-
-          {/* 2. Your Next Tasks Card */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="Your Next Tasks"
-          >
-            <div className="card-header">
-              <h3 className="card-title">Your Next Tasks</h3>
-              <button
-                className="view-all cursor-pointer"
-                onClick={() => onNavigate("Assignments")}
-              >
-                View all →
-              </button>
-            </div>
-
-            <div className="student-tasks-list">
-              {/* Task 1 */}
-              <div
-                className={`student-task-item cursor-pointer ${
-                  completedTasks["t1"] ? "completed" : ""
-                }`}
-                onClick={() =>
-                  toggleTask("t1", "Submit Project 1: RAG Pipeline")
-                }
-              >
-                <div className="student-task-icon-box lavender">
-                  <Icon name="document" size={16} />
-                </div>
-                <div className="student-task-info">
-                  <div className="student-task-title">
-                    Submit Project 1: RAG Pipeline
-                  </div>
-                  <div className="student-task-meta">
-                    Generative AI Masterclass
-                  </div>
-                </div>
-                <span className="status orange">Due Oct 22</span>
-              </div>
-
-              {/* Task 2 */}
-              <div
-                className={`student-task-item cursor-pointer ${
-                  completedTasks["t2"] ? "completed" : ""
-                }`}
-                onClick={() => onNavigate("Quizzes")}
-              >
-                <div className="student-task-icon-box pink">
-                  <Icon name="clock" size={16} />
-                </div>
-                <div className="student-task-info">
-                  <div className="student-task-title">
-                    Quiz 4: Vector Embeddings
-                  </div>
-                  <div className="student-task-meta">Module 4 · 10 MCQs</div>
-                </div>
-                <span className="status orange">Due Oct 24</span>
-              </div>
-
-              {/* Task 3 */}
-              <div
-                className={`student-task-item cursor-pointer ${
-                  completedTasks["t3"] ? "completed" : ""
-                }`}
-                onClick={() => toggleTask("t3", "Peer Review")}
-              >
-                <div className="student-task-icon-box yellow">
-                  <Icon name="users" size={16} />
-                </div>
-                <div className="student-task-info">
-                  <div className="student-task-title">
-                    Peer Review: Agent Architectures
-                  </div>
-                  <div className="student-task-meta">AI Agents Bootcamp</div>
-                </div>
-                <span className="status yellow">Pending</span>
-              </div>
-
-              {/* Task 4 */}
-              <div
-                className={`student-task-item cursor-pointer ${
-                  completedTasks["t4"] ? "completed" : ""
-                }`}
-                onClick={() => toggleTask("t4", "Complete Lesson 5")}
-              >
-                <div className="student-task-icon-box lime">
-                  <Icon name="play" size={16} />
-                </div>
-                <div className="student-task-info">
-                  <div className="student-task-title">Complete Lesson 5</div>
-                  <div className="student-task-meta">
-                    Machine Learning Foundations
-                  </div>
-                </div>
-                <span className="status gray">Not Started</span>
-              </div>
-            </div>
-          </section>
-
-          {/* 3. Certificates Card */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="Certificates"
-          >
-            <div className="card-header">
-              <h3 className="card-title">Earned Credentials</h3>
-              <button
-                className="view-all cursor-pointer"
-                onClick={() => onNavigate("Certificates")}
-              >
-                View all →
-              </button>
-            </div>
-
-            <div className="student-cert-card-inner">
-              <div className="student-cert-badge-icon">
-                <Icon name="award" size={24} />
-              </div>
-              <div className="student-cert-meta">
-                <div className="student-cert-title">Python for AI</div>
-                <div className="student-cert-sub">
-                  Verified Credential with Distinction
-                </div>
-              </div>
-              <button
-                className="student-cert-view-btn cursor-pointer"
-                onClick={() => setIsCertModalOpen(true)}
-              >
-                View Certificate
-              </button>
-            </div>
-          </section>
-
-          {/* 4. Learning Progress (Weekly Bar Chart) */}
-          <section
-            className="panel student-shared-panel"
-            aria-label="Learning Progress"
-          >
-            <div className="card-header relative">
-              <h3 className="card-title">Learning Progress</h3>
-              <div className="relative">
-                <StudentDropdown
-                  value={chartTimeframe}
-                  onChange={(tf) => {
-                    setChartTimeframe(tf as typeof chartTimeframe)
-                    onToast(`Viewing learning analytics for ${tf}`)
-                  }}
-                  options={[
-                    { value: "This Week", label: "This Week" },
-                    { value: "Last Week", label: "Last Week" },
-                    { value: "This Month", label: "This Month" },
-                  ]}
-                  size="sm"
-                  fullWidth={false}
-                  align="right"
-                  triggerClassName="rounded-full bg-zinc-50 border-zinc-200 py-1 px-3 text-xs font-bold text-zinc-700 min-w-[115px]"
-                />
-              </div>
-            </div>
-
-            {/* Visual Bar Chart */}
-            <div className="student-chart-container">
-              <div className="student-chart-y-axis">
-                <span>{chartTimeframe === "This Month" ? "20h" : "4h"}</span>
-                <span>{chartTimeframe === "This Month" ? "10h" : "2h"}</span>
-                <span>0h</span>
-              </div>
-
-              <div className="student-chart-bars">
-                {(chartTimeframe === "This Week"
-                  ? [
-                      { day: "Mon", height: "42%", val: "1.5h" },
-                      { day: "Tue", height: "65%", val: "2.6h" },
-                      { day: "Wed", height: "50%", val: "2.0h" },
-                      { day: "Thu", height: "85%", val: "3.4h", active: true },
-                      { day: "Fri", height: "25%", val: "1.0h" },
-                      { day: "Sat", height: "60%", val: "2.4h" },
-                      { day: "Sun", height: "40%", val: "1.6h" },
-                    ]
-                  : chartTimeframe === "Last Week"
-                  ? [
-                      { day: "Mon", height: "55%", val: "2.2h" },
-                      { day: "Tue", height: "70%", val: "2.8h" },
-                      { day: "Wed", height: "60%", val: "2.4h", active: true },
-                      { day: "Thu", height: "45%", val: "1.8h" },
-                      { day: "Fri", height: "80%", val: "3.2h" },
-                      { day: "Sat", height: "30%", val: "1.2h" },
-                      { day: "Sun", height: "50%", val: "2.0h" },
-                    ]
-                  : [
-                      { day: "W1", height: "60%", val: "12h" },
-                      { day: "W2", height: "75%", val: "15h" },
-                      { day: "W3", height: "85%", val: "17h", active: true },
-                      { day: "W4", height: "68%", val: "13.6h" },
-                    ]
-                ).map((item) => (
-                  <div key={item.day} className="student-chart-col">
-                    <div className="student-chart-bar-track">
+              <Card>
+                <CardHeader className="flex-row items-center justify-between gap-2">
+                  <CardTitle>Your Next Tasks</CardTitle>
+                  <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Assignments")}>
+                    View all
+                  </Button>
+                </CardHeader>
+                <CardContent className="flex flex-col">
+                  {TASKS.map((task) => {
+                    const done = !!completedTasks[task.id]
+                    return (
                       <div
-                        className={`student-chart-bar-fill ${
-                          item.active ? "highlight" : ""
-                        }`}
-                        style={{ height: item.height }}
-                        title={`${item.day}: ${item.val}`}
-                      />
+                        key={task.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={task.title}
+                        aria-pressed={task.toggleable ? done : undefined}
+                        onClick={() => activateTask(task)}
+                        onKeyDown={tileKeyDown(() => activateTask(task))}
+                        className="-mx-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-surface-2"
+                      >
+                        <span
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset",
+                            done ? "bg-success-soft text-success ring-success/20" : task.tile,
+                          )}
+                        >
+                          {done ? <BadgeCheck className="h-4 w-4" aria-hidden="true" /> : task.icon}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className={cn("truncate text-sm font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
+                            {task.title}
+                          </p>
+                          <p className="truncate text-caption text-muted-foreground">{task.meta}</p>
+                        </div>
+                        {done ? <Badge tone="success">Done</Badge> : <Badge tone={task.badgeTone}>{task.badge}</Badge>}
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+
+              <Reveal>
+                <Card>
+                  <CardHeader className="flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <CardTitle>Your Mentor</CardTitle>
+                      <Badge tone="success" dot>
+                        Available now
+                      </Badge>
                     </div>
-                    <span className="student-chart-day-label">{item.day}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    <Button variant="link" size="sm" onClick={() => onNavigate("Mentor Details")}>
+                      Profile & hours
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="flex items-center gap-3">
+                    <Avatar src="/assets/srimanth.png" name="Prof. Srimanth Adep" size="lg" status="online" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">Prof. Srimanth Adep</p>
+                      <p className="truncate text-caption text-muted-foreground">Lead Professor · AI Research Fellow</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<Video aria-hidden="true" />}
+                      onClick={() => {
+                        onToast("Opening Mentor Details & 1:1 Meeting...")
+                        onNavigate("Mentor Details")
+                      }}
+                    >
+                      1:1 Meeting
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Reveal>
 
-            {/* Bottom 3 Stats */}
-            <div className="student-chart-stats-row">
-              <div className="student-chart-stat-item">
-                <span className="student-chart-stat-icon green">
-                  <Icon name="clock" size={13} />
-                </span>
-                <div>
-                  <div className="student-chart-stat-val">
-                    {chartTimeframe === "This Week" ? "14.5h" : chartTimeframe === "Last Week" ? "15.6h" : "57.6h"}
-                  </div>
-                  <div className="student-chart-stat-lbl">Study time</div>
-                </div>
-              </div>
+              <Reveal>
+                <Card>
+                  <CardHeader className="flex-row items-center justify-between gap-2">
+                    <CardTitle>Earned Credentials</CardTitle>
+                    <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Certificates")}>
+                      View all
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
+                        <Award className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">Python for AI</p>
+                        <p className="truncate text-caption text-muted-foreground">Verified credential · With distinction</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setIsCertModalOpen(true)}>
+                        View
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Reveal>
 
-              <div className="student-chart-stat-item">
-                <span className="student-chart-stat-icon purple">
-                  <Icon name="book" size={13} />
-                </span>
-                <div>
-                  <div className="student-chart-stat-val">
-                    {chartTimeframe === "This Week" ? "12" : chartTimeframe === "Last Week" ? "14" : "48"}
-                  </div>
-                  <div className="student-chart-stat-lbl">Lessons</div>
-                </div>
-              </div>
-
-              <div className="student-chart-stat-item">
-                <span className="student-chart-stat-icon cyan">
-                  <Icon name="check" size={13} />
-                </span>
-                <div>
-                  <div className="student-chart-stat-val">
-                    {chartTimeframe === "This Week" ? "3" : chartTimeframe === "Last Week" ? "4" : "11"}
-                  </div>
-                  <div className="student-chart-stat-lbl">Quizzes</div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-      </div>
-
-      {/* Certificate Modal */}
-      {isCertModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setIsCertModalOpen(false)}
-        >
-          <div
-            className="relative bg-surface rounded-3xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center">
-                  <Icon name="award" size={18} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-zinc-900">
-                    Official Certificate
-                  </h3>
-                  <p className="text-xs text-zinc-500">
-                    Quantum School of AI · Verified Credential
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsCertModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 hover:bg-zinc-200 cursor-pointer"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-
-            <div className="my-6 p-6 border-2 border-dashed border-purple-200 rounded-2xl bg-purple-50/40 text-center">
-              <div className="text-xs uppercase tracking-widest font-bold text-purple-600 mb-2">
-                Certificate of Completion
-              </div>
-              <h2 className="text-2xl font-black text-zinc-900 mb-1">
-                Python for AI
-              </h2>
-              <p className="text-sm text-zinc-600 mb-4">
-                This credential certifies that{" "}
-                <strong className="text-foreground">Srimanth</strong> has
-                successfully mastered Python for Data Analysis, NumPy, Pandas,
-                and Neural Architectures.
-              </p>
-              <div className="flex justify-center items-center gap-6 text-xs text-zinc-500">
-                <span>Issued: October 18, 2026</span>
-                <span>•</span>
-                <span>Credential ID: QAI-88392-PY</span>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2 rounded-full border border-zinc-300 text-xs font-bold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
-                onClick={() => {
-                  const certText =
-                    "===========================================================\n" +
-                    "       QUANTUM SCHOOL OF AI - CERTIFICATE OF DISTINCTION  \n" +
-                    "===========================================================\n" +
-                    "Recipient: Srimanth (QS-2024-8821)\n" +
-                    "Course: Python for AI (PY-201)\n" +
-                    "Grade: A+ (98.4%) · Dean's Honor List\n" +
-                    "Credential ID: QAI-88392-PY\n" +
-                    "Issue Date: October 18, 2026\n" +
-                    "Blockchain Verification Hash: 0x98A1B2C3D4E5F67890ABCDEF\n" +
-                    "Issuer: Quantum School of AI Academic Registry\n"
-                  const blob = new Blob([certText], { type: "text/plain;charset=utf-8;" })
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement("a")
-                  a.href = url
-                  a.download = "Quantum_Certificate_Python_for_AI.txt"
-                  a.click()
-                  URL.revokeObjectURL(url)
-                  setIsCertModalOpen(false)
-                  onToast("Certificate downloaded successfully! 🎓")
-                }}
-              >
-                Download PDF
-              </button>
-              <button
-                className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-ink-800 cursor-pointer"
-                onClick={() => {
-                  navigator.clipboard?.writeText?.("https://verify.quantumschool.ai/cert/QAI-88392-PY")
-                  setIsCertModalOpen(false)
-                  onToast("Credential verification link copied to clipboard! 🔗")
-                }}
-              >
-                Share Credential
-              </button>
+              <Reveal>
+                <Card>
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+                    <CardTitle>Learning Progress</CardTitle>
+                    <SegmentedControl
+                      size="sm"
+                      aria-label="Chart timeframe"
+                      options={[
+                        { value: "This Week" as Timeframe, label: "Week" },
+                        { value: "Last Week" as Timeframe, label: "Last week" },
+                        { value: "This Month" as Timeframe, label: "Month" },
+                      ]}
+                      value={chartTimeframe}
+                      onChange={(tf) => {
+                        setChartTimeframe(tf)
+                        onToast(`Viewing learning analytics for ${tf}`)
+                      }}
+                    />
+                  </CardHeader>
+                  <CardContent>
+                    <BarChart data={CHART[chartTimeframe].data} height={150} formatValue={(v) => `${v}h`} label={`Study hours · ${chartTimeframe}`} />
+                    <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4">
+                      {[
+                        { icon: <Clock className="h-3.5 w-3.5" aria-hidden="true" />, tile: "bg-success-soft text-success ring-success/20", value: CHART[chartTimeframe].stats[0], label: "Study time" },
+                        { icon: <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />, tile: "bg-primary-soft text-primary-text ring-primary-border", value: CHART[chartTimeframe].stats[1], label: "Lessons" },
+                        { icon: <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />, tile: "bg-secondary-soft text-secondary-text ring-transparent", value: CHART[chartTimeframe].stats[2], label: "Quizzes" },
+                      ].map((s) => (
+                        <div key={s.label} className="flex items-center gap-2">
+                          <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-1 ring-inset", s.tile)}>
+                            {s.icon}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold tabular-nums text-foreground">{s.value}</p>
+                            <p className="truncate text-[11px] text-subtle-foreground">{s.label}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Reveal>
             </div>
           </div>
-        </div>
-      )}
+        </StaggerItem>
+      </Stagger>
+
+      {/* Certificate dialog */}
+      <Dialog open={isCertModalOpen} onOpenChange={setIsCertModalOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Official Certificate</DialogTitle>
+            <DialogDescription>Quantum School of AI · Verified Credential</DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-dashed border-primary-border bg-primary-soft p-6 text-center">
+            <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface text-primary-text ring-1 ring-inset ring-primary-border">
+              <Award className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-primary-text">Certificate of Completion</p>
+            <h3 className="mt-1 text-h3 text-foreground">Python for AI</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              This credential certifies that <strong className="font-semibold text-foreground">Srimanth</strong> has successfully mastered
+              Python for Data Analysis, NumPy, Pandas, and Neural Architectures.
+            </p>
+            <p className="mt-3 text-caption text-subtle-foreground">Issued October 18, 2026 · Credential ID QAI-88392-PY</p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" leftIcon={<Download aria-hidden="true" />} onClick={downloadCertificate}>
+              Download
+            </Button>
+            <Button variant="secondary" leftIcon={<Share2 aria-hidden="true" />} onClick={shareCertificate}>
+              Copy verification link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
