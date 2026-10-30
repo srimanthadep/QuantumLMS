@@ -246,7 +246,7 @@ Import paths:
 | `Toast` | `ToastProvider` plus `useToast()` (`show`, `success`, `error`). Toasts stack, rise in with `spring.soft`, use `aria-live="polite"`, and dismiss after 4.2 s. Legacy `onToast("…")` copy has its tone inferred. | **Do** confirm completed actions. **Don't** use toasts for errors the user must act on. Use an inline `Field` error or a dialog. |
 | `CommandPalette` (ui) | Dialog with a filtered, grouped listbox, arrow keys and Enter. The shell's `CommandPalette` fills it with the role's pages and actions. | |
 | `Kbd` | Keyboard key chip. | **Do** use it for shortcuts in menus, tooltips and the palette. |
-| `StatCard` | Keeps the `item: MetricItem` API. Legacy tones map lavender / pink / yellow / lime to primary / danger / warning / success. Numeric values count up. Optional `sparkline`. | **Do** keep labels to 2–3 words and put 3–4 cards in a row on desktop. |
+| `StatCard` | Keeps the `item: MetricItem` API. Legacy tones map lavender / pink / yellow / lime to primary / danger / warning / success. Numeric values count up. Optional `sparkline`, which hides when the card is narrower than 12rem (a container query) so the value never truncates on two-up phone layouts. | **Do** keep labels to 2–3 words and put 3–4 cards in a row on desktop. |
 | `ThemeAccentPicker`, `ThemeControls` | The picker is the top-bar popover trigger. `ThemeControls` is the light/dark/system control plus accent swatches, used in the popover and on settings pages. | |
 | Charts: `Sparkline`, `AreaChart`, `BarChart`, `DonutChart`, `ProgressRing` | SVG, no dependencies, reveal once in view. `AreaChart` has a hover crosshair and tooltip. | **Do** use `formatINR` for money axes. **Don't** use more than 5 colours in one chart. |
 | `CourseCover` | Course image with a gradient scrim, or generated gradient art with an icon per AI category. Always dark, so overlay text stays white. | **Do** use it for every course thumbnail. **Don't** point it at remote image URLs. Seed data uses local `/assets/*`. |
@@ -273,7 +273,7 @@ Import paths:
 ```
 
 - **Brand:** logo, "Quantum School of AI", and a workspace label per role (`ROLE_WORKSPACE`): Learning, Instructor studio, Evaluation desk, Support desk, Academy admin, Platform console.
-- **Navigation:** defined per role in `navConfig.ts` (`NAV`). A portal passes `activeId` and `onNavigate(id)`. It calls `navigate()` when the portal is routed, or its tab setter otherwise. `availableIds` hides items whose pages arrive in a later phase, and `badges` shows counts.
+- **Navigation:** defined per role in `navConfig.ts` (`NAV`). A portal passes `activeId` and `onNavigate(id)`. It calls `navigate()` when the portal is routed, or its tab setter otherwise. `availableIds` hides items whose pages arrive in a later phase (only the Admin portal still uses it), and `badges` shows counts, such as the Teacher portal's open doubts.
 
   | Role | Main items | Below the divider |
   | --- | --- | --- |
@@ -318,17 +318,27 @@ All of these scripts, and the contrast checkers, live **outside the repo** in `.
 
 ### Remaining legacy usage
 
-Measured on 30 Oct 2026 on `main`, after the student portal rebuild, in `frontend/src` TS/TSX:
+Measured on 30 Oct 2026 on `main` in `frontend/src` TS/TSX with `count-legacy.mjs` (in the tools folder), before and after the teacher portal rebuild:
 
-| Measure | Count |
-| --- | --- |
-| Raw palette utilities: `zinc-*` / `purple-*` / `gray-*` / `slate-*` / `lime-*` | 1,708 / 870 / 358 / 18 / 50 |
-| Arbitrary hex colour classes (`-[#…]`) | 36 |
-| `dark:` palette overrides in legacy pages | 0 |
-| `legacy.css` | 5,382 lines |
-| Semantic token utilities (for comparison) | 1,975 |
+| Measure | Before | After |
+| --- | --- | --- |
+| Raw palette utilities: `zinc-*` / `purple-*` / `gray-*` / `slate-*` / `lime-*` | 1,717 / 875 / 358 / 18 / 50 | 921 / 228 / 0 / 18 / 0 |
+| Arbitrary hex colour classes (`-[#…]`) | 36 | 27 |
+| `dark:` palette overrides in legacy pages | 0 | 0 |
+| `legacy.css` | 5,382 lines | 5,382 lines |
+| Semantic token utilities (for comparison) | 2,220 | 2,770 |
+
+`legacy.css` is unchanged: the teacher pages no longer use its rules, but the rules stay until Phase 8 deletes everything unreferenced.
 
 **Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Notes, the resume, interview history and notification preferences persist in `localStorage` (`quantum_student_notes_v2`, `quantum_resume_v2`, `quantum_interview_history_v2`, `quantum_student_notification_prefs`).
+
+**Teacher portal: done.** `pages/teacher` and `components/teacher` were rebuilt from scratch and pass the same check.
+
+- **Routing:** `TeacherPortal` renders nested `<Routes>` inside `PageTransition`, and every page except the dashboard is lazy-loaded. The routes are `/teacher`, `/teacher/courses`, `/teacher/courses/:courseId`, `/teacher/live-class`, `/teacher/live-class/studio/:sessionId`, `/teacher/recordings`, `/teacher/recordings/:recordingId`, `/teacher/students`, `/teacher/doubts`, `/teacher/calendar`, `/teacher/analytics`, `/teacher/support` and `/teacher/settings`. Old links redirect: `/teacher/reports` goes to the Reports tab of Analytics, and `/teacher/live-class/recordings`, `/teacher/live-class/review/:sessionId` and `/teacher/live/studio/:id` go to their new pages. Query parameters open state directly: `?doubt=`, `?student=`, `?tab=` and `?course=`.
+- **Data:** `TeacherDataProvider` in `pages/teacher/teacherStore.tsx` holds the courses, learners, sessions, doubts, events, recordings, reports and assignment grades that every page reads through `useTeacherData()`. Assignments are keyed `${courseId}:${moduleId}` because module ids repeat across courses. Course and module progress is recomputed from the delivered lessons. The demo clock is `DEMO_NOW` in `teacherUtils.ts` (Thursday 22 Oct 2026, 12:17 PM, during the live class).
+- **Building blocks** in `src/components/teacher`: `LiveSessionHero` (the dark focal panel for the live or next class), `StudentDrawer`, `GradingSheet`, `ScheduleSessionDialog`, `SendReportDialog` and `IconTile`. The shell gets the open-doubts badge and a teacher `NotificationSource` (live class, urgent doubts, grading, processing recordings).
+- **Persistence:** sessions, doubts and calendar events (`quantum_teacher_sessions_v2`, `quantum_teacher_doubts_v2`, `quantum_teacher_events_v2`), settings (`quantum_teacher_settings_v2`) and support requests (`quantum_teacher_support_tickets_v2`).
+- **Removed** with the old pages: `Modals`, `AttendanceSection`, `AIMonitoringSection`, `ModuleAssignmentSection`, `LessonContentInlineViewer` and `StudentActivityHeatmap`, and every page-level theme picker and Ask AI button.
 
 ### Retirement plan
 
