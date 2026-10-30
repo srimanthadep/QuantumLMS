@@ -1,5 +1,6 @@
+import { BotAvatar } from "bot-avatars"
 import { motion } from "framer-motion"
-import { ChevronsLeft, ChevronsRight, Sparkles } from "lucide-react"
+import { ChevronsLeft, ChevronsRight } from "lucide-react"
 import type { UserRole } from "@/types"
 import { cn } from "@/lib/utils"
 import { spring } from "@/lib/motion"
@@ -92,7 +93,49 @@ function NavButton({
   )
 }
 
-/** Role navigation: brand, main + secondary items with a shared-layout active indicator, Ask AI, collapse toggle. */
+function CloverAssistant({ collapsed, onOpenAi }: Pick<SidebarProps, "collapsed" | "onOpenAi">) {
+  const avatar = (
+    <BotAvatar
+      type="clover"
+      face="mouth"
+      state="default"
+      size={collapsed ? 36 : 44}
+      shading="plastic"
+      highlight={1.1}
+      rim={0.7}
+      turn={0.6}
+      jumpEvery={0}
+      aria-hidden="true"
+    />
+  )
+  const control = collapsed ? (
+    <button
+      type="button"
+      onClick={onOpenAi}
+      aria-label="Open Clover assistant"
+      className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-primary-border bg-primary-soft shadow-[var(--elev-xs)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--glow-primary)] active:scale-95"
+    >
+      {avatar}
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={onOpenAi}
+      aria-label="Open Clover assistant"
+      className="group flex w-full items-center gap-3 rounded-lg border border-primary-border bg-primary-soft p-3 text-left shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--glow-primary)] active:scale-[0.98]"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center">{avatar}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-foreground">Clover</span>
+        <span className="block truncate text-caption text-muted-foreground">Your learning companion</span>
+      </span>
+      <ChevronsRight className="h-4 w-4 shrink-0 text-primary-text transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+    </button>
+  )
+  return collapsed ? <Tooltip content="Open Clover assistant" side="right">{control}</Tooltip> : control
+}
+
+/** Role navigation: brand, main + secondary items, Clover assistant and collapse toggle. */
 export default function Sidebar({
   role,
   items,
@@ -133,32 +176,7 @@ export default function Sidebar({
         </>
       )}
       <div className="mt-auto flex flex-col gap-2 pt-4">
-        {collapsed ? (
-          <Tooltip content="Ask AI" side="right">
-            <button
-              type="button"
-              onClick={onOpenAi}
-              aria-label="Ask AI"
-              className="mx-auto flex h-9 w-9 items-center justify-center rounded-md bg-[image:var(--gradient-primary)] text-white shadow-[var(--glow-primary)] transition-transform hover:-translate-y-0.5 active:scale-95"
-            >
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </Tooltip>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenAi}
-            className="group relative flex items-center gap-3 overflow-hidden rounded-lg border border-primary-border bg-primary-soft p-3 text-left transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[image:var(--gradient-primary)] text-white shadow-[var(--glow-primary)]">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">Ask AI</span>
-              <span className="block truncate text-caption text-muted-foreground">Your course-aware assistant</span>
-            </span>
-          </button>
-        )}
+        <CloverAssistant collapsed={collapsed} onOpenAi={onOpenAi} />
         {onToggleCollapse && (
           <button
             type="button"

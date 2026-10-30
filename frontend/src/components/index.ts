@@ -7,7 +7,7 @@
  * - /admin   - Institutional Admin UI (AdminSidebar, AdminModals, AI Monitoring)
  * - /shared  - Cross-role components (Modals, MetricCard, Drawers)
  * - /ui      - Atomic design system components (buttons, badges, cards, dialogs, tabs)
- * - /shell   - AppShell (sidebar, top bar, mobile nav, command palette, Ask AI) shared by every portal
+ * - /shell   - AppShell (sidebar, top bar, mobile nav, command palette, Clover) shared by every portal
  * - /motion  - Motion primitives (PageTransition, Stagger, Reveal, AnimatedNumber, Pressable)
  * - /charts  - Lightweight SVG charts
  */

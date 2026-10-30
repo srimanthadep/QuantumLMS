@@ -42,7 +42,7 @@ function readCollapsed() {
 
 /**
  * The one app frame for every portal: skip link, sidebar (collapsible rail on
- * desktop, sheet on mobile), sticky top bar, <main id="main">, ⌘K palette.
+ * desktop, sheet on mobile), sticky top bar, Clover assistant, <main id="main"> and ⌘K palette.
  */
 export default function AppShell({
   role,
@@ -133,7 +133,6 @@ export default function AppShell({
             user={session.user}
             onOpenNav={() => setMobileOpen(true)}
             onOpenPalette={() => setPaletteOpen(true)}
-            onOpenAi={openAi}
             onSwitchRole={switchRole}
             onLogout={logout}
             onResetDemo={session.resetDemoData}

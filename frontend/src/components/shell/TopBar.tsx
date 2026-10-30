@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Menu, Search, Sparkles } from "lucide-react"
+import { Menu, Search } from "lucide-react"
 import type { CurrentUser, UserRole } from "@/types"
 import { Kbd } from "@/components/ui/kbd"
 import { ThemeAccentPicker } from "@/components/ui/ThemeAccentPicker"
@@ -12,7 +12,6 @@ interface TopBarProps {
   user: CurrentUser
   onOpenNav: () => void
   onOpenPalette: () => void
-  onOpenAi: () => void
   onSwitchRole: (role: UserRole) => void
   onLogout: () => void
   onResetDemo: () => void
@@ -24,13 +23,12 @@ interface TopBarProps {
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
 
-/** Sticky top bar: mobile menu + brand, ⌘K search trigger, Ask AI, theme, notifications, user menu. */
+/** Sticky top bar: mobile menu + brand, ⌘K search trigger, theme, notifications and user menu. */
 export default function TopBar({
   role,
   user,
   onOpenNav,
   onOpenPalette,
-  onOpenAi,
   onSwitchRole,
   onLogout,
   onResetDemo,
@@ -70,14 +68,6 @@ export default function TopBar({
       {children}
 
       <div className="flex items-center gap-1.5 sm:ml-auto sm:gap-2">
-        <button
-          type="button"
-          onClick={onOpenAi}
-          className="hidden h-9 items-center gap-1.5 rounded-md bg-[image:var(--gradient-primary)] px-3 text-sm font-medium text-white shadow-[var(--glow-primary)] transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:inline-flex"
-        >
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-          Ask AI
-        </button>
         {/* Visible at every width: on phones this is the only way to change theme and accent. */}
         <ThemeAccentPicker />
         <NotificationsMenu source={notifications} />

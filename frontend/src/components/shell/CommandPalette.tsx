@@ -30,7 +30,7 @@ export default function CommandPalette({ open, onOpenChange, role, items, onNavi
       ? COURSE_SHORTCUTS.map<CommandItem>((c) => ({ id: `course-${c}`, label: c, group: "Courses", icon: <BookOpen />, onSelect: () => onNavigate(coursesTarget) }))
       : []
     const actions: CommandItem[] = [
-      { id: "ai", label: "Ask AI", group: "Actions", icon: <Sparkles />, keywords: ["assistant", "help"], onSelect: onOpenAi },
+      { id: "ai", label: "Open Clover", group: "Actions", icon: <Sparkles />, keywords: ["assistant", "ai", "clover", "help"], onSelect: onOpenAi },
       {
         id: "theme",
         label: resolved === "dark" ? "Switch to light theme" : "Switch to dark theme",

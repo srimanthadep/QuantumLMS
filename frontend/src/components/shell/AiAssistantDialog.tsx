@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUp, Sparkles } from "lucide-react"
+import { BotAvatar } from "bot-avatars"
+import { ArrowUp } from "lucide-react"
 import type { UserRole } from "@/types"
 import { useSession } from "@/app/session"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -67,7 +68,7 @@ export function useAiAssistant() {
   return useContext(AiAssistantContext)
 }
 
-/** "Ask AI" assistant: role-aware suggestions, simulated streaming replies. */
+/** Clover: role-aware learning companion with simulated streaming replies. */
 export default function AiAssistantDialog({ open, onOpenChange, prefill }: { open: boolean; onOpenChange: (o: boolean) => void; prefill?: string }) {
   const { role } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
@@ -116,12 +117,23 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(640px,calc(100dvh-2rem))] max-w-xl flex-col gap-0 overflow-hidden p-0">
         <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[image:var(--gradient-primary)] text-white shadow-[var(--glow-primary)]">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center">
+            <BotAvatar
+              type="clover"
+              face="mouth"
+              state={thinking ? "working" : "default"}
+              size={46}
+              shading="plastic"
+              highlight={1.1}
+              rim={0.7}
+              turn={0.6}
+              jumpEvery={0}
+              aria-hidden="true"
+            />
           </span>
           <div>
-            <DialogTitle className="text-base">Quantum AI</DialogTitle>
-            <DialogDescription className="text-caption">Answers use your courses, replays and activity. Demo responses.</DialogDescription>
+            <DialogTitle className="text-base">Clover</DialogTitle>
+            <DialogDescription className="text-caption">Your course-aware learning companion. Demo responses.</DialogDescription>
           </div>
         </div>
 
@@ -188,7 +200,7 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
           className="flex items-end gap-2 border-t border-border p-3"
         >
           <label htmlFor="ai-input" className="sr-only">
-            Ask Quantum AI
+            Message Clover
           </label>
           <textarea
             id="ai-input"
@@ -201,7 +213,7 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
                 ask(input)
               }
             }}
-            placeholder="Ask anything about your courses…"
+            placeholder="Ask Clover about your courses…"
             className="max-h-32 min-h-[40px] flex-1 resize-none rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-foreground placeholder:text-subtle-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
           />
           <button
