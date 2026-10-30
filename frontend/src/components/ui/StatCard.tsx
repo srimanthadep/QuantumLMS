@@ -124,7 +124,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       }
       aria-label={onClick ? resolvedTitle : undefined}
       className={cn(
-        "group relative flex h-full min-h-[112px] flex-col justify-between gap-3 overflow-hidden rounded-lg border border-border bg-surface p-4 shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "@container group relative flex h-full min-h-[112px] flex-col justify-between gap-3 overflow-hidden rounded-lg border border-border bg-surface p-4 shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
         onClick && "cursor-pointer hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]",
         isActive && "border-primary ring-1 ring-primary",
         className,
@@ -169,8 +169,9 @@ export const StatCard: React.FC<StatCardProps> = ({
             </span>
           )}
         </div>
+        {/* Narrow cards (two-up on phones) drop the sparkline so the value never truncates. */}
         {sparkline && sparkline.length > 1 && (
-          <Sparkline data={sparkline} stroke={TONE_STROKE[resolvedTone]} className="h-8 w-20 shrink-0" />
+          <Sparkline data={sparkline} stroke={TONE_STROKE[resolvedTone]} className="hidden h-8 w-20 shrink-0 @min-[12rem]:block" />
         )}
       </div>
     </section>
