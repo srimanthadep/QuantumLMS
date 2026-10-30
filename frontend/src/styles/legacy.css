@@ -588,7 +588,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .nav-item.active {
-  color: var(--primary);
+  color: var(--primary-text);
   background: var(--primary-soft);
   font-weight: 700;
 }
@@ -911,7 +911,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .metric-icon.lavender,
-.metric-icon.purple { background: var(--primary-soft); color: var(--primary); }
+.metric-icon.purple { background: var(--primary-soft); color: var(--primary-text); }
 .metric-icon.pink { background: #fce7f3; color: #f472b6; }
 .metric-icon.yellow,
 .metric-icon.amber { background: #fef3c7; color: #f59e0b; }
@@ -1202,7 +1202,7 @@ body:has(.teacher-portal-shell) {
 }
 
 .view-all:hover {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 /* Assignments Card */
@@ -1241,7 +1241,7 @@ body:has(.teacher-portal-shell) {
   place-items: center;
   border-radius: 11px;
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .row-copy {
@@ -1284,16 +1284,16 @@ body:has(.teacher-portal-shell) {
 }
 
 .status.green,
-.status.success { background: #ccfbf1 !important; color: #0f766e !important; }
+.status.success { background: linear-gradient(var(--success-soft), var(--success-soft)), var(--surface) !important; color: var(--success) !important; }
 .status.purple,
 .status.orange,
-.status.lavender { background: var(--primary-soft) !important; color: var(--primary) !important; }
+.status.lavender { background: linear-gradient(var(--primary-soft), var(--primary-soft)), var(--surface) !important; color: var(--primary-text) !important; }
 .status.yellow,
-.status.warning { background: #fef3c7 !important; color: #d97706 !important; }
+.status.warning { background: linear-gradient(var(--warning-soft), var(--warning-soft)), var(--surface) !important; color: var(--warning) !important; }
 .status.red,
-.status.error { background: #fee2e2 !important; color: #dc2626 !important; }
+.status.error { background: linear-gradient(var(--danger-soft), var(--danger-soft)), var(--surface) !important; color: var(--danger) !important; }
 .status.blue,
-.status.info { background: #e0f2fe !important; color: #0284c7 !important; }
+.status.info { background: linear-gradient(var(--info-soft), var(--info-soft)), var(--surface) !important; color: var(--info) !important; }
 .status.gray,
 .status.neutral { background: var(--surface-2) !important; color: var(--muted-foreground) !important; }
 
@@ -1417,7 +1417,7 @@ body:has(.teacher-portal-shell) {
 
 .more:hover {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 /* Parent Reports Card */
@@ -1574,7 +1574,7 @@ body:has(.teacher-portal-shell) {
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -1829,7 +1829,7 @@ select option {
   font-size: 9.5px;
   font-weight: 500;
   background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
 }
 
 .distribution-card {
@@ -2039,7 +2039,7 @@ select option {
 
 .btn-secondary {
   background: var(--primary-soft) !important;
-  color: var(--primary) !important;
+  color: var(--primary-text) !important;
   font-weight: 600 !important;
   transition: all 0.15s ease;
 }
@@ -2198,23 +2198,23 @@ select option {
   gap: 7px;
   padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid #edf0f5;
-  background: #fdfdfd;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 11px;
   font-weight: 500;
-  color: #555;
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .analytics-subject-pill:hover {
-  background: #f4f3fa;
+  background: var(--surface-2);
   border-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 .analytics-subject-pill.active {
   background: var(--surface);
-  border-color: #000;
+  border-color: var(--foreground);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   color: var(--foreground);
   font-weight: 700;
@@ -2322,7 +2322,7 @@ select option {
   font-weight: 700;
   border: none;
   background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
   transition: all 0.15s ease;
   white-space: nowrap;
 }
@@ -2446,8 +2446,8 @@ select option {
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(168, 237, 0, 0.2);
-  color: #557c00;
+  background: linear-gradient(var(--success-soft), var(--success-soft)), var(--surface);
+  color: var(--success);
   white-space: nowrap;
 }
 
@@ -2626,7 +2626,7 @@ select option {
     border-radius: 10px;
     border: none;
     background: color-mix(in srgb, var(--primary) 10%, transparent);
-    color: var(--purple-dark);
+    color: var(--primary-text);
     display: grid;
     place-items: center;
   }
@@ -2984,7 +2984,7 @@ select option {
   height: 18px;
   border-radius: 6px;
   background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3059,7 +3059,7 @@ select option {
 .role-chip.active {
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   border-color: var(--purple);
-  color: var(--purple-dark);
+  color: var(--primary-text);
 }
 
 .auth-input-group {
@@ -3288,7 +3288,7 @@ select option {
 }
 
 .student-logo-plus {
-  color: var(--primary-hover);
+  color: var(--primary-text);
   font-size: 20px;
   font-weight: 900;
   line-height: 1;
@@ -3328,7 +3328,7 @@ select option {
 
 .student-nav-item:hover {
   background: var(--primary-soft);
-  color: var(--primary-hover);
+  color: var(--primary-text);
 }
 
 .student-nav-item.active {
@@ -3679,7 +3679,7 @@ select option {
 
 .student-metric-icon-box.lavender {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .student-metric-icon-box.green {
@@ -3915,7 +3915,7 @@ select option {
 .student-view-all {
   font-size: 11px;
   font-weight: 700;
-  color: var(--primary-hover);
+  color: var(--primary-text);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -3941,7 +3941,7 @@ select option {
 
 .student-filter-pill.active {
   background: var(--primary-soft);
-  color: var(--primary-hover);
+  color: var(--primary-text);
   font-weight: 700;
 }
 
@@ -4213,7 +4213,7 @@ select option {
   border-radius: 999px;
   border: 1px solid var(--primary);
   background: transparent;
-  color: var(--primary);
+  color: var(--primary-text);
   font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
@@ -4334,7 +4334,7 @@ select option {
   border-radius: 999px;
   background: transparent;
   border: 1px solid var(--primary);
-  color: var(--primary);
+  color: var(--primary-text);
   font-size: 10px;
   font-weight: 700;
   display: flex;
@@ -4377,7 +4377,7 @@ select option {
   height: 30px;
   border-radius: 999px;
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -4533,7 +4533,7 @@ select option {
 
 .student-chart-stat-icon.purple {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .student-chart-stat-icon.cyan {
@@ -4679,7 +4679,7 @@ select option {
 }
 
 .student-shared-nav .nav-item.active {
-  color: var(--purple-dark);
+  color: var(--primary-text);
   background: color-mix(in srgb, var(--primary) 14%, transparent);
   font-weight: 700;
 }
@@ -4794,7 +4794,7 @@ select option {
 
 .student-hero-btn-dark:hover {
   background: var(--background) !important;
-  color: var(--primary) !important;
+  color: var(--primary-text) !important;
   transform: translateY(-1.5px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
@@ -4929,7 +4929,7 @@ select option {
 .student-action-switch-btn:hover {
   background: var(--primary-soft);
   border-color: var(--primary);
-  color: var(--primary);
+  color: var(--primary-text);
   transform: translateY(-1px);
 }
 
@@ -4991,12 +4991,12 @@ select option {
 
 .student-filter-pill:hover {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
 }
 
 .student-filter-pill.active {
   background: color-mix(in srgb, var(--primary) 16%, transparent);
-  color: var(--purple-dark);
+  color: var(--primary-text);
   font-weight: 700;
 }
 
@@ -5276,10 +5276,10 @@ select option {
 }
 
 .student-date-box.lavender .student-date-month {
-  color: var(--purple-dark);
+  color: var(--primary-text);
 }
 
-.student-task-icon-box.lavender { background: var(--lavender); color: var(--purple-dark); }
+.student-task-icon-box.lavender { background: var(--lavender); color: var(--primary-text); }
 .student-task-icon-box.pink { background: var(--pink-soft); color: #e44383; }
 .student-task-icon-box.yellow { background: var(--yellow-soft); color: #b78a00; }
 .student-task-icon-box.lime { background: var(--lime-soft); color: #6e9a00; }
@@ -5348,7 +5348,7 @@ select option {
 
 .noorly-btn-lime {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-text);
   border-radius: var(--noorly-radius-pill);
   font-weight: 700;
   font-size: 12px;
@@ -5412,7 +5412,7 @@ select option {
 /* Noorly Soft Badges */
 .noorly-badge-purple {
   background: var(--noorly-tertiary-lavender);
-  color: var(--noorly-primary-purple);
+  color: var(--primary-text);
   border-radius: var(--noorly-radius-pill);
   padding: 3px 10px;
   font-size: 10px;
@@ -5473,7 +5473,7 @@ select option {
 
 /* Noorly active styles for student sidebar and panels */
 .student-shared-nav .nav-item.active {
-  color: var(--noorly-primary-purple) !important;
+  color: var(--primary-text) !important;
   background: var(--noorly-tertiary-lavender) !important;
   font-weight: 700;
 }
@@ -5851,7 +5851,7 @@ select.student-select:disabled {
 /* Metric tone accents */
 .metric-icon.lavender {
   background-color: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .metric-icon.lime {
