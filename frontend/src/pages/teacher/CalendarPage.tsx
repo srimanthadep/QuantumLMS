@@ -1080,7 +1080,7 @@ export default function CalendarPage({
                         ? "bg-[#1d63ed] text-white font-bold rounded-lg shadow-xs scale-105"
                         : cell.isCurrentMonth
                         ? "text-zinc-700 hover:bg-gray-100 font-normal rounded-md"
-                        : "text-zinc-300 hover:text-zinc-500 font-normal rounded-md"
+                        : "text-zinc-400 hover:text-zinc-600 font-normal rounded-md"
                     }`}
                   >
                     {cell.dayNum}
@@ -1272,7 +1272,7 @@ export default function CalendarPage({
                         }}
                         className={`p-2 pr-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-md ${
                           card.status === "Join"
-                            ? "bg-[#eff6ff] border-[#bfdbfe] ring-1 ring-blue-200/70"
+                            ? "bg-blue-50 border-blue-200 ring-1 ring-blue-200/70"
                             : "bg-surface border-gray-200/90 hover:border-purple-300"
                         }`}
                       >
@@ -1290,12 +1290,12 @@ export default function CalendarPage({
                             {card.status === "Join" ? (
                               <>
                                 <span>·</span>
-                                <span className="text-[#1d63ed] font-semibold hover:underline">Join</span>
+                                <span className="text-blue-600 font-semibold hover:underline">Join</span>
                               </>
                             ) : card.status === "Start" ? (
                               <>
                                 <span>•</span>
-                                <span className="text-[#1d63ed] font-semibold hover:underline">Start</span>
+                                <span className="text-blue-600 font-semibold hover:underline">Start</span>
                               </>
                             ) : (
                               <>
@@ -1444,7 +1444,7 @@ export default function CalendarPage({
                         className="p-2 border-r border-b border-gray-200 space-y-2 bg-gray-50/20 hover:bg-purple-50/20 transition-colors"
                       >
                         {dayEvents.length === 0 ? (
-                          <div className="text-[10px] text-zinc-300 text-center pt-8">
+                          <div className="text-[10px] text-zinc-400 text-center pt-8">
                             No events
                           </div>
                         ) : (

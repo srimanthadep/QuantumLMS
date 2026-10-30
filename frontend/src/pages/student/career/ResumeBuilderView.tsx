@@ -897,7 +897,7 @@ export function ResumeBuilderView({
       title: "Personal Information",
       icon: "👤",
       badgeBg: "bg-purple-100",
-      colorClass: "text-[#5c3cd6]",
+      colorClass: "text-primary-text",
     },
     {
       id: "summary",
@@ -918,7 +918,7 @@ export function ResumeBuilderView({
       title: "Technical Skills",
       icon: "</>",
       badgeBg: "bg-purple-100",
-      colorClass: "text-[#5c3cd6]",
+      colorClass: "text-primary-text",
     },
     {
       id: "experience",

@@ -371,7 +371,7 @@ export function EvaluationWorkspace({
               <span className="text-xs font-bold text-white/70 truncate max-w-[180px]">
                 {assessment.title}
               </span>
-              <span className="text-white/40">/</span>
+              <span className="text-white/60">/</span>
               <span className="text-xs font-bold text-purple-300">
                 {submission.studentName} ({submission.studentRoll})
               </span>
@@ -385,7 +385,7 @@ export function EvaluationWorkspace({
               {lastSavedTimestamp && (
                 <>
                   <span>•</span>
-                  <span className="text-white/40">
+                  <span className="text-white/60">
                     Saved: {lastSavedTimestamp}
                   </span>
                 </>

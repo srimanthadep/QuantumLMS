@@ -2649,7 +2649,7 @@ export function CourseDetailsPage({
                     <span className="text-xl font-bold text-amber-900 mt-1">
                       {courseAssignments.filter((a) => a.status === "Pending").length}
                     </span>
-                    <span className="text-[10px] text-amber-700/80 mt-0.5">Action required</span>
+                    <span className="text-[10px] text-amber-700 mt-0.5">Action required</span>
                   </div>
                   <div className="bg-purple-50/60 rounded-2xl p-3.5 border border-purple-200/70 flex flex-col">
                     <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">
@@ -2658,7 +2658,7 @@ export function CourseDetailsPage({
                     <span className="text-xl font-bold text-purple-900 mt-1">
                       {courseAssignments.filter((a) => a.status === "Submitted").length}
                     </span>
-                    <span className="text-[10px] text-purple-700/80 mt-0.5">Awaiting review</span>
+                    <span className="text-[10px] text-purple-700 mt-0.5">Awaiting review</span>
                   </div>
                   <div className="bg-emerald-50/60 rounded-2xl p-3.5 border border-emerald-200/70 flex flex-col">
                     <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
@@ -2667,7 +2667,7 @@ export function CourseDetailsPage({
                     <span className="text-xl font-bold text-emerald-900 mt-1">
                       {courseAssignments.filter((a) => a.status === "Graded").length}
                     </span>
-                    <span className="text-[10px] text-emerald-700/80 mt-0.5">Evaluated with grade</span>
+                    <span className="text-[10px] text-emerald-700 mt-0.5">Evaluated with grade</span>
                   </div>
                 </div>
 
@@ -3390,12 +3390,12 @@ export function CourseDetailsPage({
                           </div>
 
                           {/* Concept Explanation Box */}
-                          <div className="p-3.5 rounded-xl bg-primary-soft border border-[#D8CFFF] text-xs mt-1">
+                          <div className="p-3.5 rounded-xl bg-primary-soft border border-primary-border text-xs mt-1">
                             <div className="flex items-center gap-1.5 text-primary-text font-bold mb-1">
                               <span>💡</span>
                               <span>Concept Explanation & Rationale:</span>
                             </div>
-                            <p className="text-[#33295A] leading-relaxed">
+                            <p className="text-foreground leading-relaxed">
                               {q.explanation}
                             </p>
                           </div>
@@ -3427,7 +3427,7 @@ export function CourseDetailsPage({
                     <span className="text-[11px] font-bold text-success uppercase tracking-wider">
                       Available
                     </span>
-                    <span className="text-xl font-bold text-[#182600] mt-1">
+                    <span className="text-xl font-bold text-success mt-1">
                       {courseQuizzes.filter((q) => (q.status === "Active" || (q.status as string) === "Available") && !savedProgressMap[q.id]).length}
                     </span>
                     <span className="text-[10px] text-success/80 mt-0.5">Ready to attempt</span>
@@ -3440,7 +3440,7 @@ export function CourseDetailsPage({
                     <span className="text-xl font-bold text-purple-900 mt-1">
                       {courseQuizzes.filter((q) => !q.score && !!savedProgressMap[q.id]).length}
                     </span>
-                    <span className="text-[10px] text-purple-700/80 mt-0.5">Saved draft session</span>
+                    <span className="text-[10px] text-purple-700 mt-0.5">Saved draft session</span>
                   </div>
 
                   <div className="bg-emerald-50/60 rounded-2xl p-3.5 border border-emerald-200/70 flex flex-col">
@@ -3450,7 +3450,7 @@ export function CourseDetailsPage({
                     <span className="text-xl font-bold text-emerald-900 mt-1">
                       {courseQuizzes.filter((q) => q.status === "Completed").length}
                     </span>
-                    <span className="text-[10px] text-emerald-700/80 mt-0.5">Evaluated with grade</span>
+                    <span className="text-[10px] text-emerald-700 mt-0.5">Evaluated with grade</span>
                   </div>
                 </div>
 

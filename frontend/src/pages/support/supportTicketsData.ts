@@ -49,7 +49,7 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Technical Problem",
     label: "Technical Problem",
-    badgeClass: "bg-[#FEE4E2] text-[#D92D20] border-[#FDA29B]/40 rounded-full",
+    badgeClass: "bg-danger-soft text-danger border-danger/30 rounded-full",
   },
   {
     id: "Payments & Certificates",
@@ -64,7 +64,7 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Others",
     label: "Others",
-    badgeClass: "bg-zinc-100 text-[#4B5563] border-[#E5E7EB] rounded-full",
+    badgeClass: "bg-zinc-100 text-zinc-600 border-zinc-200 rounded-full",
   },
   {
     id: "Account & Access Management",
@@ -89,7 +89,7 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "Technical Support",
     label: "Technical Support",
-    badgeClass: "bg-[#FEE4E2] text-[#D92D20] border-[#FDA29B]/40 rounded-full",
+    badgeClass: "bg-danger-soft text-danger border-danger/30 rounded-full",
   },
   {
     id: "Communication & Notifications",
@@ -99,7 +99,7 @@ export const SUPPORT_CATEGORIES: SupportCategoryInfo[] = [
   {
     id: "General Help & Feedback",
     label: "General Help & Feedback",
-    badgeClass: "bg-zinc-100 text-[#4B5563] border-[#E5E7EB] rounded-full",
+    badgeClass: "bg-zinc-100 text-zinc-600 border-zinc-200 rounded-full",
   },
 ];
 

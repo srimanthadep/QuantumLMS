@@ -701,14 +701,14 @@ export function AssignmentsPage({
               </div>
 
               {/* View Switcher Tabs */}
-              <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+              <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-full border border-zinc-200/60">
                 <button
                   type="button"
                   onClick={() => setMainTab("assignments")}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     mainTab === "assignments"
-                      ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                      : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      ? "bg-surface text-zinc-900 shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
                   Assignments ({assignments.length})
@@ -718,8 +718,8 @@ export function AssignmentsPage({
                   onClick={() => setMainTab("quizzes")}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     mainTab === "quizzes"
-                      ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                      : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      ? "bg-surface text-zinc-900 shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
                   Quizzes & Tests ({quizzes.length})

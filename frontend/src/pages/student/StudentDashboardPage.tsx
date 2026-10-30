@@ -828,7 +828,7 @@ export default function StudentDashboardPage({
               </h2>
               <p className="text-sm text-zinc-600 mb-4">
                 This credential certifies that{" "}
-                <strong className="text-black">Srimanth</strong> has
+                <strong className="text-foreground">Srimanth</strong> has
                 successfully mastered Python for Data Analysis, NumPy, Pandas,
                 and Neural Architectures.
               </p>

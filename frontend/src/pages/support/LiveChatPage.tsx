@@ -546,7 +546,7 @@ export const LiveChatPage: React.FC = () => {
           <div className="h-4 w-px bg-zinc-200 hidden sm:block" />
 
           {/* Lime Live Desk Indicator */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBFDCE] text-[#345C00] border border-success/40 text-xs font-bold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success-soft text-success border border-success/40 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span>Live Desk</span>
           </span>
@@ -895,7 +895,7 @@ export const LiveChatPage: React.FC = () => {
                   <div key={msg.id} className="flex items-end justify-end">
                     <div className="bg-primary-hover text-white rounded-[22px] rounded-br-sm p-4 text-xs sm:text-sm font-medium leading-relaxed max-w-[85%] sm:max-w-[78%] shadow-2xs">
                       <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                      <div className="text-[11px] text-white/80 mt-2 flex items-center gap-1.5 justify-end font-medium">
+                      <div className="text-[11px] text-white mt-2 flex items-center gap-1.5 justify-end font-medium">
                         <span>{msg.time}</span>
                         <CheckCheck className="h-3.5 w-3.5 text-success" />
                       </div>
@@ -988,7 +988,7 @@ export const LiveChatPage: React.FC = () => {
               </div>
             ) : (
               /* Modern Pill Input Bar */
-              <div className="rounded-full bg-[#F4F3F8] p-1.5 sm:p-2 pl-4 pr-2 flex items-center gap-3 border border-primary-border shadow-xs">
+              <div className="rounded-full bg-surface-2 p-1.5 sm:p-2 pl-4 pr-2 flex items-center gap-3 border border-primary-border shadow-xs">
                 {/* Attachment Icon */}
                 <button
                   type="button"

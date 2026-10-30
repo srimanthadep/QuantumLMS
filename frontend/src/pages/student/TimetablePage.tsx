@@ -125,14 +125,14 @@ export function TimetablePage({
           </div>
 
           {/* View Mode Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+          <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-full border border-zinc-200/60">
             <button
               type="button"
               onClick={() => setActiveTab("timetable")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "timetable"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Class Timetable
@@ -142,8 +142,8 @@ export function TimetablePage({
               onClick={() => setActiveTab("events")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "events"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Campus Events ({eventsList.length})
@@ -153,8 +153,8 @@ export function TimetablePage({
               onClick={() => setActiveTab("announcements")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "announcements"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Bulletins
@@ -231,25 +231,25 @@ export function TimetablePage({
               <div
                 key={slot.id}
                 onClick={() => setActiveSlot(slot)}
-                className="p-4 rounded-2xl bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between"
+                className="p-4 rounded-2xl bg-surface border border-slate-200/80 shadow-xs hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
                       {slot.day} · {slot.time}
                     </span>
                     <span className="text-[10px] font-semibold text-zinc-400">
                       {slot.courseCode}
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                  <h4 className="text-sm font-bold text-zinc-900 line-clamp-1">
                     {slot.courseName}
                   </h4>
                   <p className="text-xs text-zinc-500 mt-1">
                     Instructor: {slot.instructor}
                   </p>
                 </div>
-                <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-xs">
                   <span className="text-zinc-500 flex items-center gap-1">
                     📍 {slot.room}
                   </span>
@@ -304,32 +304,32 @@ export function TimetablePage({
             {filteredEvents.map((evt) => (
               <div
                 key={evt.id}
-                className="p-4 rounded-2xl bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between"
+                className="p-4 rounded-2xl bg-surface border border-slate-200/80 shadow-xs flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 dark:bg-ink-800 dark:text-zinc-300">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
                       {evt.category}
                     </span>
                     <span className="text-xs text-zinc-400 font-medium">
                       {evt.date}
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-sm font-bold text-zinc-900">
                     {evt.title}
                   </h4>
                   <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
                     {evt.description}
                   </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
                   <span className="text-xs text-zinc-500">📍 {evt.location}</span>
                   <button
                     type="button"
                     onClick={() => handleToggleRsvp(evt.id, evt.title)}
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
                       evt.registered
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                        ? "bg-emerald-100 text-emerald-800"
                         : "bg-purple-600 text-white hover:bg-purple-700"
                     }`}
                   >
@@ -345,7 +345,7 @@ export function TimetablePage({
       {/* VIEW 3: BULLETINS & ANNOUNCEMENTS */}
       {activeTab === "announcements" && (
         <div className="flex flex-col gap-3">
-          <div className="panel p-3 bg-surface dark:bg-ink-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3">
+          <div className="panel p-3 bg-surface border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {(["All", "Urgent", "Academic", "Infrastructure", "General"] as const).map(
                 (c) => (
@@ -380,8 +380,8 @@ export function TimetablePage({
                 onClick={() => toggleExpand(ann.id)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                   ann.isRead
-                    ? "bg-surface dark:bg-ink-900 border-slate-200/80 dark:border-zinc-800/80"
-                    : "bg-purple-50/40 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800/50 shadow-xs"
+                    ? "bg-surface border-slate-200/80"
+                    : "bg-purple-50/40 border-purple-200 shadow-xs"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -395,13 +395,13 @@ export function TimetablePage({
                     >
                       {ann.category}
                     </span>
-                    <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    <h4 className="text-sm font-bold text-zinc-900">
                       {ann.title}
                     </h4>
                   </div>
                   <span className="text-xs text-zinc-400">{ann.timestamp}</span>
                 </div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
+                <p className="text-xs text-zinc-600 mt-1">
                   {expandedIds[ann.id] ? ann.content : ann.content.slice(0, 120) + "..."}
                 </p>
                 <div className="mt-2 text-[11px] text-zinc-400">

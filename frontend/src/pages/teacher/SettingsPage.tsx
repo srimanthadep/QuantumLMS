@@ -421,7 +421,7 @@ export default function SettingsPage({
                     </div>
                     {cat.badge && (
                       <span
-                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-[#FFF1EE] text-primary-text"
+                        className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline ${isActive ? "bg-white/20 text-white" : "bg-primary-soft text-primary-text"
                           }`}
                       >
                         {cat.badge}

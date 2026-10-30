@@ -341,19 +341,19 @@ export const TicketDetailPage: React.FC = () => {
                               {msg.sender}
                             </p>
                             {isAgent && (
-                              <span className="bg-white/20 text-white border border-white/30 text-[8px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-xs leading-none">
+                              <span className="bg-black/20 text-white border border-white/30 text-[8px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-xs leading-none">
                                 Mentor
                               </span>
                             )}
                           </div>
-                          <p className={`text-[9px] font-mono mt-0.5 ${isAgent ? "text-white/80" : "text-zinc-400"}`}>
+                          <p className={`text-[9px] font-mono mt-0.5 ${isAgent ? "text-white" : "text-zinc-400"}`}>
                             {msg.timestamp}
                           </p>
                         </div>
                       </div>
 
                       {isAgent && (
-                        <div className="flex items-center gap-1 text-[10px] text-white/90 font-mono">
+                        <div className="flex items-center gap-1 text-[10px] text-white font-mono">
                           <span>Delivered</span>
                           <CheckCheck className="h-3.5 w-3.5 text-success" />
                         </div>

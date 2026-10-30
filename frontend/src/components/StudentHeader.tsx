@@ -207,7 +207,7 @@ export function StudentHeader({
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-xs text-slate-900">Notifications</span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-[#FEF2F0] text-primary-text">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-primary-soft text-primary-text">
                     3 new
                   </span>
                 </div>
@@ -229,7 +229,7 @@ export function StudentHeader({
                   }}
                   className="p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-2.5"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#0F766E] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 mt-0.5">
                     <Icon name="document" size={13} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -269,7 +269,7 @@ export function StudentHeader({
                   }}
                   className="p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-2.5"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-[#172033] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-foreground flex items-center justify-center shrink-0 mt-0.5">
                     <Icon name="users" size={13} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -331,7 +331,7 @@ export function StudentHeader({
                   <p className="text-xs font-semibold text-slate-900 truncate">
                     {studentUser.name}
                   </p>
-                  <p className="text-[11px] text-[#0F766E] font-medium truncate">
+                  <p className="text-[11px] text-teal-700 font-medium truncate">
                     Student · Year 4
                   </p>
                   <p className="text-[10px] text-slate-400 truncate">{studentUser.email}</p>

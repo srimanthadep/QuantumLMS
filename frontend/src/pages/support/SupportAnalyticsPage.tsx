@@ -139,11 +139,11 @@ export const SupportAnalyticsPage: React.FC = () => {
   const categoryFigmaColors = [
     { bg: "#905FEB", labelColor: "text-primary-text", badge: "badge-status-in-progress" },
     { bg: "#AEEB00", labelColor: "text-success", badge: "badge-status-completed" },
-    { bg: "#F472B6", labelColor: "text-[#BE185D]", badge: "badge-status-assigned" },
-    { bg: "#7042D2", labelColor: "text-[#5B21B6]", badge: "badge-status-in-progress" },
+    { bg: "#F472B6", labelColor: "text-pink-700", badge: "badge-status-assigned" },
+    { bg: "#7042D2", labelColor: "text-violet-800", badge: "badge-status-in-progress" },
     { bg: "#F59E0B", labelColor: "text-warning", badge: "badge-status-assigned" },
-    { bg: "#EC4899", labelColor: "text-[#9D174D]", badge: "badge-status-assigned" },
-    { bg: "#64748B", labelColor: "text-[#334155]", badge: "badge-status-not-started" },
+    { bg: "#EC4899", labelColor: "text-pink-800", badge: "badge-status-assigned" },
+    { bg: "#64748B", labelColor: "text-slate-700", badge: "badge-status-not-started" },
   ];
 
   const categoryStats = SUPPORT_CATEGORIES.map((cat, idx) => {
@@ -313,7 +313,7 @@ export const SupportAnalyticsPage: React.FC = () => {
 
                       {/* Progress Bar Row from Figma: Rounded Pill Track + Fill + Bold % */}
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 h-3.5 rounded-full bg-[#F2F4F7] p-0.5 overflow-hidden">
+                        <div className="flex-1 h-3.5 rounded-full bg-surface-2 p-0.5 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-700 ease-out shadow-xs"
                             style={{

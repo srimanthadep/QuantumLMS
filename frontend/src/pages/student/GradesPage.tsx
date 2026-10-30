@@ -160,14 +160,14 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Mode Tabs */}
-            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-full border border-zinc-200/60">
               <button
                 type="button"
                 onClick={() => setActiveTab("grades")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "grades"
-                    ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                    ? "bg-surface text-zinc-900 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
                 Academic Grades & GPA
@@ -177,8 +177,8 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 onClick={() => setActiveTab("certificates")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "certificates"
-                    ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                    ? "bg-surface text-zinc-900 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
                 Credentials & Certificates ({earned.length})
@@ -331,7 +331,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             item.status === "Passed with Honors"
-                              ? "bg-success-soft text-[#253700] border border-[#D2F66A]"
+                              ? "bg-success-soft text-success border border-success/40"
                               : "bg-primary-soft text-primary-text border border-primary-border/60"
                           }`}
                         >
@@ -368,7 +368,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                   Overall score by subject (0–100 scale)
                 </span>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-success-soft text-[#253700] border border-[#D2F66A]">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-success-soft text-success border border-success/40">
                 Avg {currentAverage}%
               </span>
             </div>
@@ -770,7 +770,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                 <h3 className="card-title text-base font-bold text-zinc-900 tracking-tight">
                   Performance by Component
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-soft text-[#253700]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-soft text-success">
                   Exam Breakdown
                 </span>
               </div>
@@ -1177,7 +1177,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
           <section className="panel" aria-label="Earned Credentials">
             <div className="card-header mb-4 flex items-center justify-between">
               <div>
-                <h3 className="card-title text-base font-bold text-zinc-900 dark:text-zinc-100">
+                <h3 className="card-title text-base font-bold text-zinc-900">
                   Earned Diplomas & Specializations ({earned.length})
                 </h3>
                 <span className="text-xs text-emerald-700 font-bold">
@@ -1202,31 +1202,31 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               {earned.map((cert) => (
                 <div
                   key={cert.id}
-                  className="p-5 rounded-2xl border border-purple-100 dark:border-purple-900/40 bg-purple-50/30 dark:bg-purple-950/20 flex flex-col justify-between hover:shadow-xs transition-shadow"
+                  className="p-5 rounded-2xl border border-purple-100 bg-purple-50/30 flex flex-col justify-between hover:shadow-xs transition-shadow"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold">
                         <Icon name="award" size={20} />
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                         Verified Credential
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-base text-zinc-900 dark:text-zinc-100 mb-1">
+                    <h4 className="font-bold text-base text-zinc-900 mb-1">
                       {cert.title}
                     </h4>
-                    <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">
+                    <div className="text-xs font-semibold text-purple-700 mb-2">
                       {cert.grade}
                     </div>
 
                     <div className="text-xs text-zinc-500 mb-4 flex flex-col gap-1">
                       <span>
-                        Issued: <strong className="text-zinc-800 dark:text-zinc-200">{cert.issueDate}</strong>
+                        Issued: <strong className="text-zinc-800">{cert.issueDate}</strong>
                       </span>
                       <span>
-                        Credential ID: <strong className="font-mono text-zinc-700 dark:text-zinc-300">{cert.credentialId}</strong>
+                        Credential ID: <strong className="font-mono text-zinc-700">{cert.credentialId}</strong>
                       </span>
                     </div>
 
@@ -1234,7 +1234,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                       {cert.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface dark:bg-ink-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface text-zinc-700 border border-zinc-200"
                         >
                           {skill}
                         </span>
@@ -1242,7 +1242,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-3 border-t border-purple-100 dark:border-purple-900/40">
+                  <div className="flex items-center gap-2 pt-3 border-t border-purple-100">
                     <button
                       type="button"
                       onClick={() => setIsCertModalOpen(true)}
@@ -1274,7 +1274,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
                         URL.revokeObjectURL(url)
                         onToast(`Downloaded verified diploma for ${cert.title}! 🎓`)
                       }}
-                      className="px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-surface dark:bg-ink-800 text-xs font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full border border-purple-200 bg-surface text-xs font-bold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer"
                     >
                       Download PDF
                     </button>
@@ -1287,7 +1287,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
           {/* In-Progress Tracks */}
           <section className="panel" aria-label="In Progress Certificates">
             <div className="card-header mb-4">
-              <h3 className="card-title text-base font-bold text-zinc-900 dark:text-zinc-100">
+              <h3 className="card-title text-base font-bold text-zinc-900">
                 Certificates in Progress ({inProgress.length})
               </h3>
               <span className="text-xs text-zinc-500">
@@ -1299,24 +1299,24 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               {inProgress.map((cert) => (
                 <div
                   key={cert.id}
-                  className="p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-ink-800/40 flex flex-col justify-between"
+                  className="p-5 rounded-2xl border border-zinc-100 bg-zinc-50 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center font-bold">
+                      <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-600 flex items-center justify-center font-bold">
                         <Icon name="award" size={20} />
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200 text-zinc-700">
                         {cert.progress}% Complete
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-1">
+                    <h4 className="font-bold text-sm text-zinc-900 mb-1">
                       {cert.title}
                     </h4>
                     <div className="text-xs text-zinc-500 mb-3">{cert.grade}</div>
 
-                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 h-2 rounded-full overflow-hidden mb-2">
+                    <div className="w-full bg-zinc-200 h-2 rounded-full overflow-hidden mb-2">
                       <div
                         className="bg-purple-600 h-full rounded-full transition-all duration-500"
                         style={{ width: `${cert.progress}%` }}
@@ -1372,7 +1372,7 @@ export function GradesPage({ onToast, initialView = "grades" }: GradesPageProps)
               </h2>
               <p className="text-sm text-zinc-600 mb-4">
                 This credential certifies that{" "}
-                <strong className="text-black">Srimanth</strong> has
+                <strong className="text-foreground">Srimanth</strong> has
                 successfully mastered Python for Data Analysis, NumPy, Pandas,
                 and Neural Architectures with Distinction.
               </p>

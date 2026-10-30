@@ -160,14 +160,14 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
           </div>
 
           {/* View Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-ink-800 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+          <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-full border border-zinc-200/60">
             <button
               type="button"
               onClick={() => setActiveTab("squads")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "squads"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Squads & Channels
@@ -177,8 +177,8 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
               onClick={() => setActiveTab("discussions")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "discussions"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Course Discussions ({forumTopics.length})
@@ -188,8 +188,8 @@ export function CommunityPage({ onToast, initialTab = "squads" }: CommunityPageP
               onClick={() => setActiveTab("speech")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "speech"
-                  ? "bg-surface dark:bg-ink-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                  ? "bg-surface text-zinc-900 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
               Speech & Verbal Lab

@@ -766,7 +766,7 @@ export default function AnalyticsPage({
                   <strong className="text-lg font-bold text-purple-950 mt-0.5">
                     {cohortActivityAggregate.totalEvents.toLocaleString()}
                   </strong>
-                  <span className="text-[10px] text-purple-700/80 mt-0.5">Across 24 students</span>
+                  <span className="text-[10px] text-purple-700 mt-0.5">Across 24 students</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-zinc-50 border border-gray-200 flex flex-col items-center text-center">
@@ -782,7 +782,7 @@ export default function AnalyticsPage({
                   <strong className="text-lg font-bold text-purple-900 mt-0.5">
                     {cohortActivityAggregate.breakdown.videoWatch}
                   </strong>
-                  <span className="text-[10px] text-purple-700/80 mt-0.5">Recorded lessons</span>
+                  <span className="text-[10px] text-purple-700 mt-0.5">Recorded lessons</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-col items-center text-center">
@@ -790,7 +790,7 @@ export default function AnalyticsPage({
                   <strong className="text-lg font-bold text-emerald-900 mt-0.5">
                     {cohortActivityAggregate.breakdown.lessonComplete}
                   </strong>
-                  <span className="text-[10px] text-emerald-700/80 mt-0.5">Lessons finished</span>
+                  <span className="text-[10px] text-emerald-700 mt-0.5">Lessons finished</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-center text-center">
@@ -798,7 +798,7 @@ export default function AnalyticsPage({
                   <strong className="text-lg font-bold text-amber-900 mt-0.5">
                     {cohortActivityAggregate.breakdown.quizAttempt}
                   </strong>
-                  <span className="text-[10px] text-amber-700/80 mt-0.5">Formative checks</span>
+                  <span className="text-[10px] text-amber-700 mt-0.5">Formative checks</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-100 flex flex-col items-center text-center">
@@ -806,7 +806,7 @@ export default function AnalyticsPage({
                   <strong className="text-lg font-bold text-blue-900 mt-0.5">
                     {cohortActivityAggregate.breakdown.assignmentSubmit}
                   </strong>
-                  <span className="text-[10px] text-blue-700/80 mt-0.5">Lab & assignments</span>
+                  <span className="text-[10px] text-blue-700 mt-0.5">Lab & assignments</span>
                 </div>
               </div>
 
@@ -1147,7 +1147,7 @@ export default function AnalyticsPage({
               <strong className="text-base font-bold text-purple-950 mt-0.5 block">
                 {overviewStats.totalSubmissions} / {overviewStats.totalExpectedSubmissions}
               </strong>
-              <span className="text-[10.5px] text-purple-700/80">
+              <span className="text-[10.5px] text-purple-700">
                 {overviewStats.submissionRate}% submission rate
               </span>
             </div>
@@ -1159,7 +1159,7 @@ export default function AnalyticsPage({
               <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
                 39 Submissions
               </strong>
-              <span className="text-[10.5px] text-emerald-700/80">46.4% evaluated</span>
+              <span className="text-[10.5px] text-emerald-700">46.4% evaluated</span>
             </div>
 
             <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
@@ -1169,7 +1169,7 @@ export default function AnalyticsPage({
               <strong className="text-base font-bold text-amber-950 mt-0.5 block">
                 45 Submissions
               </strong>
-              <span className="text-[10.5px] text-amber-700/80">Ready for teacher grading</span>
+              <span className="text-[10.5px] text-amber-700">Ready for teacher grading</span>
             </div>
 
             <div className="p-3 rounded-xl bg-zinc-50 border border-gray-200">
@@ -1301,21 +1301,21 @@ export default function AnalyticsPage({
                 <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
                   {overviewStats.presentCount}
                 </strong>
-                <span className="text-[10px] text-emerald-700/80">87.5%</span>
+                <span className="text-[10px] text-emerald-700">87.5%</span>
               </div>
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100">
                 <span className="text-[10px] font-semibold text-amber-800 uppercase block">Late</span>
                 <strong className="text-base font-bold text-amber-950 mt-0.5 block">
                   {overviewStats.lateCount}
                 </strong>
-                <span className="text-[10px] text-amber-700/80">8.3%</span>
+                <span className="text-[10px] text-amber-700">8.3%</span>
               </div>
               <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100">
                 <span className="text-[10px] font-semibold text-purple-800 uppercase block">Left Early</span>
                 <strong className="text-base font-bold text-purple-950 mt-0.5 block">
                   {overviewStats.leftEarlyCount}
                 </strong>
-                <span className="text-[10px] text-purple-700/80">4.2%</span>
+                <span className="text-[10px] text-purple-700">4.2%</span>
               </div>
               <div className="p-2.5 rounded-xl bg-zinc-50 border border-gray-200">
                 <span className="text-[10px] font-semibold text-zinc-600 uppercase block">Absent</span>
@@ -1395,7 +1395,7 @@ export default function AnalyticsPage({
                 <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
                   {overviewStats.completedSessions}
                 </strong>
-                <span className="text-[10px] text-emerald-700/80">330 mins broadcast</span>
+                <span className="text-[10px] text-emerald-700">330 mins broadcast</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100">
@@ -1403,7 +1403,7 @@ export default function AnalyticsPage({
                 <strong className="text-base font-bold text-purple-950 mt-0.5 block">
                   {overviewStats.upcomingSessions}
                 </strong>
-                <span className="text-[10px] text-purple-700/80">Upcoming on calendar</span>
+                <span className="text-[10px] text-purple-700">Upcoming on calendar</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100">
@@ -1411,7 +1411,7 @@ export default function AnalyticsPage({
                 <strong className="text-base font-bold text-amber-950 mt-0.5 block">
                   3 Ready
                 </strong>
-                <span className="text-[10px] text-amber-700/80">1 Transcoding</span>
+                <span className="text-[10px] text-amber-700">1 Transcoding</span>
               </div>
             </div>
 
@@ -1479,7 +1479,7 @@ export default function AnalyticsPage({
               <strong className="text-lg font-bold text-purple-950 mt-0.5 block">
                 {recordingReviewStats.availableRecordings} Available
               </strong>
-              <span className="text-[10.5px] text-purple-700/80">
+              <span className="text-[10.5px] text-purple-700">
                 +{recordingReviewStats.processingRecordings} Transcoding
               </span>
             </div>
@@ -2016,10 +2016,10 @@ function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
             >
               <span className="pill-dot" style={{ background: sub.hex }} />
               <span>{sub.name}</span>
-              <strong className="text-black ml-1">{sub.mastery}%</strong>
+              <strong className="text-foreground ml-1">{sub.mastery}%</strong>
               <span
                 className="text-[9.5px] font-medium ml-1"
-                style={{ color: delta >= 0 ? "#557c00" : "#d9534f" }}
+                style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}
               >
                 ({delta >= 0 ? `+${delta}%` : `${delta}%`})
               </span>
@@ -2280,7 +2280,7 @@ function CohortGrowthQuadrantCard({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <strong className="text-black font-bold text-xs">{student.gpa}%</strong>
+              <strong className="text-foreground font-bold text-xs">{student.gpa}%</strong>
               <span className="quadrant-velocity-badge">{student.growthRate}</span>
             </div>
           </div>
@@ -2486,7 +2486,7 @@ export function ReportsArchiveCard({
                 <div className="flex items-center gap-3">
                   {report.status === "Sent" && (
                     <div className="hidden sm:flex flex-col items-end text-right">
-                      <span className="text-[11px] font-bold text-black">
+                      <span className="text-[11px] font-bold text-foreground">
                         {report.readRate}% Read
                       </span>
                       <span className="text-[9.5px] font-normal text-zinc-400">
@@ -2550,7 +2550,7 @@ export function ReportPreviewCard({
       </div>
 
       <div className="report-preview-header">
-        <h3 className="text-[16px] font-bold text-black leading-snug">
+        <h3 className="text-[16px] font-bold text-foreground leading-snug">
           {report.title}
         </h3>
         <div className="text-[11px] font-normal text-zinc-500">

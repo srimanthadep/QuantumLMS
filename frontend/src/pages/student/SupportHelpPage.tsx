@@ -469,7 +469,7 @@ export function SupportHelpPage({
         )
       case "Resolved":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-success-soft text-[#253700] border border-[#D2F66A]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-success-soft text-success border border-success/40">
             <span className="w-1.5 h-1.5 rounded-full bg-success" />
             Resolved
           </span>
@@ -666,7 +666,7 @@ export function SupportHelpPage({
                     <button
                       type="button"
                       onClick={() => handleUpdateStatus(activeTicket.id, "Resolved")}
-                      className="px-3 py-1.5 rounded-full bg-success text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow-sm transition-colors"
+                      className="px-3 py-1.5 rounded-full bg-success text-white dark:text-ink-950 text-xs font-bold hover:opacity-90 cursor-pointer shadow-sm transition-colors"
                     >
                       ✓ Mark as Resolved
                     </button>
@@ -1353,7 +1353,7 @@ export function SupportHelpPage({
                   setActiveSection("tickets")
                   handleOpenCreateModal()
                 }}
-                className="px-5 py-2.5 rounded-full bg-success text-[#151B00] text-xs font-bold hover:bg-[#9ED500] cursor-pointer shadow"
+                className="px-5 py-2.5 rounded-full bg-success text-white dark:text-ink-950 text-xs font-bold hover:opacity-90 cursor-pointer shadow"
               >
                 + Create Support Ticket →
               </button>
@@ -1614,9 +1614,9 @@ export function SupportHelpPage({
             </div>
 
             {/* Center Light-Green Circular Success Icon with Green Checkmark */}
-            <div className="w-16 h-16 rounded-full bg-success-soft text-[#253700] mx-auto flex items-center justify-center text-3xl font-black mb-4 shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-success-soft text-success mx-auto flex items-center justify-center text-3xl font-black mb-4 shadow-xs">
               <svg
-                className="w-8 h-8 text-[#253700]"
+                className="w-8 h-8 text-success"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
