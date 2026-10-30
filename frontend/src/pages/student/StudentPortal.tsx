@@ -9,10 +9,9 @@ import type {
 } from "./studentTypes"
 import StudentDashboardPage from "./StudentDashboardPage"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
-const MyCoursesPage = lazy(() => import("./MyCoursesPage").then((m) => ({ default: m.MyCoursesPage })))
-const CourseDetailsPage = lazy(() => import("./CourseDetailsPage").then((m) => ({ default: m.CourseDetailsPage })))
-const TimetablePage = lazy(() => import("./TimetablePage").then((m) => ({ default: m.TimetablePage })))
-const AttendancePage = lazy(() => import("./AttendancePage").then((m) => ({ default: m.AttendancePage })))
+const MyCoursesPage = lazy(() => import("./MyCoursesPage"))
+const CourseDetailsPage = lazy(() => import("./CourseDetailsPage"))
+const SchedulePage = lazy(() => import("./SchedulePage"))
 const AssignmentsPage = lazy(() => import("./AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })))
 const GradesPage = lazy(() => import("./GradesPage").then((m) => ({ default: m.GradesPage })))
 const CommunityPage = lazy(() => import("./CommunityPage").then((m) => ({ default: m.CommunityPage })))
@@ -384,12 +383,24 @@ export default function StudentPortal({
                 />
               )}
 
-              {(activeTab === "Schedule" || activeTab === "Timetable") && (
-                <TimetablePage onToast={onToast} />
-              )}
-
-              {activeTab === "Attendance" && (
-                <AttendancePage onToast={onToast} />
+              {(activeTab === "Schedule" ||
+                activeTab === "Timetable" ||
+                activeTab === "Attendance" ||
+                activeTab === "Events & Notices" ||
+                activeTab === "Announcements") && (
+                <SchedulePage
+                  key={activeTab}
+                  onToast={onToast}
+                  initialTab={
+                    activeTab === "Attendance"
+                      ? "attendance"
+                      : activeTab === "Events & Notices"
+                        ? "events"
+                        : activeTab === "Announcements"
+                          ? "announcements"
+                          : "timetable"
+                  }
+                />
               )}
 
               {(activeTab === "Assessments" || activeTab === "Assignments" || activeTab === "Quizzes") && (

@@ -1,771 +1,293 @@
-import { useState, useMemo } from "react"
-import { Icon } from "../../components/Icon"
-import { StudentDropdown } from "../../components/StudentDropdown"
+import { useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { BookOpen, CheckCircle2, Clock, Compass, GraduationCap, Layers, Search, Star, X } from "lucide-react"
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Input,
+  PageHeader,
+  SegmentedControl,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui"
+import ProgressRing from "@/components/charts/ProgressRing"
+import AnimatedNumber from "@/components/motion/AnimatedNumber"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import CourseCover from "@/components/shared/CourseCover"
+import CourseCard from "@/components/student/CourseCard"
 import type { CourseItem, StudentNavPage } from "./studentTypes"
+import { coverCategory } from "./studentUtils"
 
 interface MyCoursesPageProps {
+  onNavigate: (page: StudentNavPage, courseId?: string) => void
+  onToast: (msg: string) => void
+  onSelectCourse: (id: string) => void
+  onEnrollCourse: (course: CourseItem) => void
   courses: CourseItem[]
   catalog: CourseItem[]
-  onSelectCourse: (courseId: string) => void
-  onNavigate: (page: StudentNavPage) => void
-  onToast: (msg: string) => void
-  onEnrollCourse: (course: CourseItem) => void
 }
 
-type EnrolledFilter = "All" | "In Progress" | "Completed"
-type CourseSort = "recent" | "name" | "progress"
+type StatusFilter = "All" | "In Progress" | "Completed"
+type SortKey = "recent" | "progress-desc" | "progress-asc" | "title"
 
-export function MyCoursesPage({
-  courses,
-  catalog,
-  onSelectCourse,
-  onNavigate,
-  onToast,
-  onEnrollCourse,
-}: MyCoursesPageProps) {
-  // Mode: "enrolled" shows enrolled courses + the Explore Courses card; "catalogue" shows the course catalogue
-  const [viewMode, setViewMode] = useState<"enrolled" | "catalogue">("enrolled")
-  const [filter, setFilter] = useState<EnrolledFilter>("All")
-  const [search, setSearch] = useState("")
-  const [catalogueSearch, setCatalogueSearch] = useState("")
-  const [sortBy, setSortBy] = useState<CourseSort>("recent")
-  const [expandedDescriptions, setExpandedDescriptions] = useState<
-    Record<string, boolean>
-  >({})
+const SORTS: { value: SortKey; label: string }[] = [
+  { value: "recent", label: "Recently accessed" },
+  { value: "progress-desc", label: "Most progress" },
+  { value: "progress-asc", label: "Least progress" },
+  { value: "title", label: "Title A–Z" },
+]
 
-  const toggleDescription = (courseId: string) => {
-    setExpandedDescriptions((prev) => ({
-      ...prev,
-      [courseId]: !prev[courseId],
-    }))
-  }
+const hours = (d: string) => Number.parseFloat(d) || 0
 
-  // Filter and sort enrolled courses only (excluding catalog courses from main list)
-  const filteredEnrolledCourses = useMemo(() => {
-    let list: CourseItem[] = []
+function matches(c: CourseItem, q: string) {
+  if (!q) return true
+  const s = q.toLowerCase()
+  return [c.title, c.category, c.instructor, c.description].some((v) => v.toLowerCase().includes(s))
+}
 
-    if (filter === "All") {
-      list = [...courses]
-    } else if (filter === "In Progress") {
-      list = courses.filter((c) => c.status === "In Progress")
-    } else if (filter === "Completed") {
-      list = courses.filter((c) => c.status === "Completed")
+export default function MyCoursesPage({ onNavigate, onEnrollCourse, courses, catalog }: MyCoursesPageProps) {
+  const [tab, setTab] = useState<"enrolled" | "catalog">("enrolled")
+  const [query, setQuery] = useState("")
+  const [status, setStatus] = useState<StatusFilter>("All")
+  const [sort, setSort] = useState<SortKey>("recent")
+  const [preview, setPreview] = useState<CourseItem | null>(null)
+
+  const stats = useMemo(() => {
+    const avg = courses.length ? Math.round(courses.reduce((s, c) => s + c.progress, 0) / courses.length) : 0
+    return {
+      avg,
+      inProgress: courses.filter((c) => c.status === "In Progress").length,
+      completed: courses.filter((c) => c.status === "Completed").length,
+      modulesDone: courses.reduce((s, c) => s + c.completedModules, 0),
+      modulesTotal: courses.reduce((s, c) => s + c.totalModules, 0),
+      hours: courses.reduce((s, c) => s + hours(c.duration), 0),
     }
+  }, [courses])
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          c.category.toLowerCase().includes(q) ||
-          c.instructor.toLowerCase().includes(q) ||
-          c.level.toLowerCase().includes(q),
-      )
-    }
-
-    // Apply sorting
-    const sorted = [...list]
-    if (sortBy === "name") {
-      sorted.sort((a, b) => a.title.localeCompare(b.title))
-    } else if (sortBy === "progress") {
-      sorted.sort((a, b) => b.progress - a.progress)
-    }
-
-    return sorted
-  }, [courses, filter, search, sortBy])
-
-  // Filtered catalogue courses
-  const filteredCatalogueCourses = useMemo(() => {
-    let list = [...catalog]
-    if (catalogueSearch.trim()) {
-      const q = catalogueSearch.toLowerCase()
-      list = list.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          c.category.toLowerCase().includes(q) ||
-          c.instructor.toLowerCase().includes(q) ||
-          c.level.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q),
-      )
-    }
+  const enrolled = useMemo(() => {
+    const list = courses.filter((c) => (status === "All" || c.status === status) && matches(c, query.trim()))
+    if (sort === "progress-desc") return [...list].sort((a, b) => b.progress - a.progress)
+    if (sort === "progress-asc") return [...list].sort((a, b) => a.progress - b.progress)
+    if (sort === "title") return [...list].sort((a, b) => a.title.localeCompare(b.title))
     return list
-  }, [catalog, catalogueSearch])
+  }, [courses, status, query, sort])
 
-  // Counts for tabs
-  const allCount = courses.length
-  const inProgressCount = courses.filter((c) => c.status === "In Progress").length
-  const completedCount = courses.filter((c) => c.status === "Completed").length
-  const catalogCount = catalog.length
+  const explore = useMemo(() => catalog.filter((c) => matches(c, query.trim())), [catalog, query])
 
-  const handleOpenCourse = (courseId: string) => {
-    onSelectCourse(courseId)
-    onNavigate("Course Details")
-  }
+  const statusOptions = (["All", "In Progress", "Completed"] as const).map((s) => ({
+    value: s as StatusFilter,
+    label: `${s === "In Progress" ? "In progress" : s} · ${s === "All" ? courses.length : s === "In Progress" ? stats.inProgress : stats.completed}`,
+  }))
 
-  const handleEnrollAndOpen = (course: CourseItem) => {
-    onEnrollCourse(course)
-    onToast(`Enrolled in "${course.title}" successfully! 🎉`)
-    onSelectCourse(course.id)
-    onNavigate("Course Details")
+  const open = (c: CourseItem) => onNavigate("Course Details", c.id)
+  const clearFilters = () => {
+    setQuery("")
+    setStatus("All")
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-full min-w-0 box-border">
-      {/* =========================================================================
-          VIEW A: ENROLLED COURSES VIEW + SINGLE EXPLORE COURSES CARD
-          ========================================================================= */}
-      {viewMode === "enrolled" ? (
-        <>
-          {/* 1. Header and Filters Section */}
-          <section
-            className="bg-surface rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
-            aria-label="My Courses Controls"
-          >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
+    <div className="flex flex-col">
+      <PageHeader eyebrow="Learning" title="My Courses" description="Pick up where you left off, or explore a new program from the catalog." />
+
+      <Stagger className="flex flex-col gap-5" stagger={0.06}>
+        <StaggerItem>
+          <Card className="grid grid-cols-2 gap-px overflow-hidden bg-border lg:grid-cols-4">
+            <div className="col-span-2 flex items-center gap-4 bg-surface p-5 lg:col-span-1">
+              <ProgressRing value={stats.avg} size={64} thickness={6} label="Average course progress" />
               <div className="min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
-                    My Courses
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-soft text-primary-text border border-purple-100 shrink-0">
-                    {courses.length} Enrolled
-                  </span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-zinc-500 mt-1 font-normal break-words">
-                  Continue learning, review syllabi, and track your milestone progress across enrolled courses.
+                <p className="text-sm font-semibold text-foreground">Overall progress</p>
+                <p className="text-caption text-muted-foreground">
+                  {stats.modulesDone} of {stats.modulesTotal} modules complete
                 </p>
               </div>
-
-              {/* Filter Tabs (Pill Buttons) */}
-              <div className="flex flex-wrap gap-2 shrink-0">
-                {(
-                  [
-                    { id: "All" as const, label: "All Courses", count: allCount },
-                    {
-                      id: "In Progress" as const,
-                      label: "In Progress",
-                      count: inProgressCount,
-                    },
-                    {
-                      id: "Completed" as const,
-                      label: "Completed",
-                      count: completedCount,
-                    },
-                  ] as const
-                ).map((tab) => {
-                  const isActive = filter === tab.id
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setFilter(tab.id)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                        isActive
-                          ? "bg-primary text-white shadow-xs"
-                          : "bg-primary-soft text-primary-text hover:bg-[#E4DFFD]"
-                      }`}
-                    >
-                      {tab.label} ({tab.count})
-                    </button>
-                  )
-                })}
-
-                {/* Explore Catalogue Switcher Tab */}
-                <button
-                  onClick={() => setViewMode("catalogue")}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-surface border border-purple-200 text-primary-text hover:bg-purple-50 flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  title="Explore Course Catalogue"
-                >
-                  <Icon name="compass" size={13} />
-                  <span>Explore Catalogue ({catalogCount})</span>
-                </button>
-              </div>
             </div>
-
-            {/* Search & Sort Controls Row */}
-            <div className="mt-4 pt-3.5 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-              {/* Search bar */}
-              <div className="relative w-full max-w-md min-w-0">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
-                  <Icon name="search" size={14} />
-                </div>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search enrolled courses by title, instructor, or topic..."
-                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-surface focus:border-primary transition-all box-border"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-zinc-400 hover:text-zinc-700 cursor-pointer font-bold"
-                    aria-label="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              {/* Sorting dropdown and item count */}
-              <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap min-w-0">
-                <div className="flex items-center gap-2 text-xs text-zinc-600 shrink-0">
-                  <span className="font-semibold text-zinc-500 whitespace-nowrap">Sort by:</span>
-                  <StudentDropdown
-                    value={sortBy}
-                    onChange={(val) => setSortBy(val as CourseSort)}
-                    options={[
-                      { value: "recent", label: "Recently Accessed" },
-                      { value: "name", label: "Course Name (A–Z)" },
-                      { value: "progress", label: "Highest Progress" },
-                    ]}
-                    size="sm"
-                    fullWidth={false}
-                    triggerClassName="min-w-[170px] rounded-full bg-zinc-50"
-                  />
-                </div>
-
-                <span className="text-xs text-zinc-400 font-medium whitespace-nowrap hidden sm:inline">
-                  Showing <strong className="text-zinc-700 font-bold">{filteredEnrolledCourses.length}</strong> {filteredEnrolledCourses.length === 1 ? "course" : "courses"}
+            {[
+              { icon: BookOpen, label: "In progress", value: stats.inProgress, tile: "bg-primary-soft text-primary-text ring-primary-border" },
+              { icon: CheckCircle2, label: "Completed", value: stats.completed, tile: "bg-success-soft text-success ring-success/20" },
+              { icon: Clock, label: "Hours of content", value: stats.hours, tile: "bg-info-soft text-info ring-info/20" },
+            ].map((s, i) => (
+              <div key={s.label} className={i === 2 ? "col-span-2 flex items-center gap-3 bg-surface p-5 lg:col-span-1" : "flex items-center gap-3 bg-surface p-5"}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${s.tile}`}>
+                  <s.icon className="h-4 w-4" aria-hidden="true" />
                 </span>
-              </div>
-            </div>
-          </section>
-
-          {/* 2. Responsive Grid Layout:
-              Enrolled Course Cards + Single Explore Courses Card
-              - Wide screens: 3 cards per row
-              - Medium screens: 2 cards per row
-              - Small screens: 1 card per row
-          */}
-          <div className="student-courses-grid w-full max-w-full min-w-0 box-border">
-            {/* Render Enrolled Course Cards */}
-            {filteredEnrolledCourses.map((course) => {
-              const isCompleted = course.status === "Completed"
-              const isInProgress = course.status === "In Progress"
-              const isExpanded = !!expandedDescriptions[course.id]
-
-              return (
-                <div
-                  key={course.id}
-                  className="bg-surface rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
-                >
-                  <div className="flex-1 flex flex-col min-w-0">
-                    {/* A. Course Cover Image with Category & Status Badges */}
-                    <div
-                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-ink-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
-                      onClick={() => handleOpenCourse(course.id)}
-                    >
-                      <img
-                        src={course.image}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-95"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/25" />
-
-                      {/* Overlaid Badges */}
-                      <div className="absolute top-2 left-2 right-2 flex justify-between items-center gap-1.5 pointer-events-none min-w-0">
-                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
-                          {course.category}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase backdrop-blur-md shadow-xs shrink-0 ${
-                            isCompleted
-                              ? "bg-success-soft text-success border border-success"
-                              : "bg-primary text-white"
-                          }`}
-                        >
-                          {course.status}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* B. Course Title & Instructor Details */}
-                    <div className="mb-1.5 min-w-0">
-                      <h3
-                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-primary-text transition-colors line-clamp-2 cursor-pointer break-words"
-                        onClick={() => handleOpenCourse(course.id)}
-                        title={course.title}
-                      >
-                        {course.title}
-                      </h3>
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-0.5 min-w-0">
-                        <span className="truncate max-w-full">
-                          Instructor: <strong className="text-zinc-800 font-bold">{course.instructor}</strong>
-                        </span>
-                        <span>•</span>
-                        <span className="font-semibold text-zinc-600 shrink-0">{course.credits} Credits</span>
-                        <span>•</span>
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[10.5px] shrink-0">
-                          {course.level}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* C. Course Description with View More */}
-                    <div className="mb-2 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
-                      <p className={`break-words ${isExpanded ? "" : "line-clamp-2"}`}>
-                        {course.description}
-                      </p>
-                      {course.description.length > 85 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleDescription(course.id)
-                          }}
-                          className="text-[11px] font-bold text-primary-text hover:text-primary-text hover:underline cursor-pointer mt-0.5 inline-block"
-                        >
-                          {isExpanded ? "View Less" : "View More"}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* D. Module Completion & Progress Section */}
-                    <div className="mb-2 bg-zinc-50/90 p-2 sm:p-2.5 rounded-xl border border-zinc-100 mt-auto min-w-0">
-                      <div className="flex justify-between items-center text-[11.5px] sm:text-xs mb-1 font-bold min-w-0 gap-2">
-                        <span className="text-zinc-700 truncate">
-                          {course.completedModules} of {course.totalModules} Modules Completed
-                        </span>
-                        <span
-                          className={`text-xs sm:text-[13px] font-extrabold shrink-0 ${
-                            isCompleted ? "text-success" : "text-primary-text"
-                          }`}
-                        >
-                          {course.progress}%
-                        </span>
-                      </div>
-
-                      {/* Capsule Progress Bar */}
-                      <div className="w-full bg-zinc-200 rounded-full h-1.5 overflow-hidden mb-1">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${course.progress}%`,
-                            backgroundColor: isCompleted ? "#AEEB00" : (course.progressColor || "#905FEB"),
-                          }}
-                        />
-                      </div>
-
-                      {/* Activity and Milestone Details */}
-                      <div className="flex flex-wrap items-center justify-between text-[10.5px] sm:text-[11px] text-zinc-500 gap-1 pt-0.5 min-w-0">
-                        <span
-                          className="font-medium flex items-center gap-1.5 truncate max-w-full"
-                          title={`Last Activity: ${course.lastWatched}`}
-                        >
-                          <span className="shrink-0">📍</span>
-                          <span className="truncate">{course.lastWatched}</span>
-                        </span>
-                        <span
-                          className="font-bold text-zinc-700 flex items-center gap-1 truncate max-w-full"
-                          title={`Milestone: ${course.nextMilestone}`}
-                        >
-                          <span className="shrink-0">🎯</span>
-                          <span className="truncate">{course.nextMilestone}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* E. Bottom Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-zinc-100 gap-1.5 mt-auto min-w-0">
-                    {/* Course Rating */}
-                    {course.rating ? (
-                      <div className="flex items-center gap-1 text-[11.5px] font-bold text-amber-500 shrink-0">
-                        <span className="text-xs">★</span>
-                        <span className="text-zinc-800 font-bold">{course.rating}</span>
-                        {course.reviews && (
-                          <span className="text-zinc-400 font-normal text-[10.5px]">
-                            ({course.reviews})
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-[11px] text-zinc-400 font-semibold truncate">
-                        Verified Course
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {isInProgress && (
-                        <button
-                          onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
-                          title="Resume Learning"
-                        >
-                          <Icon name="play" size={11} />
-                          <span>Resume</span>
-                        </button>
-                      )}
-
-                      {isCompleted && (
-                        <button
-                          onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
-                          title="Review Completed Course Materials"
-                        >
-                          <Icon name="check" size={11} />
-                          <span>View Course</span>
-                        </button>
-                      )}
-
-                      {!isInProgress && !isCompleted && (
-                        <button
-                          onClick={() => handleOpenCourse(course.id)}
-                          className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all whitespace-nowrap"
-                          title="Resume Learning"
-                        >
-                          <Icon name="play" size={11} />
-                          <span>Resume</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* =====================================================================
-                SECTION 2: SINGLE EXPLORE COURSES CARD
-                Matches Noorly Soft UI, original purple & lime palette,
-                and consistent sizing/spacing with the course grid.
-                ===================================================================== */}
-            <div
-              onClick={() => setViewMode("catalogue")}
-              className="bg-gradient-to-b from-primary-soft/70 via-white to-white rounded-2xl border-2 border-dashed border-purple-200 hover:border-primary shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full cursor-pointer group min-w-0 max-w-full box-border overflow-hidden"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  setViewMode("catalogue")
-                }
-              }}
-              aria-label="Explore Courses - Discover new skills and explore courses available to you"
-            >
-              <div className="flex-1 flex flex-col min-w-0">
-                {/* Visual Exploration Banner matching card image height */}
-                <div className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-gradient-to-br from-primary via-[#8048DE] to-primary-hover p-2 flex flex-col justify-between text-white flex-shrink-0 shadow-xs group-hover:scale-[1.01] transition-transform min-w-0">
-                  <div className="flex justify-between items-center gap-1.5 min-w-0">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-black/30 backdrop-blur-md text-white border border-white/20 truncate">
-                      Curriculum Catalogue
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase bg-success-soft text-success shrink-0">
-                      {catalogCount} Available
-                    </span>
-                  </div>
-
-                  {/* Centered Exploration Icon */}
-                  <div className="flex items-center gap-2 my-auto min-w-0">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-sm sm:text-base shadow-inner border border-white/30 group-hover:rotate-6 transition-transform shrink-0">
-                      🧭
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[9.5px] font-semibold text-purple-200 uppercase tracking-wider truncate">
-                        Expand Your Skills
-                      </div>
-                      <div className="text-[12.5px] sm:text-[13.5px] font-black text-white leading-tight truncate">
-                        New Specializations
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1 text-[9.5px] text-white/85 min-w-0">
-                    <span className="whitespace-nowrap">✦ LLMs & Prompts</span>
-                    <span>•</span>
-                    <span className="whitespace-nowrap">✦ Computer Vision</span>
-                    <span>•</span>
-                    <span className="whitespace-nowrap">✦ Robotics</span>
-                  </div>
-                </div>
-
-                {/* Heading & Mandatory Description */}
-                <div className="mb-1.5 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 group-hover:text-primary-text transition-colors leading-snug break-words">
-                      Explore Courses
-                    </h3>
-                    <span className="w-2 h-2 rounded-full bg-success shrink-0" />
-                  </div>
-                  <p className="text-[11px] sm:text-xs text-zinc-600 leading-snug mt-0.5 font-normal break-words">
-                    Discover new skills and explore courses available to you.
-                  </p>
-                </div>
-
-                {/* Benefits / Curriculum Box */}
-                <div className="mb-2 bg-primary-soft/60 p-1.5 sm:p-2 rounded-xl border border-purple-100 mt-auto text-[10.5px] sm:text-[11px] text-zinc-700 space-y-0.5 min-w-0">
-                  <div className="flex items-start gap-1.5 font-medium min-w-0">
-                    <span className="text-primary-text font-bold shrink-0">✓</span>
-                    <span className="break-words">Accredited curriculum with verified faculty credits</span>
-                  </div>
-                  <div className="flex items-start gap-1.5 font-medium min-w-0">
-                    <span className="text-primary-text font-bold shrink-0">✓</span>
-                    <span className="break-words">Self-paced video modules, lab code & certifications</span>
-                  </div>
+                <div>
+                  <AnimatedNumber value={s.value} className="block text-xl font-semibold text-foreground" />
+                  <span className="text-caption text-muted-foreground">{s.label}</span>
                 </div>
               </div>
+            ))}
+          </Card>
+        </StaggerItem>
 
-              {/* Prominent Explore Courses Action Button */}
-              <div className="pt-2 border-t border-zinc-100 mt-auto min-w-0">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setViewMode("catalogue")
-                  }}
-                  className="w-full py-1.5 rounded-full bg-primary hover:bg-primary text-white text-[11.5px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer group-hover:shadow-md hover:scale-[1.01]"
-                >
-                  <Icon name="compass" size={13} />
-                  <span>Explore Courses</span>
-                  <span>→</span>
-                </button>
-              </div>
-            </div>
-          </div>
+        <StaggerItem>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <TabsList aria-label="Course lists">
+                <TabsTrigger value="enrolled">
+                  <GraduationCap className="h-4 w-4" aria-hidden="true" />
+                  Enrolled
+                  <span className="tabular-nums text-subtle-foreground">{courses.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="catalog">
+                  <Compass className="h-4 w-4" aria-hidden="true" />
+                  Explore
+                  <span className="tabular-nums text-subtle-foreground">{catalog.length}</span>
+                </TabsTrigger>
+              </TabsList>
 
-          {/* Empty State */}
-          {filteredEnrolledCourses.length === 0 && (
-            <div className="bg-surface rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
-              <p className="text-sm text-zinc-500">
-                No enrolled courses found matching your search. Try adjusting your query or explore available courses.
-              </p>
-              <button
-                onClick={() => setViewMode("catalogue")}
-                className="mt-4 px-4 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary cursor-pointer"
-              >
-                Browse Course Catalogue
-              </button>
-            </div>
-          )}
-
-        </>
-      ) : (
-        /* =========================================================================
-           VIEW B: COURSE CATALOGUE VIEW (OPENED VIA EXPLORE COURSES)
-           ========================================================================= */
-        <div className="flex flex-col gap-6 animate-in fade-in duration-300 w-full max-w-full min-w-0 box-border">
-          {/* Catalogue Header Bar */}
-          <section
-            className="bg-surface rounded-2xl p-4 sm:p-5 border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border"
-            aria-label="Course Catalogue Header"
-          >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
-              <div className="min-w-0">
-                <button
-                  onClick={() => setViewMode("enrolled")}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-text hover:text-primary-text transition-colors cursor-pointer mb-2 px-3 py-1 rounded-full bg-primary-soft hover:bg-purple-100 w-fit shrink-0"
-                >
-                  <span>←</span>
-                  <span>Back to My Courses</span>
-                </button>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
-                    Course Catalogue
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-soft text-success border border-success shrink-0">
-                    {catalogCount} Available to Enroll
-                  </span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-zinc-500 mt-1 font-normal break-words">
-                  Discover new skills and explore courses available to you. Inspect syllabi, instructors, and enroll with a single click.
-                </p>
-              </div>
-
-              {/* Back to Enrolled Courses Pill Button */}
-              <button
-                onClick={() => setViewMode("enrolled")}
-                className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-ink-900 hover:bg-ink-800 text-white transition-all cursor-pointer shadow-xs self-start md:self-auto flex items-center gap-1.5 shrink-0 whitespace-nowrap"
-              >
-                <span>View Enrolled Courses ({courses.length})</span>
-              </button>
-            </div>
-
-            {/* Search within Catalogue */}
-            <div className="mt-4 pt-3.5 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-              <div className="relative w-full max-w-md min-w-0">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
-                  <Icon name="search" size={14} />
-                </div>
-                <input
-                  type="text"
-                  value={catalogueSearch}
-                  onChange={(e) => setCatalogueSearch(e.target.value)}
-                  placeholder="Search catalogue by skill, title, instructor, or level..."
-                  className="w-full pl-9 pr-8 py-2 rounded-full text-xs bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-surface focus:border-primary transition-all box-border"
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  aria-label="Search courses"
+                  placeholder="Search by title, topic or instructor"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  leading={<Search aria-hidden="true" />}
+                  trailing={
+                    query ? (
+                      <button type="button" aria-label="Clear search" onClick={() => setQuery("")} className="flex rounded p-0.5 hover:text-foreground">
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    ) : null
+                  }
+                  wrapperClassName="sm:w-72"
                 />
-                {catalogueSearch && (
-                  <button
-                    onClick={() => setCatalogueSearch("")}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-zinc-400 hover:text-zinc-700 cursor-pointer font-bold"
-                    aria-label="Clear catalogue search"
-                  >
-                    ×
-                  </button>
+                {tab === "enrolled" && (
+                  <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+                    <SelectTrigger aria-label="Sort courses" className="sm:w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORTS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
-
-              <span className="text-xs text-zinc-500 font-medium whitespace-nowrap">
-                Showing <strong className="text-zinc-800 font-bold">{filteredCatalogueCourses.length}</strong> available {filteredCatalogueCourses.length === 1 ? "course" : "courses"}
-              </span>
             </div>
-          </section>
 
-          {/* Catalogue Courses Grid */}
-          <div className="student-courses-grid w-full max-w-full min-w-0 box-border">
-            {filteredCatalogueCourses.map((course) => {
-              const isExpanded = !!expandedDescriptions[course.id]
+            <TabsContent value="enrolled" className="mt-5">
+              <SegmentedControl size="sm" aria-label="Filter by status" options={statusOptions} value={status} onChange={setStatus} className="mb-4" />
+              {enrolled.length === 0 ? (
+                <EmptyState
+                  icon={<Search aria-hidden="true" />}
+                  title="No courses match"
+                  description="Try another search term or clear the filters."
+                  action={
+                    <Button variant="secondary" size="sm" onClick={clearFilters}>
+                      Clear filters
+                    </Button>
+                  }
+                />
+              ) : (
+                <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {enrolled.map((c) => (
+                      <CourseCard key={c.id} course={c} onOpen={() => open(c)} />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </TabsContent>
 
-              return (
-                <div
-                  key={course.id}
-                  className="bg-surface rounded-2xl border border-zinc-100 hover:border-purple-200 shadow-sm hover:shadow-md transition-all p-3 flex flex-col justify-between h-full group min-w-0 max-w-full box-border overflow-hidden"
-                >
-                  <div className="flex-1 flex flex-col min-w-0">
-                    {/* Cover Image with Category & Catalog Badges */}
-                    <div
-                      className="relative rounded-xl overflow-hidden h-20 sm:h-24 mb-2 bg-ink-900 flex-shrink-0 cursor-pointer shadow-xs w-full max-w-full"
-                      onClick={() => handleOpenCourse(course.id)}
-                    >
-                      <img
-                        src={course.image}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-95"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/25" />
+            <TabsContent value="catalog" className="mt-5">
+              {explore.length === 0 ? (
+                <EmptyState
+                  icon={<Compass aria-hidden="true" />}
+                  title={catalog.length ? "Nothing matches that search" : "You're enrolled in everything"}
+                  description={catalog.length ? "Try a broader term." : "New programs will show up here as they launch."}
+                  action={
+                    query ? (
+                      <Button variant="secondary" size="sm" onClick={() => setQuery("")}>
+                        Clear search
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {explore.map((c) => (
+                      <CourseCard key={c.id} course={c} variant="catalog" onOpen={() => setPreview(c)} onEnroll={() => setPreview(c)} />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </StaggerItem>
+      </Stagger>
 
-                      <div className="absolute top-2 left-2 right-2 flex justify-between items-center gap-1.5 pointer-events-none min-w-0">
-                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wide uppercase bg-black/60 text-white backdrop-blur-md shadow-xs truncate max-w-[60%]">
-                          {course.category}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold tracking-wide uppercase bg-amber-500 text-white shadow-xs shrink-0">
-                          Catalog
-                        </span>
-                      </div>
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
+          {preview && (
+            <>
+              <CourseCover title={preview.title} category={coverCategory(preview.category)} image={preview.image} showTitle={false} hoverZoom={false} className="aspect-[21/9]">
+                <span className="absolute bottom-3 left-4 z-10 rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur-sm">
+                  {preview.category}
+                </span>
+              </CourseCover>
+              <div className="grid gap-5 p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-h3">{preview.title}</DialogTitle>
+                  <DialogDescription>
+                    {preview.instructor} · {preview.instructorRole}
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="text-sm leading-6 text-muted-foreground">{preview.description}</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    { icon: Clock, label: "Duration", value: preview.duration },
+                    { icon: Layers, label: "Modules", value: String(preview.totalModules) },
+                    { icon: GraduationCap, label: "Level", value: preview.level },
+                    { icon: Star, label: "Rating", value: `${preview.rating} (${preview.reviews})` },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-md border border-border bg-surface-2 p-3">
+                      <s.icon className="h-4 w-4 text-primary-text" aria-hidden="true" />
+                      <p className="mt-2 truncate text-sm font-semibold text-foreground">{s.value}</p>
+                      <p className="text-caption text-muted-foreground">{s.label}</p>
                     </div>
-
-                    {/* Title & Instructor Details */}
-                    <div className="mb-1.5 min-w-0">
-                      <h3
-                        className="font-bold text-[14.5px] sm:text-[15.5px] text-zinc-900 leading-snug hover:text-primary-text transition-colors line-clamp-2 cursor-pointer break-words"
-                        onClick={() => handleOpenCourse(course.id)}
-                        title={course.title}
-                      >
-                        {course.title}
-                      </h3>
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-zinc-500 mt-0.5 min-w-0">
-                        <span className="truncate max-w-full">
-                          Instructor: <strong className="text-zinc-800 font-bold">{course.instructor}</strong>
-                        </span>
-                        <span>•</span>
-                        <span className="font-semibold text-zinc-600 shrink-0">{course.credits} Credits</span>
-                        <span>•</span>
-                        <span className="px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[10.5px] shrink-0">
-                          {course.level}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Course Description with View More */}
-                    <div className="mb-2 text-[12px] sm:text-[12.5px] text-zinc-600 leading-[17px] min-w-0">
-                      <p className={`break-words ${isExpanded ? "" : "line-clamp-2"}`}>
-                        {course.description}
-                      </p>
-                      {course.description.length > 85 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleDescription(course.id)
-                          }}
-                          className="text-[11px] font-bold text-primary-text hover:text-primary-text hover:underline cursor-pointer mt-0.5 inline-block"
-                        >
-                          {isExpanded ? "View Less" : "View More"}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Catalogue Metadata Box */}
-                    <div className="mb-2 bg-zinc-50/90 p-2 sm:p-2.5 rounded-xl border border-zinc-100 mt-auto flex flex-col gap-1.5 min-w-0">
-                      <div className="flex flex-wrap items-center justify-between text-xs text-zinc-800 font-semibold gap-1.5 min-w-0">
-                        <span className="flex items-center gap-1.5 shrink-0 text-[11px] sm:text-xs">
-                          <span>⏱</span>
-                          <strong>{course.duration}</strong>
-                        </span>
-                        <span className="flex items-center gap-1.5 truncate text-[11px] sm:text-xs">
-                          <span>📚</span>
-                          <strong className="truncate">{course.totalModules} Modules</strong>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-primary-soft text-primary-text text-[10.5px] font-bold shrink-0">
-                          {course.level}
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-zinc-500 italic break-words">
-                        Open enrollment • Verified accreditation on completion
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-zinc-100 gap-1.5 mt-auto min-w-0">
-                    {/* Course Rating */}
-                    {course.rating ? (
-                      <div className="flex items-center gap-1 text-[11.5px] font-bold text-amber-500 shrink-0">
-                        <span className="text-xs">★</span>
-                        <span className="text-zinc-800 font-bold">{course.rating}</span>
-                        {course.reviews && (
-                          <span className="text-zinc-400 font-normal text-[10.5px]">
-                            ({course.reviews})
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-[11px] text-zinc-400 font-semibold shrink-0">
-                        Accredited
-                      </div>
-                    )}
-
-                    {/* Buttons: View Details & Enroll in Course */}
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                      <button
-                        onClick={() => handleOpenCourse(course.id)}
-                        className="px-3 py-1.5 rounded-full bg-primary-soft hover:bg-[#E4DFFD] text-primary-text text-[11.5px] font-bold border border-purple-200 transition-all cursor-pointer whitespace-nowrap"
-                        title="View Course Syllabus & Details"
-                      >
-                        View Details
-                      </button>
-
-                      <button
-                        onClick={() => handleEnrollAndOpen(course)}
-                        className="px-3.5 py-1.5 rounded-full bg-ink-900 hover:bg-ink-800 text-white text-[11.5px] font-bold transition-all cursor-pointer shadow-xs whitespace-nowrap flex items-center gap-1.5"
-                      >
-                        <span>Enroll in Course</span>
-                        <span>→</span>
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
-
-          {/* Empty State for Catalogue */}
-          {filteredCatalogueCourses.length === 0 && (
-            <div className="bg-surface rounded-2xl p-10 text-center border border-zinc-100 shadow-sm w-full max-w-full min-w-0 box-border">
-              <p className="text-sm text-zinc-500">
-                No catalogue courses found matching &quot;{catalogueSearch}&quot;.
-              </p>
-              <button
-                onClick={() => setCatalogueSearch("")}
-                className="mt-3 px-4 py-1.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-bold hover:bg-zinc-200 cursor-pointer"
-              >
-                Clear Search
-              </button>
-            </div>
+                <DialogFooter className="items-center sm:justify-between">
+                  <Badge tone="neutral">{preview.credits} credits</Badge>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <Button variant="ghost" onClick={() => setPreview(null)}>
+                      Maybe later
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const c = preview
+                        setPreview(null)
+                        onEnrollCourse(c)
+                      }}
+                    >
+                      Enroll and start
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </div>
+            </>
           )}
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
