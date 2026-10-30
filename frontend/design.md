@@ -319,15 +319,17 @@ All of these scripts, and the contrast checkers, live **outside the repo** in `.
 
 ### Remaining legacy usage
 
-Measured on 29 Oct 2026 on branch `redesign-premium-ui`, in `frontend/src` TS/TSX:
+Measured on 30 Oct 2026 on `main`, after the student portal rebuild, in `frontend/src` TS/TSX:
 
 | Measure | Count |
 | --- | --- |
-| Raw palette utilities: `zinc-*` / `purple-*` / `gray-*` / `slate-*` / `lime-*` | 3,405 / 1,422 / 358 / 69 / 50 |
-| Arbitrary hex colour classes (`-[#…]`) | 56 |
-| `dark:` palette overrides in legacy pages | 2 |
+| Raw palette utilities: `zinc-*` / `purple-*` / `gray-*` / `slate-*` / `lime-*` | 1,708 / 870 / 358 / 18 / 50 |
+| Arbitrary hex colour classes (`-[#…]`) | 36 |
+| `dark:` palette overrides in legacy pages | 0 |
 | `legacy.css` | 5,382 lines |
-| Semantic token utilities (for comparison) | 1,973 |
+| Semantic token utilities (for comparison) | 1,975 |
+
+**Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Notes, the resume, interview history and notification preferences persist in `localStorage` (`quantum_student_notes_v2`, `quantum_resume_v2`, `quantum_interview_history_v2`, `quantum_student_notification_prefs`).
 
 ### Retirement plan
 
