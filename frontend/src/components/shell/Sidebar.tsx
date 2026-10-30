@@ -1,4 +1,3 @@
-import { BotAvatar } from "bot-avatars"
 import { motion } from "framer-motion"
 import { ChevronsLeft, ChevronsRight } from "lucide-react"
 import type { UserRole } from "@/types"
@@ -16,7 +15,6 @@ export interface SidebarProps {
   collapsed?: boolean
   onToggleCollapse?: () => void
   badges?: Record<string, number | string | undefined>
-  onOpenAi: () => void
   /** Layout id namespace so desktop and mobile indicators don't fight. */
   instance?: "desktop" | "mobile"
   className?: string
@@ -93,49 +91,7 @@ function NavButton({
   )
 }
 
-function CloverAssistant({ collapsed, onOpenAi }: Pick<SidebarProps, "collapsed" | "onOpenAi">) {
-  const avatar = (
-    <BotAvatar
-      type="clover"
-      face="mouth"
-      state="default"
-      size={collapsed ? 36 : 44}
-      shading="plastic"
-      highlight={1.1}
-      rim={0.7}
-      turn={0.6}
-      jumpEvery={0}
-      aria-hidden="true"
-    />
-  )
-  const control = collapsed ? (
-    <button
-      type="button"
-      onClick={onOpenAi}
-      aria-label="Open Clover assistant"
-      className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-primary-border bg-primary-soft shadow-[var(--elev-xs)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--glow-primary)] active:scale-95"
-    >
-      {avatar}
-    </button>
-  ) : (
-    <button
-      type="button"
-      onClick={onOpenAi}
-      aria-label="Open Clover assistant"
-      className="group flex w-full items-center gap-3 rounded-lg border border-primary-border bg-primary-soft p-3 text-left shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--glow-primary)] active:scale-[0.98]"
-    >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center">{avatar}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-foreground">Clover</span>
-        <span className="block truncate text-caption text-muted-foreground">Your learning companion</span>
-      </span>
-      <ChevronsRight className="h-4 w-4 shrink-0 text-primary-text transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-    </button>
-  )
-  return collapsed ? <Tooltip content="Open Clover assistant" side="right">{control}</Tooltip> : control
-}
-
-/** Role navigation: brand, main + secondary items, Clover assistant and collapse toggle. */
+/** Role navigation: brand, main and secondary items, then the collapse toggle. */
 export default function Sidebar({
   role,
   items,
@@ -144,22 +100,22 @@ export default function Sidebar({
   collapsed = false,
   onToggleCollapse,
   badges,
-  onOpenAi,
   instance = "desktop",
   className,
 }: SidebarProps) {
-  const main = items.filter((i) => i.section === "main")
-  const secondary = items.filter((i) => i.section === "secondary")
+  const main = items.filter((item) => item.section === "main")
+  const secondary = items.filter((item) => item.section === "secondary")
   const layoutId = `shell-nav-${instance}`
+
   return (
     <nav aria-label="Primary" className={cn("flex h-full flex-col gap-1 p-3", className)}>
       <div className={cn("mb-4 flex h-10 items-center px-1.5", collapsed && "justify-center px-0")}>
         <Brand role={role} compact={collapsed} />
       </div>
       <ul className="flex flex-col gap-0.5">
-        {main.map((it) => (
-          <li key={it.id}>
-            <NavButton item={it} active={activeId === it.id} collapsed={collapsed} badge={badges?.[it.id]} onClick={() => onNavigate(it.id)} layoutId={layoutId} />
+        {main.map((item) => (
+          <li key={item.id}>
+            <NavButton item={item} active={activeId === item.id} collapsed={collapsed} badge={badges?.[item.id]} onClick={() => onNavigate(item.id)} layoutId={layoutId} />
           </li>
         ))}
       </ul>
@@ -167,32 +123,29 @@ export default function Sidebar({
         <>
           <div className="mx-2 my-3 h-px bg-border" role="separator" />
           <ul className="flex flex-col gap-0.5">
-            {secondary.map((it) => (
-              <li key={it.id}>
-                <NavButton item={it} active={activeId === it.id} collapsed={collapsed} badge={badges?.[it.id]} onClick={() => onNavigate(it.id)} layoutId={layoutId} />
+            {secondary.map((item) => (
+              <li key={item.id}>
+                <NavButton item={item} active={activeId === item.id} collapsed={collapsed} badge={badges?.[item.id]} onClick={() => onNavigate(item.id)} layoutId={layoutId} />
               </li>
             ))}
           </ul>
         </>
       )}
-      <div className="mt-auto flex flex-col gap-2 pt-4">
-        <CloverAssistant collapsed={collapsed} onOpenAi={onOpenAi} />
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-pressed={collapsed}
-            className={cn(
-              "flex h-8 items-center gap-2 rounded-md px-2.5 text-caption font-medium text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground",
-              collapsed && "justify-center px-0",
-            )}
-          >
-            {collapsed ? <ChevronsRight className="h-4 w-4" aria-hidden="true" /> : <ChevronsLeft className="h-4 w-4" aria-hidden="true" />}
-            {!collapsed && "Collapse"}
-          </button>
-        )}
-      </div>
+      {onToggleCollapse && (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-pressed={collapsed}
+          className={cn(
+            "mt-auto flex h-8 items-center gap-2 rounded-md px-2.5 text-caption font-medium text-subtle-foreground transition-colors hover:bg-surface-2 hover:text-foreground",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          {collapsed ? <ChevronsRight className="h-4 w-4" aria-hidden="true" /> : <ChevronsLeft className="h-4 w-4" aria-hidden="true" />}
+          {!collapsed && "Collapse"}
+        </button>
+      )}
     </nav>
   )
 }

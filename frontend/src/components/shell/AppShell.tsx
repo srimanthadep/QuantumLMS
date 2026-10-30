@@ -5,6 +5,7 @@ import { useSession } from "@/app/session"
 import { useToast } from "@/components/ui/toast"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import CloverAssistantButton from "./CloverAssistantButton"
 import { useAiAssistant } from "./AiAssistantDialog"
 import CommandPalette from "./CommandPalette"
 import MobileNav from "./MobileNav"
@@ -42,7 +43,7 @@ function readCollapsed() {
 
 /**
  * The one app frame for every portal: skip link, sidebar (collapsible rail on
- * desktop, sheet on mobile), sticky top bar, Clover assistant, <main id="main"> and ⌘K palette.
+ * desktop, sheet on mobile), sticky top bar, fixed lower-right Clover assistant, <main id="main"> and ⌘K palette.
  */
 export default function AppShell({
   role,
@@ -123,7 +124,6 @@ export default function AppShell({
             collapsed={collapsed}
             onToggleCollapse={toggleCollapsed}
             badges={badges}
-            onOpenAi={openAi}
           />
         </aside>
 
@@ -154,8 +154,8 @@ export default function AppShell({
           activeId={activeId}
           onNavigate={onNavigate}
           badges={badges}
-          onOpenAi={openAi}
         />
+        <CloverAssistantButton onOpen={openAi} />
         <CommandPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}

@@ -267,10 +267,9 @@ Import paths:
 │ ──────────────── │                                                      │
 │  Support         │                                                      │
 │  Settings        │                                                      │
-│ [◉ Clover companion]                                                     │
 │ « Collapse       │                                                      │
 └──────────────────┴──────────────────────────────────────────────────────┘
-  Sidebar: 248 px, or a 68 px rail when collapsed (lg and up)
+  Sidebar: 248 px, or a 68 px rail when collapsed (lg and up). Clover floats at the viewport's lower-right edge.
 ```
 
 - **Brand:** logo, "Quantum School of AI", and a workspace label per role (`ROLE_WORKSPACE`): Learning, Instructor studio, Evaluation desk, Support desk, Academy admin, Platform console.
@@ -287,8 +286,8 @@ Import paths:
 
 - **Active item:** a shared-layout `surface-2` pill with a 3 px `primary` bar that springs between items (`spring.snappy`). It carries `aria-current="page"`.
 - **Collapse:** the sidebar collapses to the rail with the "Collapse" control. The state persists in `localStorage.quantum_shell_collapsed`, and rail items show tooltips.
-- **Below `lg`:** the sidebar is hidden. The top bar shows the brand and an `[aria-label="Open navigation"]` button that opens the same navigation in a left `Sheet`. Below `sm`, the theme picker is hidden. Clover stays reachable from the drawer and the ⌘K palette.
-- **Top bar:** the command palette trigger (⌘K / Ctrl+K anywhere), the theme picker, notifications (`NotificationContext`, or a portal-supplied `NotificationSource`), and the user menu. **Clover** is one interactive `BotAvatar` (`bot-avatars`, `type="clover"`) at the bottom of the sidebar or mobile drawer. It opens the role-aware assistant and becomes `working` while it responds. The palette provides the same action as “Open Clover.” The user menu holds the role switcher, Settings, Reset demo data and Sign out.
+- **Below `lg`:** the sidebar is hidden. The top bar shows the brand and an `[aria-label="Open navigation"]` button that opens the same navigation in a left `Sheet`. The theme picker stays in the top bar at every width. Clover remains fixed above the lower-right viewport edge and is not part of the drawer.
+- **Top bar:** the command palette trigger (⌘K / Ctrl+K anywhere), the theme picker, notifications (`NotificationContext`, or a portal-supplied `NotificationSource`), and the user menu. **Clover** is one interactive `BotAvatar` (`bot-avatars`, `type="clover"`) fixed at the lower-right edge of the viewport, above page content and independent of scrolling or sidebar mode. It opens the role-aware assistant and becomes `working` while it responds. The palette provides the same action as “Open Clover.” The user menu holds the role switcher, Settings, Reset demo data and Sign out.
 - **Accessibility:** a skip link to `#main` (focusable with `tabIndex={-1}`), focus trapping in the drawer, palette and dialogs, and labelled icon-only controls.
 
 ## Legacy bridge and its retirement

@@ -6,8 +6,8 @@ interface MobileNavProps extends Omit<SidebarProps, "collapsed" | "onToggleColla
   onOpenChange: (open: boolean) => void
 }
 
-/** Slide-in navigation drawer for mobile and tablet. */
-export default function MobileNav({ open, onOpenChange, onNavigate, onOpenAi, ...props }: MobileNavProps) {
+/** Slide-in navigation drawer for mobile and tablet. Clover remains viewport-fixed outside this drawer. */
+export default function MobileNav({ open, onOpenChange, onNavigate, ...props }: MobileNavProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[84%] max-w-[300px] gap-0 p-0">
@@ -19,10 +19,6 @@ export default function MobileNav({ open, onOpenChange, onNavigate, onOpenAi, ..
           onNavigate={(id) => {
             onOpenChange(false)
             onNavigate(id)
-          }}
-          onOpenAi={() => {
-            onOpenChange(false)
-            onOpenAi()
           }}
         />
       </SheetContent>
