@@ -18,7 +18,7 @@ If this document and the code disagree, the code wins. Fix this document in the 
 
 ## Principles
 
-1. **Neutral first, accent on purpose.** Surfaces are deep neutrals. The accent marks the one thing that matters on screen: the primary action, the active nav item, progress. Glow and gradients appear only on focal elements: the marketing hero, the primary CTA, Clover, the live badge and the video player.
+1. **Neutral first, accent on purpose.** Surfaces are deep neutrals. The accent marks the one thing that matters on screen: the primary action, the active nav item, progress. Glow and gradients appear only on focal elements: the marketing hero, the primary CTA, the live badge and the video player.
 2. **Crisp structure.** Separate areas with 1px borders, not heavy shadows. Elevation is for floating layers: popovers, dialogs, sheets and toasts.
 3. **Strong hierarchy.** Each page has one clear title. Secondary text is quiet, and data uses tabular numbers.
 4. **Motion explains change.** Motion is short, moves things with `transform` and `opacity`, and always respects reduced motion (see [Motion](#motion)).
@@ -168,8 +168,8 @@ The font is **Inter Variable** (`@fontsource-variable/inter`, imported in `main.
 | `--elev-sm` | Small raised elements |
 | `--elev-md` | Hovered interactive cards, tooltips |
 | `--elev-lg` | Floating layers: popovers, menus, dialogs, toasts |
-| `--glow-primary` | Focal CTAs only: primary button hover, Clover, `Card variant="glow"` |
-| `--gradient-primary` | Focal fills only: Clover, hero, live and player accents |
+| `--glow-primary` | Focal CTAs only: primary button hover, `Card variant="glow"` |
+| `--gradient-primary` | Focal fills only: hero, live and player accents |
 
 ## Motion
 
@@ -287,7 +287,7 @@ Import paths:
 - **Active item:** a shared-layout `surface-2` pill with a 3 px `primary` bar that springs between items (`spring.snappy`). It carries `aria-current="page"`.
 - **Collapse:** the sidebar collapses to the rail with the "Collapse" control. The state persists in `localStorage.quantum_shell_collapsed`, and rail items show tooltips.
 - **Below `lg`:** the sidebar is hidden. The top bar shows the brand and an `[aria-label="Open navigation"]` button that opens the same navigation in a left `Sheet`. The theme picker stays in the top bar at every width. Clover remains fixed above the lower-right viewport edge and is not part of the drawer.
-- **Top bar:** the command palette trigger (⌘K / Ctrl+K anywhere), the theme picker, notifications (`NotificationContext`, or a portal-supplied `NotificationSource`), and the user menu. **Clover** is one interactive `BotAvatar` (`bot-avatars`, `type="clover"`) fixed at the lower-right edge of the viewport, above page content and independent of scrolling or sidebar mode. It opens the role-aware assistant and becomes `working` while it responds. The palette provides the same action as “Open Clover.” The user menu holds the role switcher, Settings, Reset demo data and Sign out.
+- **Top bar:** the command palette trigger (⌘K / Ctrl+K anywhere), the theme picker, notifications (`NotificationContext`, or a portal-supplied `NotificationSource`), and the user menu. **Clover** is one interactive `BotAvatar` (`bot-avatars`, `type="clover"`) fixed at the lower-right edge of the viewport, above page content and independent of scrolling or sidebar mode. The bot is drawn on its own, with no chip, border or shadow behind it. It opens the role-aware assistant and becomes `working` while it responds. The palette provides the same action as “Open Clover.” The user menu holds the role switcher, Settings, Reset demo data and Sign out.
 - **Accessibility:** a skip link to `#main` (focusable with `tabIndex={-1}`), focus trapping in the drawer, palette and dialogs, and labelled icon-only controls.
 
 ## Legacy bridge and its retirement
