@@ -12,8 +12,8 @@ import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 const MyCoursesPage = lazy(() => import("./MyCoursesPage"))
 const CourseDetailsPage = lazy(() => import("./CourseDetailsPage"))
 const SchedulePage = lazy(() => import("./SchedulePage"))
-const AssignmentsPage = lazy(() => import("./AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })))
-const GradesPage = lazy(() => import("./GradesPage").then((m) => ({ default: m.GradesPage })))
+const AssessmentsPage = lazy(() => import("./AssessmentsPage"))
+const GradesPage = lazy(() => import("./GradesPage"))
 const CommunityPage = lazy(() => import("./CommunityPage").then((m) => ({ default: m.CommunityPage })))
 const CareerHubPage = lazy(() => import("./CareerHubPage").then((m) => ({ default: m.CareerHubPage })))
 const StudentSettingsPage = lazy(() => import("./StudentSettingsPage").then((m) => ({ default: m.StudentSettingsPage })))
@@ -404,7 +404,7 @@ export default function StudentPortal({
               )}
 
               {(activeTab === "Assessments" || activeTab === "Assignments" || activeTab === "Quizzes") && (
-                <AssignmentsPage
+                <AssessmentsPage key={activeTab}
                   assignments={assignments}
                   onSubmitAssignment={handleSubmitAssignment}
                   quizzes={quizzes}
@@ -416,7 +416,7 @@ export default function StudentPortal({
               )}
 
               {(activeTab === "Grades & Certificates" || activeTab === "Grades" || activeTab === "Certificates") && (
-                <GradesPage
+                <GradesPage key={activeTab} onNavigate={navigateTo}
                   onToast={onToast}
                   initialView={activeTab === "Certificates" ? "certificates" : "grades"}
                 />

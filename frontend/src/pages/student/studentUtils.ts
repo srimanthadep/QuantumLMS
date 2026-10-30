@@ -64,3 +64,30 @@ export function stamp(d = new Date()): string {
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
   return `${date} · ${time}`
 }
+
+/** "Today" in the seed data's timeline (the live class and deadlines are written around Oct 21, 2026). */
+export const DEMO_TODAY = new Date(2026, 9, 21)
+
+/** Parses "Oct 22, 2026" or "Nov 02, 2026, 09:00 AM"; returns null when unparseable. */
+export function parseDate(s: string): Date | null {
+  const m = /([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})/.exec(s)
+  if (!m) return null
+  const month = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(m[1].toLowerCase())
+  return month < 0 ? null : new Date(Number(m[3]), month, Number(m[2]))
+}
+
+/** Whole days from DEMO_TODAY to the date (negative when past). */
+export function daysUntil(s: string): number | null {
+  const d = parseDate(s)
+  return d ? Math.round((d.getTime() - DEMO_TODAY.getTime()) / 86_400_000) : null
+}
+
+/** "Due today", "Due tomorrow", "Due in 5 days", "3 days overdue". */
+export function dueLabel(s: string): string {
+  const n = daysUntil(s)
+  if (n === null) return `Due ${s}`
+  if (n === 0) return "Due today"
+  if (n === 1) return "Due tomorrow"
+  if (n > 1) return `Due in ${n} days`
+  return `${-n} day${n === -1 ? "" : "s"} overdue`
+}

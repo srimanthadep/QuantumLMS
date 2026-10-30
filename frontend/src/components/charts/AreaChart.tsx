@@ -17,12 +17,16 @@ interface AreaChartProps {
   className?: string
   formatValue?: (v: number) => string
   label?: string
+  /** Value at the baseline (default 0). Raise it for series that vary in a narrow band, e.g. GPA. */
+  yMin?: number
+  /** Value at the top gridline (default: a rounded max of the data). */
+  yMax?: number
 }
 
 const W = 600
 
 /** Responsive area chart with gridlines, x labels and a hover crosshair tooltip. */
-export default function AreaChart({ labels, series, height = 220, className, formatValue = (v) => compactNumber.format(v), label }: AreaChartProps) {
+export default function AreaChart({ labels, series, height = 220, className, formatValue = (v) => compactNumber.format(v), label, yMin = 0, yMax }: AreaChartProps) {
   const id = useId().replace(/:/g, "")
   const ref = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<number | null>(null)
@@ -30,11 +34,11 @@ export default function AreaChart({ labels, series, height = 220, className, for
   const padTop = 12
   const padBottom = 24
   const plotH = H - padTop - padBottom
-  const max = useMemo(() => niceMax(Math.max(1, ...series.flatMap((s) => s.values))), [series])
+  const max = useMemo(() => yMax ?? niceMax(Math.max(1, ...series.flatMap((s) => s.values))), [series, yMax])
   const colors = ["var(--primary-text)", "var(--secondary-text)", "var(--success)", "var(--warning)"]
 
   const paths = series.map((s, si) => {
-    const pts = scalePoints(s.values, W, plotH, 0, 0, max).map((p) => ({ x: p.x, y: p.y + padTop }))
+    const pts = scalePoints(s.values, W, plotH, 0, yMin, max).map((p) => ({ x: p.x, y: p.y + padTop }))
     const line = buildPath(pts)
     return { pts, line, area: `${line} L ${W} ${padTop + plotH} L 0 ${padTop + plotH} Z`, color: s.color ?? colors[si % colors.length] }
   })
