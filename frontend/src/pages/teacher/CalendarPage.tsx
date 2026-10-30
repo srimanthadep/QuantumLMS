@@ -1,1572 +1,671 @@
-import { useState, useMemo, useEffect } from "react"
-import type { CalendarEventItem, CourseItem } from "../../types"
-import { Icon } from "../../components/Icon"
-import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
-import { initialCalendarEvents } from "../../data/mockData"
+import { useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
+import { CalendarClock, CalendarPlus, ChevronLeft, ChevronRight, Clock, Flag, MapPin, PlayCircle, Plus, Radio, Trash2 } from "lucide-react"
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  SegmentedControl,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "@/components/ui"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import ScheduleSessionDialog from "@/components/teacher/ScheduleSessionDialog"
+import { cn } from "@/lib/utils"
+import { transition } from "@/lib/motion"
+import type { CalendarEventItem } from "@/types"
+import { useTeacherData } from "./teacherStore"
+import { addDays, dayLabel, DEMO_DATE, DEMO_NOW, EVENT_STYLE, formatTime, formatTimeRange, isoDate, minutesOf, sessionAsEvent, startOfWeek, toDate } from "./teacherUtils"
 
-type CalendarViewMode = "timeline" | "month" | "week" | "day" | "agenda"
+type View = "week" | "month" | "agenda"
+type Category = CalendarEventItem["category"]
 
-// Date helpers
-function formatDateString(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
+const CATEGORIES = Object.keys(EVENT_STYLE) as Category[]
+const NEW_CATEGORIES: Category[] = ["Office Hours", "Meeting", "Quiz", "Deadline", "Reminder"]
+const DAY_START = 8
+const DAY_END = 18
+const HOUR_PX = 56
+const NOW_MIN = DEMO_NOW.getHours() * 60 + DEMO_NOW.getMinutes()
+
+/** Side-by-side columns for overlapping events in one day. */
+function layoutDay(list: CalendarEventItem[]): Map<string, { col: number; cols: number }> {
+  const sorted = [...list].sort((a, b) => minutesOf(a.startTime) - minutesOf(b.startTime) || minutesOf(b.endTime) - minutesOf(a.endTime))
+  const placed = new Map<string, { col: number; cols: number }>()
+  let cluster: string[] = []
+  let clusterEnd = -1
+  let colEnds: number[] = []
+  const flush = () => {
+    const cols = Math.max(1, ...cluster.map((id) => (placed.get(id)?.col ?? 0) + 1))
+    for (const id of cluster) placed.set(id, { col: placed.get(id)?.col ?? 0, cols })
+    cluster = []
+    colEnds = []
+  }
+  for (const e of sorted) {
+    const s = minutesOf(e.startTime)
+    const end = Math.max(s + 30, minutesOf(e.endTime))
+    if (cluster.length && s >= clusterEnd) flush()
+    let col = colEnds.findIndex((x) => x <= s)
+    if (col === -1) {
+      col = colEnds.length
+      colEnds.push(end)
+    } else colEnds[col] = end
+    placed.set(e.id, { col, cols: 1 })
+    cluster.push(e.id)
+    clusterEnd = cluster.length === 1 ? end : Math.max(clusterEnd, end)
+  }
+  if (cluster.length) flush()
+  return placed
 }
 
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate()
-}
-
-function getFirstDayOfWeek(year: number, month: number): number {
-  return new Date(year, month, 1).getDay()
-}
-
-export function CalendarHeader({
-  searchQuery,
-  setSearchQuery,
-  onOpenAiModal,
-  hexColor,
-  onChangeHexColor,
-  onOpenCreateReminder,
-}: {
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  onOpenAiModal?: () => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  onOpenCreateReminder: () => void
-}) {
+function NewEventDialog({ open, onOpenChange, date }: { open: boolean; onOpenChange: (o: boolean) => void; date: string }) {
+  const { courses, addEvent, notify } = useTeacherData()
+  const [title, setTitle] = useState("")
+  const [category, setCategory] = useState<Category>("Office Hours")
+  const [day, setDay] = useState(date)
+  const [start, setStart] = useState("15:00")
+  const [end, setEnd] = useState("16:00")
+  const [courseId, setCourseId] = useState("none")
+  const [location, setLocation] = useState("")
+  const [description, setDescription] = useState("")
+  const [errors, setErrors] = useState<{ title?: string; time?: string }>({})
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (open) {
+      setTitle("")
+      setCategory("Office Hours")
+      setDay(date)
+      setStart("15:00")
+      setEnd("16:00")
+      setCourseId("none")
+      setLocation("")
+      setDescription("")
+      setErrors({})
+    }
+  }
+  const deadline = category === "Deadline"
   return (
-    <header className="dashboard-header">
-      <div>
-        <div className="greeting">
-          <span>Calendar</span>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const next = {
+              title: title.trim().length < 3 ? "Give the event a title of at least 3 characters." : undefined,
+              time: !deadline && minutesOf(end) <= minutesOf(start) ? "The event must end after it starts." : undefined,
+            }
+            setErrors(next)
+            if (next.title || next.time) return
+            const course = courses.find((c) => c.id === courseId)
+            addEvent({
+              title: title.trim(),
+              category,
+              startDate: day,
+              startTime: start,
+              endTime: deadline ? start : end,
+              courseId: course?.id,
+              courseName: course?.name,
+              location: location.trim() || undefined,
+              description: description.trim() || undefined,
+              status: "Scheduled",
+            })
+            notify(`Added “${title.trim()}” to ${dayLabel(day).toLowerCase()}`)
+            onOpenChange(false)
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>New event</DialogTitle>
+            <DialogDescription>Office hours, meetings, quizzes, deadlines or a reminder for yourself.</DialogDescription>
+          </DialogHeader>
+          <Field label="Title" required error={errors.title}>
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Fractions drop-in" />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Type">
+              <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {NEW_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Course">
+              <Select value={courseId} onValueChange={setCourseId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No course</SelectItem>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.code} · {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <div className={cn("grid gap-4", deadline ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
+            <Field label="Date">
+              <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} />
+            </Field>
+            <Field label={deadline ? "Due at" : "Starts"}>
+              <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+            </Field>
+            {!deadline && (
+              <Field label="Ends" error={errors.time}>
+                <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+              </Field>
+            )}
+          </div>
+          <Field label="Location" hint="Optional. A room or a link.">
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Room 4B or a meeting link" />
+          </Field>
+          <Field label="Notes" hint="Optional">
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" leftIcon={<Plus aria-hidden="true" />}>
+              Add event
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** One school calendar: classes, office hours, deadlines and meetings, by week, month or as an agenda. */
+export default function CalendarPage() {
+  const navigate = useNavigate()
+  const { events, sessions, recordings, deleteEvent, notify } = useTeacherData()
+  const [view, setView] = useState<View>("week")
+  const [cursor, setCursor] = useState<Date>(DEMO_NOW)
+  const [day, setDay] = useState(DEMO_DATE)
+  const [hidden, setHidden] = useState<Set<Category>>(new Set())
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createDate, setCreateDate] = useState(DEMO_DATE)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+
+  const all = useMemo(() => [...events, ...sessions.filter((s) => s.status !== "Cancelled").map(sessionAsEvent)], [events, sessions])
+  const shown = useMemo(() => all.filter((e) => !hidden.has(e.category)), [all, hidden])
+  const onDate = (date: string) => shown.filter((e) => e.startDate === date).sort((a, b) => minutesOf(a.startTime) - minutesOf(b.startTime))
+
+  const weekStart = startOfWeek(cursor)
+  const weekDays = Array.from({ length: 7 }, (_, i) => isoDate(addDays(weekStart, i)))
+  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
+  const gridStart = startOfWeek(monthStart)
+  const monthDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
+  const agendaDays = Array.from({ length: 14 }, (_, i) => isoDate(addDays(cursor, i))).filter((d) => onDate(d).length > 0)
+
+  const step = (dir: -1 | 1) => {
+    if (view === "month") setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + dir, 1))
+    else {
+      const next = addDays(cursor, dir * 7)
+      setCursor(next)
+      setDay(isoDate(startOfWeek(next)))
+    }
+  }
+  const goToday = () => {
+    setCursor(DEMO_NOW)
+    setDay(DEMO_DATE)
+  }
+
+  const label =
+    view === "month"
+      ? cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+      : view === "agenda"
+        ? `Next two weeks from ${cursor.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+        : `${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(weekStart, 6).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+
+  const details = (e: CalendarEventItem) => {
+    const sessionId = e.id.startsWith("session-") ? e.id.slice("session-".length) : null
+    const session = sessionId ? sessions.find((s) => s.id === sessionId) : undefined
+    const rec = session ? recordings.find((r) => r.sessionId === session.id && r.status !== "Not Available") : undefined
+    const style = EVENT_STYLE[e.category]
+    return (
+      <PopoverContent align="start" className="w-80">
+        <div className="flex items-center gap-2">
+          <Badge tone={style.tone} dot>
+            {session?.status === "Live Now" ? "Live class" : e.category}
+          </Badge>
+          {e.status === "Completed" && <Badge tone="neutral">Done</Badge>}
         </div>
-        <div className="subtitle">
-          Academic schedule, lectures, assignment deadlines, and personal reminders
-        </div>
-      </div>
-      <div className="header-actions">
-        <div className="search-box">
-          <Icon name="search" size={15} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search events, courses, or rooms..."
-            aria-label="Search calendar events"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1 cursor-pointer"
-              aria-label="Clear search"
+        <p className="mt-2 text-sm font-semibold text-foreground">{e.title}</p>
+        <dl className="mt-3 space-y-1.5 text-caption text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <dd>
+              {dayLabel(e.startDate)}, {e.startTime === e.endTime ? `due ${formatTime(e.startTime)}` : formatTimeRange(e.startTime, e.endTime)}
+            </dd>
+          </div>
+          {e.location && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <dd className="truncate">{e.location}</dd>
+            </div>
+          )}
+          {e.courseName && (
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <dd className="truncate">{e.courseName}</dd>
+            </div>
+          )}
+        </dl>
+        {e.description && <p className="mt-3 line-clamp-4 text-caption leading-5 text-foreground">{e.description}</p>}
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          {session?.status === "Live Now" && (
+            <Button size="sm" leftIcon={<Radio aria-hidden="true" />} onClick={() => navigate(`/teacher/live-class/studio/${session.id}`)}>
+              Enter studio
+            </Button>
+          )}
+          {session && (session.status === "Upcoming" || session.status === "Scheduled") && (
+            <Button size="sm" variant="secondary" onClick={() => navigate("/teacher/live-class")}>
+              Open in live classes
+            </Button>
+          )}
+          {rec && (
+            <Button size="sm" variant="secondary" leftIcon={<PlayCircle aria-hidden="true" />} onClick={() => navigate(`/teacher/recordings/${rec.id}`)}>
+              Recording
+            </Button>
+          )}
+          {!e.isReadOnly ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto text-danger hover:text-danger"
+              leftIcon={<Trash2 aria-hidden="true" />}
+              onClick={() => {
+                deleteEvent(e.id)
+                notify(`Removed “${e.title}”`)
+              }}
             >
-              ×
-            </button>
+              Delete
+            </Button>
+          ) : (
+            !session && <span className="text-[11px] text-muted-foreground">From the school calendar</span>
           )}
         </div>
-        <ThemeAccentPicker />
-        <button
-          onClick={onOpenCreateReminder}
-          className="h-9 px-3.5 rounded-full btn-primary text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
-          aria-label="Add personal reminder"
-        >
-          <span>+ Add Reminder</span>
-        </button>
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about schedule"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
+      </PopoverContent>
+    )
+  }
+
+  const dayColumn = (date: string, idx: number) => {
+    const list = onDate(date)
+    const layout = layoutDay(list)
+    const isToday = date === DEMO_DATE
+    return (
+      <div key={date} className={cn("relative border-l border-border", isToday && "bg-primary-soft/40")} style={{ height: (DAY_END - DAY_START) * HOUR_PX }}>
+        {Array.from({ length: DAY_END - DAY_START }, (_, h) => (
+          <div key={h} className="absolute inset-x-0 border-t border-dashed border-border/70" style={{ top: h * HOUR_PX }} aria-hidden="true" />
+        ))}
+        {list.map((e, i) => {
+          const s = Math.max(DAY_START * 60, minutesOf(e.startTime))
+          const end = Math.min(DAY_END * 60, Math.max(s + 30, minutesOf(e.endTime)))
+          const pos = layout.get(e.id) ?? { col: 0, cols: 1 }
+          const top = ((s - DAY_START * 60) / 60) * HOUR_PX
+          const height = Math.max(26, ((end - s) / 60) * HOUR_PX - 2)
+          const deadline = e.startTime === e.endTime
+          const live = e.id.startsWith("session-") && sessions.find((x) => `session-${x.id}` === e.id)?.status === "Live Now"
+          return (
+            <Popover key={e.id}>
+              <PopoverTrigger asChild>
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ ...transition.base, delay: idx * 0.03 + i * 0.03 }}
+                  className={cn(
+                    "absolute overflow-hidden rounded-md border-l-[3px] px-2 py-1 text-left shadow-[var(--elev-xs)] transition-shadow hover:z-10 hover:shadow-[var(--elev-md)] focus-visible:z-10",
+                    EVENT_STYLE[e.category].block,
+                    live && "ring-1 ring-danger",
+                    e.status === "Completed" && "opacity-70",
+                  )}
+                  style={{ top, height: deadline ? 26 : height, left: `calc(${(pos.col / pos.cols) * 100}% + 2px)`, width: `calc(${100 / pos.cols}% - 4px)` }}
+                >
+                  <span className="flex items-center gap-1 text-[11px] font-semibold leading-4 text-foreground">
+                    {deadline && <Flag className="h-3 w-3 shrink-0 text-danger" aria-hidden="true" />}
+                    {live && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-danger" aria-hidden="true" />}
+                    <span className="truncate">{e.title}</span>
+                  </span>
+                  {!deadline && height > 40 && <span className="block truncate text-[10px] leading-4 text-muted-foreground">{formatTimeRange(e.startTime, e.endTime)}</span>}
+                </motion.button>
+              </PopoverTrigger>
+              {details(e)}
+            </Popover>
+          )
+        })}
+        {isToday && NOW_MIN >= DAY_START * 60 && NOW_MIN <= DAY_END * 60 && (
+          <div className="pointer-events-none absolute inset-x-0 z-20 flex items-center" style={{ top: ((NOW_MIN - DAY_START * 60) / 60) * HOUR_PX }} aria-hidden="true">
+            <span className="-ml-1 h-2 w-2 rounded-full bg-danger" />
+            <span className="h-px flex-1 bg-danger" />
+          </div>
         )}
       </div>
-    </header>
-  )
-}
-
-function EventDetailsModal({
-  isOpen,
-  onClose,
-  event,
-  onDeleteEvent,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  event: CalendarEventItem | null
-  onDeleteEvent?: (id: string) => void
-}) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-      window.addEventListener("keydown", handleKeyDown)
-    }
-    return () => {
-      document.body.style.overflow = "auto"
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen || !event) return null
-
-  const getCategoryBadgeClass = (category: CalendarEventItem["category"]) => {
-    switch (category) {
-      case "Class":
-        return "bg-purple-100 text-purple-900 border-purple-200"
-      case "Deadline":
-        return "bg-rose-100 text-rose-900 border-rose-200"
-      case "Quiz":
-        return "bg-amber-100 text-amber-900 border-amber-200"
-      case "Meeting":
-        return "bg-lime-100 text-lime-900 border-lime-200"
-      case "Office Hours":
-        return "bg-teal-100 text-teal-900 border-teal-200"
-      case "Reminder":
-        return "bg-indigo-100 text-indigo-900 border-indigo-200"
-      default:
-        return "bg-gray-100 text-zinc-800 border-gray-200"
-    }
+    )
   }
 
+  const hourGutter = (
+    <div className="relative" style={{ height: (DAY_END - DAY_START) * HOUR_PX }} aria-hidden="true">
+      {Array.from({ length: DAY_END - DAY_START }, (_, h) => (
+        <span key={h} className="absolute right-2 -translate-y-1/2 text-[10px] tabular-nums text-subtle-foreground" style={{ top: h * HOUR_PX }}>
+          {h === 0 ? "" : formatTime(`${DAY_START + h}:00`).replace(":00", "")}
+        </span>
+      ))}
+    </div>
+  )
+
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Event details: ${event.title}`}
-    >
-      <div
-        className="modal-content"
-        style={{ maxWidth: "560px", padding: "24px 26px" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${getCategoryBadgeClass(
-                event.category
-              )}`}
-            >
-              {event.category}
-            </span>
-            {event.isReadOnly ? (
-              <span className="text-[10px] font-semibold text-zinc-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                Admin Managed · Read Only
-              </span>
-            ) : (
-              <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
-                Personal Reminder
-              </span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer font-bold text-sm"
-            aria-label="Close event details"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="mt-4">
-          <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">
-            {event.title}
-          </h3>
-
-          <div className="mt-3 p-3.5 rounded-xl bg-gray-50 border border-gray-150 space-y-2 text-xs">
-            <div className="flex items-center gap-2 text-zinc-700">
-              <Icon name="calendar" size={14} />
-              <span>
-                <strong>Date:</strong> {event.startDate}
-              </span>
-              <span>·</span>
-              <span>
-                <strong>Time:</strong> {event.startTime} – {event.endTime}
-              </span>
-            </div>
-
-            {event.courseName && (
-              <div className="flex items-center gap-2 text-zinc-700">
-                <Icon name="book" size={14} />
-                <span>
-                  <strong>Course:</strong> {event.courseName}
-                </span>
-              </div>
-            )}
-
-            {event.location && (
-              <div className="flex items-center gap-2 text-zinc-700">
-                <Icon name="compass" size={14} />
-                <span>
-                  <strong>Location:</strong> {event.location}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {event.description && (
-            <div className="mt-3.5">
-              <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                Description & Notes
-              </div>
-              <p className="text-xs text-zinc-700 leading-relaxed bg-surface p-3 rounded-xl border border-gray-150">
-                {event.description}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2.5 mt-5 pt-3 border-t border-gray-100">
-          {!event.isReadOnly && onDeleteEvent ? (
-            <button
-              type="button"
+    <div className="flex w-full min-w-0 flex-col">
+      <PageHeader
+        title="Calendar"
+        description="Classes, office hours, deadlines and meetings in one place."
+        actions={
+          <>
+            <Button variant="outline" leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setScheduleOpen(true)}>
+              Schedule class
+            </Button>
+            <Button
+              leftIcon={<Plus aria-hidden="true" />}
               onClick={() => {
-                onDeleteEvent(event.id)
-                onClose()
+                setCreateDate(view === "week" ? day : DEMO_DATE)
+                setCreateOpen(true)
               }}
-              className="text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
             >
-              Delete Reminder
-            </button>
-          ) : (
-            <span className="text-[11px] text-zinc-400">
-              Official school timetable event
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 h-9 rounded-xl btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
-          >
-            Close Details
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CreateReminderModal({
-  isOpen,
-  onClose,
-  courses,
-  onSaveReminder,
-  defaultDate,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  courses: CourseItem[]
-  onSaveReminder: (newEvent: Omit<CalendarEventItem, "id" | "isReadOnly">) => void
-  defaultDate: string
-}) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [startDate, setStartDate] = useState(defaultDate)
-  const [startTime, setStartTime] = useState("10:00")
-  const [endTime, setEndTime] = useState("11:00")
-  const [category, setCategory] = useState<CalendarEventItem["category"]>("Reminder")
-  const [courseName, setCourseName] = useState<string>("")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      setTitle("")
-      setDescription("")
-      setStartDate(defaultDate)
-      setStartTime("10:00")
-      setEndTime("11:00")
-      setCategory("Reminder")
-      setCourseName("")
-      setErrorMessage(null)
-    }
-  }, [isOpen, defaultDate])
-
-  if (!isOpen) return null
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const finalTitle = title.trim() || "Academic Reminder"
-    const finalDate = startDate || defaultDate || "2026-10-22"
-    const finalStart = startTime || "10:00"
-    let finalEnd = endTime || "11:00"
-    if (finalEnd <= finalStart) {
-      const [h, m] = finalStart.split(":").map(Number)
-      finalEnd = `${String(((h || 10) + 1) % 24).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`
-    }
-
-    onSaveReminder({
-      title: finalTitle,
-      description: description.trim(),
-      startDate: finalDate,
-      startTime: finalStart,
-      endTime: finalEnd,
-      category,
-      courseName: courseName || undefined,
-      location: "Personal Schedule / Teacher Desk",
-      status: "Scheduled",
-    })
-    onClose()
-  }
-
-  return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create personal reminder or calendar event"
-    >
-      <div
-        className="modal-content"
-        style={{ maxWidth: "520px", padding: "24px 26px" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-zinc-900">
-            Create Personal Reminder / Event
-          </h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer font-bold text-sm"
-            aria-label="Close modal"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          {errorMessage && (
-            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-1.5">
-              <span>⚠</span>
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">
-              Title <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Prepare Lab Samples, Office Hours..."
-              className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-1 focus:ring-purple-300 outline-none"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as CalendarEventItem["category"])}
-                className="form-select-standard"
-              >
-                <option value="Reminder">Personal Reminder</option>
-                <option value="Office Hours">Office Hours</option>
-                <option value="Meeting">Meeting / Sync</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                Optional Course Association
-              </label>
-              <select
-                value={courseName}
-                onChange={(e) => setCourseName(e.target.value)}
-                className="form-select-standard"
-              >
-                <option value="">None / General</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2.5">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-gray-200 focus:border-purple-400 outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-gray-200 focus:border-purple-400 outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                End Time
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full text-xs p-2 rounded-xl border border-gray-200 focus:border-purple-400 outline-none"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">
-              Description / Notes
-            </label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add optional notes, agenda, or materials to prepare..."
-              className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:border-purple-400 outline-none resize-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 h-9 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 h-9 rounded-xl btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
-            >
-              Save Reminder
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-export default function CalendarPage({
-  searchQuery,
-  setSearchQuery,
-  hexColor,
-  onChangeHexColor,
-  onOpenAiModal,
-  courses = [],
-  onToast,
-}: {
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  onOpenAiModal?: () => void
-  courses?: CourseItem[]
-  onToast?: (msg: string) => void
-}) {
-  // Calendar Events State with localStorage persistence
-  const [events, setEvents] = useState<CalendarEventItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("quantum_teacher_calendar_v2") || localStorage.getItem("quantum_teacher_calendar_events")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length >= 10 && parsed[0]?.title) {
-          return parsed
+              New event
+            </Button>
+          </>
         }
-      }
-    } catch {
-      // ignore
-    }
-    try {
-      localStorage.setItem("quantum_teacher_calendar_v2", JSON.stringify(initialCalendarEvents))
-      localStorage.removeItem("quantum_teacher_calendar_events")
-    } catch {
-      // ignore
-    }
-    return initialCalendarEvents
-  })
-
-  // Calendar View Mode: timeline (default matching user UI) | month | week | day | agenda
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("timeline")
-
-  // Current anchor date (defaults to August 9, 2025 to match user design)
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date(2025, 7, 9))
-
-  // Reminders State with localStorage persistence
-  const [reminders, setReminders] = useState<{ id: string; title: string; date: string; tag: "Meetings" | "Appointment" | "Evaluation" | "Class" | "Deadline" }[]>(() => {
-    try {
-      const saved = localStorage.getItem("quantum_calendar_reminders_v1")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
-      }
-    } catch {}
-    return [
-      { id: "rem-1", title: "Client Strategy Call", date: "12 August 2025", tag: "Meetings" },
-      { id: "rem-2", title: "Project Kickoff", date: "17 August 2025", tag: "Appointment" },
-      { id: "rem-3", title: "Team Check-in", date: "19 August 2025", tag: "Evaluation" },
-      { id: "rem-4", title: "Stakeholder Meeting", date: "24 August 2025", tag: "Meetings" },
-      { id: "rem-5", title: "Sprint Review", date: "26 August 2025", tag: "Meetings" },
-      { id: "rem-6", title: "Performance Review", date: "31 August 2025", tag: "Evaluation" },
-      { id: "rem-7", title: "Curriculum Planning", date: "02 September 2025", tag: "Meetings" },
-      { id: "rem-8", title: "Midterm Grading Review", date: "05 September 2025", tag: "Evaluation" },
-      { id: "rem-9", title: "Parent-Teacher Q&A", date: "08 September 2025", tag: "Appointment" },
-    ]
-  })
-
-  // Filters State
-  const [selectedCategory, setSelectedCategory] = useState<string>("All")
-  const [selectedCourse, setSelectedCourse] = useState<string>("All")
-
-  // Modals State
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEventItem | null>(null)
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-
-  // Save events helper
-  const saveEvents = (updated: CalendarEventItem[]) => {
-    setEvents(updated)
-    try {
-      localStorage.setItem("quantum_teacher_calendar_v2", JSON.stringify(updated))
-    } catch {
-      // ignore
-    }
-  }
-
-  // Save reminders helper
-  const saveReminders = (updated: typeof reminders) => {
-    setReminders(updated)
-    try {
-      localStorage.setItem("quantum_calendar_reminders_v1", JSON.stringify(updated))
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleCreateReminder = (newEvent: Omit<CalendarEventItem, "id" | "isReadOnly">) => {
-    const item: CalendarEventItem = {
-      ...newEvent,
-      id: `ev-custom-${Date.now()}`,
-      isReadOnly: false,
-    }
-    const updated = [item, ...events]
-    saveEvents(updated)
-
-    // Also add to reminders list
-    const newRem = {
-      id: `rem-${Date.now()}`,
-      title: newEvent.title,
-      date: newEvent.startDate,
-      tag: (newEvent.category as any) || "Meetings",
-    }
-    saveReminders([newRem, ...reminders])
-
-    onToast?.(`Reminder "${item.title}" added to your calendar!`)
-  }
-
-  const handleDeleteEvent = (id: string) => {
-    const updated = events.filter((e) => e.id !== id)
-    saveEvents(updated)
-    onToast?.("Personal reminder removed.")
-  }
-
-  // Navigation handlers
-  const handleToday = () => {
-    setCurrentDate(new Date(2025, 7, 9))
-  }
-
-  const handlePrev = () => {
-    const next = new Date(currentDate)
-    if (viewMode === "month") {
-      next.setMonth(next.getMonth() - 1)
-    } else if (viewMode === "week") {
-      next.setDate(next.getDate() - 7)
-    } else {
-      next.setDate(next.getDate() - 1)
-    }
-    setCurrentDate(next)
-  }
-
-  const handleNext = () => {
-    const next = new Date(currentDate)
-    if (viewMode === "month") {
-      next.setMonth(next.getMonth() + 1)
-    } else if (viewMode === "week") {
-      next.setDate(next.getDate() + 7)
-    } else {
-      next.setDate(next.getDate() + 1)
-    }
-    setCurrentDate(next)
-  }
-
-  // Mini calendar month navigation
-  const handleMiniPrev = () => {
-    const next = new Date(currentDate)
-    next.setMonth(next.getMonth() - 1)
-    setCurrentDate(next)
-  }
-
-  const handleMiniNext = () => {
-    const next = new Date(currentDate)
-    next.setMonth(next.getMonth() + 1)
-    setCurrentDate(next)
-  }
-
-  // Format header title dynamically
-  const headerDateTitle = useMemo(() => {
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ]
-    const year = currentDate.getFullYear()
-    const month = months[currentDate.getMonth()]
-
-    if (viewMode === "month") {
-      return `${month} ${year}`
-    }
-    if (viewMode === "day" || viewMode === "timeline") {
-      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-      return `${days[currentDate.getDay()]}, ${currentDate.getDate()} ${month} ${year}`
-    }
-    if (viewMode === "week") {
-      const curr = new Date(currentDate)
-      const first = curr.getDate() - curr.getDay()
-      const start = new Date(curr.setDate(first))
-      const end = new Date(curr.setDate(first + 6))
-      return `${months[start.getMonth()].slice(0, 3)} ${start.getDate()} – ${months[end.getMonth()].slice(0, 3)} ${end.getDate()}, ${year}`
-    }
-    return `Academic Agenda · ${month} ${year}`
-  }, [currentDate, viewMode])
-
-  // Filtered Events
-  const filteredEvents = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    return events.filter((e) => {
-      if (selectedCategory !== "All" && e.category !== selectedCategory) return false
-      if (selectedCourse !== "All" && e.courseName !== selectedCourse) return false
-      if (!q) return true
-      return (
-        e.title.toLowerCase().includes(q) ||
-        (e.description && e.description.toLowerCase().includes(q)) ||
-        (e.courseName && e.courseName.toLowerCase().includes(q)) ||
-        (e.location && e.location.toLowerCase().includes(q))
-      )
-    })
-  }, [events, searchQuery, selectedCategory, selectedCourse])
-
-  // Events map for quick day lookup: YYYY-MM-DD -> CalendarEventItem[]
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, CalendarEventItem[]>()
-    for (const ev of filteredEvents) {
-      const list = map.get(ev.startDate) || []
-      list.push(ev)
-      map.set(ev.startDate, list)
-    }
-    return map
-  }, [filteredEvents])
-
-  // Upcoming events list (next 5 chronological)
-  const upcomingEvents = useMemo(() => {
-    return [...filteredEvents]
-      .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.startTime.localeCompare(b.startTime))
-      .slice(0, 5)
-  }, [filteredEvents])
-
-  const getEventBadgeClass = (category: CalendarEventItem["category"]) => {
-    switch (category) {
-      case "Class":
-        return "bg-purple-100 text-purple-900 border-purple-200"
-      case "Deadline":
-        return "bg-rose-100 text-rose-900 border-rose-200"
-      case "Quiz":
-        return "bg-amber-100 text-amber-900 border-amber-200"
-      case "Meeting":
-        return "bg-lime-100 text-lime-900 border-lime-200"
-      case "Office Hours":
-        return "bg-teal-100 text-teal-900 border-teal-200"
-      case "Reminder":
-        return "bg-indigo-100 text-indigo-900 border-indigo-200"
-      default:
-        return "bg-gray-100 text-zinc-800 border-gray-200"
-    }
-  }
-
-  const getReminderTagBadgeClass = (tag: string) => {
-    switch (tag) {
-      case "Meetings":
-        return "bg-blue-50 text-blue-700 border-blue-200"
-      case "Appointment":
-        return "bg-purple-50 text-purple-700 border-purple-200"
-      case "Evaluation":
-        return "bg-rose-50 text-rose-700 border-rose-200"
-      case "Class":
-        return "bg-teal-50 text-teal-700 border-teal-200"
-      case "Deadline":
-        return "bg-amber-50 text-amber-700 border-amber-200"
-      default:
-        return "bg-gray-50 text-zinc-700 border-gray-200"
-    }
-  }
-
-  const handleOpenEvent = (ev: CalendarEventItem) => {
-    setSelectedEvent(ev)
-    setIsDetailsModalOpen(true)
-  }
-
-  const handleSelectDateAndJump = (dateStr: string) => {
-    const [y, m, d] = dateStr.split("-").map(Number)
-    setCurrentDate(new Date(y, m - 1, d))
-  }
-
-  // Mini Calendar Month Grid (Monday to Sunday)
-  const miniCalendarDays = useMemo(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    const totalDays = getDaysInMonth(year, month)
-    const firstDayRaw = new Date(year, month, 1).getDay()
-    const firstDayMonday = (firstDayRaw + 6) % 7
-
-    const prevMonthDays = getDaysInMonth(year, month - 1)
-    const cells = []
-
-    // Leading days
-    for (let i = firstDayMonday - 1; i >= 0; i--) {
-      const dayNum = prevMonthDays - i
-      const prevDate = new Date(year, month - 1, dayNum)
-      cells.push({
-        dateStr: formatDateString(prevDate),
-        dayNum,
-        isCurrentMonth: false,
-        isSelected: false,
-      })
-    }
-
-    // Current month days
-    for (let d = 1; d <= totalDays; d++) {
-      const thisDate = new Date(year, month, d)
-      cells.push({
-        dateStr: formatDateString(thisDate),
-        dayNum: d,
-        isCurrentMonth: true,
-        isSelected: d === currentDate.getDate(),
-      })
-    }
-
-    // Trailing days to complete weeks (35 or 42 cells)
-    const remaining = (7 - (cells.length % 7)) % 7
-    for (let t = 1; t <= remaining; t++) {
-      const nextDate = new Date(year, month + 1, t)
-      cells.push({
-        dateStr: formatDateString(nextDate),
-        dayNum: t,
-        isCurrentMonth: false,
-        isSelected: false,
-      })
-    }
-
-    return cells
-  }, [currentDate])
-
-  // Full Month Grid Calculation
-  const monthGridDays = useMemo(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    const totalDays = getDaysInMonth(year, month)
-    const firstDayIndex = getFirstDayOfWeek(year, month)
-
-    const prevMonthDays = getDaysInMonth(year, month - 1)
-    const cells = []
-
-    // Leading days
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const dayNum = prevMonthDays - i
-      const prevDate = new Date(year, month - 1, dayNum)
-      cells.push({
-        dateStr: formatDateString(prevDate),
-        dayNum,
-        isCurrentMonth: false,
-      })
-    }
-
-    // Current month days
-    for (let d = 1; d <= totalDays; d++) {
-      const thisDate = new Date(year, month, d)
-      cells.push({
-        dateStr: formatDateString(thisDate),
-        dayNum: d,
-        isCurrentMonth: true,
-      })
-    }
-
-    // Trailing days to fill 35 or 42 cells
-    const remaining = (7 - (cells.length % 7)) % 7
-    for (let t = 1; t <= remaining; t++) {
-      const nextDate = new Date(year, month + 1, t)
-      cells.push({
-        dateStr: formatDateString(nextDate),
-        dayNum: t,
-        isCurrentMonth: false,
-      })
-    }
-
-    return cells
-  }, [currentDate])
-
-  // Week Grid Calculation
-  const weekDays = useMemo(() => {
-    const curr = new Date(currentDate)
-    const first = curr.getDate() - curr.getDay()
-    const days = []
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(curr.getFullYear(), curr.getMonth(), first + i)
-      days.push({
-        dayName: dayNames[i],
-        dayNum: d.getDate(),
-        dateStr: formatDateString(d),
-      })
-    }
-    return days
-  }, [currentDate])
-
-  // Timeline Hours (07:00 AM to 07:00 PM)
-  const timelineHours = [
-    { label: "07:00 AM", hour: 7 },
-    { label: "08:00 AM", hour: 8 },
-    { label: "09:00 AM", hour: 9 },
-    { label: "10:00 AM", hour: 10 },
-    { label: "11:00 AM", hour: 11 },
-    { label: "12:00 PM", hour: 12 },
-    { label: "01:00 PM", hour: 13 },
-    { label: "02:00 PM", hour: 14 },
-    { label: "03:00 PM", hour: 15 },
-    { label: "04:00 PM", hour: 16 },
-    { label: "05:00 PM", hour: 17 },
-    { label: "06:00 PM", hour: 18 },
-    { label: "07:00 PM", hour: 19 },
-  ]
-
-  // Timeline Event Cards matching reference screenshot
-  const timelineCards = [
-    {
-      id: "tl-1",
-      name: "Jane Cooper",
-      title: "Strategic Client Consultation & Review",
-      time: "07.00 AM",
-      hour: 7,
-      minute: 0,
-      status: "Done",
-      avatar: "/assets/student-1.png",
-      row: 0,
-    },
-    {
-      id: "tl-2",
-      name: "Jenny Wilson",
-      title: "Neural Networks Lab Sync",
-      time: "07.15 AM",
-      hour: 7,
-      minute: 15,
-      status: "Done",
-      avatar: "/assets/student-2.png",
-      row: 3,
-    },
-    {
-      id: "tl-3",
-      name: "Brooklyn Simmons",
-      title: "Computer Vision Model Training",
-      time: "07.35 AM",
-      hour: 7,
-      minute: 35,
-      status: "Done",
-      avatar: "/assets/student-3.png",
-      row: 1,
-    },
-    {
-      id: "tl-4",
-      name: "Courtney Henry",
-      title: "Python Assessment Feedback",
-      time: "08.35 AM",
-      hour: 8,
-      minute: 35,
-      status: "Done",
-      avatar: "/assets/student-4.png",
-      row: 2,
-    },
-    {
-      id: "tl-5",
-      name: "Guy Hawkins",
-      title: "Quantum AI Capstone Critique",
-      time: "09.00 AM",
-      hour: 9,
-      minute: 0,
-      status: "Join",
-      avatar: "/assets/student-5.png",
-      row: 0,
-    },
-    {
-      id: "tl-6",
-      name: "Kristin Watson",
-      title: "Deep Learning Office Hours",
-      time: "09.45 AM",
-      hour: 9,
-      minute: 45,
-      status: "Start",
-      avatar: "/assets/student-7.png",
-      row: 4,
-    },
-    {
-      id: "tl-7",
-      name: "Robert Fox",
-      title: "Robotics Sensor Integration",
-      time: "10.30 AM",
-      hour: 10,
-      minute: 30,
-      status: "Start",
-      avatar: "/assets/student-6.png",
-      row: 2,
-    },
-    {
-      id: "tl-8",
-      name: "Jacob Jones",
-      title: "Prompt Engineering Workshop",
-      time: "11.15 AM",
-      hour: 11,
-      minute: 15,
-      status: "Start",
-      avatar: "/assets/student-8.png",
-      row: 1,
-    },
-    {
-      id: "tl-9",
-      name: "Cameron Williamson",
-      title: "Applied Machine Learning Tutorial",
-      time: "11.45 AM",
-      hour: 11,
-      minute: 45,
-      status: "Start",
-      avatar: "/assets/teacher.png",
-      row: 3,
-    },
-  ]
-
-  const todayStr = "2026-10-22"
-
-  return (
-    <>
-      <CalendarHeader
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onOpenAiModal={onOpenAiModal}
-        hexColor={hexColor}
-        onChangeHexColor={onChangeHexColor}
-        onOpenCreateReminder={() => setIsCreateModalOpen(true)}
       />
 
-      {/* Global Scoped Scrollbar Style for Calendar Sections */}
-      <style>{`
-        .live-class-scroll-section {
-          scrollbar-width: thin !important;
-          scrollbar-color: #9333ea #f4f3fa !important;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
-        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar,
-        .live-class-scroll-section::-webkit-scrollbar {
-          display: block !important;
-          width: 7px !important;
-          height: 7px !important;
-        }
-
-        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
-        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-track,
-        .live-class-scroll-section::-webkit-scrollbar-track {
-          background: #f4f3fa !important;
-          border-radius: 9999px !important;
-        }
-
-        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
-        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb,
-        .live-class-scroll-section::-webkit-scrollbar-thumb {
-          background: #9333ea !important;
-          border-radius: 9999px !important;
-        }
-
-        html body .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
-        .teacher-portal-shell .live-class-scroll-section::-webkit-scrollbar-thumb:hover,
-        .live-class-scroll-section::-webkit-scrollbar-thumb:hover {
-          background: #7e22ce !important;
-        }
-      `}</style>
-
-      {/* Main Calendar 2-Column Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-[var(--app-card-gap,14px)] mt-1 items-start">
-        {/* LEFT COLUMN: Mini Calendar + Reminders */}
-        <div className="flex flex-col gap-[var(--app-card-gap,14px)]">
-          {/* 1. Mini Calendar Card */}
-          <div className="bg-surface rounded-2xl border border-gray-150 p-4 shadow-xs">
-            {/* Header: Month & Year with Chevrons */}
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h4 className="text-sm font-bold text-zinc-900">
-                {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </h4>
-              <div className="flex items-center gap-1">
+      <Stagger className="flex flex-col gap-4" stagger={0.05}>
+        <StaggerItem>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="outline" aria-label={view === "month" ? "Previous month" : "Previous week"} onClick={() => step(-1)}>
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              <Button size="icon" variant="outline" aria-label={view === "month" ? "Next month" : "Next week"} onClick={() => step(1)}>
+                <ChevronRight aria-hidden="true" />
+              </Button>
+              <Button variant="ghost" onClick={goToday}>
+                Today
+              </Button>
+            </div>
+            <h2 className="min-w-0 text-base font-semibold text-foreground" aria-live="polite">
+              {label}
+            </h2>
+            <div className="ml-auto">
+              <SegmentedControl
+                aria-label="Calendar view"
+                options={[
+                  { value: "week" as View, label: "Week" },
+                  { value: "month" as View, label: "Month" },
+                  { value: "agenda" as View, label: "Agenda" },
+                ]}
+                value={view}
+                onChange={setView}
+              />
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Show event types">
+            {CATEGORIES.map((c) => {
+              const on = !hidden.has(c)
+              return (
                 <button
+                  key={c}
                   type="button"
-                  onClick={handleMiniPrev}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 hover:bg-gray-100 transition-colors cursor-pointer"
-                  aria-label="Previous month"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setHidden((cur) => {
+                      const n = new Set(cur)
+                      if (n.has(c)) n.delete(c)
+                      else n.add(c)
+                      return n
+                    })
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    on ? "border-border bg-surface text-foreground" : "border-dashed border-border text-muted-foreground",
+                  )}
                 >
-                  <Icon name="chevron-left" size={14} />
+                  <span className={cn("h-2 w-2 rounded-full transition-opacity", EVENT_STYLE[c].dot, !on && "opacity-30")} aria-hidden="true" />
+                  {c === "Class" ? "Classes" : c}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleMiniNext}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 hover:bg-gray-100 transition-colors cursor-pointer"
-                  aria-label="Next month"
-                >
-                  <Icon name="chevron-right" size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* Weekdays Row: Mo Tu We Th Fr Sa Su */}
-            <div className="grid grid-cols-7 text-center text-[11px] font-medium text-zinc-400 mb-2">
-              <span>Mo</span>
-              <span>Tu</span>
-              <span>We</span>
-              <span>Th</span>
-              <span>Fr</span>
-              <span>Sa</span>
-              <span>Su</span>
-            </div>
-
-            {/* Month Days Grid */}
-            <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
-              {miniCalendarDays.map((cell, idx) => (
-                <div key={idx} className="py-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectDateAndJump(cell.dateStr)}
-                    className={`w-7 h-7 text-xs flex items-center justify-center mx-auto transition-all cursor-pointer ${
-                      cell.isSelected
-                        ? "bg-[#1d63ed] text-white font-bold rounded-lg shadow-xs scale-105"
-                        : cell.isCurrentMonth
-                        ? "text-zinc-700 hover:bg-gray-100 font-normal rounded-md"
-                        : "text-zinc-400 hover:text-zinc-600 font-normal rounded-md"
-                    }`}
-                  >
-                    {cell.dayNum}
-                  </button>
-                </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
+        </StaggerItem>
 
-          {/* 2. Reminders Card with Scrollbar */}
-          <div className="bg-surface rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col">
-            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-              <h4 className="text-sm font-bold text-zinc-900">Reminder</h4>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="text-zinc-400 hover:text-purple-700 transition-colors cursor-pointer text-xs font-bold px-1 tracking-widest"
-                title="Add Reminder"
-                aria-label="Add reminder"
-              >
-                •••
-              </button>
-            </div>
-
-            {/* Scrollable Reminders List */}
-            <div className="space-y-2 mt-2.5 max-h-[330px] overflow-y-auto live-class-scroll-section pr-1.5">
-              {reminders.map((r) => (
-                <div
-                  key={r.id}
-                  onClick={() => onToast?.(`Reminder: ${r.title} (${r.date})`)}
-                  className="p-2.5 rounded-xl bg-surface hover:bg-gray-50/70 border border-gray-150 hover:border-purple-300 transition-all flex items-center justify-between gap-2 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <strong className="block text-xs font-semibold text-zinc-900 group-hover:text-purple-700 transition-colors truncate">
-                      {r.title}
-                    </strong>
-                    <span className="text-[10.5px] text-zinc-400 block mt-0.5">
-                      {r.date}
-                    </span>
-                  </div>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-medium border shrink-0 ${getReminderTagBadgeClass(
-                      r.tag
-                    )}`}
-                  >
-                    {r.tag}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Date Header + Filter Dropdowns + Dynamic Views */}
-        <div className="bg-surface rounded-2xl border border-gray-150 p-4 sm:p-5 shadow-xs flex flex-col flex-1 min-h-0">
-          {/* Top Controls Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-150">
-            {/* Dynamic Date Heading: e.g. Saturday, 9 August 2025 */}
-            <div className="flex items-center gap-3">
-              <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
-                {headerDateTitle}
-              </h3>
-            </div>
-
-            {/* Right Actions: All Event dropdown & View Switcher */}
-            <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
-              {/* Category Filter Dropdown */}
-              <div className="relative">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="h-8.5 px-3 pr-8 rounded-lg bg-surface border border-gray-200 text-xs font-medium text-zinc-700 hover:border-gray-300 transition-colors cursor-pointer appearance-none shadow-2xs"
-                  aria-label="Filter events by category"
-                >
-                  <option value="All">All Event</option>
-                  <option value="Meetings">Meetings</option>
-                  <option value="Appointment">Appointment</option>
-                  <option value="Evaluation">Evaluation</option>
-                  <option value="Class">Class</option>
-                  <option value="Deadline">Deadline</option>
-                  <option value="Quiz">Quiz</option>
-                  <option value="Office Hours">Office Hours</option>
-                  <option value="Reminder">Reminder</option>
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 text-[10px]">
-                  ▼
-                </span>
-              </div>
-
-              {/* View Switcher: Timeline | Month | Week | Agenda */}
-              <div className="inline-flex items-center p-1 rounded-xl bg-gray-100 border border-gray-200" role="group">
-                {(["timeline", "month", "week", "agenda"] as CalendarViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
-                      viewMode === mode
-                        ? "bg-surface text-purple-700 shadow-xs border border-gray-200 font-bold"
-                        : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                    aria-pressed={viewMode === mode}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* VIEW 1: HORIZONTAL TIMELINE VIEW (Reference Screenshot) */}
-          {viewMode === "timeline" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[520px] overflow-x-auto overflow-y-auto live-class-scroll-section border border-gray-150 rounded-2xl relative bg-surface shadow-2xs">
-              <div
-                style={{
-                  width: `${timelineHours.length * 150}px`,
-                  minHeight: "460px",
-                  backgroundImage: "radial-gradient(#e5e7eb 1.2px, transparent 1.2px)",
-                  backgroundSize: "20px 20px",
-                }}
-                className="relative"
-              >
-                {/* 1. Sticky Time Header Row */}
-                <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-xs border-b border-gray-150 flex items-center h-10">
-                  {timelineHours.map((th) => (
-                    <div
-                      key={th.hour}
-                      style={{ width: "150px" }}
-                      className="text-left pl-3 text-[11px] font-semibold text-zinc-400 shrink-0"
-                    >
-                      {th.label}
-                    </div>
-                  ))}
-                </div>
-
-                {/* 2. Dashed Vertical Grid Lines down each hour */}
-                <div className="absolute top-10 bottom-0 left-0 right-0 flex pointer-events-none">
-                  {timelineHours.map((th) => (
-                    <div
-                      key={th.hour}
-                      style={{ width: "150px" }}
-                      className="border-r border-dashed border-gray-200/90 h-full shrink-0"
-                    />
-                  ))}
-                </div>
-
-                {/* 3. Current Time Indicator Marker (09:30 AM) with Blue Pill Badge */}
-                <div
-                  className="absolute top-0 bottom-0 pointer-events-none z-40 flex flex-col items-center"
-                  style={{ left: `${(9 - 7 + 0.5) * 150}px` }}
-                >
-                  <div className="bg-[#1d63ed] text-white text-[11px] font-bold px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap mt-1.5 -translate-x-1/2">
-                    09:30 AM
-                  </div>
-                  <div className="w-[1.5px] bg-[#1d63ed] flex-1 -translate-x-1/2" />
-                </div>
-
-                {/* 4. Timeline Event Cards */}
-                <div className="relative pt-6 pb-6">
-                  {timelineCards.map((card) => {
-                    const cardLeft = (card.hour - 7 + card.minute / 60) * 150 + 10
-                    const cardTop = card.row * 70 + 20
-
-                    return (
-                      <div
-                        key={card.id}
-                        onClick={() => {
-                          if (card.status === "Join") {
-                            onToast?.(`Connecting to live academic room with ${card.name}...`)
-                          } else {
-                            handleOpenEvent({
-                              id: card.id,
-                              title: `${card.name} – ${card.title}`,
-                              startDate: formatDateString(currentDate),
-                              startTime: card.time,
-                              endTime: "10:00 AM",
-                              category: "Meeting",
-                              courseName: card.title,
-                              location: "Quantum Classroom & Faculty Studio",
-                              isReadOnly: false,
-                            })
-                          }
-                        }}
-                        style={{
-                          position: "absolute",
-                          left: `${cardLeft}px`,
-                          top: `${cardTop}px`,
-                          width: "185px",
-                          zIndex: 15,
-                        }}
-                        className={`p-2 pr-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-md ${
-                          card.status === "Join"
-                            ? "bg-blue-50 border-blue-200 ring-1 ring-blue-200/70"
-                            : "bg-surface border-gray-200/90 hover:border-purple-300"
-                        }`}
-                      >
-                        <img
-                          src={card.avatar}
-                          alt={card.name}
-                          className="w-9 h-9 rounded-md object-cover shrink-0 border border-gray-100"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <strong className="block text-xs font-semibold text-zinc-900 truncate leading-snug">
-                            {card.name}
-                          </strong>
-                          <div className="text-[10px] text-zinc-400 flex items-center gap-1 mt-0.5 truncate">
-                            <span>{card.time}</span>
-                            {card.status === "Join" ? (
-                              <>
-                                <span>·</span>
-                                <span className="text-blue-600 font-semibold hover:underline">Join</span>
-                              </>
-                            ) : card.status === "Start" ? (
-                              <>
-                                <span>•</span>
-                                <span className="text-blue-600 font-semibold hover:underline">Start</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>•</span>
-                                <span className="text-zinc-400">Done</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW 2: MONTH VIEW */}
-          {viewMode === "month" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-x-auto overflow-y-auto live-class-scroll-section">
-              <div style={{ minWidth: "720px" }}>
-                {/* Weekday Headings */}
-                <div className="grid grid-cols-7 border-b border-gray-200 text-center text-xs font-bold text-zinc-500 pb-2">
-                  <span>Sun</span>
-                  <span>Mon</span>
-                  <span>Tue</span>
-                  <span>Wed</span>
-                  <span>Thu</span>
-                  <span>Fri</span>
-                  <span>Sat</span>
-                </div>
-
-                {/* Days Grid */}
-                <div className="grid grid-cols-7 auto-rows-fr border-l border-t border-gray-200 bg-surface">
-                  {monthGridDays.map((cell) => {
-                    const dayEvents = eventsByDate.get(cell.dateStr) || []
-                    const isToday = cell.dateStr === todayStr
-                    return (
-                      <div
-                        key={cell.dateStr}
-                        onClick={() => {
-                          handleSelectDateAndJump(cell.dateStr)
-                          setViewMode("timeline")
-                        }}
-                        className={`min-h-[96px] sm:min-h-[110px] p-1.5 border-r border-b border-gray-200 transition-colors flex flex-col justify-between ${
-                          cell.isCurrentMonth ? "bg-surface" : "bg-gray-50/60 text-zinc-400"
-                        } hover:bg-purple-50/20 cursor-pointer`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
-                              isToday
-                                ? "bg-purple-600 text-white shadow-xs"
-                                : cell.isCurrentMonth
-                                ? "text-zinc-800"
-                                : "text-zinc-400"
-                            }`}
+        <StaggerItem>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={`${view}-${view === "month" ? cursor.getMonth() : isoDate(weekStart)}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4, transition: transition.fast }} transition={transition.base}>
+              {view === "week" && (
+                <Card className="overflow-hidden">
+                  <div className="hidden md:block">
+                    <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-border">
+                      <span />
+                      {weekDays.map((d) => {
+                        const date = toDate(d)
+                        const today = d === DEMO_DATE
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => {
+                              setCreateDate(d)
+                              setCreateOpen(true)
+                            }}
+                            className="group border-l border-border px-2 py-2.5 text-left transition-colors hover:bg-surface-2"
+                            aria-label={`Add an event on ${date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`}
                           >
-                            {cell.dayNum}
-                          </span>
-                          {dayEvents.length > 0 && (
-                            <span className="text-[10px] font-semibold text-zinc-400">
-                              {dayEvents.length}
+                            <span className={cn("block text-[11px] font-medium uppercase tracking-wider", today ? "text-primary-text" : "text-muted-foreground")}>
+                              {date.toLocaleDateString("en-GB", { weekday: "short" })}
                             </span>
-                          )}
-                        </div>
-
-                        {/* Events list for this day */}
-                        <div className="space-y-1 mt-1 flex-1">
-                          {dayEvents.slice(0, 2).map((ev) => (
-                            <div
-                              key={ev.id}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleOpenEvent(ev)
-                              }}
-                              className={`px-1.5 py-0.5 rounded text-[10.5px] font-medium border truncate transition-opacity hover:opacity-80 cursor-pointer ${getEventBadgeClass(
-                                ev.category
-                              )}`}
-                              title={`${ev.startTime} ${ev.title}`}
-                            >
-                              <strong className="mr-1">{ev.startTime}</strong>
-                              <span>{ev.title}</span>
-                            </div>
-                          ))}
-                          {dayEvents.length > 2 && (
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleSelectDateAndJump(cell.dateStr)
-                                setViewMode("timeline")
-                              }}
-                              className="text-[10px] font-bold text-purple-700 hover:underline px-1 cursor-pointer"
-                            >
-                              +{dayEvents.length - 2} more
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW 3: WEEK VIEW */}
-          {viewMode === "week" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-x-auto overflow-y-auto live-class-scroll-section">
-              <div style={{ minWidth: "760px" }}>
-                {/* 7 Day Headers */}
-                <div className="grid grid-cols-7 border-b border-gray-200 pb-2 text-center">
-                  {weekDays.map((d) => {
-                    const isToday = d.dateStr === todayStr
-                    return (
-                      <div
-                        key={d.dateStr}
-                        onClick={() => {
-                          handleSelectDateAndJump(d.dateStr)
-                          setViewMode("timeline")
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <span className="block text-[11px] font-bold text-zinc-400 uppercase">
-                          {d.dayName}
-                        </span>
-                        <span
-                          className={`inline-block mt-0.5 text-sm font-bold w-7 h-7 rounded-full leading-7 ${
-                            isToday ? "bg-purple-600 text-white" : "text-zinc-800"
-                          }`}
-                        >
-                          {d.dayNum}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* 7 Columns Container */}
-                <div className="grid grid-cols-7 border-l border-gray-200 min-h-[380px] bg-surface">
-                  {weekDays.map((d) => {
-                    const dayEvents = eventsByDate.get(d.dateStr) || []
-                    return (
-                      <div
-                        key={d.dateStr}
-                        className="p-2 border-r border-b border-gray-200 space-y-2 bg-gray-50/20 hover:bg-purple-50/20 transition-colors"
-                      >
-                        {dayEvents.length === 0 ? (
-                          <div className="text-[10px] text-zinc-400 text-center pt-8">
-                            No events
-                          </div>
-                        ) : (
-                          dayEvents.map((ev) => (
-                            <div
-                              key={ev.id}
-                              onClick={() => handleOpenEvent(ev)}
-                              className={`p-2 rounded-xl text-xs border cursor-pointer hover:shadow-xs transition-all ${getEventBadgeClass(
-                                ev.category
-                              )}`}
-                            >
-                              <div className="text-[10px] font-bold opacity-80">
-                                {ev.startTime} – {ev.endTime}
-                              </div>
-                              <strong className="block font-bold text-zinc-900 mt-0.5 leading-snug line-clamp-2">
-                                {ev.title}
-                              </strong>
-                              {ev.courseName && (
-                                <span className="text-[10px] block opacity-75 truncate mt-0.5">
-                                  {ev.courseName}
-                                </span>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW 4: AGENDA VIEW */}
-          {viewMode === "agenda" && (
-            <div className="mt-3 flex-1 min-h-[460px] max-h-[calc(100vh-230px)] overflow-y-auto live-class-scroll-section max-w-3xl space-y-3">
-              {filteredEvents.length === 0 ? (
-                <div className="p-8 text-center text-xs text-zinc-400 bg-gray-50 rounded-xl border border-gray-200">
-                  No events match your search or filter criteria.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredEvents.map((ev) => (
-                    <div
-                      key={ev.id}
-                      onClick={() => handleOpenEvent(ev)}
-                      className="p-3.5 sm:p-4 rounded-xl bg-gray-50 hover:bg-purple-50/40 border border-gray-200 hover:border-purple-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
-                    >
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
-                        <div className="w-14 sm:w-16 text-center shrink-0 py-1 rounded-lg bg-surface border border-gray-200">
-                          <span className="block text-[10px] font-bold text-zinc-400 uppercase">
-                            {new Date(ev.startDate).toLocaleDateString("en-US", { month: "short" })}
-                          </span>
-                          <span className="block text-base font-bold text-zinc-800">
-                            {new Date(ev.startDate).getDate()}
-                          </span>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span
-                              className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${getEventBadgeClass(
-                                ev.category
-                              )}`}
-                            >
-                              {ev.category}
-                            </span>
-                            <span className="text-[11px] font-semibold text-zinc-600">
-                              {ev.startTime} – {ev.endTime}
-                            </span>
-                            {ev.courseName && (
-                              <span className="text-[11px] text-purple-700 font-medium truncate">
-                                · {ev.courseName}
+                            <span className="mt-0.5 flex items-center justify-between">
+                              <span
+                                className={cn(
+                                  "flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+                                  today ? "bg-primary text-primary-foreground" : "text-foreground",
+                                )}
+                              >
+                                {date.getDate()}
                               </span>
-                            )}
-                          </div>
-                          <h4 className="text-xs sm:text-sm font-bold text-zinc-900 group-hover:text-purple-700 transition-colors leading-snug">
-                            {ev.title}
-                          </h4>
-                          {ev.location && (
-                            <span className="text-[11px] text-zinc-500 block mt-0.5 truncate">
-                              📍 {ev.location}
+                              <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
                             </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="max-h-[640px] overflow-y-auto">
+                      <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] pt-2">
+                        {hourGutter}
+                        {weekDays.map((d, i) => dayColumn(d, i))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:hidden">
+                    <div className="grid grid-cols-7 gap-1 border-b border-border p-2" role="group" aria-label="Pick a day">
+                      {weekDays.map((d) => {
+                        const date = toDate(d)
+                        const active = d === day
+                        const n = onDate(d).length
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setDay(d)}
+                            className={cn("flex flex-col items-center gap-0.5 rounded-md py-1.5 transition-colors", active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-surface-2")}
+                          >
+                            <span className={cn("text-[10px] font-medium uppercase", active ? "text-primary-foreground" : "text-muted-foreground")}>{date.toLocaleDateString("en-GB", { weekday: "narrow" })}</span>
+                            <span className="text-sm font-semibold tabular-nums">{date.getDate()}</span>
+                            <span className={cn("h-1 w-1 rounded-full", n ? (active ? "bg-primary-foreground" : "bg-primary") : "bg-transparent")} aria-hidden="true" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="max-h-[560px] overflow-y-auto">
+                      <div className="grid grid-cols-[44px_minmax(0,1fr)] pt-2">
+                        {hourGutter}
+                        {dayColumn(weekDays.includes(day) ? day : weekDays[0], 0)}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {view === "month" && (
+                <Card className="overflow-hidden">
+                  <div className="grid grid-cols-7 border-b border-border">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                      <span key={d} className="px-2 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7">
+                    {monthDays.map((date, i) => {
+                      const d = isoDate(date)
+                      const list = onDate(d)
+                      const inMonth = date.getMonth() === cursor.getMonth()
+                      const today = d === DEMO_DATE
+                      return (
+                        <div key={d} className={cn("min-h-[64px] border-b border-l border-border p-1 sm:min-h-[104px] sm:p-1.5", i % 7 === 0 && "border-l-0", !inMonth && "bg-surface-2/50")}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCursor(date)
+                              setDay(d)
+                              setView("week")
+                            }}
+                            aria-label={`Open the week of ${date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}`}
+                            className={cn(
+                              "flex h-6 w-6 items-center justify-center rounded-full text-caption font-semibold tabular-nums transition-colors",
+                              today ? "bg-primary text-primary-foreground" : inMonth ? "text-foreground hover:bg-surface-2" : "text-subtle-foreground hover:bg-surface-2",
+                            )}
+                          >
+                            {date.getDate()}
+                          </button>
+                          <ul className="mt-1 hidden space-y-0.5 sm:block">
+                            {list.slice(0, 3).map((e) => (
+                              <li key={e.id}>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button type="button" className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] text-foreground transition-colors hover:bg-surface-2">
+                                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", EVENT_STYLE[e.category].dot)} aria-hidden="true" />
+                                      <span className="truncate">{e.title}</span>
+                                    </button>
+                                  </PopoverTrigger>
+                                  {details(e)}
+                                </Popover>
+                              </li>
+                            ))}
+                            {list.length > 3 && (
+                              <li>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCursor(date)
+                                    setDay(d)
+                                    setView("week")
+                                  }}
+                                  className="px-1 text-[11px] font-medium text-primary-text hover:underline"
+                                >
+                                  +{list.length - 3} more
+                                </button>
+                              </li>
+                            )}
+                          </ul>
+                          {list.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden" aria-label={`${list.length} events`}>
+                              {list.slice(0, 4).map((e) => (
+                                <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full", EVENT_STYLE[e.category].dot)} />
+                              ))}
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="view-details-btn self-end sm:self-center shrink-0 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleOpenEvent(ev)
-                        }}
-                      >
-                        <span>Details →</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    })}
+                  </div>
+                </Card>
               )}
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Event Details Popup Modal */}
-      <EventDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        event={selectedEvent}
-        onDeleteEvent={handleDeleteEvent}
-      />
+              {view === "agenda" &&
+                (agendaDays.length === 0 ? (
+                  <EmptyState icon={<CalendarClock aria-hidden="true" />} title="A quiet two weeks" description="Nothing is scheduled in this window." action={<Button onClick={() => setCreateOpen(true)}>New event</Button>} />
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {agendaDays.map((d) => (
+                      <section key={d} aria-label={dayLabel(d)}>
+                        <h3 className="mb-2 flex items-baseline gap-2 text-sm font-semibold text-foreground">
+                          {dayLabel(d)}
+                          <span className="text-caption font-normal text-muted-foreground">{toDate(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>
+                        </h3>
+                        <Card className="divide-y divide-border overflow-hidden">
+                          {onDate(d).map((e) => (
+                            <Popover key={e.id}>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2">
+                                  <span className="w-20 shrink-0 text-caption font-medium tabular-nums text-muted-foreground">{formatTime(e.startTime)}</span>
+                                  <span className={cn("h-8 w-1 shrink-0 rounded-full", EVENT_STYLE[e.category].dot)} aria-hidden="true" />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-medium text-foreground">{e.title}</span>
+                                    <span className="block truncate text-caption text-muted-foreground">
+                                      {e.category}
+                                      {e.location ? ` · ${e.location}` : ""}
+                                    </span>
+                                  </span>
+                                  <Badge tone={EVENT_STYLE[e.category].tone} className="hidden sm:inline-flex">
+                                    {e.startTime === e.endTime ? "Due" : formatTimeRange(e.startTime, e.endTime)}
+                                  </Badge>
+                                </button>
+                              </PopoverTrigger>
+                              {details(e)}
+                            </Popover>
+                          ))}
+                        </Card>
+                      </section>
+                    ))}
+                  </div>
+                ))}
+            </motion.div>
+          </AnimatePresence>
+        </StaggerItem>
+      </Stagger>
 
-      {/* Create Reminder Modal */}
-      <CreateReminderModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        courses={courses || []}
-        onSaveReminder={handleCreateReminder}
-        defaultDate={formatDateString(currentDate)}
-      />
-    </>
+      <NewEventDialog open={createOpen} onOpenChange={setCreateOpen} date={createDate} />
+      <ScheduleSessionDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
+    </div>
   )
 }

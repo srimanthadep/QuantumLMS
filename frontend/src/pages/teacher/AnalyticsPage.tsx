@@ -1,2665 +1,691 @@
-import { useState, useMemo } from "react"
-import type {
-  MetricItem,
-  CourseItem,
-  StudentItem,
-  LiveSessionItem,
-  AssignmentItem,
-  LiveAttendanceRecord,
-  SessionRecordingItem,
-  CorrectionSubmissionItem,
-  ReportItem,
-} from "../../types"
-import { Icon } from "../../components/Icon"
-import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
-import { StatCard } from "../../components/ui/StatCard"
-import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
-import { getStudentActivityHeatmap } from "../../data/studentActivityData"
-import { MODULE_ASSIGNMENTS, type ModuleAssignmentItem, type StudentModuleSubmission } from "../../data/courseAssignmentsData"
+import { useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import {
-  initialCourses,
-  initialStudents,
-  initialLiveSessions,
-  initialAttendanceRecords,
-  initialRecordings,
-  initialCorrectionSubmissions,
-  initialTeachingSuggestions,
-  initialAIMonitoringData,
-  initialReports,
-} from "../../data/mockData"
+  AlertTriangle,
+  BarChart3,
+  BellRing,
+  BookOpen,
+  Brain,
+  CalendarClock,
+  Download,
+  FileText,
+  Gauge,
+  Mail,
+  PieChart,
+  Repeat,
+  Send,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Zap,
+  type LucideIcon,
+} from "lucide-react"
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  DataTable,
+  EmptyState,
+  PageHeader,
+  Progress,
+  SegmentedControl,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  StatCard,
+  Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  type BadgeTone,
+} from "@/components/ui"
+import AreaChart from "@/components/charts/AreaChart"
+import BarChart from "@/components/charts/BarChart"
+import DonutChart from "@/components/charts/DonutChart"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import IconTile, { type IconTone } from "@/components/teacher/IconTile"
+import SendReportDialog from "@/components/teacher/SendReportDialog"
+import { initialAnalyticsMetrics } from "@/data/mockData"
+import { cn } from "@/lib/utils"
+import { ease, transition } from "@/lib/motion"
+import type { ReportItem, StudentItem } from "@/types"
+import { downloadTextFile } from "@/pages/student/studentUtils"
+import { useTeacherData } from "./teacherStore"
+import { average, firstName } from "./teacherUtils"
 
-/** Module ids (m1, m2, ...) restart in every course, so the module filter value is scoped to its course. */
-function moduleFilterValue(courseId: string, moduleId: string) {
-  return `${courseId}:${moduleId}`
+type Range = "week" | "month" | "term"
+
+const TREND: Record<Range, { labels: string[]; average: number[]; mastery: number[] }> = {
+  week: { labels: ["Mon", "Tue", "Wed", "Thu"], average: [80, 82, 81, 84], mastery: [82, 83, 83.5, 84.2] },
+  month: { labels: ["Wk 1", "Wk 2", "Wk 3", "Wk 4"], average: [76, 78, 81, 84], mastery: [79, 81, 83, 84.2] },
+  term: {
+    labels: ["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "Wk 6", "Wk 7", "Wk 8"],
+    average: [74, 76, 75, 78, 80, 79, 82, 84],
+    mastery: [70, 72, 74, 77, 79, 81, 83, 84.2],
+  },
 }
 
-function getStudentActivityStats(student: StudentItem) {
-  const summary = getStudentActivityHeatmap(student)
-  const flatDays = summary.weeks.flatMap((w) => w.days)
-  const allEvents = flatDays.flatMap((d) => d.events || [])
+const METRIC_ICON = [Target, Zap, Gauge, Brain]
+const METRIC_TONE = ["primary", "success", "warning", "info"] as const
+const METRIC_SPARK = [
+  [70, 72, 74, 77, 79, 81, 83, 84.2],
+  [1, 1.1, 1.1, 1.2, 1.3, 1.3, 1.4],
+  [82, 84, 83, 85, 86, 88],
+  [81, 84, 86, 88, 90, 93],
+]
 
-  const videoWatch = allEvents.filter((e) => e.type === "video_watched").length
-  const lessonComplete = allEvents.filter((e) => e.type === "lesson_completed").length
-  const materialRead = allEvents.filter((e) => e.type === "material_opened").length
-  const assignmentSubmit = allEvents.filter((e) => e.type === "assignment_submitted").length
-  const quizAttempt = allEvents.filter((e) => e.type === "quiz_attempted").length
+const REPORT_TONE: Record<ReportItem["status"], BadgeTone> = { Sent: "success", "In Progress": "info", Scheduled: "warning" }
 
-  return {
-    summary,
-    totalEvents: summary.totalActivities,
-    activeDays: summary.totalActiveDays,
-    breakdown: {
-      videoWatch,
-      lessonComplete,
-      materialRead,
-      quizAttempt,
-      assignmentSubmit,
-    },
-    flatDays,
-  }
+const SUBJECT_KEY: Record<string, keyof StudentItem["subjects"]> = { Maths: "math", Science: "science", English: "english", Art: "art" }
+
+function risk(s: StudentItem): string[] {
+  const out: string[] = []
+  if (s.attendance < 85) out.push(`Attendance ${s.attendance}%`)
+  if (s.average < 72) out.push(`Average ${s.average}%`)
+  if ((s.pendingAssignments ?? 0) >= 2) out.push(`${s.pendingAssignments} assignments pending`)
+  const weakest = Object.entries(s.subjects).sort((a, b) => a[1] - b[1])[0]
+  if (weakest && weakest[1] < 66) out.push(`${weakest[0][0].toUpperCase()}${weakest[0].slice(1)} ${weakest[1]}%`)
+  return out
 }
 
-export function AnalyticsHeader({
-  searchQuery,
-  setSearchQuery,
-  onOpenAiDiagnostic,
-  hexColor,
-  onChangeHexColor,
-  onOpenAiAssistant,
-}: {
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  onOpenAiDiagnostic?: () => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  onOpenAiAssistant?: () => void
-}) {
+interface ChartCardProps {
+  title: string
+  icon: LucideIcon
+  tone?: IconTone
+  description?: string
+  action?: React.ReactNode
+  children: React.ReactNode
+  className?: string
+}
+
+function ChartCard({ title, icon, tone, description, action, children, className }: ChartCardProps) {
   return (
-    <header className="dashboard-header">
-      <div>
-        <div className="greeting">
-          <span>Academic & Growth Analytics</span>
+    <Card className={cn("min-w-0 overflow-hidden", className)}>
+      <CardHeader className="gap-3 pb-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <IconTile icon={icon} tone={tone} />
+            <CardTitle>{title}</CardTitle>
+          </div>
+          {description && <p className="mt-2 text-sm text-muted-foreground">{description}</p>}
         </div>
-        <div className="subtitle">
-          Real-time cohort insights, learning activity heatmaps, curriculum progress & live intelligence
-        </div>
-      </div>
-      <div className="header-actions">
-        <div className="search-box">
-          <Icon name="search" size={15} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search topic, lesson, assignment or student..."
-            aria-label="Search analytics"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1 cursor-pointer"
-              aria-label="Clear search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-        <ThemeAccentPicker />
-        {onOpenAiDiagnostic && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiDiagnostic}
-            aria-label="Generate AI Diagnostic"
-          >
-            <span>✦</span>
-            AI Diagnostic
-          </button>
-        )}
-        {onOpenAiAssistant && (
-          <button
-            className="px-3.5 h-[35px] rounded-full bg-ink-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-black transition-colors cursor-pointer"
-            onClick={onOpenAiAssistant}
-            aria-label="Ask AI Assistant"
-          >
-            <span className="text-lime-300">✦</span>
-            <span>Ask AI</span>
-          </button>
-        )}
-      </div>
-    </header>
+        {action}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
   )
 }
 
-interface AnalyticsPageProps {
-  metrics?: MetricItem[]
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  onOpenAiDiagnostic?: () => void
-  onAssignSkill?: (skillTitle: string, subjectType: string) => void
-  onSelectStudentForReport?: (studentName: string) => void
-  onOpenAiAssistant?: () => void
-  onShareDigest?: () => void
-  courses?: CourseItem[]
-  students?: StudentItem[]
-  liveSessions?: LiveSessionItem[]
-  assignments?: AssignmentItem[]
-  reports?: ReportItem[]
-  onOpenReportModal?: () => void
-  onDownloadPdf?: () => void
-  onResendAlert?: () => void
-  onAddSchedule?: () => void
-  onToast?: (msg: string) => void
-}
+/** How the class is doing, where it's slipping, and the reports families receive. */
+export default function AnalyticsPage() {
+  const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const { students, courses, assignments, doubts, reports, notify } = useTeacherData()
+  const [range, setRange] = useState<Range>("term")
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportFor, setReportFor] = useState<string | undefined>(undefined)
+  const [preview, setPreview] = useState<ReportItem | null>(null)
+  const [schedules, setSchedules] = useState({ weekly: true, alerts: true, term: false })
 
-export default function AnalyticsPage({
-  searchQuery,
-  setSearchQuery,
-  hexColor,
-  onChangeHexColor,
-  onOpenAiDiagnostic,
-  onAssignSkill,
-  onSelectStudentForReport,
-  onOpenAiAssistant,
-  onShareDigest,
-  courses: propCourses,
-  students: propStudents,
-  liveSessions: propLiveSessions,
-  reports: propReports,
-  onOpenReportModal,
-  onDownloadPdf,
-  onResendAlert,
-  onAddSchedule,
-  onToast,
-}: AnalyticsPageProps) {
-  // Use real data sources passed from App or fallbacks
-  const courses = propCourses && propCourses.length > 0 ? propCourses : initialCourses
-  const students = propStudents && propStudents.length > 0 ? propStudents : initialStudents
-  const liveSessions = propLiveSessions && propLiveSessions.length > 0 ? propLiveSessions : initialLiveSessions
-  const reportsList = propReports && propReports.length > 0 ? propReports : initialReports
-
-  // Active View Tab Filter
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "student_activity" | "curriculum" | "assignments" | "attendance_live" | "ai_intelligence" | "reports"
-  >("overview")
-
-  // Reports state
-  const [selectedReportId, setSelectedReportId] = useState<string>(reportsList[0]?.id || "rep-1")
-  const [reportFilter, setReportFilter] = useState<string>("All")
-  const selectedReport = useMemo(() => reportsList.find((r) => r.id === selectedReportId) || reportsList[0], [reportsList, selectedReportId])
-
-  // Filter Bar State
-  const [courseFilter, setCourseFilter] = useState<string>("All")
-  const [moduleFilter, setModuleFilter] = useState<string>("All")
-  const [studentFilter, setStudentFilter] = useState<string>("All")
-  const [timeframeFilter, setTimeframeFilter] = useState<"all" | "12w" | "4w" | "1w">("12w")
-
-  // Modal State for inspecting module assignment student submissions
-  const [inspectingAssignment, setInspectingAssignment] = useState<ModuleAssignmentItem | null>(null)
-  const [submissionSearch, setSubmissionSearch] = useState("")
-
-  // Available modules based on selected course
-  const availableModules = useMemo(() => {
-    if (courseFilter === "All") {
-      return courses.flatMap((c) =>
-        c.modules.map((m) => ({ id: m.id, title: m.title, courseId: c.id, courseName: c.name }))
-      )
-    }
-    const targetCourse = courses.find((c) => c.id === courseFilter)
-    if (!targetCourse) return []
-    return targetCourse.modules.map((m) => ({
-      id: m.id,
-      title: m.title,
-      courseId: targetCourse.id,
-      courseName: targetCourse.name,
-    }))
-  }, [courses, courseFilter])
-
-  // Reset module filter if selected module doesn't belong to newly selected course
-  const handleCourseFilterChange = (newCourseId: string) => {
-    setCourseFilter(newCourseId)
-    setModuleFilter("All")
+  const tab = params.get("tab") === "reports" ? "reports" : "insights"
+  const courseParam = params.get("course")
+  const course = courses.find((c) => c.id === courseParam)
+  const setParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set(key, value)
+    else next.delete(key)
+    setParams(next, { replace: true })
   }
 
-  // Filtered Students list
-  const filteredStudents = useMemo(() => {
-    let list = students
-    if (studentFilter !== "All") {
-      list = list.filter((s) => s.id === studentFilter)
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      list = list.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.rollNumber.toLowerCase().includes(q) ||
-          (s.assignedCourse && s.assignedCourse.toLowerCase().includes(q))
-      )
-    }
-    return list
-  }, [students, studentFilter, searchQuery])
-
-  // Single Selected Student for Heatmap inspector
-  const selectedStudentForHeatmap = useMemo(() => {
-    if (studentFilter !== "All") {
-      return students.find((s) => s.id === studentFilter) || students[0]
-    }
-    return null
-  }, [students, studentFilter])
-
-  // 1. KPI Overview Calculations from Actual Data
-  const overviewStats = useMemo(() => {
-    const totalStudents = students.length
-    const totalCourses = courses.length
-    const totalModules = courses.reduce((acc, c) => acc + (c.modules?.length || 0), 0)
-    const totalLessons = courses.reduce(
-      (acc, c) => acc + (c.modules?.reduce((mAcc, m) => mAcc + (m.lessons?.length || 0), 0) || 0),
-      0
-    )
-    const avgProgress = Math.round(
-      courses.reduce((acc, c) => acc + (c.progress || 0), 0) / (courses.length || 1)
-    )
-
-    // Module Assignments from MODULE_ASSIGNMENTS
-    const assignmentList = Object.values(MODULE_ASSIGNMENTS)
-    const totalAssignments = assignmentList.length
-    const totalSubmissions = assignmentList.reduce((acc, a) => acc + a.submissionsCount, 0)
-    const totalExpectedSubmissions = assignmentList.reduce((acc, a) => acc + a.totalEnrolled, 0)
-    const submissionRate = Math.round((totalSubmissions / (totalExpectedSubmissions || 1)) * 100)
-
-    // Live Classes
-    const completedSessions = liveSessions.filter((s) => s.status === "Completed").length
-    const upcomingSessions = liveSessions.filter((s) => s.status === "Upcoming" || s.status === "Scheduled").length
-    const liveNowSessions = liveSessions.filter((s) => s.status === "Live Now").length
-
-    // Live Attendance from initialAttendanceRecords
-    const validRecords = initialAttendanceRecords
-    const presentCount = validRecords.filter((r) => r.status === "Present").length
-    const lateCount = validRecords.filter((r) => r.status === "Late").length
-    const leftEarlyCount = validRecords.filter((r) => r.status === "Left Early").length
-    const absentCount = validRecords.filter((r) => r.status === "Absent").length
-    const attendancePct = Math.round(((presentCount + lateCount) / (validRecords.length || 1)) * 1000) / 10
-
-    // Cohort Historical Roster Attendance
-    const cohortRosterAttendance = Math.round(
-      students.reduce((acc, s) => acc + (s.attendance || 0), 0) / (students.length || 1)
-    )
-
-    return {
-      totalStudents,
-      totalCourses,
-      totalModules,
-      totalLessons,
-      avgProgress,
-      totalAssignments,
-      totalSubmissions,
-      totalExpectedSubmissions,
-      submissionRate,
-      completedSessions,
-      upcomingSessions,
-      liveNowSessions,
-      totalSessions: liveSessions.length,
-      presentCount,
-      lateCount,
-      leftEarlyCount,
-      absentCount,
-      attendancePct,
-      cohortRosterAttendance,
-    }
-  }, [students, courses, liveSessions])
-
-  // Overview 6 Metric Cards
-  const kpiCards: MetricItem[] = useMemo(() => {
-    return [
-      {
-        icon: "users",
-        label: "Total Assigned Students",
-        value: `${overviewStats.totalStudents}`,
-        trend: "100% active cohort · Maple & Oak",
-        tone: "lavender",
-      },
-      {
-        icon: "book",
-        label: "Total Assigned Courses",
-        value: `${overviewStats.totalCourses}`,
-        trend: `${overviewStats.totalModules} Modules · ${overviewStats.totalLessons} Lessons`,
-        tone: "yellow",
-      },
-      {
-        icon: "chart",
-        label: "Average Student Progress",
-        value: `${overviewStats.avgProgress}%`,
-        trend: "Weighted cohort curriculum pace",
-        tone: "lime",
-      },
-      {
-        icon: "document",
-        label: "Assignment Submissions",
-        value: `${overviewStats.totalSubmissions}/${overviewStats.totalExpectedSubmissions}`,
-        trend: `${overviewStats.submissionRate}% submission velocity`,
-        tone: "pink",
-      },
-      {
-        icon: "video",
-        label: "Live Classes Conducted",
-        value: `${overviewStats.completedSessions} Conducted`,
-        trend: `${overviewStats.upcomingSessions} Upcoming · ${overviewStats.liveNowSessions} Live Now`,
-        tone: "lavender",
-      },
-      {
-        icon: "sparkles",
-        label: "Valid Attendance Rate",
-        value: `${overviewStats.attendancePct}%`,
-        trend: `${overviewStats.cohortRosterAttendance}% Historical roster avg`,
-        tone: "lime",
-      },
-    ]
-  }, [overviewStats])
-
-  // 2. Student Activity Heatmap Aggregations (Section 2.B)
-  const cohortActivityAggregate = useMemo(() => {
-    let totalEvents = 0
-    let totalActiveDaysSum = 0
-    let videoWatch = 0
-    let lessonComplete = 0
-    let materialRead = 0
-    let quizAttempt = 0
-    let assignmentSubmit = 0
-
-    // 84-day aggregated volume
-    const dailyVolumes: number[] = new Array(84).fill(0)
-
-    students.forEach((st) => {
-      const stats = getStudentActivityStats(st)
-      totalEvents += stats.totalEvents
-      totalActiveDaysSum += stats.activeDays
-      videoWatch += stats.breakdown.videoWatch
-      lessonComplete += stats.breakdown.lessonComplete
-      materialRead += stats.breakdown.materialRead
-      quizAttempt += stats.breakdown.quizAttempt
-      assignmentSubmit += stats.breakdown.assignmentSubmit
-
-      stats.flatDays.forEach((day, idx) => {
-        if (idx < 84) {
-          dailyVolumes[idx] += day.count
-        }
-      })
-    })
-
-    const avgActiveDays = Math.round(totalActiveDaysSum / (students.length || 1))
-
-    return {
-      totalEvents,
-      avgActiveDays,
-      breakdown: {
-        videoWatch,
-        lessonComplete,
-        materialRead,
-        quizAttempt,
-        assignmentSubmit,
-      },
-      dailyVolumes,
-    }
-  }, [students])
-
-  // 3. Curriculum Resources Aggregation (Section 2.C)
-  const curriculumResources = useMemo(() => {
-    let videos = 0
-    let pdfs = 0
-    let audio = 0
-    let labs = 0
-    let documents = 0
-
-    courses.forEach((c) => {
-      c.modules?.forEach((m) => {
-        m.lessons?.forEach((l) => {
-          const rType = (l.resourceType || "").toLowerCase()
-          const lType = (l.type || "").toLowerCase()
-
-          if (rType === "video" || lType.includes("video")) videos++
-          else if (rType === "audio" || lType.includes("audio")) audio++
-          else if (rType === "pdf" || lType.includes("worksheet") || lType.includes("reading")) pdfs++
-          else if (rType === "document" || lType.includes("theory") || lType.includes("document")) documents++
-          else if (lType.includes("lab") || lType.includes("exercise")) labs++
-          else documents++
-        })
-      })
-    })
-
-    return {
-      videos,
-      pdfs,
-      audio,
-      labs,
-      documents,
-      total: videos + pdfs + audio + labs + documents,
-    }
-  }, [courses])
-
-  // 4. Assignments List with Module Association (Section 2.D)
-  const assignmentsList: ModuleAssignmentItem[] = useMemo(() => {
-    let list = Object.values(MODULE_ASSIGNMENTS)
-    if (courseFilter !== "All") {
-      list = list.filter((a) => a.courseId === courseFilter)
-    }
-    if (moduleFilter !== "All") {
-      list = list.filter((a) => moduleFilterValue(a.courseId, a.moduleId) === moduleFilter)
-    }
-    return list
-  }, [courseFilter, moduleFilter])
-
-  // 5. AI Monitoring and Recording Review Aggregations (Section 2.G)
-  const recordingReviewStats = useMemo(() => {
-    const totalRecordings = initialRecordings.length
-    const availableRecordings = initialRecordings.filter((r) => r.status === "Available").length
-    const processingRecordings = initialRecordings.filter((r) => r.status === "Processing").length
-    const notAvailableRecordings = initialRecordings.filter((r) => r.status === "Not Available").length
-
-    // Correction proposals from localStorage or initial
-    let submissions: CorrectionSubmissionItem[] = initialCorrectionSubmissions
-    try {
-      const saved = localStorage.getItem("quantum_teacher_correction_submissions_v1")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) submissions = parsed
-      }
-    } catch {
-      // ignore
-    }
-
-    const acceptedProposals = submissions.filter((s) => s.status === "Accepted").length
-    const pendingProposals = submissions.filter((s) => s.status === "Pending Review").length
-    const rejectedProposals = submissions.filter((s) => s.status === "Rejected").length
-
-    return {
-      totalRecordings,
-      availableRecordings,
-      processingRecordings,
-      notAvailableRecordings,
-      whisperTranscriptsAvailable: 3, // rec-1, rec-2, rec-3
-      totalChaptersIndexed: 12,
-      executiveSummariesGenerated: 3,
-      acceptedProposals,
-      pendingProposals,
-      rejectedProposals,
-      totalProposals: submissions.length,
-      proposalsList: submissions,
-      teachingSuggestions: initialTeachingSuggestions,
-      monitoringData: initialAIMonitoringData,
-    }
-  }, [])
-
-  return (
-    <div className="app-card-stack flex flex-col gap-[var(--app-card-gap,14px)]">
-      {/* 1. Header */}
-      <AnalyticsHeader
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onOpenAiDiagnostic={onOpenAiDiagnostic}
-        hexColor={hexColor}
-        onChangeHexColor={onChangeHexColor}
-        onOpenAiAssistant={onOpenAiAssistant}
-      />
-
-      {/* 2. Top Summary KPI Cards (Section 2.A) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[var(--app-card-gap,14px)]">
-        {kpiCards.map((item) => (
-          <StatCard key={item.label} item={item} />
-        ))}
-      </div>
-
-      {/* 3. Global Filter Toolbar & View Mode Switcher (Section 2.H) */}
-      <div className="panel p-3.5 sm:p-4 flex flex-col gap-2">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-purple-100/70">
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "overview"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("overview")}
-          >
-            <Icon name="analytics" size={14} />
-            <span>Overview</span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "student_activity"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("student_activity")}
-          >
-            <Icon name="trend" size={14} />
-            <span>Student Activity & Heatmaps</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
-              {students.length}
-            </span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "curriculum"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("curriculum")}
-          >
-            <Icon name="book" size={14} />
-            <span>Courses & Learning</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
-              {courses.length}
-            </span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "assignments"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("assignments")}
-          >
-            <Icon name="document" size={14} />
-            <span>Module Assignments</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
-              {assignmentsList.length}
-            </span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "attendance_live"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("attendance_live")}
-          >
-            <Icon name="video" size={14} />
-            <span>Attendance & Live Class</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
-              {liveSessions.length}
-            </span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "ai_intelligence"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("ai_intelligence")}
-          >
-            <span className="text-lime-500">✦</span>
-            <span>AI Live & Recordings</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-lime-100 text-lime-900">
-              {recordingReviewStats.totalRecordings}
-            </span>
-          </button>
-
-          <button
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${activeTab === "reports"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900 hover:bg-purple-50"
-              }`}
-            onClick={() => setActiveTab("reports")}
-          >
-            <Icon name="reports" size={14} />
-            <span>Exportable Reports</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-900">
-              {reportsList.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Dynamic Filters Row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Course Filter */}
-            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Course:</span>
-              <select
-                className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
-                value={courseFilter}
-                onChange={(e) => handleCourseFilterChange(e.target.value)}
-              >
-                <option value="All">All Courses ({courses.length})</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Module Filter */}
-            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Module:</span>
-              <select
-                className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
-                value={moduleFilter}
-                onChange={(e) => setModuleFilter(e.target.value)}
-              >
-                <option value="All">All Modules ({availableModules.length})</option>
-                {availableModules.map((m) => (
-                  // Module ids (m1, m2, ...) repeat across courses, so key and value include the course.
-                  <option key={moduleFilterValue(m.courseId, m.id)} value={moduleFilterValue(m.courseId, m.id)}>
-                    {m.id.toUpperCase()}: {m.title.slice(0, 32)}...
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Student Selector Filter */}
-            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Student:</span>
-              <select
-                className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
-                value={studentFilter}
-                onChange={(e) => setStudentFilter(e.target.value)}
-              >
-                <option value="All">All Students (24 Cohort Aggregate)</option>
-                {students.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.name} ({st.rollNumber})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Timeframe Filter */}
-            <div className="flex items-center gap-1.5 bg-surface border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs shadow-xs">
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Window:</span>
-              <select
-                className="bg-transparent font-bold text-zinc-800 outline-none cursor-pointer text-xs"
-                value={timeframeFilter}
-                onChange={(e) => setTimeframeFilter(e.target.value as any)}
-              >
-                <option value="12w">12 Weeks (Term 1 Rolling)</option>
-                <option value="4w">Past 4 Weeks (Month)</option>
-                <option value="1w">Past 7 Days (Week)</option>
-                <option value="all">All-Time Cumulative</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Reset Filters / Active Filter Pills */}
-          {(courseFilter !== "All" || moduleFilter !== "All" || studentFilter !== "All" || searchQuery) && (
-            <button
-              onClick={() => {
-                setCourseFilter("All")
-                setModuleFilter("All")
-                setStudentFilter("All")
-                setSearchQuery("")
-              }}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>Reset Filters</span>
-              <span>×</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ========================================================
-          VIEW: STUDENT ACTIVITY ANALYTICS & HEATMAP (Section 2.B)
-          ======================================================== */}
-      {(activeTab === "overview" || activeTab === "student_activity") && (
-        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                  <Icon name="trend" size={16} />
-                  <span>Student Learning Activity & Heatmap Analytics</span>
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                  {timeframeFilter === "12w" ? "12-Week Rolling Window" : "Filtered Window"}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Activity volume, active study days, video watches, lesson completions, resources read, quizzes, and assignment submissions.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] font-bold text-purple-800 bg-purple-50 px-2 py-1 rounded-md border border-purple-100">
-                Simulated Demo Activity Data
-              </span>
-            </div>
-          </div>
-
-          {/* If Single Student is Selected: Render their exact StudentActivityHeatmap component! */}
-          {selectedStudentForHeatmap ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/70 border border-purple-100">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={selectedStudentForHeatmap.image}
-                    alt={selectedStudentForHeatmap.name}
-                    className="w-10 h-10 rounded-full object-cover border border-purple-200"
-                  />
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-900">
-                      {selectedStudentForHeatmap.name} ({selectedStudentForHeatmap.rollNumber})
-                    </h4>
-                    <p className="text-[11px] text-zinc-500">
-                      {selectedStudentForHeatmap.assignedCourse} · Attendance: {selectedStudentForHeatmap.attendance}% · GPA: {selectedStudentForHeatmap.average}%
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setStudentFilter("All")}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-surface border border-purple-200 text-purple-800 hover:bg-purple-100 transition-colors cursor-pointer"
-                >
-                  View All Cohort
-                </button>
-              </div>
-
-              {/* Individual Heatmap Component matching My Students exactly */}
-              <StudentActivityHeatmap student={selectedStudentForHeatmap} />
-            </div>
-          ) : (
-            /* Cohort Aggregated View */
-            <div className="flex flex-col gap-4">
-              {/* Cohort 5 Breakdown Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-purple-900 uppercase tracking-wide">Total Events</span>
-                  <strong className="text-lg font-bold text-purple-950 mt-0.5">
-                    {cohortActivityAggregate.totalEvents.toLocaleString()}
-                  </strong>
-                  <span className="text-[10px] text-purple-700 mt-0.5">Across 24 students</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-zinc-50 border border-gray-200 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wide">Avg Active Days</span>
-                  <strong className="text-lg font-bold text-zinc-900 mt-0.5">
-                    {cohortActivityAggregate.avgActiveDays} / 84
-                  </strong>
-                  <span className="text-[10px] text-zinc-500 mt-0.5">73.8% consistency</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-purple-50/40 border border-purple-100 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-purple-800 uppercase tracking-wide">Video Views</span>
-                  <strong className="text-lg font-bold text-purple-900 mt-0.5">
-                    {cohortActivityAggregate.breakdown.videoWatch}
-                  </strong>
-                  <span className="text-[10px] text-purple-700 mt-0.5">Recorded lessons</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-emerald-800 uppercase tracking-wide">Completions</span>
-                  <strong className="text-lg font-bold text-emerald-900 mt-0.5">
-                    {cohortActivityAggregate.breakdown.lessonComplete}
-                  </strong>
-                  <span className="text-[10px] text-emerald-700 mt-0.5">Lessons finished</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">Quiz Attempts</span>
-                  <strong className="text-lg font-bold text-amber-900 mt-0.5">
-                    {cohortActivityAggregate.breakdown.quizAttempt}
-                  </strong>
-                  <span className="text-[10px] text-amber-700 mt-0.5">Formative checks</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-100 flex flex-col items-center text-center">
-                  <span className="text-[10px] font-semibold text-blue-800 uppercase tracking-wide">Submissions</span>
-                  <strong className="text-lg font-bold text-blue-900 mt-0.5">
-                    {cohortActivityAggregate.breakdown.assignmentSubmit}
-                  </strong>
-                  <span className="text-[10px] text-blue-700 mt-0.5">Lab & assignments</span>
-                </div>
-              </div>
-
-              {/* Cohort 12-Week Daily Learning Activity Histogram & Trendline */}
-              <div className="p-4 rounded-xl bg-surface border border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-zinc-800">
-                    Cohort Daily Event Histogram (12-Week Rolling Trend)
-                  </span>
-                  <span className="text-[11px] text-zinc-500">
-                    Peaks on Tuesday/Thursday lab afternoons · Daily cohort range: 8 – 28 events
-                  </span>
-                </div>
-
-                <div className="h-28 w-full">
-                  <svg viewBox="0 0 840 100" className="w-full h-full overflow-visible">
-                    <defs>
-                      <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#F0442E" stopOpacity="0.85" />
-                        <stop offset="100%" stopColor="#FF5A24" stopOpacity="0.25" />
-                      </linearGradient>
-                    </defs>
-                    <line x1="0" y1="90" x2="840" y2="90" stroke="#f0f1f5" strokeWidth="1" />
-                    <line x1="0" y1="50" x2="840" y2="50" stroke="#f0f1f5" strokeWidth="1" strokeDasharray="3 3" />
-                    <line x1="0" y1="10" x2="840" y2="10" stroke="#f0f1f5" strokeWidth="1" strokeDasharray="3 3" />
-
-                    {cohortActivityAggregate.dailyVolumes.map((vol, idx) => {
-                      const barHeight = Math.min(80, Math.max(4, (vol / 32) * 80))
-                      const x = idx * 10 + 2
-                      const y = 90 - barHeight
-                      return (
-                        <g key={idx}>
-                          <rect
-                            x={x}
-                            y={y}
-                            width="6"
-                            height={barHeight}
-                            rx="2"
-                            fill="url(#bar-gradient)"
-                            className="hover:fill-purple-700 transition-colors cursor-pointer"
-                          >
-                            <title>Day {idx + 1}: {vol} learning events across cohort</title>
-                          </rect>
-                        </g>
-                      )
-                    })}
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-1">
-                  <span>Week 1 (Aug 2026)</span>
-                  <span>Week 6 (Mid-Term)</span>
-                  <span>Week 12 (Today - Oct 22)</span>
-                </div>
-              </div>
-
-              {/* Cohort Student Activity Roster Table */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-3 py-2 bg-zinc-50 border-b border-gray-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-800">
-                    Individual Student Learning Activity Breakdown ({filteredStudents.length} Students)
-                  </span>
-                  <span className="text-[11px] text-zinc-500">
-                    Click any student to inspect their 12-week heatmap
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto max-h-64">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-zinc-50 text-[10.5px] font-semibold text-zinc-500 uppercase tracking-wider sticky top-0 border-b border-gray-200">
-                      <tr>
-                        <th className="py-2 px-3">Student</th>
-                        <th className="py-2 px-3">Assigned Class & Batch</th>
-                        <th className="py-2 px-3 text-center">Active Days</th>
-                        <th className="py-2 px-3 text-center">Total Events</th>
-                        <th className="py-2 px-3 text-center">Video / Lesson</th>
-                        <th className="py-2 px-3 text-center">Quizzes & Asg</th>
-                        <th className="py-2 px-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredStudents.map((st) => {
-                        const stats = getStudentActivityStats(st)
-                        return (
-                          <tr
-                            key={st.id}
-                            className="hover:bg-purple-50/50 cursor-pointer transition-colors"
-                            onClick={() => setStudentFilter(st.id)}
-                          >
-                            <td className="py-2 px-3">
-                              <div className="flex items-center gap-2">
-                                <img
-                                  src={st.image}
-                                  alt={st.name}
-                                  className="w-7 h-7 rounded-full object-cover border border-purple-200"
-                                />
-                                <div>
-                                  <strong className="text-zinc-900 block text-xs">{st.name}</strong>
-                                  <span className="text-[10px] text-zinc-400">{st.rollNumber}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-2 px-3 text-zinc-600">
-                              <span className="block">{st.assignedCourse}</span>
-                              <span className="text-[10px] text-zinc-400">{st.batch}</span>
-                            </td>
-                            <td className="py-2 px-3 text-center font-bold text-zinc-800">
-                              {stats.activeDays} <span className="text-[10px] font-normal text-zinc-400">/ 84</span>
-                            </td>
-                            <td className="py-2 px-3 text-center">
-                              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-100 text-purple-900">
-                                {stats.totalEvents}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-center text-zinc-600 text-[11px]">
-                              {stats.breakdown.videoWatch}v · {stats.breakdown.lessonComplete}l
-                            </td>
-                            <td className="py-2 px-3 text-center text-zinc-600 text-[11px]">
-                              {stats.breakdown.quizAttempt}q · {stats.breakdown.assignmentSubmit}a
-                            </td>
-                            <td className="py-2 px-3 text-right">
-                              <button
-                                className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setStudentFilter(st.id)
-                                }}
-                              >
-                                View Heatmap →
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ========================================================
-          VIEW: COURSE & LEARNING ANALYTICS (Section 2.C)
-          ======================================================== */}
-      {(activeTab === "overview" || activeTab === "curriculum") && (
-        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                <Icon name="book" size={16} />
-                <span>Course & Curriculum Learning Progress</span>
-              </h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Combined module and lesson progression, resource format breakdown, and lesson completion status.
-              </p>
-            </div>
-            <div className="text-xs text-zinc-500">
-              Showing {courseFilter === "All" ? `All ${courses.length} Assigned Courses` : "Filtered Course"}
-            </div>
-          </div>
-
-          {/* Curriculum Resource Format Distribution */}
-          <div className="p-3.5 rounded-xl bg-zinc-50 border border-gray-200 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <strong className="font-bold text-zinc-800">
-                Curriculum Learning Resource Distribution ({curriculumResources.total} Total Lessons & Assets)
-              </strong>
-              <span className="text-[11px] text-zinc-500">Multimodal pedagogical balance</span>
-            </div>
-
-            {/* Proportional Resource Bar */}
-            <div className="w-full h-3 rounded-full overflow-hidden flex bg-gray-200">
-              <div
-                style={{ width: `${(curriculumResources.videos / curriculumResources.total) * 100}%` }}
-                className="bg-purple-600"
-                title={`${curriculumResources.videos} Video Lectures`}
-              />
-              <div
-                style={{ width: `${(curriculumResources.labs / curriculumResources.total) * 100}%` }}
-                className="bg-lime-500"
-                title={`${curriculumResources.labs} Interactive Labs & Exercises`}
-              />
-              <div
-                style={{ width: `${(curriculumResources.pdfs / curriculumResources.total) * 100}%` }}
-                className="bg-amber-400"
-                title={`${curriculumResources.pdfs} PDFs & Worksheets`}
-              />
-              <div
-                style={{ width: `${(curriculumResources.documents / curriculumResources.total) * 100}%` }}
-                className="bg-pink-400"
-                title={`${curriculumResources.documents} Theory Slides & Guides`}
-              />
-              <div
-                style={{ width: `${(curriculumResources.audio / curriculumResources.total) * 100}%` }}
-                className="bg-indigo-500"
-                title={`${curriculumResources.audio} Audio Walkthroughs`}
-              />
-            </div>
-
-            {/* Resource Legend Pills */}
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-zinc-600">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
-                <span>🎥 Videos: {curriculumResources.videos}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-lime-500" />
-                <span>💻 Interactive Labs: {curriculumResources.labs}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span>📄 PDFs / Worksheets: {curriculumResources.pdfs}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-pink-400" />
-                <span>📑 Guides & Slides: {curriculumResources.documents}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                <span>🎧 Audio: {curriculumResources.audio}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Courses & Modules Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {courses
-              .filter((c) => (courseFilter === "All" ? true : c.id === courseFilter))
-              .map((course) => {
-                const totalLessons = course.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0
-                const completedLessons =
-                  course.modules?.reduce(
-                    (acc, m) => acc + (m.lessons?.filter((l) => l.completed).length || 0),
-                    0
-                  ) || 0
-
-                return (
-                  <div key={course.id} className="p-4 rounded-xl bg-surface border border-gray-200 flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={course.thumbnail}
-                          alt={course.name}
-                          className="w-10 h-10 rounded-lg object-cover border border-gray-200"
-                        />
-                        <div>
-                          <strong className="text-xs font-bold text-zinc-900 block">{course.name}</strong>
-                          <span className="text-[10px] text-zinc-400 font-medium">
-                            {course.code} · {course.assignedClass} · {course.enrolledStudentsCount} Enrolled
-                          </span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900">
-                        {course.progress}% Complete
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-purple-600"
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                      <span>{course.modules?.length || 0} Modules Available</span>
-                      <span>{completedLessons} of {totalLessons} Lessons Finished</span>
-                    </div>
-
-                    {/* Module Accordion / List */}
-                    <div className="flex flex-col gap-1.5 mt-1 border-t border-gray-100 pt-2.5 max-h-48 overflow-y-auto">
-                      {course.modules?.map((mod, mIdx) => (
-                        <div
-                          key={mod.id}
-                          className="p-2 rounded-lg bg-zinc-50 hover:bg-purple-50/50 transition-colors flex items-center justify-between text-xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 pr-2">
-                            <span className="w-5 h-5 rounded-md bg-purple-100 text-purple-900 font-bold text-[10px] flex items-center justify-center shrink-0">
-                              M{mIdx + 1}
-                            </span>
-                            <span className="font-semibold text-zinc-800 truncate text-[11px]">
-                              {mod.title}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] text-zinc-400">
-                              {mod.lessons?.length || 0} Lessons
-                            </span>
-                            {mod.completed ? (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-md">
-                                Completed
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded-md">
-                                {mod.progress}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-          </div>
-        </section>
-      )}
-
-      {/* ========================================================
-          VIEW: MODULE ASSIGNMENTS ANALYTICS (Section 2.D)
-          ======================================================== */}
-      {(activeTab === "overview" || activeTab === "assignments") && (
-        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                <Icon name="document" size={16} />
-                <span>Module-Level Assignment Analytics</span>
-              </h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Submissions received, grading status, average score, and cohort completion per curriculum module.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-bold text-zinc-700">Total: {assignmentsList.length} Assignments</span>
-            </div>
-          </div>
-
-          {/* Assignment KPI Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100">
-              <span className="text-[10px] font-semibold text-purple-900 uppercase tracking-wide block">
-                Total Submissions
-              </span>
-              <strong className="text-base font-bold text-purple-950 mt-0.5 block">
-                {overviewStats.totalSubmissions} / {overviewStats.totalExpectedSubmissions}
-              </strong>
-              <span className="text-[10.5px] text-purple-700">
-                {overviewStats.submissionRate}% submission rate
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
-              <span className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wide block">
-                Graded Reviews
-              </span>
-              <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
-                39 Submissions
-              </strong>
-              <span className="text-[10.5px] text-emerald-700">46.4% evaluated</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
-              <span className="text-[10px] font-semibold text-amber-900 uppercase tracking-wide block">
-                Pending Grading
-              </span>
-              <strong className="text-base font-bold text-amber-950 mt-0.5 block">
-                45 Submissions
-              </strong>
-              <span className="text-[10.5px] text-amber-700">Ready for teacher grading</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-zinc-50 border border-gray-200">
-              <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wide block">
-                Cohort Average Score
-              </span>
-              <strong className="text-base font-bold text-zinc-900 mt-0.5 block">
-                88.6%
-              </strong>
-              <span className="text-[10.5px] text-zinc-500">Across graded assignments</span>
-            </div>
-          </div>
-
-          {/* Comprehensive Assignment Table */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-50 text-[10.5px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-gray-200">
-                  <tr>
-                    <th className="py-2.5 px-3">Module & Assignment</th>
-                    <th className="py-2.5 px-3">Type</th>
-                    <th className="py-2.5 px-3">Due Date</th>
-                    <th className="py-2.5 px-3 text-center">Submissions</th>
-                    <th className="py-2.5 px-3 text-center">Average Marks</th>
-                    <th className="py-2.5 px-3 text-center">Status</th>
-                    <th className="py-2.5 px-3 text-right">Review</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {assignmentsList.map((asg) => {
-                    const subRate = Math.round((asg.submissionsCount / asg.totalEnrolled) * 100)
-                    return (
-                      <tr key={asg.id} className="hover:bg-purple-50/40 transition-colors">
-                        <td className="py-2.5 px-3">
-                          <strong className="text-zinc-900 block text-xs">{asg.title}</strong>
-                          <span className="text-[10.5px] text-zinc-500">
-                            {asg.moduleId.toUpperCase()} · {asg.moduleTitle}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-zinc-600">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-zinc-700">
-                            {asg.type}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-zinc-600 text-[11px] whitespace-nowrap">
-                          {asg.dueDate}
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="font-bold text-zinc-800 text-xs">
-                              {asg.submissionsCount} / {asg.totalEnrolled} ({subRate}%)
-                            </span>
-                            <div className="w-20 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-purple-600"
-                                style={{ width: `${subRate}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          {asg.averageScore ? (
-                            <span className="font-bold text-zinc-900 text-xs">
-                              {asg.averageScore} / {asg.maxMarks}
-                            </span>
-                          ) : (
-                            <span className="text-[10.5px] text-zinc-400">Not Available</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${asg.status === "Graded"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : asg.status === "In Review"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-purple-100 text-purple-800"
-                              }`}
-                          >
-                            {asg.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button
-                            className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors cursor-pointer"
-                            onClick={() => {
-                              setInspectingAssignment(asg)
-                              setSubmissionSearch("")
-                            }}
-                          >
-                            Inspect Submissions →
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ========================================================
-          VIEW: ATTENDANCE & LIVE CLASS ANALYTICS (Section 2.E & 2.F)
-          ======================================================== */}
-      {(activeTab === "overview" || activeTab === "attendance_live") && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-          {/* Attendance Analytics Card (Section 2.E) */}
-          <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-            <div className="flex items-center justify-between border-b border-gray-150 pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                  <Icon name="calendar" size={16} />
-                  <span>Attendance Analytics</span>
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Verified Live Class attendance logs & student roster percentages
-                </p>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-100 text-lime-900">
-                {overviewStats.attendancePct}% Rate
-              </span>
-            </div>
-
-            {/* Attendance Status Counts (Present, Late, Left Early, Absent) */}
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
-                <span className="text-[10px] font-semibold text-emerald-800 uppercase block">Present</span>
-                <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
-                  {overviewStats.presentCount}
-                </strong>
-                <span className="text-[10px] text-emerald-700">87.5%</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100">
-                <span className="text-[10px] font-semibold text-amber-800 uppercase block">Late</span>
-                <strong className="text-base font-bold text-amber-950 mt-0.5 block">
-                  {overviewStats.lateCount}
-                </strong>
-                <span className="text-[10px] text-amber-700">8.3%</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100">
-                <span className="text-[10px] font-semibold text-purple-800 uppercase block">Left Early</span>
-                <strong className="text-base font-bold text-purple-950 mt-0.5 block">
-                  {overviewStats.leftEarlyCount}
-                </strong>
-                <span className="text-[10px] text-purple-700">4.2%</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-zinc-50 border border-gray-200">
-                <span className="text-[10px] font-semibold text-zinc-600 uppercase block">Absent</span>
-                <strong className="text-base font-bold text-zinc-900 mt-0.5 block">
-                  {overviewStats.absentCount}
-                </strong>
-                <span className="text-[10px] text-zinc-500">0%</span>
-              </div>
-            </div>
-
-            {/* Attendance Historical Trendline across live sessions */}
-            <div className="p-3.5 rounded-xl bg-surface border border-gray-200 flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs">
-                <strong className="font-bold text-zinc-800">Attendance Trends Over Recent Live Sessions</strong>
-                <span className="text-[11px] text-zinc-500">4 Completed Sessions</span>
-              </div>
-
-              <div className="h-20 w-full">
-                <svg viewBox="0 0 400 70" className="w-full h-full overflow-visible">
-                  <line x1="20" y1="60" x2="380" y2="60" stroke="#f0f1f5" strokeWidth="1" />
-                  <line x1="20" y1="20" x2="380" y2="20" stroke="#f0f1f5" strokeWidth="1" strokeDasharray="3 3" />
-                  {/* Trendline */}
-                  <polyline
-                    fill="none"
-                    stroke="#0F766E"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    points="40,25 140,35 240,15 340,22"
-                  />
-                  {/* Points */}
-                  {[
-                    { x: 40, y: 25, label: "96%", session: "Oct 12" },
-                    { x: 140, y: 35, label: "92%", session: "Oct 15" },
-                    { x: 240, y: 15, label: "98%", session: "Oct 19" },
-                    { x: 340, y: 22, label: "96%", session: "Oct 22" },
-                  ].map((pt) => (
-                    <g key={pt.session}>
-                      <circle cx={pt.x} cy={pt.y} r="4" fill="#fff" stroke="#0F766E" strokeWidth="2" />
-                      <text x={pt.x} y={pt.y - 8} fill="#27272a" fontSize="9" fontWeight="bold" textAnchor="middle">
-                        {pt.label}
-                      </text>
-                      <text x={pt.x} y="68" fill="#71717a" fontSize="8.5" textAnchor="middle">
-                        {pt.session}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-zinc-50 border border-gray-200 text-[10.5px] text-zinc-500">
-              📌 <strong>Data source:</strong> Live Attendance records from Class Studio · Validated across 24 enrolled students in Maple & Oak classes.
-            </div>
-          </section>
-
-          {/* Live Class Analytics Card (Section 2.F) */}
-          <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-            <div className="flex items-center justify-between border-b border-gray-150 pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                  <Icon name="video" size={16} />
-                  <span>Live Class & Session Workflows</span>
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Conducted, scheduled, duration stats, and recording availability
-                </p>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900">
-                {overviewStats.totalSessions} Sessions Total
-              </span>
-            </div>
-
-            {/* Session Stats */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
-                <span className="text-[10px] font-semibold text-emerald-800 uppercase block">Completed</span>
-                <strong className="text-base font-bold text-emerald-950 mt-0.5 block">
-                  {overviewStats.completedSessions}
-                </strong>
-                <span className="text-[10px] text-emerald-700">330 mins broadcast</span>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-100">
-                <span className="text-[10px] font-semibold text-purple-800 uppercase block">Scheduled</span>
-                <strong className="text-base font-bold text-purple-950 mt-0.5 block">
-                  {overviewStats.upcomingSessions}
-                </strong>
-                <span className="text-[10px] text-purple-700">Upcoming on calendar</span>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100">
-                <span className="text-[10px] font-semibold text-amber-800 uppercase block">Recordings</span>
-                <strong className="text-base font-bold text-amber-950 mt-0.5 block">
-                  3 Ready
-                </strong>
-                <span className="text-[10px] text-amber-700">1 Transcoding</span>
-              </div>
-            </div>
-
-            {/* Live Class Session List */}
-            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-              {liveSessions.slice(0, 5).map((session) => (
-                <div
-                  key={session.id}
-                  className="p-2.5 rounded-xl bg-zinc-50 hover:bg-purple-50/50 transition-colors border border-gray-150 flex items-center justify-between text-xs"
-                >
-                  <div className="min-w-0 pr-2">
-                    <strong className="text-zinc-900 block text-xs truncate">{session.title}</strong>
-                    <span className="text-[10.5px] text-zinc-500">
-                      {session.courseName} · {session.date} at {session.time} ({session.duration})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${session.status === "Completed"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : session.status === "Live Now"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-purple-100 text-purple-800"
-                        }`}
-                    >
-                      {session.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-zinc-50 border border-gray-200 text-[10.5px] text-zinc-500">
-              💡 Sessions are confirmed as completed only when teacher uses the End Class workflow. Opening the studio does not mark sessions completed.
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* ========================================================
-          VIEW: AI LIVE MONITORING & RECORDING REVIEW (Section 2.G)
-          ======================================================== */}
-      {(activeTab === "overview" || activeTab === "ai_intelligence") && (
-        <section className="panel p-4 sm:p-5 flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                <span className="text-lime-500">✦</span>
-                <span>AI Live Monitoring & Lecture Recording Review Analytics</span>
-              </h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Speech-to-text transcripts, chapter markers, executive summaries, and teacher correction proposals
-              </p>
-            </div>
-            <span className="text-[10.5px] font-bold text-purple-900 bg-purple-100 px-2.5 py-1 rounded-md">
-              Verified Transcripts · Demo Attention Scores
-            </span>
-          </div>
-
-          {/* AI Intelligence Metric Badges */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100">
-              <span className="text-[10px] font-semibold text-purple-900 uppercase block">Recordings Library</span>
-              <strong className="text-lg font-bold text-purple-950 mt-0.5 block">
-                {recordingReviewStats.availableRecordings} Available
-              </strong>
-              <span className="text-[10.5px] text-purple-700">
-                +{recordingReviewStats.processingRecordings} Transcoding
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-lime-50/70 border border-lime-200">
-              <span className="text-[10px] font-semibold text-lime-900 uppercase block">Whisper Transcripts</span>
-              <strong className="text-lg font-bold text-lime-950 mt-0.5 block">
-                100% Generated
-              </strong>
-              <span className="text-[10.5px] text-lime-800">
-                Word-level timestamps for all 3 completed sessions
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200">
-              <span className="text-[10px] font-semibold text-amber-900 uppercase block">Lecture Chapters</span>
-              <strong className="text-lg font-bold text-amber-950 mt-0.5 block">
-                {recordingReviewStats.totalChaptersIndexed} Chapters
-              </strong>
-              <span className="text-[10.5px] text-amber-800">
-                Auto-indexed segment boundaries
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-zinc-50 border border-gray-200">
-              <span className="text-[10px] font-semibold text-zinc-600 uppercase block">Teacher Proposals</span>
-              <strong className="text-lg font-bold text-zinc-900 mt-0.5 block">
-                {recordingReviewStats.acceptedProposals} Accepted
-              </strong>
-              <span className="text-[10.5px] text-zinc-500">
-                {recordingReviewStats.pendingProposals} Pending review
-              </span>
-            </div>
-          </div>
-
-          {/* Teacher Correction Proposal Tracker Table */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-3 py-2 bg-zinc-50 border-b border-gray-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-zinc-800">
-                Teacher Correction Suggestions & Proposals ({recordingReviewStats.totalProposals} Total)
-              </span>
-              <span className="text-[11px] text-zinc-500">
-                Super Admin audit pipeline
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-50 text-[10.5px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-gray-200">
-                  <tr>
-                    <th className="py-2 px-3">Session & Recording</th>
-                    <th className="py-2 px-3">Proposal Title</th>
-                    <th className="py-2 px-3">Category</th>
-                    <th className="py-2 px-3">Submitted At</th>
-                    <th className="py-2 px-3 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {recordingReviewStats.proposalsList.map((prop) => (
-                    <tr key={prop.id} className="hover:bg-purple-50/40 transition-colors">
-                      <td className="py-2 px-3 font-medium text-zinc-800">
-                        {prop.recordingTitle}
-                      </td>
-                      <td className="py-2 px-3">
-                        <strong className="text-zinc-900 block text-xs">{prop.proposedText}</strong>
-                        <span className="text-[10px] text-zinc-400">Timestamp: {prop.timestamp}</span>
-                      </td>
-                      <td className="py-2 px-3 text-zinc-600">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] bg-gray-100 text-zinc-700 font-medium">
-                          {prop.category}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3 text-zinc-500 text-[11px]">
-                        {prop.submittedAt}
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${prop.status === "Accepted"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : prop.status === "Pending Review"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                        >
-                          {prop.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* AI Teaching Suggestions Box */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {recordingReviewStats.teachingSuggestions.map((sug) => (
-              <div key={sug.id} className="p-3.5 rounded-xl bg-purple-50/40 border border-purple-100 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wide">
-                    {sug.category}
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-amber-100 text-amber-800">
-                    {sug.priority} Priority
-                  </span>
-                </div>
-                <strong className="text-xs font-bold text-zinc-900 leading-snug">
-                  {sug.title}
-                </strong>
-                <p className="text-[11px] text-zinc-600 leading-relaxed">
-                  {sug.explanation}
-                </p>
-                <div className="mt-auto pt-2 border-t border-purple-100/60 text-[10.5px] font-medium text-purple-950">
-                  ⚡ <strong>Action:</strong> {sug.recommendedAction}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ========================================================
-          EXISTING VISUAL DIAGNOSTIC CARDS (PRESERVED & INTEGRATED)
-          ======================================================== */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-card-gap,14px)]">
-          <SubjectMasteryChartCard searchQuery={searchQuery} />
-          <DiagnosticInterventionCard
-            searchQuery={searchQuery}
-            onAssignSkill={onAssignSkill}
-          />
-        </div>
-      )}
-
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-card-gap,14px)]">
-          <div className="lg:col-span-1">
-            <CohortGrowthQuadrantCard
-              onSelectStudentForReport={onSelectStudentForReport}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <SubmissionTimelinessCard />
-          </div>
-          <div className="lg:col-span-1">
-            <AiDiagnosticDigestCard
-              onOpenAiAssistant={onOpenAiAssistant}
-              onShareDigest={onShareDigest}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          EXPORTABLE REPORTS TAB (MERGED FROM ReportsPage.tsx)
-          ======================================================== */}
-      {activeTab === "reports" && (
-        <div className="content-grid">
-          <div className="left-column">
-            <ReportsArchiveCard
-              reports={reportsList}
-              selectedReportId={selectedReportId}
-              onSelectReport={(r) => setSelectedReportId(r.id)}
-              activeFilter={reportFilter}
-              setActiveFilter={setReportFilter}
-              onOpenNewReport={onOpenReportModal || (() => onToast?.("Create Report modal opened."))}
-            />
-          </div>
-          <div className="right-column">
-            <ReportPreviewCard
-              report={selectedReport}
-              onDownloadPdf={onDownloadPdf || (() => onToast?.("Downloading PDF report summary..."))}
-              onResend={onResendAlert || (() => onToast?.("Report alert dispatched to parent portal."))}
-            />
-            <RecurringSchedulesCard onAddSchedule={onAddSchedule || (() => onToast?.("New automated report schedule created."))} />
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          INSPECT ASSIGNMENT SUBMISSIONS MODAL
-          ======================================================== */}
-      {inspectingAssignment && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-2xl bg-surface rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
-            {/* Modal Header */}
-            <div className="px-5 py-4 bg-purple-50/70 border-b border-purple-100 flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider">
-                  {inspectingAssignment.moduleId.toUpperCase()} · Module Assignment Inspection
-                </span>
-                <h3 className="text-sm font-bold text-zinc-900 mt-0.5">
-                  {inspectingAssignment.title}
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Due: {inspectingAssignment.dueDate} · Max Marks: {inspectingAssignment.maxMarks} · {inspectingAssignment.submissionsCount} of {inspectingAssignment.totalEnrolled} Received
-                </p>
-              </div>
-
-              <button
-                className="w-8 h-8 rounded-full bg-surface border border-gray-200 flex items-center justify-center text-zinc-500 hover:text-zinc-900 cursor-pointer"
-                onClick={() => setInspectingAssignment(null)}
-                aria-label="Close modal"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Search Filter Inside Modal */}
-            <div className="px-5 py-2.5 border-b border-gray-150 bg-zinc-50/70 flex items-center gap-2">
-              <Icon name="search" size={14} />
-              <input
-                type="text"
-                placeholder="Filter student submissions by name..."
-                value={submissionSearch}
-                onChange={(e) => setSubmissionSearch(e.target.value)}
-                className="w-full text-xs bg-transparent outline-none text-zinc-800 placeholder-zinc-400"
-              />
-            </div>
-
-            {/* Submissions Roster List */}
-            <div className="p-5 overflow-y-auto divide-y divide-gray-150">
-              {inspectingAssignment.submissions && inspectingAssignment.submissions.length > 0 ? (
-                inspectingAssignment.submissions
-                  .filter((s: StudentModuleSubmission) =>
-                    submissionSearch.trim()
-                      ? s.studentName.toLowerCase().includes(submissionSearch.toLowerCase()) ||
-                      s.studentRoll.toLowerCase().includes(submissionSearch.toLowerCase())
-                      : true
-                  )
-                  .map((sub: StudentModuleSubmission) => (
-                    <div key={sub.studentId} className="py-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={sub.studentAvatar}
-                          alt={sub.studentName}
-                          className="w-8 h-8 rounded-full object-cover border border-purple-200"
-                        />
-                        <div>
-                          <strong className="text-xs font-bold text-zinc-900 block">{sub.studentName}</strong>
-                          <span className="text-[10px] text-zinc-400">
-                            {sub.studentRoll} · Submitted: {sub.submittedAt}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {sub.score !== undefined ? (
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-zinc-900">
-                              {sub.score} / {sub.maxMarks}
-                            </span>
-                            <span className="text-[10px] text-emerald-600 block font-medium">Graded</span>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] font-medium text-amber-600">Pending Review</span>
-                        )}
-
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sub.status === "Graded"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : sub.status === "Submitted"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-zinc-100 text-zinc-500"
-                            }`}
-                        >
-                          {sub.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div className="py-8 text-center text-xs text-zinc-400">
-                  No submissions recorded for this assignment.
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-5 py-3 bg-zinc-50 border-t border-gray-150 flex items-center justify-between text-xs">
-              <span className="text-zinc-500 text-[11px]">
-                Read-only analytics view · Grading permissions active on Assignments portal
-              </span>
-              <button
-                className="px-4 py-1.5 rounded-full bg-ink-900 text-white font-bold hover:bg-black transition-colors cursor-pointer"
-                onClick={() => setInspectingAssignment(null)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+  const cohort = useMemo(
+    () => (course ? students.filter((s) => course.enrolledStudentIds.includes(s.id) || s.courses?.some((c) => c.code === course.code)) : students),
+    [students, course],
   )
-}
-
-/* ========================================================
-   PRESERVED COMPONENTS FOR INTEGRATION
-   ======================================================== */
-
-function SubjectMasteryChartCard({ searchQuery }: { searchQuery: string }) {
-  const [timeframe, setTimeframe] = useState<"8w" | "4w" | "1w">("8w")
-  const [selectedSubjectKey, setSelectedSubjectKey] = useState("math")
+  const trend = TREND[range]
 
   const subjects = useMemo(
-    () => [
-      {
-        key: "english",
-        name: "English Language Arts",
-        short: "English",
-        hex: "#F0442E",
-        mastery: 86,
-        benchmark: 80,
-        trendPoints: [72, 74, 76, 79, 81, 83, 85, 86],
-        subskills: [
-          { name: "Reading Comprehension & Inference", score: 91 },
-          { name: "Vocabulary & Context Clues", score: 88 },
-          { name: "Grammar & Complex Sentences", score: 79 },
-        ],
-      },
-      {
-        key: "math",
-        name: "Mathematics & Reasoning",
-        short: "Math",
-        hex: "#FF5A24",
-        mastery: 81,
-        benchmark: 75,
-        trendPoints: [65, 68, 70, 72, 75, 77, 80, 81],
-        subskills: [
-          { name: "Fractions & Mixed Numbers", score: 92 },
-          { name: "Geometry & 2D Perimeters", score: 84 },
-          { name: "Decimal Operations & Division", score: 68 },
-        ],
-      },
-      {
-        key: "science",
-        name: "Natural Science & Discovery",
-        short: "Science",
-        hex: "#172033",
-        mastery: 89,
-        benchmark: 78,
-        trendPoints: [70, 73, 75, 78, 82, 85, 88, 89],
-        subskills: [
-          { name: "Earth Weather Systems & Orbits", score: 94 },
-          { name: "Forces, Magnetism & Energy", score: 86 },
-          { name: "Scientific Observations & Lab", score: 87 },
-        ],
-      },
-      {
-        key: "art",
-        name: "Creative Arts & Logic",
-        short: "Art & Logic",
-        hex: "#0F766E",
-        mastery: 94,
-        benchmark: 82,
-        trendPoints: [82, 84, 87, 89, 90, 92, 93, 94],
-        subskills: [
-          { name: "Color Harmony & Perspective", score: 96 },
-          { name: "Visual Analysis & Structure", score: 92 },
-          { name: "Creative Problem Solving", score: 94 },
-        ],
-      },
-    ],
-    []
+    () =>
+      (["math", "science", "english", "art"] as const).map((k) => ({
+        label: { math: "Maths", science: "Science", english: "English", art: "Art" }[k],
+        value: Math.round(average(cohort.map((s) => s.subjects[k]))),
+      })),
+    [cohort],
   )
+  const weakest = [...subjects].sort((a, b) => a.value - b.value)[0]
 
-  const filteredSubjects = useMemo(() => {
-    if (!searchQuery.trim()) return subjects
-    const q = searchQuery.toLowerCase()
-    return subjects.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.short.toLowerCase().includes(q) ||
-        s.subskills.some((sk) => sk.name.toLowerCase().includes(q))
-    )
-  }, [subjects, searchQuery])
-
-  const activeSubject =
-    filteredSubjects.find((s) => s.key === selectedSubjectKey) ||
-    filteredSubjects[0] ||
-    subjects[0]
-
-  const getX = (idx: number) => 40 + idx * (520 / 7)
-  const getY = (val: number) => {
-    const clamped = Math.max(60, Math.min(100, val))
-    return 155 - ((clamped - 60) / 40) * 130
-  }
-
-  const buildPath = (points: number[]) => {
-    const pts = points.map((p, idx) => ({ x: getX(idx), y: getY(p) }))
-    let d = `M ${pts[0].x} ${pts[0].y}`
-    for (let i = 0; i < pts.length - 1; i++) {
-      const xc = (pts[i].x + pts[i + 1].x) / 2
-      const yc = (pts[i].y + pts[i + 1].y) / 2
-      d += ` Q ${pts[i].x} ${pts[i].y}, ${xc} ${yc}`
-    }
-    d += ` T ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`
-    return d
-  }
-
-  const buildAreaPath = (points: number[]) => {
-    const linePath = buildPath(points)
-    const lastX = getX(points.length - 1)
-    const firstX = getX(0)
-    return `${linePath} L ${lastX} 165 L ${firstX} 165 Z`
-  }
-
-  return (
-    <section className="analytics-chart-card panel" aria-label="Subject Mastery & Growth Curve">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="card-title">Subject Mastery & Growth Curve</div>
-          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-            Cross-discipline trajectory · Class average vs 80% mastery target
-          </div>
-        </div>
-        <div className="filter-pills">
-          <button
-            className={`filter-pill ${timeframe === "8w" ? "active" : ""}`}
-            onClick={() => setTimeframe("8w")}
-          >
-            Term 1 (8 Wks)
-          </button>
-          <button
-            className={`filter-pill ${timeframe === "4w" ? "active" : ""}`}
-            onClick={() => setTimeframe("4w")}
-          >
-            Month (4 Wks)
-          </button>
-          <button
-            className={`filter-pill ${timeframe === "1w" ? "active" : ""}`}
-            onClick={() => setTimeframe("1w")}
-          >
-            Week
-          </button>
-        </div>
-      </div>
-
-      <div className="analytics-svg-wrapper">
-        <svg viewBox="0 0 600 175" className="w-full h-full overflow-visible">
-          <defs>
-            <linearGradient id="grad-active-area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={activeSubject.hex} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={activeSubject.hex} stopOpacity="0.0" />
-            </linearGradient>
-            <filter id="glow-line" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={activeSubject.hex} floodOpacity="0.35" />
-            </filter>
-          </defs>
-
-          <line x1="30" y1="25" x2="570" y2="25" stroke="#edf0f5" strokeWidth="1" strokeDasharray="3 3" />
-          <text x="24" y="28" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">100%</text>
-
-          <line x1="30" y1="57.5" x2="570" y2="57.5" stroke="#edf0f5" strokeWidth="1" strokeDasharray="3 3" />
-          <text x="24" y="60.5" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">90%</text>
-
-          <line x1="30" y1="90" x2="570" y2="90" stroke="#FFD8D1" strokeWidth="1.5" strokeDasharray="4 4" />
-          <text x="24" y="93" fill="#F0442E" fontSize="9" fontWeight="700" textAnchor="end">80%</text>
-          <rect x="495" y="81" width="80" height="15" rx="4" fill="#FFF1EE" />
-          <text x="535" y="92" fill="#F0442E" fontSize="8.5" fontWeight="700" textAnchor="middle">Target Goal 80%</text>
-
-          <line x1="30" y1="122.5" x2="570" y2="122.5" stroke="#edf0f5" strokeWidth="1" strokeDasharray="3 3" />
-          <text x="24" y="125.5" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">70%</text>
-
-          <line x1="30" y1="155" x2="570" y2="155" stroke="#edf0f5" strokeWidth="1" />
-          <text x="24" y="158" fill="#9e9cb0" fontSize="9" fontWeight="500" textAnchor="end">60%</text>
-
-          {["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "Wk 6", "Wk 7", "Wk 8"].map((wk, idx) => (
-            <text key={wk} x={getX(idx)} y="171" fill="#71717a" fontSize="9" fontWeight="500" textAnchor="middle">
-              {wk}
-            </text>
-          ))}
-
-          <path d={buildAreaPath(activeSubject.trendPoints)} fill="url(#grad-active-area)" />
-
-          {subjects
-            .filter((s) => s.key !== activeSubject.key)
-            .map((s) => (
-              <path
-                key={s.key}
-                d={buildPath(s.trendPoints)}
-                fill="none"
-                stroke={s.hex}
-                strokeWidth="2"
-                strokeOpacity="0.32"
-                strokeLinecap="round"
-              />
-            ))}
-
-          <path
-            d={buildPath(activeSubject.trendPoints)}
-            fill="none"
-            stroke={activeSubject.hex}
-            strokeWidth="3.2"
-            strokeLinecap="round"
-            filter="url(#glow-line)"
-          />
-
-          {activeSubject.trendPoints.map((pt, idx) => {
-            const cx = getX(idx)
-            const cy = getY(pt)
-            const isLast = idx === activeSubject.trendPoints.length - 1
-            return (
-              <g key={idx}>
-                <circle cx={cx} cy={cy} r={isLast ? "5.5" : "3.5"} fill="#fff" stroke={activeSubject.hex} strokeWidth={isLast ? "3" : "2"} />
-                {isLast && (
-                  <>
-                    <rect x={cx - 16} y={cy - 20} width="32" height="15" rx="5" fill="#000" />
-                    <text x={cx} y={cy - 10} fill="#fff" fontSize="9" fontWeight="700" textAnchor="middle">
-                      {pt}%
-                    </text>
-                  </>
-                )}
-              </g>
-            )
-          })}
-        </svg>
-      </div>
-
-      <div className="analytics-subject-pills">
-        {filteredSubjects.map((sub) => {
-          const isSelected = sub.key === activeSubject.key
-          const delta = sub.mastery - sub.benchmark
-          return (
-            <button
-              key={sub.key}
-              className={`analytics-subject-pill ${isSelected ? "active" : ""}`}
-              onClick={() => setSelectedSubjectKey(sub.key)}
-            >
-              <span className="pill-dot" style={{ background: sub.hex }} />
-              <span>{sub.name}</span>
-              <strong className="text-foreground ml-1">{sub.mastery}%</strong>
-              <span
-                className="text-[9.5px] font-medium ml-1"
-                style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}
-              >
-                ({delta >= 0 ? `+${delta}%` : `${delta}%`})
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function DiagnosticInterventionCard({
-  searchQuery,
-  onAssignSkill,
-}: {
-  searchQuery: string
-  onAssignSkill?: (skillTitle: string, subjectType: string) => void
-}) {
-  const [activeFilter, setActiveFilter] = useState("All")
-
-  const competencies = useMemo(
-    () => [
-      {
-        id: "c1",
-        topic: "Fractions: Addition & Mixed Denominators",
-        subject: "Fractions Practice",
-        passRate: 96,
-        proficient: "23 of 24",
-        status: "Mastered" as const,
-        tone: "green" as const,
-        detail: "Curriculum velocity is +1.4 weeks ahead of schedule. Exceptional student engagement.",
-        btnText: "Assign Extension",
-      },
-      {
-        id: "c2",
-        topic: "Earth Systems: Weather & Planetary Orbits",
-        subject: "Science Quiz",
-        passRate: 92,
-        proficient: "22 of 24",
-        status: "Mastered" as const,
-        tone: "green" as const,
-        detail: "High concept retention on interactive solar diagrams and gravitational pull prompts.",
-        btnText: "View Records",
-      },
-      {
-        id: "c3",
-        topic: "Decimal Division & Multi-Step Word Problems",
-        subject: "Fractions Practice",
-        passRate: 72,
-        proficient: "17 of 24",
-        status: "Review Needed" as const,
-        tone: "yellow" as const,
-        detail: "4 students need targeted support aligning decimal points in quotient step.",
-        btnText: "+ Assign Recap",
-      },
-      {
-        id: "c4",
-        topic: "English Grammar: Subordinate Clauses & Commas",
-        subject: "Grammar Worksheet",
-        passRate: 64,
-        proficient: "15 of 24",
-        status: "At-Risk Alert" as const,
-        tone: "purple" as const,
-        detail: "6 students scored below 70%. 15-minute group modeling recommended before quiz.",
-        btnText: "+ Assign Practice",
-      },
-    ],
-    []
-  )
-
-  const filtered = useMemo(() => {
-    let list = competencies
-    if (activeFilter === "Review") {
-      list = list.filter((c) => c.status === "Review Needed")
-    } else if (activeFilter === "Risk") {
-      list = list.filter((c) => c.status === "At-Risk Alert")
-    } else if (activeFilter === "Mastered") {
-      list = list.filter((c) => c.status === "Mastered")
-    }
-
-    if (!searchQuery.trim()) return list
-    const q = searchQuery.toLowerCase()
-    return list.filter(
-      (c) =>
-        c.topic.toLowerCase().includes(q) ||
-        c.detail.toLowerCase().includes(q) ||
-        c.status.toLowerCase().includes(q)
-    )
-  }, [competencies, activeFilter, searchQuery])
-
-  return (
-    <section className="diagnostic-card panel" aria-label="Curriculum Diagnostic & Learning Gaps">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="card-title">Skill Diagnostic & Intervention Matrix</div>
-          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-            Real-time competency health · Automated risk detection & teacher actions
-          </div>
-        </div>
-
-        <div className="filter-pills">
-          <button
-            className={`filter-pill ${activeFilter === "All" ? "active" : ""}`}
-            onClick={() => setActiveFilter("All")}
-          >
-            All
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "Risk" ? "active" : ""}`}
-            onClick={() => setActiveFilter("Risk")}
-          >
-            At-Risk
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "Review" ? "active" : ""}`}
-            onClick={() => setActiveFilter("Review")}
-          >
-            Needs Review
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "Mastered" ? "active" : ""}`}
-            onClick={() => setActiveFilter("Mastered")}
-          >
-            Mastered
-          </button>
-        </div>
-      </div>
-
-      <div className="diagnostic-list">
-        {filtered.map((item) => (
-          <div key={item.id} className="diagnostic-item">
-            <div className="diagnostic-info">
-              <div className="flex items-center gap-2">
-                <strong>{item.topic}</strong>
-                <span className={`status ${item.tone}`}>{item.status}</span>
-              </div>
-              <span>{item.detail}</span>
-            </div>
-
-            {onAssignSkill && (
-              <button
-                className="diagnostic-action-btn"
-                onClick={() => onAssignSkill(item.topic, item.subject)}
-              >
-                {item.btnText}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function CohortGrowthQuadrantCard({
-  onSelectStudentForReport,
-}: {
-  onSelectStudentForReport?: (studentName: string) => void
-}) {
-  const [selectedQuadrantId, setSelectedQuadrantId] = useState("accelerators")
-
-  const quadrants = useMemo(
-    () => [
-      {
-        id: "accelerators",
-        label: "Accelerators",
-        icon: "🚀",
-        sublabel: "11 Students · 88-96% GPA",
-        summary: "High Mastery & Rapid Growth",
-        students: [
-          { name: "Olivia Benett", rollNumber: "#Y4-101", image: "/assets/student-1.png", gpa: 88, growthRate: "+12%" },
-          { name: "Ethan Davies", rollNumber: "#Y4-105", image: "/assets/student-5.png", gpa: 93, growthRate: "+14%" },
-          { name: "Mia Anderson", rollNumber: "#Y4-112", image: "/assets/student-2.png", gpa: 91, growthRate: "+9%" },
-        ],
-      },
-      {
-        id: "fast_movers",
-        label: "Fast Movers",
-        icon: "📈",
-        sublabel: "7 Students · 70-80% GPA",
-        summary: "High Growth, Developing Mastery",
-        students: [
-          { name: "Liam Brooks", rollNumber: "#Y4-103", image: "/assets/student-3.png", gpa: 70, growthRate: "+18%" },
-          { name: "Ava Patel", rollNumber: "#Y4-104", image: "/assets/student-4.png", gpa: 62, growthRate: "+16%" },
-        ],
-      },
-      {
-        id: "consistent",
-        label: "Consistent",
-        icon: "🛡️",
-        sublabel: "4 Students · 84-88% GPA",
-        summary: "Stable & Consistent Mastery",
-        students: [
-          { name: "Sophia Martinez", rollNumber: "#Y4-106", image: "/assets/student-6.png", gpa: 86, growthRate: "+4%" },
-          { name: "Isabella Brown", rollNumber: "#Y4-110", image: "/assets/student-1.png", gpa: 85, growthRate: "+5%" },
-        ],
-      },
-      {
-        id: "priority",
-        label: "Priority Focus",
-        icon: "🎯",
-        sublabel: "2 Students · < 68% GPA",
-        summary: "Targeted 1-on-1 Intervention",
-        students: [
-          { name: "Lucas Chen", rollNumber: "#Y4-107", image: "/assets/student-7.png", gpa: 68, growthRate: "+3%" },
-          { name: "Alexander Wright", rollNumber: "#Y4-111", image: "/assets/student-3.png", gpa: 71, growthRate: "+4%" },
-        ],
-      },
-    ],
-    []
-  )
-
-  const activeQuadrant = quadrants.find((q) => q.id === selectedQuadrantId) || quadrants[0]
-
-  return (
-    <section className="quadrant-card panel" aria-label="Cohort Growth Quadrant">
-      <div className="card-header">
-        <div>
-          <div className="card-title">Cohort Growth Quadrant</div>
-          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-            Velocity vs Current GPA · 24 students mapped by learning momentum
-          </div>
-        </div>
-      </div>
-
-      <div className="quadrant-selector-grid">
-        {quadrants.map((q) => {
-          const isSelected = q.id === activeQuadrant.id
-          return (
-            <button
-              key={q.id}
-              className={`quadrant-selector-btn ${isSelected ? "active" : ""}`}
-              onClick={() => setSelectedQuadrantId(q.id)}
-            >
-              <strong>
-                <span>{q.icon}</span>
-                <span>{q.label}</span>
-              </strong>
-              <span className="quadrant-sub">{q.sublabel}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="quadrant-roster-list">
-        {activeQuadrant.students.map((student) => (
-          <div
-            key={student.rollNumber}
-            className="quadrant-student-row hover:bg-purple-50/60 cursor-pointer transition-colors"
-            onClick={() => onSelectStudentForReport?.(student.name)}
-            title={`Send progress update for ${student.name}`}
-          >
-            <div className="quadrant-student-left">
-              <img src={student.image} alt={student.name} />
-              <div className="quadrant-student-meta">
-                <strong>{student.name}</strong>
-                <span>{student.rollNumber}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <strong className="text-foreground font-bold text-xs">{student.gpa}%</strong>
-              <span className="quadrant-velocity-badge">{student.growthRate}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function SubmissionTimelinessCard() {
-  return (
-    <section className="timeliness-card panel" aria-label="Assignment Submission Timeliness">
-      <div className="card-header">
-        <div className="card-title">Submission Velocity & Timeliness</div>
-        <span className="status green">96% On-Track</span>
-      </div>
-
-      <div className="timeliness-bar">
-        <div style={{ width: "88%", background: "var(--lime)" }} title="88% Early & On-Time" />
-        <div style={{ width: "8%", background: "#f8dc70" }} title="8% Grace Period (<24h)" />
-        <div style={{ width: "4%", background: "#f2a6c7" }} title="4% Extended Extension" />
-      </div>
-
-      <div className="timeliness-stats-grid">
-        <div className="timeliness-stat-box">
-          <span>Avg. Turn-In</span>
-          <strong>1.2 Days</strong>
-        </div>
-        <div className="timeliness-stat-box">
-          <span>Final Completion</span>
-          <strong>96.4%</strong>
-        </div>
-        <div className="timeliness-stat-box">
-          <span>Ahead of Due</span>
-          <strong>68%</strong>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function AiDiagnosticDigestCard({
-  onOpenAiAssistant,
-  onShareDigest,
-}: {
-  onOpenAiAssistant?: () => void
-  onShareDigest?: () => void
-}) {
-  return (
-    <section className="ai-digest-card" aria-label="Quantum AI Learning Synthesis">
-      <div className="ai-digest-header">
-        <div className="ai-digest-title">
-          <span className="text-base text-[#f3ff9b]">✦</span>
-          <span>Quantum AI Learning Diagnostics</span>
-        </div>
-        <span className="ai-digest-badge">Synthesized 10m ago</span>
-      </div>
-
-      <div className="ai-digest-body">
-        <p className="mb-2">
-          Analysis of <strong>148 recent submissions & assessments</strong> indicates strong conceptual acceleration across Year 4 (+8.4% monthly aggregate).
-        </p>
-      </div>
-
-      <div className="ai-digest-actions">
-        {onOpenAiAssistant && (
-          <button
-            className="flex-1 h-8 rounded-full bg-[#f3ff9b] text-black text-xs font-bold hover:bg-[#e4f57c] transition-colors flex items-center justify-center gap-1 shadow-sm"
-            onClick={onOpenAiAssistant}
-          >
-            <span>✦</span>
-            <span>Ask AI Diagnostic</span>
-          </button>
-        )}
-        {onShareDigest && (
-          <button
-            className="flex-1 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
-            onClick={onShareDigest}
-          >
-            Dispatch to Parents
-          </button>
-        )}
-      </div>
-    </section>
-  )
-}
-
-export function ReportsArchiveCard({
-  reports,
-  selectedReportId,
-  onSelectReport,
-  activeFilter,
-  setActiveFilter,
-  onOpenNewReport,
-}: {
-  reports: ReportItem[]
-  selectedReportId: string
-  onSelectReport: (report: ReportItem) => void
-  activeFilter: string
-  setActiveFilter: (filter: string) => void
-  onOpenNewReport: () => void
-}) {
-  const counts = useMemo(() => {
-    return {
-      all: reports.length,
-      sent: reports.filter((r) => r.status === "Sent").length,
-      inProgress: reports.filter((r) => r.status === "In Progress").length,
-      scheduled: reports.filter((r) => r.status === "Scheduled").length,
-    }
-  }, [reports])
-
-  const filtered = useMemo(() => {
-    if (activeFilter === "Sent") return reports.filter((r) => r.status === "Sent")
-    if (activeFilter === "In Progress") return reports.filter((r) => r.status === "In Progress")
-    if (activeFilter === "Scheduled") return reports.filter((r) => r.status === "Scheduled")
-    return reports
-  }, [reports, activeFilter])
-
-  return (
-    <section className="reports-archive-card panel" aria-label="Report Archives & Dispatches">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="card-title">Report Archives & Dispatches</div>
-          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-            Showing {filtered.length} of {reports.length} reports
-          </div>
-        </div>
-
-        <div className="filter-pills">
-          <button
-            className={`filter-pill ${activeFilter === "All" ? "active" : ""}`}
-            onClick={() => setActiveFilter("All")}
-          >
-            All ({counts.all})
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "Sent" ? "active" : ""}`}
-            onClick={() => setActiveFilter("Sent")}
-          >
-            Sent ({counts.sent})
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "In Progress" ? "active" : ""}`}
-            onClick={() => setActiveFilter("In Progress")}
-          >
-            In Progress ({counts.inProgress})
-          </button>
-          <button
-            className={`filter-pill ${activeFilter === "Scheduled" ? "active" : ""}`}
-            onClick={() => setActiveFilter("Scheduled")}
-          >
-            Scheduled ({counts.scheduled})
-          </button>
-        </div>
-      </div>
-
-      <div className="report-archive-list mt-3">
-        {filtered.length === 0 ? (
-          <div className="py-12 text-center text-xs text-zinc-400 font-medium">
-            No reports found matching your criteria.
-          </div>
-        ) : (
-          filtered.map((report) => {
-            const isSelected = report.id === selectedReportId
-            return (
-              <div
-                key={report.id}
-                className={`report-archive-item ${isSelected ? "selected" : ""}`}
-                onClick={() => onSelectReport(report)}
-              >
-                <div className="report-archive-left">
-                  <div
-                    className="report-icon-box"
-                    style={{
-                      background:
-                        report.tone === "green"
-                          ? "var(--lime-soft)"
-                          : report.tone === "purple"
-                            ? "rgba(152, 96, 233, 0.12)"
-                            : report.tone === "yellow"
-                              ? "var(--yellow-soft)"
-                              : "#f3f0ff",
-                      color:
-                        report.tone === "green"
-                          ? "#659000"
-                          : report.tone === "purple"
-                            ? "var(--purple-dark)"
-                            : report.tone === "yellow"
-                              ? "#9b7200"
-                              : "#7f4ee3",
-                    }}
-                  >
-                    <Icon name="document" size={18} />
-                  </div>
-                  <div className="report-meta-box">
-                    <strong>{report.title}</strong>
-                    <span>
-                      {report.date} · {report.recipients}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {report.status === "Sent" && (
-                    <div className="hidden sm:flex flex-col items-end text-right">
-                      <span className="text-[11px] font-bold text-foreground">
-                        {report.readRate}% Read
-                      </span>
-                      <span className="text-[9.5px] font-normal text-zinc-400">
-                        delivered
-                      </span>
-                    </div>
-                  )}
-                  <span className={`status ${report.tone}`}>{report.status}</span>
-                  <button
-                    className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 text-zinc-400 hover:text-black transition-colors"
-                    aria-label={`Select ${report.title}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectReport(report)
-                    }}
-                  >
-                    <Icon name="dots" size={14} />
-                  </button>
-                </div>
-              </div>
-            )
-          })
-        )}
-      </div>
-    </section>
-  )
-}
-
-export function ReportPreviewCard({
-  report,
-  onDownloadPdf,
-  onResend,
-}: {
-  report?: ReportItem
-  onDownloadPdf: () => void
-  onResend: () => void
-}) {
-  if (!report) {
-    return (
-      <section className="report-preview-panel panel">
-        <div className="text-center py-10 text-xs text-zinc-400 font-medium">
-          Select a report to preview details
-        </div>
-      </section>
-    )
-  }
-
-  const summary = report.summary || {
-    avgScore: 80,
-    attendance: 96,
-    readCount: "All recipients",
-    topGain: "+5% overall progress",
-    notes: "Report dispatched to all enrolled student guardians.",
-  }
-
-  return (
-    <section className="report-preview-panel panel" aria-label="Report Detail & Preview">
-      <div className="card-header">
-        <div className="card-title">Report Detail & Preview</div>
-        <span className={`status ${report.tone}`}>{report.status}</span>
-      </div>
-
-      <div className="report-preview-header">
-        <h3 className="text-[16px] font-bold text-foreground leading-snug">
-          {report.title}
-        </h3>
-        <div className="text-[11px] font-normal text-zinc-500">
-          {report.type} · Dispatched: {report.date}
-        </div>
-        <div className="text-[10.5px] font-medium text-purple-900 mt-0.5">
-          Audience: {report.recipients}
-        </div>
-      </div>
-
-      <div className="report-preview-stats">
-        <div className="report-preview-stat">
-          <span>Class Average</span>
-          <strong>{summary.avgScore}%</strong>
-        </div>
-        <div className="report-preview-stat">
-          <span>Attendance</span>
-          <strong>{summary.attendance}%</strong>
-        </div>
-        <div className="report-preview-stat">
-          <span>Parent Engagement</span>
-          <strong>{report.readRate}%</strong>
-        </div>
-      </div>
-
-      <div className="report-notes-box">
-        <div className="font-medium mb-1 flex items-center gap-1.5 text-purple-950">
-          <span>✦</span>
-          <span>Teacher & AI Synthesis:</span>
-        </div>
-        {summary.notes}
-        <div className="mt-2 text-[10px] font-medium text-purple-800 flex items-center gap-1">
-          <span>📈</span>
-          <span>Key Milestone: {summary.topGain}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-        <button
-          className="flex-1 h-8 rounded-full btn-primary text-xs font-bold transition-colors shadow-sm cursor-pointer"
-          onClick={onDownloadPdf}
-        >
-          Download PDF
-        </button>
-        <button
-          className="flex-1 h-8 rounded-full btn-secondary text-xs font-medium transition-colors cursor-pointer"
-          onClick={onResend}
-        >
-          {report.status === "Scheduled" ? "Dispatch Now" : "Resend Alert"}
-        </button>
-      </div>
-    </section>
-  )
-}
-
-export function RecurringSchedulesCard({
-  onAddSchedule,
-}: {
-  onAddSchedule: () => void
-}) {
-  const schedules = [
-    {
-      title: "Weekly Performance Digest",
-      cadence: "Every Friday at 4:00 PM · 24 Parents",
-      active: true,
-    },
-    {
-      title: "Bi-weekly STEM & Fractions",
-      cadence: "Alternate Mondays at 9:00 AM · 24 Parents",
-      active: true,
-    },
-    {
-      title: "Monthly Attendance & Honor Roll",
-      cadence: "1st of each month · All Guardians",
-      active: true,
-    },
-    {
-      title: "At-Risk Grade Alert Trigger",
-      cadence: "Automated real-time on score dip < 70%",
-      active: true,
-    },
+  const mix = [
+    { label: "Excelling", value: cohort.filter((s) => s.status === "Excelling").length, color: "var(--success)" },
+    { label: "On track", value: cohort.filter((s) => s.status === "On Track").length, color: "var(--primary)" },
+    { label: "Needs attention", value: cohort.filter((s) => s.status === "Needs Attention").length, color: "var(--warning)" },
   ]
 
-  return (
-    <section className="schedules-card panel" aria-label="Automated Report Schedules">
-      <div className="card-header">
-        <div className="card-title">Automated Schedules</div>
-        <button
-          onClick={onAddSchedule}
-          className="text-[11px] font-medium text-[var(--purple-dark)] hover:underline cursor-pointer"
-        >
-          + Add Schedule
-        </button>
-      </div>
+  const results = useMemo(
+    () =>
+      Object.values(assignments)
+        .filter((a) => (!course || a.courseId === course.id) && typeof a.averageScore === "number")
+        .map((a) => ({
+          id: a.id,
+          title: a.title.replace(/^(Module \d+ (Assignment|Assessment|Capstone)|Python Lab \d+): /, ""),
+          module: a.moduleTitle,
+          code: courses.find((c) => c.id === a.courseId)?.code ?? a.courseId,
+          pct: Math.round(((a.averageScore ?? 0) / a.maxMarks) * 100),
+          submitted: a.submissionsCount,
+          total: a.totalEnrolled,
+        })),
+    [assignments, course, courses],
+  )
 
-      <div className="flex flex-col gap-2">
-        {schedules.map((item) => (
-          <div key={item.title} className="schedule-row">
-            <div>
-              <strong>{item.title}</strong>
-              <span>{item.cadence}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-lime-600 animate-pulse" />
-              Active
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+  const rows = useMemo(
+    () =>
+      (course ? [course] : courses).map((c) => {
+        const enrolled = students.filter((s) => c.enrolledStudentIds.includes(s.id))
+        const graded = Object.values(assignments).filter((a) => a.courseId === c.id && typeof a.averageScore === "number")
+        return {
+          c,
+          attendance: enrolled.length ? Math.round(average(enrolled.map((s) => s.attendance))) : null,
+          score: graded.length ? Math.round(average(graded.map((a) => ((a.averageScore ?? 0) / a.maxMarks) * 100))) : null,
+          doubts: doubts.filter((d) => d.courseId === c.id && d.status !== "Resolved").length,
+        }
+      }),
+    [course, courses, students, assignments, doubts],
+  )
+
+  const atRisk = useMemo(
+    () =>
+      cohort
+        .map((s) => ({ s, reasons: risk(s) }))
+        .filter((x) => x.reasons.length > 0)
+        .sort((a, b) => b.reasons.length - a.reasons.length || a.s.average - b.s.average),
+    [cohort],
+  )
+
+  const sent = reports.filter((r) => r.status === "Sent")
+  const readRate = Math.round(average(sent.map((r) => r.readRate)))
+
+  const exportCsv = () => {
+    const lines = [
+      ["Learner", "Roll", "Course", "Completion", "Average", "Attendance", "Maths", "Science", "English", "Art", "Status"],
+      ...cohort.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", s.completion, s.average, s.attendance, s.subjects.math, s.subjects.science, s.subjects.english, s.subjects.art, s.status]),
+    ]
+    downloadTextFile(lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n"), `${course?.code ?? "all-courses"}-analytics.csv`, "text/csv;charset=utf-8")
+    notify(`Exported analytics for ${cohort.length} learners`)
+  }
+
+  return (
+    <div className="flex w-full min-w-0 flex-col">
+      <PageHeader
+        title="Analytics"
+        description={course ? `${course.name} · ${cohort.length} learners` : `All courses · ${students.length} learners`}
+        actions={
+          <>
+            <Button variant="outline" leftIcon={<Download aria-hidden="true" />} onClick={exportCsv}>
+              Export CSV
+            </Button>
+            <Button
+              leftIcon={<Send aria-hidden="true" />}
+              onClick={() => {
+                setReportFor(undefined)
+                setReportOpen(true)
+              }}
+            >
+              Send report
+            </Button>
+          </>
+        }
+      />
+
+      <Tabs value={tab} onValueChange={(t) => setParam("tab", t === "insights" ? null : t)} variant="underline">
+        <TabsList aria-label="Analytics sections" className="mb-1 w-full justify-start">
+          <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="reports">
+            Reports <span className="tabular-nums text-muted-foreground">{reports.length}</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="insights">
+          <Stagger className="flex flex-col gap-5" stagger={0.05}>
+            <StaggerItem>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Select value={course?.id ?? "all"} onValueChange={(v) => setParam("course", v === "all" ? null : v)}>
+                  <SelectTrigger className="w-full sm:w-72" aria-label="Course">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All courses</SelectItem>
+                    {courses.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.code} · {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SegmentedControl
+                  className="sm:ml-auto"
+                  aria-label="Time range"
+                  options={[
+                    { value: "week" as Range, label: "Week" },
+                    { value: "month" as Range, label: "Month" },
+                    { value: "term" as Range, label: "Term" },
+                  ]}
+                  value={range}
+                  onChange={setRange}
+                />
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                {initialAnalyticsMetrics.map((m, i) => (
+                  <StatCard
+                    key={m.label}
+                    title={m.label}
+                    value={m.value}
+                    trend={/^\+/.test(m.trend) ? { value: m.trend.replace(/^\+/, ""), isPositive: true } : m.trend}
+                    tone={METRIC_TONE[i]}
+                    icon={METRIC_ICON[i]}
+                    sparkline={METRIC_SPARK[i]}
+                  />
+                ))}
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.75fr)]">
+                <ChartCard title="Performance trend" icon={TrendingUp} description="Average score against concept mastery.">
+                  <div className="mb-4 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary-text" aria-hidden="true" /> Average score
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-secondary-text" aria-hidden="true" /> Mastery
+                    </span>
+                    <span className="ml-auto font-medium text-success">
+                      +{Math.round((trend.average.at(-1) ?? 0) - (trend.average[0] ?? 0))} pts over the {range}
+                    </span>
+                  </div>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div key={range} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: transition.fast }} transition={transition.base}>
+                      <AreaChart
+                        labels={trend.labels}
+                        series={[
+                          { name: "Average score", values: trend.average, color: "var(--primary-text)" },
+                          { name: "Mastery", values: trend.mastery, color: "var(--secondary-text)" },
+                        ]}
+                        height={300}
+                        yMin={60}
+                        yMax={100}
+                        formatValue={(v) => `${Math.round(v)}%`}
+                        label={`Average score and mastery, ${range}`}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                  <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+                    {[
+                      { label: "Average now", value: `${trend.average.at(-1) ?? 0}%`, detail: `from ${trend.average[0] ?? 0}%` },
+                      { label: "Mastery now", value: `${trend.mastery.at(-1) ?? 0}%`, detail: `from ${trend.mastery[0] ?? 0}%` },
+                      {
+                        label: "Best gain",
+                        value: `+${Math.max(0, ...trend.average.slice(1).map((v, i) => Math.round(v - trend.average[i])))} pts`,
+                        detail: `in one ${range === "week" ? "day" : "week"}`,
+                      },
+                      { label: "Graded work", value: String(results.length), detail: "assignments" },
+                    ].map((s) => (
+                      <div key={s.label} className="min-w-0">
+                        <dt className="truncate text-caption text-muted-foreground">{s.label}</dt>
+                        <dd className="text-lg font-semibold tabular-nums text-foreground">{s.value}</dd>
+                        <dd className="truncate text-[11px] text-muted-foreground">{s.detail}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </ChartCard>
+
+                <ChartCard title="Learner mix" icon={PieChart} tone="success" description="Where each learner stands right now.">
+                  <DonutChart
+                    data={mix}
+                    size={148}
+                    thickness={18}
+                    center={
+                      <>
+                        <span className="text-2xl font-semibold tabular-nums text-foreground">{cohort.length}</span>
+                        <span className="text-[11px] text-muted-foreground">learners</span>
+                      </>
+                    }
+                  />
+                  {[
+                    { label: "Top of the class", list: [...cohort].sort((a, b) => b.average - a.average).slice(0, 3) },
+                    { label: "Needs attention", list: cohort.filter((s) => s.status === "Needs Attention") },
+                  ].map(
+                    (group) =>
+                      group.list.length > 0 && (
+                        <div key={group.label} className="mt-5 border-t border-border pt-4">
+                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">{group.label}</p>
+                          <ul className="flex flex-col gap-1">
+                            {group.list.map((s) => (
+                              <li key={s.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/teacher/students?student=${s.id}`)}
+                                  className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-surface-2"
+                                >
+                                  <Avatar src={s.image} name={s.name} size="xs" />
+                                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{s.name}</span>
+                                  <span className="text-caption tabular-nums text-muted-foreground">{s.average}%</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ),
+                  )}
+                </ChartCard>
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <ChartCard
+                  title="Subject strengths"
+                  icon={BarChart3}
+                  tone="info"
+                  description={weakest ? `${weakest.label} is the lowest at ${weakest.value}%. Worth a revision warm-up.` : undefined}
+                >
+                  <BarChart data={subjects.map((s) => ({ ...s, highlight: s.label === weakest?.label }))} height={250} formatValue={(v) => `${v}%`} label="Average score by subject" />
+                  <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+                    {subjects.map((s) => {
+                      const low = s.label === weakest?.label
+                      const below = cohort.filter((x) => x.subjects[SUBJECT_KEY[s.label]] < 70).length
+                      return (
+                        <div key={s.label} className={cn("rounded-md px-3 py-2", low ? "bg-warning-soft" : "bg-surface-2/60")}>
+                          <dt className="text-caption text-muted-foreground">{s.label}</dt>
+                          <dd className={cn("text-lg font-semibold tabular-nums", low ? "text-warning" : "text-foreground")}>{s.value}%</dd>
+                          <dd className="text-[11px] text-muted-foreground">{below ? `${below} below 70%` : "everyone 70%+"}</dd>
+                        </div>
+                      )
+                    })}
+                  </dl>
+                </ChartCard>
+
+                <ChartCard title="Assignment results" icon={FileText} tone="warning" description="Average score on each graded assignment.">
+                  {results.length === 0 ? (
+                    <EmptyState size="sm" icon={<FileText aria-hidden="true" />} title="No graded work yet" />
+                  ) : (
+                    <ul className="flex flex-col gap-3">
+                      {results.map((r, i) => (
+                        <li key={r.id}>
+                          <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                            <span className="min-w-0 truncate text-foreground">
+                              <span className="text-caption text-muted-foreground">{r.code} · </span>
+                              {r.title}
+                            </span>
+                            <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.pct}%</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-surface-2 ring-1 ring-inset ring-border">
+                            <motion.div
+                              className={cn("h-full w-full origin-left rounded-full", r.pct >= 90 ? "bg-success" : r.pct >= 75 ? "bg-primary" : "bg-warning")}
+                              initial={{ scaleX: 0 }}
+                              whileInView={{ scaleX: r.pct / 100 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.7, ease: ease.out, delay: i * 0.05 }}
+                            />
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {r.submitted}/{r.total} submitted
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </ChartCard>
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.75fr)]">
+                <ChartCard title="Course comparison" icon={BookOpen}>
+                  <DataTable
+                    caption="Course comparison"
+                    data={rows}
+                    rowKey={(r) => r.c.id}
+                    onRowClick={(r) => navigate(`/teacher/courses/${r.c.id}`)}
+                    columns={[
+                      {
+                        id: "course",
+                        header: "Course",
+                        sortValue: (r) => r.c.name,
+                        cell: (r) => (
+                          <span className="block min-w-0">
+                            <span className="block truncate font-medium text-foreground">{r.c.name}</span>
+                            <span className="block text-caption text-muted-foreground">
+                              {r.c.code} · {r.c.enrolledStudentsCount} learners
+                            </span>
+                          </span>
+                        ),
+                      },
+                      {
+                        id: "delivered",
+                        header: "Delivered",
+                        sortValue: (r) => r.c.progress,
+                        cell: (r) => (
+                          <span className="flex items-center gap-2">
+                            <Progress value={r.c.progress} size="xs" className="w-16" label={`${r.c.progress}% delivered`} />
+                            <span className="tabular-nums">{r.c.progress}%</span>
+                          </span>
+                        ),
+                      },
+                      { id: "score", header: "Score", align: "right", sortValue: (r) => r.score ?? -1, cell: (r) => <span className="tabular-nums">{r.score === null ? "–" : `${r.score}%`}</span> },
+                      { id: "attendance", header: "Attendance", align: "right", hideOnMobile: true, sortValue: (r) => r.attendance ?? -1, cell: (r) => <span className="tabular-nums">{r.attendance === null ? "–" : `${r.attendance}%`}</span> },
+                      {
+                        id: "doubts",
+                        header: "Open doubts",
+                        align: "right",
+                        hideOnMobile: true,
+                        sortValue: (r) => r.doubts,
+                        cell: (r) => (r.doubts ? <Badge tone="warning">{r.doubts}</Badge> : <span className="text-muted-foreground">0</span>),
+                      },
+                    ]}
+                    mobileCard={(r) => (
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{r.c.name}</p>
+                        <p className="text-caption text-muted-foreground">
+                          {r.c.code} · {r.c.progress}% delivered · score {r.score === null ? "–" : `${r.score}%`}
+                        </p>
+                      </div>
+                    )}
+                  />
+                </ChartCard>
+
+                <ChartCard title="At-risk learners" icon={AlertTriangle} tone="danger" action={<Badge tone="danger">{atRisk.length}</Badge>}>
+                  {atRisk.length === 0 ? (
+                    <EmptyState size="sm" icon={<Sparkles aria-hidden="true" />} title="Nobody at risk" description="Everyone is above target." />
+                  ) : (
+                    <ul className="-mx-2 flex flex-col">
+                      {atRisk.slice(0, 5).map(({ s, reasons }) => (
+                        <li key={s.id} className="flex items-start gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-surface-2">
+                          <Avatar src={s.image} name={s.name} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <button type="button" onClick={() => navigate(`/teacher/students?student=${s.id}`)} className="truncate text-left text-sm font-medium text-foreground hover:text-primary-text">
+                              {s.name}
+                            </button>
+                            <p className="text-caption leading-5 text-muted-foreground">{reasons.join(" · ")}</p>
+                          </div>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label={`Send ${firstName(s.name)}'s family an alert`}
+                            onClick={() => {
+                              setReportFor(s.id)
+                              setReportOpen(true)
+                            }}
+                          >
+                            <BellRing aria-hidden="true" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </ChartCard>
+              </div>
+            </StaggerItem>
+          </Stagger>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <Stagger className="flex flex-col gap-5" stagger={0.05}>
+            <StaggerItem>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <StatCard title="Reports sent" value={sent.length} trend="this term" tone="success" icon={Mail} />
+                <StatCard title="Read by families" value={`${readRate}%`} trend={{ value: "4% vs last term", isPositive: true }} tone="primary" icon={TrendingUp} sparkline={[88, 90, 91, 92, 96, readRate]} />
+                <StatCard title="Scheduled" value={reports.filter((r) => r.status === "Scheduled").length} trend="next: Mon 8:00 AM" tone="warning" icon={CalendarClock} />
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.75fr)]">
+                <Card className="overflow-hidden">
+                  <CardHeader className="flex-row items-center justify-between gap-3 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <IconTile icon={FileText} />
+                      <CardTitle>Report archive</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <ul className="divide-y divide-border border-t border-border">
+                    <AnimatePresence initial={false}>
+                      {reports.map((r) => (
+                        <motion.li key={r.id} layout initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={transition.base}>
+                          <button type="button" onClick={() => setPreview(r)} className="flex w-full flex-wrap items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-surface-2 sm:flex-nowrap">
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium text-foreground">{r.title}</span>
+                              <span className="block truncate text-caption text-muted-foreground">
+                                {r.type} · {r.recipients} · {r.date}
+                              </span>
+                            </span>
+                            <span className="flex w-36 shrink-0 items-center gap-2">
+                              <Progress value={r.readRate} size="xs" tone="success" label={`${r.readRate}% read`} />
+                              <span className="w-9 text-right text-caption tabular-nums text-muted-foreground">{r.readRate}%</span>
+                            </span>
+                            <Badge tone={REPORT_TONE[r.status]}>{r.status}</Badge>
+                          </button>
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <IconTile icon={Repeat} tone="info" />
+                      <CardTitle>Automatic reports</CardTitle>
+                    </div>
+                    <p className="text-caption text-muted-foreground">Changes apply straight away.</p>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="flex flex-col gap-4">
+                      {(
+                        [
+                          { key: "weekly", title: "Weekly digest", detail: "Mondays at 8:00 AM to every family" },
+                          { key: "alerts", title: "Attendance alerts", detail: "When a learner misses two classes in a row" },
+                          { key: "term", title: "Term summary", detail: "Last Friday of term, with grades and notes" },
+                        ] as const
+                      ).map((s) => (
+                        <li key={s.key} className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <label htmlFor={`schedule-${s.key}`} className="cursor-pointer text-sm font-medium text-foreground">
+                              {s.title}
+                            </label>
+                            <p className="text-caption text-muted-foreground">{s.detail}</p>
+                          </div>
+                          <Switch
+                            id={`schedule-${s.key}`}
+                            checked={schedules[s.key]}
+                            onCheckedChange={(v) => {
+                              setSchedules((cur) => ({ ...cur, [s.key]: v }))
+                              notify(`${s.title} ${v ? "turned on" : "turned off"}`)
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </StaggerItem>
+          </Stagger>
+        </TabsContent>
+      </Tabs>
+
+      <Sheet open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <SheetContent side="right" className="max-w-lg">
+          {preview && (
+            <>
+              <SheetHeader>
+                <p className="text-caption font-medium uppercase tracking-wider text-primary-text">{preview.type}</p>
+                <SheetTitle>{preview.title}</SheetTitle>
+                <SheetDescription>
+                  {preview.recipients} · {preview.date}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex items-center gap-2">
+                <Badge tone={REPORT_TONE[preview.status]} dot>
+                  {preview.status}
+                </Badge>
+                <span className="text-caption text-muted-foreground">{preview.meta}</span>
+              </div>
+              {preview.summary ? (
+                <>
+                  <dl className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Average score", value: `${preview.summary.avgScore}%` },
+                      { label: "Attendance", value: `${preview.summary.attendance}%` },
+                      { label: "Opened", value: preview.summary.readCount },
+                      { label: "Highlight", value: preview.summary.topGain },
+                    ].map((m) => (
+                      <div key={m.label} className="rounded-md border border-border bg-surface-2/60 p-3">
+                        <dt className="text-[11px] text-muted-foreground">{m.label}</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-foreground">{m.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="text-sm leading-6 text-foreground">{preview.summary.notes}</p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">This report has no summary.</p>
+              )}
+              <div className="mt-auto flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  leftIcon={<Download aria-hidden="true" />}
+                  onClick={() =>
+                    downloadTextFile(
+                      [preview.title, `${preview.type} · ${preview.date}`, `To: ${preview.recipients}`, "", preview.summary ? `Average score ${preview.summary.avgScore}% · Attendance ${preview.summary.attendance}%` : "", preview.summary?.notes ?? ""].join("\n"),
+                      `${preview.id}-report.txt`,
+                    )
+                  }
+                >
+                  Download
+                </Button>
+                <Button leftIcon={<Send aria-hidden="true" />} onClick={() => notify(`“${preview.title}” sent again`)}>
+                  Resend
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+      <SendReportDialog open={reportOpen} onOpenChange={setReportOpen} studentId={reportFor} />
+    </div>
   )
 }

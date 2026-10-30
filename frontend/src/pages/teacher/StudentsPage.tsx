@@ -1,951 +1,395 @@
-import { useState, useMemo, useEffect } from "react"
-import type { MetricItem, StudentItem } from "../../types"
-import { Icon } from "../../components/Icon"
-import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
-import { StatCard } from "../../components/ui/StatCard"
-import { StudentActivityHeatmap } from "../../components/StudentActivityHeatmap"
+import { useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { useSearchParams } from "react-router-dom"
+import { AlertTriangle, CalendarCheck2, Download, GraduationCap, LayoutGrid, List, Search, Send, Sparkles, UserPlus, Users } from "lucide-react"
+import {
+  Avatar,
+  Badge,
+  Button,
+  DataTable,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Progress,
+  SegmentedControl,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  StatCard,
+} from "@/components/ui"
+import ProgressRing from "@/components/charts/ProgressRing"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import SendReportDialog from "@/components/teacher/SendReportDialog"
+import StudentDrawer from "@/components/teacher/StudentDrawer"
+import { cn } from "@/lib/utils"
+import { spring } from "@/lib/motion"
+import type { StudentItem } from "@/types"
+import { downloadTextFile } from "@/pages/student/studentUtils"
+import { useTeacherData } from "./teacherStore"
+import { average, STUDENT_STATUS_TONE } from "./teacherUtils"
 
-export function getStudentGrade(average: number): string {
-  if (average >= 95) return "A+"
-  if (average >= 88) return "A"
-  if (average >= 80) return "A-"
-  if (average >= 75) return "B+"
-  if (average >= 70) return "B"
-  if (average >= 65) return "C+"
-  if (average >= 60) return "C"
-  if (average >= 50) return "D+"
-  return "D"
-}
+type StatusFilter = "all" | StudentItem["status"]
+type View = "table" | "grid"
 
-export function StudentsHeader({
-  searchQuery,
-  setSearchQuery,
-  onOpenAiModal,
-  hexColor,
-  onChangeHexColor,
-  totalCount,
-}: {
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  onOpenAiModal?: () => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  totalCount: number
-}) {
+function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { courses, addStudent, notify } = useTeacherData()
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [course, setCourse] = useState(courses[0]?.name ?? "")
+  const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (open) {
+      setName("")
+      setEmail("")
+      setCourse(courses[0]?.name ?? "")
+      setErrors({})
+    }
+  }
   return (
-    <header className="dashboard-header">
-      <div>
-        <div className="greeting">
-          <span>My Students</span>
-        </div>
-        <div className="subtitle">
-          Year 4 · Maple & Oak Classes · {totalCount} assigned students
-        </div>
-      </div>
-      <div className="header-actions">
-        <div className="search-box">
-          <Icon name="search" size={15} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by student name, ID, or course..."
-            aria-label="Search students by name, ID, or course"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-1 cursor-pointer"
-              aria-label="Clear search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-        <ThemeAccentPicker />
-        {onOpenAiModal && (
-          <button
-            className="ask-ai"
-            onClick={onOpenAiModal}
-            aria-label="Ask AI assistant about students"
-          >
-            <span>✦</span>
-            Ask AI
-          </button>
-        )}
-      </div>
-    </header>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const next = {
+              name: name.trim().split(/\s+/).length < 2 ? "Enter the learner's first and last name." : undefined,
+              email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? undefined : "Enter a valid email address.",
+            }
+            setErrors(next)
+            if (next.name || next.email) return
+            addStudent({ name: name.trim(), email: email.trim(), assignedCourse: course })
+            notify(`Invite sent to ${name.trim()}`)
+            onOpenChange(false)
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Invite a learner</DialogTitle>
+            <DialogDescription>They get an email with a link to join your class.</DialogDescription>
+          </DialogHeader>
+          <Field label="Full name" required error={errors.name}>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aria Kapoor" />
+          </Field>
+          <Field label="Email" required error={errors.email}>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@school.org" />
+          </Field>
+          <Field label="Course">
+            <Select value={course} onValueChange={setCourse}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.code} · {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" leftIcon={<Send aria-hidden="true" />}>
+              Send invite
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function StudentDetailsModal({
-  isOpen,
-  onClose,
-  student,
-  onOpenReportModal,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  student: StudentItem | null
-  onOpenReportModal: (studentName: string) => void
-}) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-      window.addEventListener("keydown", handleKeyDown)
-    }
-    return () => {
-      document.body.style.overflow = "auto"
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [isOpen, onClose])
+/** The class roster: filter, sort and open any learner's full profile. */
+export default function StudentsPage() {
+  const { students, courses, notify } = useTeacherData()
+  const [params, setParams] = useSearchParams()
+  const [query, setQuery] = useState("")
+  const [status, setStatus] = useState<StatusFilter>("all")
+  const [course, setCourse] = useState("all")
+  const [view, setView] = useState<View>("table")
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const drawerId = params.get("student")
 
-  if (!isOpen || !student) return null
+  const openDrawer = (id: string | null) => {
+    const next = new URLSearchParams(params)
+    if (id) next.set("student", id)
+    else next.delete("student")
+    setParams(next, { replace: true })
+  }
 
-  const attendanceStatus =
-    (student.attendance ?? 0) >= 95
-      ? "Excellent - High Attendance"
-      : (student.attendance ?? 0) >= 90
-        ? "Good - Regular Attendance"
-        : "Needs Attention - Below 90%"
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return students.filter(
+      (s) =>
+        (status === "all" || s.status === status) &&
+        (course === "all" || s.assignedCourse === course || s.courses?.some((c) => c.name === course)) &&
+        (!q || `${s.name} ${s.rollNumber} ${s.tags.join(" ")} ${s.assignedCourse ?? ""}`.toLowerCase().includes(q)),
+    )
+  }, [students, query, status, course])
 
-  const modulesCompleted =
-    student.modulesCompleted ??
-    Math.round(((student.completion ?? 75) / 100) * 12)
-  const totalModules = student.totalModules ?? 12
-  const studentGrade = student.grade || getStudentGrade(student.average ?? 0)
+  const count = (f: StatusFilter) => (f === "all" ? students.length : students.filter((s) => s.status === f).length)
+  const avg = Math.round(average(students.map((s) => s.average)))
+  const att = Math.round(average(students.map((s) => s.attendance)))
+  const attention = count("Needs Attention")
+
+  const exportCsv = () => {
+    const rows = [
+      ["Name", "Roll", "Course", "Completion", "Average", "Attendance", "Status", "Parent", "Parent email"],
+      ...visible.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", `${s.completion}%`, `${s.average}%`, `${s.attendance}%`, s.status, s.parentName, s.parentEmail]),
+    ]
+    downloadTextFile(rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n"), "class-roster.csv", "text/csv;charset=utf-8")
+    notify(`Exported ${visible.length} learners`)
+  }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Student details for ${student.name}`}
-    >
-      <div
-        className="modal-content student-details-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Navigation & Close */}
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-900 transition-colors cursor-pointer"
-          >
-            <span>←</span>
-            <span>Back to Student List</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
-            aria-label="Close details modal"
-          >
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-
-        {/* Student Profile Banner */}
-        <div className="flex items-center gap-3.5 mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-pink-50 border border-purple-100">
-          <img
-            src={student.image || "/assets/student-1.png"}
-            alt={student.name}
-            className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm shrink-0"
-            onError={(e) => {
-              ; (e.target as HTMLImageElement).src = "/assets/student-1.png"
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base font-bold text-foreground">{student.name}</h3>
-              <span
-                className={`status ${student.status === "Excelling"
-                  ? "purple"
-                  : student.status === "On Track"
-                    ? "green"
-                    : "yellow"
-                  }`}
-              >
-                {student.status}
-              </span>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                Grade {studentGrade}
-              </span>
-            </div>
-            <div className="text-xs text-zinc-500 mt-0.5">
-              Roll No: <strong className="text-zinc-800">{student.rollNumber}</strong> ·{" "}
-              {student.assignedClass || "Year 4 – Maple Class"}
-            </div>
-            <div className="text-[11px] text-zinc-400 mt-0.5">
-              {student.email ||
-                `${student.name.toLowerCase().replace(/\s+/g, ".")}@quantumschool.ai`}
-            </div>
-          </div>
-        </div>
-
-        {/* 3 Metric Cards */}
-        <div className="grid grid-cols-3 gap-2.5 mt-3.5">
-          <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100 text-center">
-            <span className="text-[10px] font-semibold text-purple-900 uppercase">
-              Attendance
-            </span>
-            <strong className="block text-lg font-bold text-purple-950 mt-0.5">
-              {student.attendance ?? 0}%
-            </strong>
-            <span className="text-[9.5px] text-purple-800">Term 1 Rate</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-lime-50/70 border border-lime-100 text-center">
-            <span className="text-[10px] font-semibold text-lime-900 uppercase">
-              Academic Avg
-            </span>
-            <strong className="block text-lg font-bold text-lime-950 mt-0.5">
-              {student.average ?? 0}%
-            </strong>
-            <span className="text-[9.5px] text-lime-800">Overall Mastery</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-yellow-50/70 border border-yellow-100 text-center">
-            <span className="text-[10px] font-semibold text-yellow-900 uppercase">
-              Modules
-            </span>
-            <strong className="block text-lg font-bold text-yellow-950 mt-0.5">
-              {modulesCompleted}/{totalModules}
-            </strong>
-            <span className="text-[9.5px] text-yellow-800">Units Cleared</span>
-          </div>
-        </div>
-
-        {/* Individual Student Activity Heatmap (12-Week Rolling Matrix) */}
-        <StudentActivityHeatmap student={student} />
-
-        {/* Subject Breakdown */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-zinc-900">
-              Subject Mastery Breakdown
-            </span>
-            <span className="text-[10.5px] font-medium text-zinc-500">
-              Year 4 Curriculum
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-600">English Language & Reading</span>
-              <strong className="text-zinc-800">
-                {student.subjects?.english ?? 0}%
-              </strong>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-purple-600 rounded-full"
-                style={{ width: `${student.subjects?.english ?? 0}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-zinc-600">Mathematics & Fractions</span>
-              <strong className="text-zinc-800">
-                {student.subjects?.math ?? 0}%
-              </strong>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-lime-500 rounded-full"
-                style={{ width: `${student.subjects?.math ?? 0}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-zinc-600">Science & STEM Experiments</span>
-              <strong className="text-zinc-800">
-                {student.subjects?.science ?? 0}%
-              </strong>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-yellow-500 rounded-full"
-                style={{ width: `${student.subjects?.science ?? 0}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-zinc-600">Art, Design & Visual Thinking</span>
-              <strong className="text-zinc-800">
-                {student.subjects?.art ?? 0}%
-              </strong>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-pink-400 rounded-full"
-                style={{ width: `${student.subjects?.art ?? 0}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Course-Specific Information */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-zinc-900">
-              Enrolled Courses & Academic Modules
-            </span>
-            <span className="text-[10.5px] font-medium text-zinc-500">
-              Teacher: Srimanth
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {(
-              student.courses || [
-                {
-                  name: "Year 4 Elementary STEM & AI",
-                  code: "QAI-Y401",
-                  progress: student.completion ?? 76,
-                },
-              ]
-            ).map((c) => (
-              <div
-                key={c.code}
-                className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
-                      {c.code}
-                    </span>
-                    <strong className="text-zinc-800 truncate text-[11.5px]">
-                      {c.name}
-                    </strong>
-                  </div>
-                  <div className="w-40 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                    <div
-                      className="h-full bg-purple-600 rounded-full"
-                      style={{ width: `${c.progress}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-bold text-purple-700">
-                    {c.progress}%
-                  </span>
-                  <span className="block text-[9.5px] text-zinc-400">
-                    Completion
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Attendance Summary & Behavioral Tags */}
-        <div className="mt-3.5 p-3.5 rounded-2xl bg-surface border border-gray-150">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-zinc-900">
-              Attendance Log Status
-            </span>
-            <span className="text-[11px] font-semibold text-purple-800">
-              {attendanceStatus}
-            </span>
-          </div>
-          <div className="text-[11.5px] text-zinc-600 mb-2.5">
-            Recorded {student.attendance ?? 0}% attendance rate across term
-            sessions.
-          </div>
-
-          <div className="text-xs font-bold text-zinc-900 mb-1.5">
-            Strengths & Behavioral Tags
-          </div>
-          <div className="tag-list">
-            {(student.tags || []).map((tag) => (
-              <span key={tag} className="tag-chip">
-                ✦ {tag}
-              </span>
-            ))}
-          </div>
-
-          {student.teacherNotes && (
-            <div className="mt-2.5 p-2.5 rounded-xl bg-purple-50/60 border border-purple-100 text-[11px] text-purple-950 leading-relaxed">
-              <strong>Teacher Observation:</strong> {student.teacherNotes}
-            </div>
-          )}
-
-          <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-zinc-500">
-            <span>
-              Parent Contact:{" "}
-              <strong className="text-zinc-800">{student.parentName}</strong>
-            </span>
-            <span className="text-purple-700">{student.parentEmail}</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  )
-}
-
-function StudentRosterCard({
-  students,
-  selectedStudentId,
-  onSelectStudent,
-  onViewDetails,
-  searchQuery,
-  setSearchQuery,
-}: {
-  students: StudentItem[]
-  selectedStudentId: string
-  onSelectStudent: (student: StudentItem) => void
-  onViewDetails: (student: StudentItem) => void
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-}) {
-  // Filter States
-  const [statusFilter, setStatusFilter] = useState<string>("All")
-  const [classFilter, setClassFilter] = useState<string>("All")
-  const [attendanceFilter, setAttendanceFilter] = useState<string>("All")
-  const [progressFilter, setProgressFilter] = useState<string>("All")
-  const [sortBy, setSortBy] = useState<string>("name-asc")
-
-  // Counts based on active search & class
-  const counts = useMemo(() => {
-    return {
-      all: students.length,
-      excelling: students.filter((s) => s.status === "Excelling").length,
-      onTrack: students.filter((s) => s.status === "On Track").length,
-      attention: students.filter((s) => s.status === "Needs Attention").length,
-    }
-  }, [students])
-
-  // Filter and sort students
-  const displayedStudents = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-
-    return students
-      .filter((s) => {
-        // Search query across name, rollNumber, email, course, and tags
-        if (q) {
-          const course = (s.assignedCourse || s.courses?.[0]?.name || "").toLowerCase()
-          const email = (s.email || "").toLowerCase()
-          const matches =
-            s.name.toLowerCase().includes(q) ||
-            s.rollNumber.toLowerCase().includes(q) ||
-            email.includes(q) ||
-            course.includes(q) ||
-            s.tags.some((t) => t.toLowerCase().includes(q))
-          if (!matches) return false
+    <div className="flex w-full min-w-0 flex-col">
+      <PageHeader
+        title="Students"
+        description={`${students.length} learners across ${courses.length} courses. Open anyone to see their progress, activity and family contact.`}
+        actions={
+          <>
+            <Button variant="outline" leftIcon={<Send aria-hidden="true" />} onClick={() => setReportOpen(true)}>
+              Send report
+            </Button>
+            <Button leftIcon={<UserPlus aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
+              Invite learner
+            </Button>
+          </>
         }
+      />
 
-        // Status filter
-        if (statusFilter !== "All" && s.status !== statusFilter) return false
-
-        // Class filter
-        if (
-          classFilter !== "All" &&
-          (s.assignedClass || "Year 4 – Maple Class") !== classFilter
-        )
-          return false
-
-        // Attendance filter
-        if (attendanceFilter === "high" && (s.attendance ?? 0) < 95) return false
-        if (
-          attendanceFilter === "regular" &&
-          ((s.attendance ?? 0) < 90 || (s.attendance ?? 0) >= 95)
-        )
-          return false
-        if (attendanceFilter === "attention" && (s.attendance ?? 0) >= 90)
-          return false
-
-        // Progress/Academic filter
-        if (progressFilter === "high" && (s.average ?? s.completion ?? 0) < 90)
-          return false
-        if (
-          progressFilter === "onTrack" &&
-          ((s.average ?? s.completion ?? 0) < 75 ||
-            (s.average ?? s.completion ?? 0) >= 90)
-        )
-          return false
-        if (
-          progressFilter === "inProgress" &&
-          (s.average ?? s.completion ?? 0) >= 75
-        )
-          return false
-
-        return true
-      })
-      .sort((a, b) => {
-        if (sortBy === "name-asc") return a.name.localeCompare(b.name)
-        if (sortBy === "name-desc") return b.name.localeCompare(a.name)
-        if (sortBy === "attendance-desc")
-          return (b.attendance ?? 0) - (a.attendance ?? 0)
-        if (sortBy === "attendance-asc")
-          return (a.attendance ?? 0) - (b.attendance ?? 0)
-        if (sortBy === "progress-desc")
-          return (b.average ?? 0) - (a.average ?? 0)
-        if (sortBy === "progress-asc")
-          return (a.average ?? 0) - (b.average ?? 0)
-        if (sortBy === "score-desc")
-          return (b.average ?? 0) - (a.average ?? 0)
-        return 0
-      })
-  }, [
-    students,
-    searchQuery,
-    statusFilter,
-    classFilter,
-    attendanceFilter,
-    progressFilter,
-    sortBy,
-  ])
-
-  const isFiltered =
-    statusFilter !== "All" ||
-    classFilter !== "All" ||
-    attendanceFilter !== "All" ||
-    progressFilter !== "All" ||
-    searchQuery.trim().length > 0 ||
-    sortBy !== "name-asc"
-
-  const handleResetFilters = () => {
-    setStatusFilter("All")
-    setClassFilter("All")
-    setAttendanceFilter("All")
-    setProgressFilter("All")
-    setSortBy("name-asc")
-    setSearchQuery("")
-  }
-
-  return (
-    <section
-      className="roster-card panel w-full bg-surface"
-      aria-label="Assigned Students Roster"
-    >
-      {/* Top Header & Status Filter Pills */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="card-title text-base">Assigned Students</div>
-          <div className="text-[11px] font-normal text-zinc-500 mt-0.5">
-            Showing {displayedStudents.length} of {students.length} students
-            assigned to your teaching cohorts
+      <Stagger className="flex flex-col gap-5" stagger={0.05}>
+        <StaggerItem>
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <StatCard title="Learners" value={students.length} trend={`${count("Excelling")} excelling`} tone="primary" icon={Users} onClick={() => setStatus("all")} />
+            <StatCard title="Class average" value={`${avg}%`} trend={{ value: "3 pts this month", isPositive: true }} tone="success" icon={GraduationCap} sparkline={[74, 76, 75, 78, 80, 79, 82, avg]} />
+            <StatCard title="Attendance" value={`${att}%`} trend="term to date" tone="info" icon={CalendarCheck2} sparkline={[92, 94, 93, 95, 96, 94, att]} />
+            <StatCard
+              title="Need attention"
+              value={attention}
+              trend="below target"
+              tone="warning"
+              icon={AlertTriangle}
+              onClick={() => setStatus(status === "Needs Attention" ? "all" : "Needs Attention")}
+              isActive={status === "Needs Attention"}
+            />
           </div>
-        </div>
+        </StaggerItem>
 
-        <div
-          className="filter-pills"
-          role="tablist"
-          aria-label="Filter by student status"
-        >
-          <button
-            className={`filter-pill ${statusFilter === "All" ? "active" : ""}`}
-            onClick={() => setStatusFilter("All")}
-            aria-selected={statusFilter === "All"}
-          >
-            All Students ({counts.all})
-          </button>
-          <button
-            className={`filter-pill ${statusFilter === "Excelling" ? "active" : ""
-              }`}
-            onClick={() => setStatusFilter("Excelling")}
-            aria-selected={statusFilter === "Excelling"}
-          >
-            Excelling ({counts.excelling})
-          </button>
-          <button
-            className={`filter-pill ${statusFilter === "On Track" ? "active" : ""
-              }`}
-            onClick={() => setStatusFilter("On Track")}
-            aria-selected={statusFilter === "On Track"}
-          >
-            On Track ({counts.onTrack})
-          </button>
-          <button
-            className={`filter-pill ${statusFilter === "Needs Attention" ? "active" : ""
-              }`}
-            onClick={() => setStatusFilter("Needs Attention")}
-            aria-selected={statusFilter === "Needs Attention"}
-          >
-            Needs Attention ({counts.attention})
-          </button>
-        </div>
-      </div>
-
-      {/* Secondary Filter & Sort Controls Row */}
-      <div className="roster-filter-row" aria-label="Student roster controls">
-        {/* Class Filter */}
-        <select
-          value={classFilter}
-          onChange={(e) => setClassFilter(e.target.value)}
-          className="roster-select"
-          aria-label="Filter by assigned class"
-        >
-          <option value="All">All Classes</option>
-          <option value="Year 4 – Maple Class">Year 4 – Maple Class</option>
-          <option value="Year 4 – Oak Class">Year 4 – Oak Class</option>
-        </select>
-
-        {/* Attendance Filter */}
-        <select
-          value={attendanceFilter}
-          onChange={(e) => setAttendanceFilter(e.target.value)}
-          className="roster-select"
-          aria-label="Filter by attendance status"
-        >
-          <option value="All">All Attendance</option>
-          <option value="high">High Attendance (≥95%)</option>
-          <option value="regular">Regular Attendance (90–94%)</option>
-          <option value="attention">Needs Attention (&lt;90%)</option>
-        </select>
-
-        {/* Progress Filter */}
-        <select
-          value={progressFilter}
-          onChange={(e) => setProgressFilter(e.target.value)}
-          className="roster-select"
-          aria-label="Filter by academic performance"
-        >
-          <option value="All">All Performance</option>
-          <option value="high">High Performance (≥90%)</option>
-          <option value="onTrack">On Track (75–89%)</option>
-          <option value="inProgress">Needs Review (&lt;75%)</option>
-        </select>
-
-        {/* Sort By */}
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="roster-select"
-          aria-label="Sort students by"
-        >
-          <option value="name-asc">Sort: Name (A → Z)</option>
-          <option value="name-desc">Sort: Name (Z → A)</option>
-          <option value="attendance-desc">Sort: Attendance (High → Low)</option>
-          <option value="attendance-asc">Sort: Attendance (Low → High)</option>
-          <option value="progress-desc">Sort: Academic Score (High → Low)</option>
-          <option value="progress-asc">Sort: Academic Score (Low → High)</option>
-        </select>
-
-        {/* Clear Filters Button */}
-        {isFiltered && (
-          <button
-            onClick={handleResetFilters}
-            className="clear-filters-btn cursor-pointer"
-            title="Reset all active filters and search"
-            aria-label="Reset all filters and search"
-          >
-            <span>✕ Reset Filters</span>
-          </button>
-        )}
-      </div>
-
-      {/* Roster Table (7 Columns in requested order) */}
-      <div className="roster-table-container">
-        <div className="roster-table-inner">
-          <div className="roster-table-head">
-            <span>Student</span>
-            <span>Assigned Course & Batch</span>
-            <span>Attendance</span>
-            <span>Academic Performance</span>
-            <span>Assignments</span>
-            <span>Last Activity</span>
-            <span>Action</span>
+        <StaggerItem>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <Input
+              leading={<Search aria-hidden="true" />}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, roll number or tag"
+              aria-label="Search learners"
+              wrapperClassName="lg:max-w-xs"
+            />
+            <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+              <SegmentedControl
+                className="[&_button]:whitespace-nowrap"
+                aria-label="Filter by status"
+                options={[
+                  { value: "all" as StatusFilter, label: `All ${count("all")}` },
+                  { value: "Excelling" as StatusFilter, label: `Excelling ${count("Excelling")}` },
+                  { value: "On Track" as StatusFilter, label: `On track ${count("On Track")}` },
+                  { value: "Needs Attention" as StatusFilter, label: `Needs attention ${count("Needs Attention")}` },
+                ]}
+                value={status}
+                onChange={setStatus}
+              />
+            </div>
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <Select value={course} onValueChange={setCourse}>
+                <SelectTrigger className="w-full sm:w-56" aria-label="Filter by course">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="all">All courses</SelectItem>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" aria-label="Export roster as CSV" onClick={exportCsv}>
+                <Download aria-hidden="true" />
+              </Button>
+              <SegmentedControl
+                aria-label="Layout"
+                options={[
+                  { value: "table" as View, label: <span className="sr-only">Table</span>, icon: <List className="h-4 w-4" aria-hidden="true" /> },
+                  { value: "grid" as View, label: <span className="sr-only">Cards</span>, icon: <LayoutGrid className="h-4 w-4" aria-hidden="true" /> },
+                ]}
+                value={view}
+                onChange={setView}
+              />
+            </div>
           </div>
+        </StaggerItem>
 
-          {displayedStudents.length === 0 ? (
-            <div className="roster-empty-state">
-              <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 grid place-items-center mb-1">
-                <Icon name="users" size={20} />
-              </div>
-              <strong className="text-sm text-zinc-800">
-                No matching students found
-              </strong>
-              <p className="text-xs text-zinc-500 max-w-sm">
-                {students.length === 0
-                  ? "There are currently no students assigned to this teacher roster."
-                  : "No students matched your search query or active filter settings."}
-              </p>
-              {isFiltered && (
-                <button
-                  onClick={handleResetFilters}
-                  className="mt-2 px-4 h-8 rounded-full btn-primary text-xs font-bold transition-all shadow-sm cursor-pointer"
+        <StaggerItem>
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={<Search aria-hidden="true" />}
+              title="No learners match"
+              description="Try a different name, status or course."
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setQuery("")
+                    setStatus("all")
+                    setCourse("all")
+                  }}
                 >
-                  Reset All Filters & Search
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="roster-list">
-              {displayedStudents.map((student) => {
-                const isSelected = student.id === selectedStudentId
-                const courseName =
-                  student.assignedCourse ||
-                  student.courses?.[0]?.name ||
-                  "Year 4 Elementary STEM & AI"
-                const batchName =
-                  student.batch || "Cohort 4 (Live + Interactive Lab)"
-                const deliveryFormat =
-                  student.deliveryFormat || "Live + Lab"
-                const grade =
-                  student.grade || getStudentGrade(student.average ?? 0)
-                const pendingCount =
-                  student.pendingAssignments ??
-                  (student.status === "Needs Attention" ? 3 : 1)
-                const completedTasks =
-                  student.completedTasks ?? (pendingCount > 0 ? 7 : 10)
-                const totalTasks = student.totalTasks ?? 10
-                const email =
-                  student.email ||
-                  `${student.name.toLowerCase().replace(/\s+/g, ".")}@quantumschool.ai`
-
-                return (
-                  <div
-                    key={student.id}
-                    className={`roster-row ${isSelected ? "selected" : ""}`}
-                    onClick={() => {
-                      onSelectStudent(student)
-                      onViewDetails(student)
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        onSelectStudent(student)
-                        onViewDetails(student)
-                      }
-                    }}
-                    aria-label={`Student ${student.name}, ID ${student.rollNumber}`}
-                  >
-                    {/* 1. Student */}
-                    <div className="flex items-center gap-2.5 min-w-0 pr-1">
-                      <img
-                        src={student.image || "/assets/student-1.png"}
-                        alt={student.name}
-                        className="w-8 h-8 rounded-full object-cover border border-purple-200 shrink-0"
-                        onError={(e) => {
-                          ; (e.target as HTMLImageElement).src =
-                            "/assets/student-1.png"
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <strong className="block text-xs font-bold text-zinc-900 truncate">
-                          {student.name}
-                        </strong>
-                        <div className="flex items-center gap-1.5 text-[10.5px] text-zinc-500 font-mono">
-                          <span>{student.rollNumber}</span>
-                          <span className="text-zinc-300 font-sans">·</span>
-                          <span className="truncate text-zinc-400 font-sans">
-                            {email}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 2. Assigned Course & Batch */}
-                    <div className="min-w-0 pr-1">
-                      <strong
-                        className="block text-xs font-semibold text-zinc-900 truncate"
-                        title={courseName}
-                      >
-                        {courseName}
-                      </strong>
-                      <div className="flex items-center gap-1.5 text-[10.5px] text-zinc-500 mt-0.5 truncate">
-                        <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 font-medium text-[9.5px]">
-                          {batchName}
-                        </span>
-                        {deliveryFormat && (
-                          <span className="text-zinc-400 text-[10px] hidden xl:inline truncate">
-                            ({deliveryFormat})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 3. Attendance */}
-                    <div className="pr-1">
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <strong className="text-xs font-bold text-zinc-800">
-                          {student.attendance ?? 0}%
-                        </strong>
-                        <span
-                          className={`text-[9.5px] font-semibold ${(student.attendance ?? 0) >= 95
-                            ? "text-emerald-700"
-                            : (student.attendance ?? 0) >= 90
-                              ? "text-purple-700"
-                              : "text-amber-700"
-                            }`}
-                        >
-                          {(student.attendance ?? 0) >= 95
-                            ? "High"
-                            : (student.attendance ?? 0) >= 90
-                              ? "Good"
-                              : "Low"}
-                        </span>
-                      </div>
-                      <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-1.5 rounded-full ${(student.attendance ?? 0) >= 95
-                            ? "bg-emerald-500"
-                            : (student.attendance ?? 0) >= 90
-                              ? "bg-purple-600"
-                              : "bg-amber-500"
-                            }`}
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(0, student.attendance ?? 0)
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* 4. Academic Performance */}
-                    <div className="flex items-center gap-2 pr-1">
-                      <strong className="text-xs font-bold text-zinc-900">
-                        {student.average ?? 0}%
-                      </strong>
-                      <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${grade.startsWith("A")
-                          ? "bg-purple-100 text-purple-800 border border-purple-200"
-                          : grade.startsWith("B")
-                            ? "bg-lime-100 text-lime-900 border border-lime-200"
-                            : grade.startsWith("C")
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-rose-100 text-rose-800 border border-rose-200"
-                          }`}
-                      >
-                        {grade}
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : view === "table" ? (
+            <DataTable
+              caption="Learners"
+              data={visible}
+              rowKey={(s) => s.id}
+              onRowClick={(s) => openDrawer(s.id)}
+              isRowActive={(s) => s.id === drawerId}
+              initialSort={{ id: "name", dir: "asc" }}
+              columns={[
+                {
+                  id: "name",
+                  header: "Learner",
+                  sortValue: (s) => s.name,
+                  cell: (s) => (
+                    <span className="flex items-center gap-3">
+                      <Avatar src={s.image} name={s.name} size="sm" status={s.lastActivity === "Just now" ? "online" : undefined} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-foreground">{s.name}</span>
+                        <span className="block text-caption text-muted-foreground">{s.rollNumber}</span>
                       </span>
+                    </span>
+                  ),
+                },
+                { id: "course", header: "Main course", hideOnMobile: true, sortValue: (s) => s.assignedCourse ?? "", cell: (s) => <span className="line-clamp-1 text-muted-foreground">{s.assignedCourse}</span> },
+                {
+                  id: "completion",
+                  header: "Completion",
+                  sortValue: (s) => s.completion,
+                  cell: (s) => (
+                    <span className="flex items-center gap-2">
+                      <Progress value={s.completion} size="xs" className="w-20" label={`${s.completion}% complete`} />
+                      <span className="tabular-nums">{s.completion}%</span>
+                    </span>
+                  ),
+                },
+                { id: "average", header: "Average", align: "right", sortValue: (s) => s.average, cell: (s) => <span className="font-medium tabular-nums">{s.average}%</span> },
+                {
+                  id: "attendance",
+                  header: "Attendance",
+                  align: "right",
+                  sortValue: (s) => s.attendance,
+                  cell: (s) => <span className={cn("tabular-nums", s.attendance < 80 && "font-medium text-danger")}>{s.attendance}%</span>,
+                },
+                { id: "status", header: "Status", sortValue: (s) => s.status, cell: (s) => <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge> },
+                { id: "active", header: "Last active", hideOnMobile: true, cell: (s) => <span className="whitespace-nowrap text-caption text-muted-foreground">{s.lastActivity}</span> },
+              ]}
+              mobileCard={(s) => (
+                <div className="flex items-center gap-3">
+                  <Avatar src={s.image} name={s.name} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
+                      <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge>
                     </div>
-
-                    {/* 5. Assignments */}
-                    <div className="pr-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pendingCount > 0
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800"
-                            }`}
-                        >
-                          {pendingCount > 0
-                            ? `${pendingCount} Pending`
-                            : "All Done"}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 font-medium">
-                          {completedTasks}/{totalTasks} Tasks
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 6. Last Activity */}
-                    <div className="text-[11px] text-zinc-600 flex items-center gap-1.5 pr-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="truncate">
-                        {student.lastActivity || "Today"}
-                      </span>
-                    </div>
-
-                    {/* 7. Action */}
-                    <div>
-                      <button
-                        type="button"
-                        className="view-details-btn cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onSelectStudent(student)
-                          onViewDetails(student)
-                        }}
-                        aria-label={`View profile for ${student.name}`}
-                      >
-                        <span>View Profile →</span>
-                      </button>
-                    </div>
+                    <p className="truncate text-caption text-muted-foreground">
+                      Avg {s.average}% · Attendance {s.attendance}% · {s.lastActivity}
+                    </p>
+                    <Progress value={s.completion} size="xs" className="mt-2" label={`${s.completion}% complete`} />
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )}
+            />
+          ) : (
+            <motion.ul layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <AnimatePresence initial={false}>
+                {visible.map((s) => (
+                  <motion.li key={s.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={spring.soft} className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => openDrawer(s.id)}
+                      className="group flex h-full w-full flex-col gap-4 rounded-lg border border-border bg-surface p-4 text-left shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar src={s.image} name={s.name} size="lg" status={s.lastActivity === "Just now" ? "online" : undefined} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary-text">{s.name}</p>
+                          <p className="truncate text-caption text-muted-foreground">
+                            {s.rollNumber} · grade {s.grade ?? "–"}
+                          </p>
+                        </div>
+                        <ProgressRing value={s.completion} size={48} thickness={5} tone={s.status === "Needs Attention" ? "warning" : "primary"} label={`${s.completion}% complete`} />
+                      </div>
+                      <dl className="grid grid-cols-2 gap-2 rounded-md bg-surface-2/70 px-3 py-2">
+                        <div>
+                          <dt className="text-[11px] text-muted-foreground">Average</dt>
+                          <dd className="text-sm font-semibold tabular-nums text-foreground">{s.average}%</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] text-muted-foreground">Attendance</dt>
+                          <dd className={cn("text-sm font-semibold tabular-nums", s.attendance < 80 ? "text-danger" : "text-foreground")}>{s.attendance}%</dd>
+                        </div>
+                      </dl>
+                      <div className="mt-auto flex flex-wrap items-center gap-1.5">
+                        <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge>
+                        {s.tags.slice(0, 2).map((t) => (
+                          <Badge key={t} tone="neutral">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    </button>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </motion.ul>
           )}
-        </div>
-      </div>
-    </section>
-  )
-}
+        </StaggerItem>
 
-export default function StudentsPage({
-  metrics,
-  searchQuery,
-  setSearchQuery,
-  hexColor,
-  onChangeHexColor,
-  onOpenAiModal,
-  students,
-  selectedStudentId,
-  setSelectedStudentId,
-  selectedStudent,
-  onOpenReportModal,
-}: {
-  metrics: MetricItem[]
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  hexColor: string
-  onChangeHexColor: (color: string) => void
-  onOpenAddStudent?: () => void
-  onOpenAiModal?: () => void
-  students: StudentItem[]
-  selectedStudentId: string
-  setSelectedStudentId: (id: string) => void
-  selectedStudent: StudentItem
-  activeFilter?: string
-  setActiveFilter?: (filter: string) => void
-  onOpenReportModal: (studentName: string) => void
-  onOpenNewAssignment?: () => void
-}) {
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [modalStudent, setModalStudent] = useState<StudentItem | null>(null)
+        {attention > 0 && status !== "Needs Attention" && (
+          <StaggerItem>
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/25 bg-warning-soft px-4 py-3">
+              <Sparkles className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="min-w-0 flex-1 text-sm text-foreground">
+                {attention} {attention === 1 ? "learner needs" : "learners need"} attention this week. A quick check-in with their family usually helps.
+              </p>
+              <Button size="sm" variant="secondary" onClick={() => setStatus("Needs Attention")}>
+                Show them
+              </Button>
+            </div>
+          </StaggerItem>
+        )}
+      </Stagger>
 
-  const handleOpenDetails = (student: StudentItem) => {
-    setModalStudent(student)
-    setSelectedStudentId(student.id)
-    setIsDetailsModalOpen(true)
-  }
-
-  return (
-    <>
-      <StudentsHeader
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onOpenAiModal={onOpenAiModal}
-        hexColor={hexColor}
-        onChangeHexColor={onChangeHexColor}
-        totalCount={students.length}
-      />
-
-      {/* Metrics Grid (4 Status Cards for Students) */}
-      <div className="metrics-grid">
-        {metrics.map((item) => (
-          <StatCard key={item.label} item={item} />
-        ))}
-      </div>
-
-      {/* Full-width Content Layout: Student Spotlight and Grade Distribution removed so the student list reclaims the full available page area */}
-      <StudentRosterCard
-        students={students}
-        selectedStudentId={selectedStudentId}
-        onSelectStudent={(s) => setSelectedStudentId(s.id)}
-        onViewDetails={handleOpenDetails}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
-
-      {/* Comprehensive Student Details Modal / Popup */}
-      <StudentDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        student={modalStudent || selectedStudent}
-        onOpenReportModal={onOpenReportModal}
-      />
-    </>
+      <StudentDrawer studentId={drawerId} open={!!drawerId} onOpenChange={(o) => !o && openDrawer(null)} />
+      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <SendReportDialog open={reportOpen} onOpenChange={setReportOpen} />
+    </div>
   )
 }
