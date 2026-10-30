@@ -1,0 +1,37 @@
+[
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/Submissions.tsx",
+    "find": "  initialAssessmentFilter?: string\n}",
+    "replace": "  initialAssessmentFilter?: string\n  /** Queue pill to open on (the shell's Re-evaluations item opens \"reassessment\"). */\n  initialQueueTab?: \"all\" | \"assigned\" | \"reassessment\" | \"published\"\n}"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/Submissions.tsx",
+    "find": "  initialAssessmentFilter,\n}: SubmissionsProps) {\n  const [queueTab, setQueueTab] = useState<\"all\" | \"assigned\" | \"reassessment\" | \"published\">(\"all\")",
+    "replace": "  initialAssessmentFilter,\n  initialQueueTab = \"all\",\n}: SubmissionsProps) {\n  const [queueTab, setQueueTab] = useState<\"all\" | \"assigned\" | \"reassessment\" | \"published\">(initialQueueTab)"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/EvaluatorPortal.tsx",
+    "find": "import { AppSidebar as EvaluatorSidebar } from \"../../components/Sidebar\"\nimport { EvaluatorTopBar } from \"./components/EvaluatorTopBar\"\n",
+    "replace": "import AppShell from \"../../components/shell/AppShell\"\nimport { useAiAssistant } from \"../../components/shell/AiAssistantDialog\"\nimport type { NotificationSource } from \"../../components/shell/NotificationsMenu\"\nimport PageHeader from \"../../components/ui/page-header\"\n"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/EvaluatorPortal.tsx",
+    "find": "import { AskAiModal } from \"../../components/Modals\"\n",
+    "replace": ""
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/EvaluatorPortal.tsx",
+    "find": "  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false)\n  const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false)\n",
+    "replace": "  const [queueTab, setQueueTab] = useState<\"all\" | \"reassessment\">(() =>\n    typeof window !== \"undefined\" && window.location.pathname.toLowerCase().includes(\"reassessment\") ? \"reassessment\" : \"all\"\n  )\n  const ai = useAiAssistant()\n"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/EvaluatorPortal.tsx",
+    "find": "      setIsMobileDrawerOpen(false)\n      if (context?.assessmentId) {",
+    "replace": "      setQueueTab(context?.filter === \"reassessment\" ? \"reassessment\" : \"all\")\n      if (context?.assessmentId) {"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/evaluator/EvaluatorPortal.tsx",
+    "find": "          : newTab === \"Submissions\"\n          ? \"submissions\"",
+    "replace": "          : newTab === \"Submissions\"\n          ? context?.filter === \"reassessment\"\n            ? \"reassessments\"\n            : \"submissions\""
+  }
+]

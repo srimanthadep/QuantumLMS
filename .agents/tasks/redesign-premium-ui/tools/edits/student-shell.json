@@ -1,0 +1,37 @@
+[
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "import { AppSidebar } from \"../../components/Sidebar\"\n",
+    "replace": "import AppShell from \"@/components/shell/AppShell\"\n"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "function StudentPageFallback() {",
+    "replace": "/** Shell nav id -> student page. */\nconst NAV_TO_PAGE: Record<string, StudentNavPage> = {\n  dashboard: \"Dashboard\",\n  courses: \"My Courses\",\n  schedule: \"Schedule\",\n  assessments: \"Assessments\",\n  grades: \"Grades & Certificates\",\n  notes: \"My Notes\",\n  community: \"Community\",\n  career: \"Career Hub\",\n  support: \"Support & Help\",\n  settings: \"Settings\",\n}\n\nfunction navIdFor(page: StudentNavPage): string {\n  switch (page) {\n    case \"My Courses\":\n    case \"Course Details\":\n      return \"courses\"\n    case \"Schedule\":\n    case \"Timetable\":\n    case \"Attendance\":\n      return \"schedule\"\n    case \"Assessments\":\n    case \"Assignments\":\n    case \"Quizzes\":\n      return \"assessments\"\n    case \"Grades & Certificates\":\n    case \"Grades\":\n    case \"Certificates\":\n      return \"grades\"\n    case \"My Notes\":\n      return \"notes\"\n    case \"Community\":\n    case \"Communication\":\n    case \"Discussions\":\n      return \"community\"\n    case \"Career Hub\":\n    case \"Mock Interview\":\n    case \"Resume Building\":\n    case \"Mentor Details\":\n      return \"career\"\n    case \"Support & Help\":\n    case \"Support\":\n    case \"Help Center\":\n      return \"support\"\n    case \"Settings\":\n    case \"Profile\":\n      return \"settings\"\n    default:\n      return \"dashboard\"\n  }\n}\n\nfunction StudentPageFallback() {"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)\n",
+    "replace": ""
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "      setIsMobileMenuOpen(false)\n",
+    "replace": ""
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "  return (\n    <div\n      className=\"dashboard-shell student-dashboard-shell relative w-full max-w-full min-w-0 box-border h-screen max-h-screen overflow-hidden flex\"\n      style={{\n        backgroundColor: hexColor,\n      }}\n    >\n      {/* Mobile Drawer Toggle */}\n      <div className=\"lg:hidden fixed top-3 left-3 z-50\">\n        <button\n          type=\"button\"\n          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}\n          className=\"w-10 h-10 rounded-full bg-surface/90 backdrop-blur shadow-md flex items-center justify-center text-zinc-800 border border-zinc-200 cursor-pointer\"\n          aria-label=\"Toggle navigation drawer\"\n        >\n          <span className=\"text-base font-bold\">\n            {isMobileMenuOpen ? \"✕\" : \"☰\"}\n          </span>\n        </button>\n      </div>\n\n      {/* Mobile Drawer Backdrop */}\n      {isMobileMenuOpen && (\n        <div\n          className=\"lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm\"\n          onClick={() => setIsMobileMenuOpen(false)}\n        />\n      )}\n\n      {/* Unified AppSidebar for Student Portal */}\n      <div\n        className={`lg:block shrink-0 ${\n          isMobileMenuOpen\n            ? \"fixed inset-y-0 left-0 z-50 shadow-2xl block animate-in slide-in-from-left\"\n            : \"hidden lg:block h-full min-h-0\"\n        }`}\n      >\n        <AppSidebar\n          role=\"Student\"\n          activeItem={activeTab}\n          onNavigate={(id) => navigateTo(id)}\n          onOpenAiModal={onOpenAiModal}\n          onSwitchRole={(r) => {\n            if (r === \"Teacher\") onSwitchToTeacher()\n          }}\n          onLogout={onLogout}\n        />\n      </div>\n\n      {/* Main Student Content Viewport */}\n      <main className=\"dashboard-content flex-1 w-full max-w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden box-border bg-slate-50/60\">",
+    "replace": "  return (\n    <AppShell role=\"Student\" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? \"Dashboard\")}>\n      <div className=\"dashboard-content w-full min-w-0 flex flex-col\" style={{ backgroundColor: hexColor }}>"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "          <div className=\"flex-1 min-h-0 flex flex-col overflow-y-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto w-full\">",
+    "replace": "          <div className=\"flex flex-col w-full\">"
+  },
+  {
+    "file": "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/pages/student/StudentPortal.tsx",
+    "find": "            </Suspense>\n          </div>\n        )}\n      </main>\n    </div>\n  )\n}",
+    "replace": "            </Suspense>\n          </div>\n        )}\n      </div>\n    </AppShell>\n  )\n}"
+  }
+]
