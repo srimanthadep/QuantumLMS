@@ -121,7 +121,14 @@ The checkers live outside the app source in `.agents/tasks/redesign-premium-ui/t
 
 ## Typography
 
-The font is **Inter Variable** (`@fontsource-variable/inter`, imported in `main.tsx`). It is self-hosted and bundled by Vite, so there is no CDN. The feature settings `"cv11", "ss01"` apply globally. Mono is the system `ui-monospace` stack. The Sassoon font files remain in `public/fonts/` as user assets, but nothing loads them.
+The font is **Google Sans**, loaded from Google Fonts by the `<link>` tags in `index.html`: two preconnects (`fonts.googleapis.com`, `fonts.gstatic.com`), then the stylesheet with `display=swap`. The request covers weights 400–700 in roman and italic, with optical size 17–18.
+
+- `--font-sans` in `src/index.css` is `"Google Sans", ui-sans-serif, system-ui, sans-serif`, so every portal, form control and chart label uses it.
+- `base.css` sets `font-optical-sizing: auto` and `font-variation-settings: "GRAD" 0` on `body`. The stylesheet URL doesn't request the `GRAD` axis, so the grade setting only takes effect if that axis is added to the URL.
+- Weights outside 400–700 (`font-extrabold`, `font-black`) render at 700.
+- The font needs network access to `fonts.gstatic.com`. Offline, text falls back to the system sans.
+
+Mono is the system `ui-monospace` stack. The Sassoon font files remain in `public/fonts/` as user assets, but nothing loads them.
 
 | Utility | Size / line height, tracking | Use |
 | --- | --- | --- |

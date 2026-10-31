@@ -214,7 +214,7 @@ export default function DesignSystemPage() {
           </div>
         </Section>
 
-        <Section id="type" title="Typography" description="Inter Variable. Tabular numbers for KPIs and timestamps.">
+        <Section id="type" title="Typography" description="Google Sans. Tabular numbers for KPIs and timestamps.">
           <div className="space-y-3">
             <p className="text-display font-semibold">Learn AI, live.</p>
             <p className="text-h1 font-semibold">Heading 1 · Agentic Systems</p>
