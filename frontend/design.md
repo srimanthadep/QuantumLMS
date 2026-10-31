@@ -117,7 +117,7 @@ These planned values were changed to pass AA:
 
 Use `border` for ordinary dividers and keep `border-strong` for control outlines.
 
-The checkers live outside the repo in `.agents/tasks/redesign-premium-ui/tools/` (see [Legacy bridge](#legacy-bridge-and-its-retirement)). Run `node contrast.mjs` there after any token change.
+The checkers live outside the app source in `.agents/tasks/redesign-premium-ui/tools/` (see [Legacy bridge](#legacy-bridge-and-its-retirement)). Run `node contrast.mjs` there after any token change.
 
 ## Typography
 
@@ -314,7 +314,7 @@ About 70k lines of existing pages had to look coherent in both themes before eac
      - `fix-hex-contrast.mjs` and `fix-contrast-pass2.mjs` replaced 45 hard-coded colours and `text-black` uses that failed AA in one of the themes.
 3. **`src/styles/legacy.css`** holds the old component CSS moved out of `index.css`. The old variable names (`--purple`, `--lavender`, `--noorly-*`, `--bg-custom`, …) are aliased to tokens at the top of the file.
 
-All of these scripts, and the contrast checkers, live **outside the repo** in `.agents/tasks/redesign-premium-ui/tools/` and are not committed. To change the bridge, edit the generator there and regenerate. Don't edit the CSS directly.
+All of these scripts, and the contrast checkers, live **outside the app source** in `.agents/tasks/redesign-premium-ui/tools/`. Vite never bundles them. To change the bridge, edit the generator there and regenerate. Don't edit the CSS directly.
 
 ### Remaining legacy usage
 
