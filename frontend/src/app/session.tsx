@@ -18,6 +18,8 @@ const KEY_USER = "quantum_current_user"
 const ROLES = Object.keys(ROLE_HOME) as UserRole[]
 
 export interface LoginInput {
+  /** Backend user id (students signed in with Supabase). */
+  id?: string
   name: string
   role: UserRole
   email: string
@@ -30,11 +32,17 @@ interface SessionValue {
   role: UserRole
   user: CurrentUser
   login: (user: LoginInput) => void
+  /** Ends the session, including the student's Supabase sign-in. */
   logout: () => void
   /** Switch to another role's demo account. Returns that role's home path. */
   switchRole: (role: UserRole) => string
-  /** Clears locally stored demo data (keeps session and theme) and reloads. */
-  resetDemoData: () => void
+  /** Updates the signed-in user's display fields (the student portal syncs them from the backend profile). */
+  updateUser: (patch: Partial<Omit<CurrentUser, "role">>) => void
+  /**
+   * Restores demo data and reloads. Students: the backend restores the shared demo account (other students get an
+   * error). Other roles: clears their locally stored demo data.
+   */
+  resetDemoData: () => Promise<void>
 }
 
 const SessionContext = createContext<SessionValue | null>(null)
@@ -85,7 +93,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((input: LoginInput) => {
     const user: CurrentUser = {
-      id: `u-${Date.now()}`,
+      id: input.id ?? `u-${Date.now()}`,
       name: input.name,
       role: input.role,
       email: input.email,
@@ -101,6 +109,10 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
       persist(false, s.user)
       return { ...s, isAuthenticated: false }
     })
+    // Loaded on demand so portals that don't use the backend don't pay for the client.
+    import("@/lib/supabase")
+      .then(({ supabase }) => supabase.auth.signOut())
+      .catch(() => undefined)
   }, [])
 
   const switchRole = useCallback((role: UserRole) => {
@@ -113,7 +125,23 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
     return ROLE_HOME[role]
   }, [])
 
-  const resetDemoData = useCallback(() => {
+  const updateUser = useCallback((patch: Partial<Omit<CurrentUser, "role">>) => {
+    setState((s) => {
+      const changed = (Object.keys(patch) as (keyof typeof patch)[]).some((k) => patch[k] !== s.user[k])
+      if (!changed) return s
+      const user = { ...s.user, ...patch }
+      persist(s.isAuthenticated, user)
+      return { ...s, user }
+    })
+  }, [])
+
+  const role = state.user.role
+  const resetDemoData = useCallback(async () => {
+    if (role === "Student") {
+      const { supabase, toApiError } = await import("@/lib/supabase")
+      const { error } = await supabase.rpc("reset_my_demo_data")
+      if (error) throw toApiError(error, "The demo data couldn't be reset.")
+    }
     try {
       const keep = new Set([KEY_AUTH, KEY_ROLE, KEY_USER, "app_theme_mode", "app_theme_accent", "quantum_shell_collapsed"])
       Object.keys(localStorage)
@@ -123,11 +151,11 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     window.location.reload()
-  }, [])
+  }, [role])
 
   const value = useMemo<SessionValue>(
-    () => ({ isAuthenticated: state.isAuthenticated, role: state.user.role, user: state.user, login, logout, switchRole, resetDemoData }),
-    [state, login, logout, switchRole, resetDemoData],
+    () => ({ isAuthenticated: state.isAuthenticated, role: state.user.role, user: state.user, login, logout, switchRole, updateUser, resetDemoData }),
+    [state, login, logout, switchRole, updateUser, resetDemoData],
   )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

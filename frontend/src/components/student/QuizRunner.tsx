@@ -1,45 +1,69 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, Keyboard, ListChecks, Target, Trophy, XCircle } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, CloudCheck, Keyboard, ListChecks, Loader2, RotateCcw, Target, Trophy, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import { Accordion, Badge, Button, Dialog, DialogContent, DialogDescription, DialogTitle, Progress } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
 import type { AssessmentAttempt, AssessmentQuestion, QuizData } from "@/pages/student/studentTypes"
-import { formatClock, formatDuration, stamp } from "@/pages/student/studentUtils"
+import { formatClock, formatDuration } from "@/pages/student/studentUtils"
+import { getQuizReview, saveQuizAnswers, startQuiz, submitQuiz, type LiveQuiz, type QuizQuestion, type QuizReview } from "@/pages/student/data/actions"
+import { useStudentData } from "@/pages/student/data/StudentDataProvider"
 
-type Phase = "intro" | "active" | "result"
+type Phase = "intro" | "loading" | "active" | "submitting" | "result" | "error"
 
 interface QuizRunnerProps {
   /** The dialog is open while a quiz is set. */
   quiz: QuizData | null
-  questions: AssessmentQuestion[]
-  /** Opens straight into the review of a past attempt. */
-  reviewAttempt?: AssessmentAttempt | null
-  studentName: string
+  /** Opens straight into the review of this submitted attempt. */
+  reviewAttemptId?: string | null
   onClose: () => void
-  onComplete: (scoreStr: string, pct: number, attempt: AssessmentAttempt) => void
 }
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"]
 const DIFFICULTY_TONE = { Easy: "success", Medium: "warning", Hard: "danger" } as const
 
-/** Timed quiz flow: intro, one question at a time, then a scored review. */
-export default function QuizRunner({ quiz, questions, reviewAttempt, studentName, onClose, onComplete }: QuizRunnerProps) {
+/**
+ * Timed quiz flow: intro, one question at a time, then the server-graded review. Questions arrive without answers;
+ * answers autosave, the countdown follows the server's deadline, and grading happens on the server.
+ */
+export default function QuizRunner({ quiz, reviewAttemptId, onClose }: QuizRunnerProps) {
+  const { uid, profile, quizStarted, quizSubmitted } = useStudentData()
   // Keep the last quiz around so the dialog can play its exit animation with content.
   const lastQuiz = useRef<QuizData | null>(null)
   if (quiz) lastQuiz.current = quiz
   const shown = quiz ?? lastQuiz.current
 
   const [phase, setPhase] = useState<Phase>("intro")
+  const [error, setError] = useState<string | null>(null)
+  const [live, setLive] = useState<LiveQuiz | null>(null)
+  const [review, setReview] = useState<QuizReview | null>(null)
   const [index, setIndex] = useState(0)
   const [dir, setDir] = useState(1)
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [remaining, setRemaining] = useState(0)
-  const [attempt, setAttempt] = useState<AssessmentAttempt | null>(null)
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "offline">("saved")
   const [confirmSubmit, setConfirmSubmit] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  const startedAt = useRef<Date>(new Date())
+  const answersRef = useRef(answers)
+  answersRef.current = answers
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const submitting = useRef(false)
+
+  const openReview = useCallback(
+    async (attemptId: string) => {
+      setPhase("loading")
+      try {
+        const r = await getQuizReview(uid, attemptId, profile.full_name)
+        setReview(r)
+        setPhase("result")
+      } catch (e) {
+        setError((e as Error).message)
+        setPhase("error")
+      }
+    },
+    [uid, profile.full_name],
+  )
 
   useEffect(() => {
     if (!quiz) return
@@ -47,60 +71,84 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
     setDir(1)
     setConfirmSubmit(false)
     setConfirmLeave(false)
-    setRemaining(quiz.durationMinutes * 60)
-    if (reviewAttempt) {
-      setAnswers(reviewAttempt.answers)
-      setAttempt(reviewAttempt)
-      setPhase("result")
-    } else {
-      setAnswers({})
-      setAttempt(null)
-      setPhase("intro")
-    }
-  }, [quiz, reviewAttempt])
+    setError(null)
+    setLive(null)
+    setReview(null)
+    setAnswers({})
+    setSaveState("saved")
+    submitting.current = false
+    if (reviewAttemptId) void openReview(reviewAttemptId)
+    else setPhase("intro")
+    // Re-run only when a different quiz or review opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quiz?.id, reviewAttemptId])
 
+  useEffect(() => () => clearTimeout(saveTimer.current), [])
+
+  const questions = live?.questions ?? []
   const total = questions.length
   const answeredCount = Object.keys(answers).length
 
-  const submit = useCallback(() => {
+  const begin = async () => {
     if (!shown) return
-    const score = questions.reduce((s, q, i) => s + (answers[i] === q.correctAnswer ? 1 : 0), 0)
-    const pct = total ? Math.round((score / total) * 100) : 0
-    const passed = pct >= shown.passingPct
-    const result: AssessmentAttempt = {
-      id: `att-${shown.id}-${Date.now()}`,
-      quizId: shown.id,
-      studentId: "std-current",
-      studentName,
-      attemptNumber: (shown.attemptsUsed ?? 0) + 1,
-      startedAt: stamp(startedAt.current),
-      submittedAt: stamp(),
-      timeTakenSeconds: Math.max(1, Math.round((Date.now() - startedAt.current.getTime()) / 1000)),
-      answers,
-      score,
-      maxScore: total,
-      scoreStr: `${score}/${total}`,
-      pct,
-      passed,
-      feedback: passed
-        ? "Strong work. Review the explanations below to lock in the concepts you missed."
-        : `You need ${shown.passingPct}% to pass. Revisit the module material, then review each explanation below.`,
+    setPhase("loading")
+    setError(null)
+    try {
+      const l = await startQuiz(shown.id)
+      quizStarted(shown.id, l)
+      setLive(l)
+      setAnswers(l.answers)
+      setIndex(0)
+      setRemaining(Math.max(0, Math.ceil((l.deadline - Date.now()) / 1000)))
+      setPhase("active")
+    } catch (e) {
+      setError((e as Error).message)
+      setPhase("error")
     }
-    setAttempt(result)
-    setPhase("result")
-    setConfirmSubmit(false)
-    onComplete(result.scoreStr, pct, result)
-  }, [answers, onComplete, questions, shown, studentName, total])
+  }
 
-  // Countdown while the quiz is running; submits automatically at zero.
+  const flushSave = useCallback(async () => {
+    clearTimeout(saveTimer.current)
+    if (!live) return
+    setSaveState("saving")
+    try {
+      await saveQuizAnswers(live.attemptId, answersRef.current)
+      setSaveState("saved")
+    } catch {
+      setSaveState("offline")
+    }
+  }, [live])
+
+  const submit = useCallback(async () => {
+    if (!live || submitting.current) return
+    submitting.current = true
+    clearTimeout(saveTimer.current)
+    setConfirmSubmit(false)
+    setPhase("submitting")
+    try {
+      const r = await submitQuiz(uid, live.attemptId, answersRef.current, profile.full_name)
+      quizSubmitted(r)
+      setReview(r)
+      setPhase("result")
+    } catch (e) {
+      setError((e as Error).message)
+      setPhase("active")
+    } finally {
+      submitting.current = false
+    }
+  }, [live, uid, profile.full_name, quizSubmitted])
+
+  // Countdown from the server deadline; submits automatically at zero.
   useEffect(() => {
-    if (phase !== "active") return
-    const t = setInterval(() => setRemaining((r) => r - 1), 1000)
+    if (phase !== "active" || !live) return
+    const tick = () => setRemaining(Math.max(0, Math.ceil((live.deadline - Date.now()) / 1000)))
+    tick()
+    const t = setInterval(tick, 1000)
     return () => clearInterval(t)
-  }, [phase])
+  }, [phase, live])
   useEffect(() => {
-    if (phase === "active" && remaining <= 0) submit()
-  }, [phase, remaining, submit])
+    if (phase === "active" && live && remaining <= 0 && !error) void submit()
+  }, [phase, live, remaining, submit, error])
 
   const go = (next: number) => {
     if (next < 0 || next >= total) return
@@ -108,11 +156,21 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
     setIndex(next)
     setConfirmSubmit(false)
   }
-  const choose = (option: number) => setAnswers((a) => ({ ...a, [index]: option }))
+  const choose = (option: number) => {
+    setAnswers((a) => ({ ...a, [index]: option }))
+    setSaveState("saving")
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => void flushSave(), 700)
+  }
 
   const requestClose = () => {
+    if (phase === "submitting" || phase === "loading") return
     if (phase === "active") setConfirmLeave(true)
     else onClose()
+  }
+  const leave = () => {
+    void flushSave()
+    onClose()
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -137,17 +195,32 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
       <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0 sm:max-w-3xl" onKeyDown={onKeyDown}>
         {shown && (
           <>
-            {phase === "intro" && (
-              <Intro
-                quiz={shown}
-                total={total}
-                onCancel={onClose}
-                onStart={() => {
-                  startedAt.current = new Date()
-                  setRemaining(shown.durationMinutes * 60)
-                  setPhase("active")
-                }}
-              />
+            {phase === "intro" && <Intro quiz={shown} onCancel={onClose} onStart={() => void begin()} />}
+
+            {(phase === "loading" || phase === "submitting") && (
+              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center" role="status">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-text" aria-hidden="true" />
+                <DialogTitle className="text-[15px]">{phase === "submitting" ? "Grading your answers…" : shown.title}</DialogTitle>
+                <DialogDescription>{phase === "submitting" ? "This takes a moment." : "Loading the quiz…"}</DialogDescription>
+              </div>
+            )}
+
+            {phase === "error" && (
+              <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+                <span className="flex h-11 w-11 items-center justify-center rounded-md bg-danger-soft text-danger ring-1 ring-inset ring-danger/20">
+                  <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <DialogTitle className="text-[15px]">{shown.title}</DialogTitle>
+                <DialogDescription className="max-w-md">{error}</DialogDescription>
+                <div className="mt-2 flex gap-2">
+                  <Button variant="ghost" onClick={onClose}>
+                    Close
+                  </Button>
+                  <Button leftIcon={<RotateCcw aria-hidden="true" />} onClick={() => (reviewAttemptId ? void openReview(reviewAttemptId) : void begin())}>
+                    Try again
+                  </Button>
+                </div>
+              </div>
             )}
 
             {phase === "active" && questions[index] && (
@@ -156,8 +229,20 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
                   <div className="flex items-center justify-between gap-3 pr-8">
                     <div className="min-w-0">
                       <DialogTitle className="truncate text-[15px]">{shown.title}</DialogTitle>
-                      <DialogDescription className="text-caption">
+                      <DialogDescription className="flex items-center gap-1.5 text-caption">
                         Question {index + 1} of {total} · {answeredCount} answered
+                        <span aria-live="polite" className="inline-flex items-center gap-1 text-subtle-foreground">
+                          ·{" "}
+                          {saveState === "saving" ? (
+                            "Saving…"
+                          ) : saveState === "offline" ? (
+                            <span className="text-warning">Not saved yet</span>
+                          ) : (
+                            <>
+                              <CloudCheck className="h-3.5 w-3.5" aria-hidden="true" /> Saved
+                            </>
+                          )}
+                        </span>
                       </DialogDescription>
                     </div>
                     <span
@@ -180,7 +265,7 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
                 </div>
 
                 <AnimatePresence initial={false}>
-                  {confirmLeave && (
+                  {(confirmLeave || error) && (
                     <motion.div
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -190,16 +275,30 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
                       role="alert"
                     >
                       <p className="flex items-center gap-2 text-sm font-medium text-warning">
-                        <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                        Leave the quiz? Your answers won't be saved.
+                        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {error ?? "Leave the quiz? Your answers are saved, but the timer keeps running."}
                       </p>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => setConfirmLeave(false)}>
-                          Keep going
-                        </Button>
-                        <Button size="sm" variant="danger" onClick={onClose}>
-                          Leave quiz
-                        </Button>
+                        {error ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setError(null)
+                              void submit()
+                            }}
+                          >
+                            Retry submit
+                          </Button>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="secondary" onClick={() => setConfirmLeave(false)}>
+                              Keep going
+                            </Button>
+                            <Button size="sm" variant="danger" onClick={leave}>
+                              Leave quiz
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -250,10 +349,8 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
                         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning-soft px-3 py-2"
                         role="alert"
                       >
-                        <p className="text-sm font-medium text-warning">
-                          {total - answeredCount} unanswered. Submit anyway?
-                        </p>
-                        <Button size="sm" onClick={submit}>
+                        <p className="text-sm font-medium text-warning">{total - answeredCount} unanswered. Submit anyway?</p>
+                        <Button size="sm" onClick={() => void submit()}>
                           Submit now
                         </Button>
                       </motion.div>
@@ -272,10 +369,7 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
                         Next
                       </Button>
                     ) : (
-                      <Button
-                        leftIcon={<Check aria-hidden="true" />}
-                        onClick={() => (answeredCount < total ? setConfirmSubmit(true) : submit())}
-                      >
+                      <Button leftIcon={<Check aria-hidden="true" />} onClick={() => (answeredCount < total ? setConfirmSubmit(true) : void submit())}>
                         Submit quiz
                       </Button>
                     )}
@@ -284,9 +378,7 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
               </div>
             )}
 
-            {phase === "result" && attempt && (
-              <Result quiz={shown} questions={questions} attempt={attempt} onClose={onClose} />
-            )}
+            {phase === "result" && review && <Result quiz={shown} questions={review.questions} attempt={review.attempt} onClose={onClose} />}
           </>
         )}
       </DialogContent>
@@ -294,11 +386,14 @@ export default function QuizRunner({ quiz, questions, reviewAttempt, studentName
   )
 }
 
-function Intro({ quiz, total, onStart, onCancel }: { quiz: QuizData; total: number; onStart: () => void; onCancel: () => void }) {
-  const attemptsLeft = Math.max(0, (quiz.maxAttempts ?? 1) - (quiz.attemptsUsed ?? 0))
+function Intro({ quiz, onStart, onCancel }: { quiz: QuizData; onStart: () => void; onCancel: () => void }) {
+  const max = quiz.maxAttempts ?? 1
+  const attemptsLeft = Math.max(0, max - (quiz.attemptsUsed ?? 0))
+  const resuming = !!quiz.openAttemptId
+  const minutesLeft = quiz.openDeadline ? Math.max(0, Math.ceil((Date.parse(quiz.openDeadline) - Date.now()) / 60_000)) : 0
   const stats = [
-    { icon: ListChecks, label: "Questions", value: String(total) },
-    { icon: Clock, label: "Time limit", value: `${quiz.durationMinutes} min` },
+    { icon: ListChecks, label: "Questions", value: String(quiz.questionCount) },
+    { icon: Clock, label: resuming ? "Time left" : "Time limit", value: `${resuming ? minutesLeft : quiz.durationMinutes} min` },
     { icon: Target, label: "Pass mark", value: `${quiz.passingPct}%` },
   ]
   return (
@@ -307,7 +402,7 @@ function Intro({ quiz, total, onStart, onCancel }: { quiz: QuizData; total: numb
         <Badge tone="primary">{quiz.course}</Badge>
         <DialogTitle className="mt-3 text-h3">{quiz.title}</DialogTitle>
         <DialogDescription className="mt-1">
-          {attemptsLeft} of {quiz.maxAttempts ?? 1} attempt{(quiz.maxAttempts ?? 1) > 1 ? "s" : ""} left · Due {quiz.dueDate}
+          {resuming ? "You have an attempt in progress" : `${attemptsLeft} of ${max} attempt${max > 1 ? "s" : ""} left`} · Due {quiz.dueDate}
         </DialogDescription>
       </div>
       <div className="mt-6 grid grid-cols-3 gap-3">
@@ -328,7 +423,7 @@ function Intro({ quiz, total, onStart, onCancel }: { quiz: QuizData; total: numb
       <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
         {[
           "The timer starts when you begin and the quiz submits itself at zero.",
-          "Move freely between questions and change answers until you submit.",
+          "Answers save as you go. If you leave, the timer keeps running until you come back.",
           "Use the number keys to answer and the arrow keys to move.",
         ].map((t) => (
           <li key={t} className="flex gap-2">
@@ -341,8 +436,8 @@ function Intro({ quiz, total, onStart, onCancel }: { quiz: QuizData; total: numb
         <Button variant="ghost" onClick={onCancel}>
           Not now
         </Button>
-        <Button size="lg" rightIcon={<ArrowRight aria-hidden="true" />} onClick={onStart} disabled={total === 0}>
-          Start quiz
+        <Button size="lg" rightIcon={<ArrowRight aria-hidden="true" />} onClick={onStart} disabled={!resuming && attemptsLeft === 0}>
+          {resuming ? "Resume quiz" : "Start quiz"}
         </Button>
       </div>
     </div>
@@ -355,7 +450,7 @@ function QuestionView({
   selected,
   onChoose,
 }: {
-  question: AssessmentQuestion
+  question: QuizQuestion
   index: number
   selected: number | undefined
   onChoose: (option: number) => void

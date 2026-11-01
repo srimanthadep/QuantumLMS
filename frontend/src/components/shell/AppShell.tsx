@@ -5,6 +5,7 @@ import { useSession } from "@/app/session"
 import { useToast } from "@/components/ui/toast"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { getDemoAccount } from "@/data/demoAccounts"
 import CloverAssistantButton from "./CloverAssistantButton"
 import { useAiAssistant } from "./AiAssistantDialog"
 import CommandPalette from "./CommandPalette"
@@ -100,6 +101,19 @@ export default function AppShell({
     toast.show("You have been signed out.")
   }, [navigate, session, toast])
 
+  // Students keep their data in their account; only the shared demo student has demo data to restore.
+  const isStudent = role === "Student"
+  const canReset = !isStudent || session.user.email.toLowerCase() === getDemoAccount("Student").email
+  const resetDemo = useCallback(() => {
+    toast.show(isStudent ? "Restoring the demo student's data…" : "Resetting demo data…")
+    session.resetDemoData().catch((e: Error) => toast.error(e.message || "The demo data couldn't be reset."))
+  }, [isStudent, session, toast])
+  const storageNote = isStudent
+    ? canReset
+      ? "Shared demo account · progress is saved online"
+      : "Your progress is saved to your account"
+    : undefined
+
   const hasSettings = items.some((i) => i.id === "settings")
   const openAi = () => ai.open()
 
@@ -135,7 +149,8 @@ export default function AppShell({
             onOpenPalette={() => setPaletteOpen(true)}
             onSwitchRole={switchRole}
             onLogout={logout}
-            onResetDemo={session.resetDemoData}
+            onResetDemo={canReset ? resetDemo : undefined}
+            storageNote={storageNote}
             onOpenSettings={hasSettings ? () => onNavigate("settings") : undefined}
             notifications={notifications}
           >

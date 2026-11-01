@@ -5,20 +5,16 @@ import { cn } from "@/lib/utils"
 import { transition } from "@/lib/motion"
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Textarea } from "@/components/ui"
 import type { AssignmentData } from "@/pages/student/studentTypes"
+import { fileSize, MAX_SUBMISSION_BYTES, type SubmissionInput } from "@/pages/student/data/actions"
 
 interface AssignmentSubmitDialogProps {
   assignment: AssignmentData | null
   onClose: () => void
-  onSubmit: (id: string, repoUrl: string, comments: string) => void
+  /** Uploads and records the submission; rejects with a message to show. */
+  onSubmit: (id: string, input: SubmissionInput) => Promise<void>
 }
 
 const GITHUB = /^https:\/\/(www\.)?github\.com\/[^/\s]+\/[^/\s]+/
-
-function fileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
 
 /** Submission form: GitHub link and/or a dropped file, plus notes for the evaluator. */
 export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }: AssignmentSubmitDialogProps) {
@@ -37,35 +33,46 @@ export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }
   useEffect(() => {
     if (!assignment) return
     setRepo(assignment.repoUrl ?? "")
-    setComments("")
+    setComments(assignment.comments ?? "")
     setFile(null)
     setRepoError(null)
     setFormError(null)
     setLoading(false)
   }, [assignment])
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!shown) return
+    if (!shown || loading) return
     const url = repo.trim()
     if (url && !GITHUB.test(url)) {
       setRepoError("Use a GitHub link like https://github.com/you/project")
       return
     }
-    if (!url && !file) {
+    // A resubmission may keep the file that was uploaded before.
+    if (!url && !file && !shown.uploadedFileName) {
       setFormError("Add a repository link or attach a file.")
       return
     }
     setLoading(true)
-    setTimeout(() => {
-      const note = [comments.trim(), file ? `Attached: ${file.name} (${fileSize(file.size)})` : ""].filter(Boolean).join("\n")
-      onSubmit(shown.id, url, note)
+    setFormError(null)
+    try {
+      await onSubmit(shown.id, { repoUrl: url, comments, file })
       onClose()
-    }, 650)
+    } catch (err) {
+      const message = (err as Error).message || "Your submission couldn't be saved."
+      if (/github/i.test(message)) setRepoError(message)
+      else setFormError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const takeFile = (f: File | undefined | null) => {
     if (!f) return
+    if (f.size > MAX_SUBMISSION_BYTES) {
+      setFormError(`${f.name} is ${fileSize(f.size)}. Files can be up to 50 MB.`)
+      return
+    }
     setFile(f)
     setFormError(null)
   }
@@ -126,7 +133,16 @@ export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }
                   Drop a file here or <span className="font-medium text-primary-text">browse</span>
                 </span>
                 <span className="text-caption text-muted-foreground">.zip, .ipynb, .pdf or .py up to 50 MB</span>
-                <input type="file" className="sr-only" accept=".zip,.ipynb,.pdf,.py,.tar,.gz" onChange={(e) => takeFile(e.target.files?.[0])} />
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept=".zip,.ipynb,.pdf,.py,.tar,.gz"
+                  disabled={loading}
+                  onChange={(e) => {
+                    takeFile(e.target.files?.[0])
+                    e.target.value = ""
+                  }}
+                />
               </label>
               <AnimatePresence initial={false}>
                 {file && (
@@ -140,12 +156,18 @@ export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }
                     <FileArchive className="h-4 w-4 shrink-0 text-primary-text" aria-hidden="true" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">{file.name}</span>
                     <span className="text-caption tabular-nums text-muted-foreground">{fileSize(file.size)}</span>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove file" onClick={() => setFile(null)}>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove file" onClick={() => setFile(null)} disabled={loading}>
                       <X aria-hidden="true" />
                     </Button>
                   </motion.div>
                 )}
               </AnimatePresence>
+              {!file && shown.uploadedFileName && (
+                <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                  <FileArchive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Current file: {shown.uploadedFileName}. Attach a new one to replace it.</span>
+                </p>
+              )}
             </div>
 
             <Field label="Notes for the evaluator" hint="Optional. Mention anything incomplete or worth a look.">

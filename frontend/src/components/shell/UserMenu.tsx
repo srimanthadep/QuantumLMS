@@ -16,12 +16,14 @@ interface UserMenuProps {
   user: CurrentUser
   onSwitchRole: (role: UserRole) => void
   onLogout: () => void
-  onResetDemo: () => void
+  /** Omitted when the account has no demo data to reset. */
+  onResetDemo?: () => void
+  storageNote?: string
   onOpenSettings?: () => void
 }
 
 /** Avatar menu: identity, settings, role switcher, reset demo data, sign out. */
-export default function UserMenu({ user, onSwitchRole, onLogout, onResetDemo, onOpenSettings }: UserMenuProps) {
+export default function UserMenu({ user, onSwitchRole, onLogout, onResetDemo, storageNote = "Demo workspace · data stays in this browser", onOpenSettings }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -57,11 +59,13 @@ export default function UserMenu({ user, onSwitchRole, onLogout, onResetDemo, on
           </DropdownMenuItem>
         )}
         <RoleSwitcher role={user.role} onSwitch={onSwitchRole} />
-        <DropdownMenuItem onSelect={onResetDemo}>
-          <RotateCcw /> Reset demo data
-        </DropdownMenuItem>
+        {onResetDemo && (
+          <DropdownMenuItem onSelect={onResetDemo}>
+            <RotateCcw /> Reset demo data
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="normal-case tracking-normal">Demo workspace · data stays in this browser</DropdownMenuLabel>
+        <DropdownMenuLabel className="normal-case tracking-normal">{storageNote}</DropdownMenuLabel>
         <DropdownMenuItem destructive onSelect={onLogout}>
           <LogOut /> Sign out
         </DropdownMenuItem>

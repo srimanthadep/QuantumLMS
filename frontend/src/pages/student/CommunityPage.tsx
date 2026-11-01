@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   Bookmark,
@@ -14,8 +14,10 @@ import {
   PenSquare,
   Send,
   Share2,
+  Trash2,
   Trophy,
   Users,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
@@ -38,11 +40,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   Textarea,
 } from "@/components/ui"
-import type { CommunityPost } from "./studentTypes"
-import { initialCommunityPosts } from "./studentMockData"
-import { copyText } from "./studentUtils"
+import { copyText, relTime } from "./studentUtils"
+import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import { createPost, deletePost, deleteReply, loadCommunity, replyToPost, setLike, setSave, setSquadMember, type CommunityData } from "./data/community"
 
 interface CommunityPageProps {
   onToast: (msg: string) => void
@@ -54,8 +57,26 @@ interface Reply {
   avatar?: string
   text: string
   time: string
+  mine: boolean
 }
-type Post = Omit<CommunityPost, "channel"> & { channel: Channel; replyList: Reply[]; saved?: boolean; createdAt: number }
+
+interface Post {
+  id: string
+  author: string
+  avatar?: string
+  badge: string
+  time: string
+  channel: Channel
+  title: string
+  content: string
+  likes: number
+  replies: number
+  isLiked: boolean
+  saved: boolean
+  mine: boolean
+  createdAt: number
+  replyList: Reply[]
+}
 
 const CHANNELS = [
   { id: "Hackathons", icon: Trophy },
@@ -66,48 +87,68 @@ const CHANNELS = [
 ] as const
 type Channel = (typeof CHANNELS)[number]["id"]
 const CHANNEL_ICON = Object.fromEntries(CHANNELS.map((c) => [c.id, c.icon])) as Record<Channel, typeof Trophy>
+const asChannel = (s: string): Channel => (CHANNELS.find((c) => c.id === s)?.id ?? "General") as Channel
 
-const stripEmoji = (s: string) => s.replace(/[^\p{L}\p{N}&\s-]/gu, "").trim()
-const asChannel = (s: string): Channel => (CHANNELS.find((c) => c.id === stripEmoji(s))?.id ?? "General") as Channel
-
-const SEED_REPLIES: Record<string, Reply[]> = {
-  "cp-1": [
-    { id: "r1", author: "Rohit Verma", avatar: "/assets/student-3.png", text: "I can take the frontend. Built a Next.js dashboard for last year's hackathon.", time: "1 hour ago" },
-    { id: "r2", author: "Sneha Patel", avatar: "/assets/student-4.png", text: "Interested in the vector DB side. DM me?", time: "45 min ago" },
-  ],
-  "cp-2": [{ id: "r3", author: "Priya Sharma", avatar: "/assets/student-2.png", text: "Super useful. Did you try a reranker on top of the 512-token chunks?", time: "3 hours ago" }],
-  "cp-3": [{ id: "r4", author: "Aarav Patel", avatar: "/assets/student-1.png", text: "Count me in. I'll bring my SVM dual notes.", time: "20 hours ago" }],
-}
-
-const SQUADS = [
-  { id: "sq-1", name: "RAG Builders", members: 18, next: "Thu · 7:00 PM", joined: true },
-  { id: "sq-2", name: "ML Math Circle", members: 24, next: "Wed · 6:30 PM", joined: false },
-  { id: "sq-3", name: "Agents & Evals", members: 12, next: "Fri · 5:00 PM", joined: false },
-]
-const TRENDING = ["LangGraph", "Hackathon2026", "LoRA", "Midterms", "VectorDB", "Evals"]
+// Community app copy; the activity behind these isn't tracked per student.
+const TRENDING = ["LangGraph", "Hackathon", "LoRA", "Midterm", "RAG", "Evals"]
 const HELPERS = [
   { name: "Priya Sharma", avatar: "/assets/student-2.png", points: 342 },
   { name: "Rohit Verma", avatar: "/assets/student-3.png", points: 298 },
   { name: "Sneha Patel", avatar: "/assets/student-4.png", points: 251 },
 ]
 
+const postLink = (id: string) => `${window.location.origin}/student?page=community&post=${encodeURIComponent(id)}`
+
 export default function CommunityPage({ onToast }: CommunityPageProps) {
   const { user } = useSession()
-  const [posts, setPosts] = useState<Post[]>(() =>
-    initialCommunityPosts.map((p, i) => ({ ...p, channel: asChannel(p.channel), replyList: SEED_REPLIES[p.id] ?? [], createdAt: Date.now() - (i + 1) * 3_600_000 })),
-  )
+  const { uid, now } = useStudentData()
+  const res = useStudentResource<CommunityData>("community", loadCommunity, 60_000)
   const [channel, setChannel] = useState<Channel | "All">("All")
   const [sort, setSort] = useState<"latest" | "top">("latest")
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [composing, setComposing] = useState(false)
   const [draft, setDraft] = useState({ title: "", content: "", channel: "General" as Channel })
   const [draftError, setDraftError] = useState<string | null>(null)
-  const [squads, setSquads] = useState(SQUADS)
+  const [publishing, setPublishing] = useState(false)
+  const [highlight, setHighlight] = useState<string | null>(() => new URLSearchParams(window.location.search).get("post"))
   const composerRef = useRef<HTMLDivElement>(null)
+  const { mutate } = res
+
+  const posts = useMemo<Post[]>(() => {
+    const d = res.data
+    if (!d) return []
+    const liked = new Set(d.liked)
+    const saved = new Set(d.saved)
+    const byPost = new Map<string, Reply[]>()
+    for (const r of d.replies) {
+      const list = byPost.get(r.post_id) ?? []
+      list.push({ id: r.id, author: r.author_name, avatar: r.author_avatar ?? undefined, text: r.body, time: relTime(r.created_at, now), mine: r.author_id === uid })
+      byPost.set(r.post_id, list)
+    }
+    return d.posts.map((p) => ({
+      id: p.id,
+      author: p.author_name,
+      avatar: p.author_avatar ?? undefined,
+      badge: p.author_badge,
+      time: relTime(p.created_at, now),
+      channel: asChannel(p.channel),
+      title: p.title,
+      content: p.content,
+      likes: p.base_likes + p.like_count,
+      replies: p.base_replies + p.reply_count,
+      isLiked: liked.has(p.id),
+      saved: saved.has(p.id),
+      mine: p.author_id === uid,
+      createdAt: Date.parse(p.created_at),
+      replyList: byPost.get(p.id) ?? [],
+    }))
+  }, [res.data, now, uid])
 
   const visible = useMemo(() => {
-    const list = posts.filter((p) => channel === "All" || p.channel === channel)
-    return sort === "top" ? [...list].sort((a, b) => b.likes + b.replyList.length * 2 - (a.likes + a.replyList.length * 2)) : [...list].sort((a, b) => b.createdAt - a.createdAt)
-  }, [posts, channel, sort])
+    const t = tagFilter?.toLowerCase()
+    const list = posts.filter((p) => (channel === "All" || p.channel === channel) && (!t || `${p.title} ${p.content}`.toLowerCase().includes(t)))
+    return sort === "top" ? [...list].sort((a, b) => b.likes + b.replies * 2 - (a.likes + a.replies * 2)) : [...list].sort((a, b) => b.createdAt - a.createdAt)
+  }, [posts, channel, sort, tagFilter])
 
   const counts = useMemo(() => {
     const m = new Map<string, number>()
@@ -115,39 +156,100 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
     return m
   }, [posts])
 
-  const update = (id: string, fn: (p: Post) => Post) => setPosts((list) => list.map((p) => (p.id === id ? fn(p) : p)))
+  // A shared link (?post=…) scrolls to that post once the feed has loaded.
+  useEffect(() => {
+    if (!highlight || !res.data) return
+    const el = document.getElementById(`post-${highlight}`)
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+    const t = setTimeout(() => setHighlight(null), 2400)
+    return () => clearTimeout(t)
+  }, [highlight, res.data])
 
   const openComposer = () => {
     setComposing(true)
     requestAnimationFrame(() => composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }))
   }
 
-  const publish = (e: React.FormEvent) => {
+  const publish = async (e: React.FormEvent) => {
     e.preventDefault()
     if (draft.title.trim().length < 6) {
       setDraftError("Add a title with at least 6 characters.")
       return
     }
-    const post: Post = {
-      id: `cp-${Date.now()}`,
-      author: user.name,
-      avatar: user.avatar ?? "",
-      badge: "Student",
-      time: "Just now",
-      channel: draft.channel,
-      title: draft.title.trim(),
-      content: draft.content.trim(),
-      likes: 0,
-      replies: 0,
-      replyList: [],
-      createdAt: Date.now(),
+    setPublishing(true)
+    try {
+      const row = await createPost(draft.channel, draft.title, draft.content)
+      mutate((d) => ({ ...d, posts: [row, ...d.posts] }))
+      setDraft({ title: "", content: "", channel: draft.channel })
+      setComposing(false)
+      setChannel("All")
+      setTagFilter(null)
+      setSort("latest")
+      onToast(`Posted to ${draft.channel}`)
+    } catch (err) {
+      setDraftError((err as Error).message)
+    } finally {
+      setPublishing(false)
     }
-    setPosts((list) => [post, ...list])
-    setDraft({ title: "", content: "", channel: draft.channel })
-    setComposing(false)
-    setChannel("All")
-    setSort("latest")
-    onToast(`Posted to ${post.channel}`)
+  }
+
+  const toggleLike = (p: Post) => {
+    const on = !p.isLiked
+    const apply = (value: boolean) =>
+      mutate((d) => ({
+        ...d,
+        liked: value ? [...d.liked.filter((x) => x !== p.id), p.id] : d.liked.filter((x) => x !== p.id),
+        posts: d.posts.map((x) => (x.id === p.id ? { ...x, like_count: Math.max(0, x.like_count + (value ? 1 : -1)) } : x)),
+      }))
+    apply(on)
+    setLike(p.id, on).catch((err: Error) => {
+      apply(!on)
+      onToast(`Couldn't save your like: ${err.message}`)
+    })
+  }
+  const toggleSave = (p: Post) => {
+    const on = !p.saved
+    const apply = (value: boolean) => mutate((d) => ({ ...d, saved: value ? [...d.saved.filter((x) => x !== p.id), p.id] : d.saved.filter((x) => x !== p.id) }))
+    apply(on)
+    setSave(p.id, on)
+      .then(() => on && onToast("Saved to your bookmarks"))
+      .catch((err: Error) => {
+        apply(!on)
+        onToast(`Couldn't update your bookmarks: ${err.message}`)
+      })
+  }
+  const reply = async (p: Post, text: string) => {
+    const row = await replyToPost(p.id, text)
+    mutate((d) => ({ ...d, replies: [...d.replies, row], posts: d.posts.map((x) => (x.id === p.id ? { ...x, reply_count: x.reply_count + 1 } : x)) }))
+  }
+  const removeReply = (p: Post, r: Reply) =>
+    deleteReply(r.id)
+      .then(() => mutate((d) => ({ ...d, replies: d.replies.filter((x) => x.id !== r.id), posts: d.posts.map((x) => (x.id === p.id ? { ...x, reply_count: Math.max(0, x.reply_count - 1) } : x)) })))
+      .catch((err: Error) => onToast(`Couldn't delete the reply: ${err.message}`))
+  const removePost = (p: Post) =>
+    deletePost(p.id)
+      .then(() => {
+        mutate((d) => ({ ...d, posts: d.posts.filter((x) => x.id !== p.id) }))
+        onToast("Post deleted")
+      })
+      .catch((err: Error) => onToast(`Couldn't delete the post: ${err.message}`))
+
+  const squads = (res.data?.squads ?? []).map((s) => ({ id: s.id, name: s.name, members: s.base_members + s.member_count, next: s.next_session, joined: (res.data?.joined ?? []).includes(s.id) }))
+  const toggleSquad = (s: (typeof squads)[number]) => {
+    const on = !s.joined
+    const apply = (value: boolean) =>
+      mutate((d) => ({
+        ...d,
+        joined: value ? [...d.joined.filter((x) => x !== s.id), s.id] : d.joined.filter((x) => x !== s.id),
+        squads: d.squads.map((x) => (x.id === s.id ? { ...x, member_count: Math.max(0, x.member_count + (value ? 1 : -1)) } : x)),
+      }))
+    apply(on)
+    setSquadMember(s.id, on)
+      .then(() => onToast(on ? `Joined ${s.name}. Next session ${s.next}` : `Left ${s.name}`))
+      .catch((err: Error) => {
+        apply(!on)
+        onToast(`Couldn't update the squad: ${err.message}`)
+      })
   }
 
   return (
@@ -216,6 +318,7 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                       <Input
                         autoFocus
                         value={draft.title}
+                        maxLength={160}
                         onChange={(e) => {
                           setDraft((d) => ({ ...d, title: e.target.value }))
                           setDraftError(null)
@@ -224,7 +327,7 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                       />
                     </Field>
                     <Field label="Details">
-                      <Textarea value={draft.content} onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))} placeholder="Add context, links or code…" />
+                      <Textarea value={draft.content} maxLength={5000} onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))} placeholder="Add context, links or code…" />
                     </Field>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <Select value={draft.channel} onValueChange={(v) => setDraft((d) => ({ ...d, channel: v as Channel }))}>
@@ -240,10 +343,10 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                         </SelectContent>
                       </Select>
                       <div className="flex gap-2">
-                        <Button type="button" variant="ghost" onClick={() => setComposing(false)}>
+                        <Button type="button" variant="ghost" onClick={() => setComposing(false)} disabled={publishing}>
                           Cancel
                         </Button>
-                        <Button type="submit" leftIcon={<Send aria-hidden="true" />}>
+                        <Button type="submit" leftIcon={<Send aria-hidden="true" />} loading={publishing}>
                           Publish
                         </Button>
                       </div>
@@ -268,8 +371,20 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
             </Card>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-foreground">{channel === "All" ? "All posts" : channel}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="text-sm font-medium text-foreground">{channel === "All" ? "All posts" : channel}</p>
+              {tagFilter && (
+                <button
+                  type="button"
+                  onClick={() => setTagFilter(null)}
+                  aria-label={`Clear the #${tagFilter} filter`}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary-border bg-primary-soft px-2 py-0.5 text-caption font-medium text-primary-text"
+                >
+                  #{tagFilter} <X className="h-3 w-3" aria-hidden="true" />
+                </button>
+              )}
+            </div>
             <SegmentedControl
               size="sm"
               aria-label="Sort posts"
@@ -282,10 +397,27 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
             />
           </div>
 
-          {visible.length === 0 ? (
+          {res.error && !res.data ? (
             <EmptyState
               icon={<MessagesSquare aria-hidden="true" />}
-              title="No posts in this channel yet"
+              title="The feed didn't load"
+              description={res.error.message}
+              action={
+                <Button size="sm" variant="secondary" onClick={() => void res.reload()}>
+                  Try again
+                </Button>
+              }
+            />
+          ) : !res.data ? (
+            <div className="flex flex-col gap-4" role="status" aria-label="Loading posts">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-44" />
+              ))}
+            </div>
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={<MessagesSquare aria-hidden="true" />}
+              title={tagFilter ? `No posts mention #${tagFilter}` : "No posts in this channel yet"}
               description="Start the conversation."
               action={
                 <Button
@@ -306,21 +438,20 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                   <PostCard
                     key={p.id}
                     post={p}
+                    highlighted={highlight === p.id}
                     userName={user.name}
                     userAvatar={user.avatar}
-                    onLike={() => update(p.id, (x) => ({ ...x, isLiked: !x.isLiked, likes: x.likes + (x.isLiked ? -1 : 1) }))}
-                    onSave={() => {
-                      update(p.id, (x) => ({ ...x, saved: !x.saved }))
-                      if (!p.saved) onToast("Saved to your bookmarks")
-                    }}
+                    onLike={() => toggleLike(p)}
+                    onSave={() => toggleSave(p)}
                     onShare={async () => {
-                      await copyText(`https://community.quantumschool.ai/post/${p.id}`)
-                      onToast("Link to post copied")
+                      const ok = await copyText(postLink(p.id))
+                      onToast(ok ? "Link to post copied" : "Copy isn't available in this browser")
                     }}
-                    onReply={(text) =>
-                      update(p.id, (x) => ({ ...x, replyList: [...x.replyList, { id: `r-${Date.now()}`, author: user.name, avatar: user.avatar, text, time: "Just now" }] }))
-                    }
-                    onTag={(t) => onToast(`Showing posts tagged #${t}`)}
+                    onReply={(text) => reply(p, text)}
+                    onDeleteReply={(r) => void removeReply(p, r)}
+                    onDelete={() => void removePost(p)}
+                    onTag={(t) => setTagFilter(t)}
+                    onError={onToast}
                   />
                 ))}
               </AnimatePresence>
@@ -335,6 +466,7 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
               <CardTitle>Study squads</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
+              {!res.data && [0, 1, 2].map((i) => <Skeleton key={i} className="h-9" />)}
               {squads.map((s) => (
                 <div key={s.id} className="flex items-center gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
@@ -343,17 +475,14 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
                     <p className="truncate text-caption text-muted-foreground">
-                      {s.members + (s.joined ? 1 : 0)} members · {s.next}
+                      {s.members} members · {s.next}
                     </p>
                   </div>
                   <Button
                     size="sm"
                     variant={s.joined ? "secondary" : "outline"}
                     aria-pressed={s.joined}
-                    onClick={() => {
-                      setSquads((list) => list.map((x) => (x.id === s.id ? { ...x, joined: !x.joined } : x)))
-                      onToast(s.joined ? `Left ${s.name}` : `Joined ${s.name}. Next session ${s.next}`)
-                    }}
+                    onClick={() => toggleSquad(s)}
                     leftIcon={
                       s.joined ? (
                         <motion.span initial={{ scale: 0.4 }} animate={{ scale: 1 }} transition={spring.snappy} className="flex">
@@ -377,8 +506,12 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => onToast(`#${t} is trending in your cohort`)}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-caption font-medium text-muted-foreground transition-colors hover:border-primary-border hover:text-primary-text"
+                  aria-pressed={tagFilter === t}
+                  onClick={() => setTagFilter(tagFilter === t ? null : t)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-caption font-medium transition-colors",
+                    tagFilter === t ? "border-primary-border bg-primary-soft text-primary-text" : "border-border bg-surface text-muted-foreground hover:border-primary-border hover:text-primary-text",
+                  )}
                 >
                   <Hash className="h-3 w-3" aria-hidden="true" />
                   {t}
@@ -410,44 +543,63 @@ export default function CommunityPage({ onToast }: CommunityPageProps) {
 
 function PostCard({
   post,
+  highlighted,
   userName,
   userAvatar,
   onLike,
   onSave,
   onShare,
   onReply,
+  onDeleteReply,
+  onDelete,
   onTag,
+  onError,
 }: {
   post: Post
+  highlighted: boolean
   userName: string
   userAvatar?: string
   onLike: () => void
   onSave: () => void
   onShare: () => void
-  onReply: (text: string) => void
+  onReply: (text: string) => Promise<void>
+  onDeleteReply: (r: Reply) => void
+  onDelete: () => void
   onTag: (t: string) => void
+  onError: (m: string) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(highlighted)
   const [reply, setReply] = useState("")
+  const [sending, setSending] = useState(false)
   const [burst, setBurst] = useState(0)
   const Icon = CHANNEL_ICON[post.channel]
-  const replyCount = post.replyList.length + Math.max(0, post.replies - (SEED_REPLIES[post.id]?.length ?? 0))
-  const send = () => {
+  const send = async () => {
     const t = reply.trim()
-    if (!t) return
-    onReply(t)
-    setReply("")
+    if (!t || sending) return
+    setSending(true)
+    try {
+      await onReply(t)
+      setReply("")
+    } catch (e) {
+      onError(`Couldn't post your reply: ${(e as Error).message}`)
+    } finally {
+      setSending(false)
+    }
   }
-  const tags = (post.title.match(/\b(RAG|LangGraph|LoRA|SVM|Hackathon|Midterm)\w*/gi) ?? []).slice(0, 2)
+  const tags = [...new Set((post.title.match(/\b(RAG|LangGraph|LoRA|SVM|Hackathon|Midterm|Evals)\w*/gi) ?? []).map((t) => t.replace(/s$/i, "")))].slice(0, 2)
 
   return (
     <motion.article
+      id={`post-${post.id}`}
       layout
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.98, transition: transition.fast }}
       transition={transition.base}
-      className="rounded-lg border border-border bg-surface p-5 shadow-[var(--elev-xs)] transition-[border-color] duration-200 hover:border-border-strong/60"
+      className={cn(
+        "scroll-mt-24 rounded-lg border bg-surface p-5 shadow-[var(--elev-xs)] transition-[border-color,box-shadow] duration-200 hover:border-border-strong/60",
+        highlighted ? "border-primary shadow-[var(--glow-primary)]" : "border-border",
+      )}
     >
       <header className="flex items-start gap-3">
         <Avatar src={post.avatar} name={post.author} size="md" />
@@ -464,7 +616,7 @@ function PostCard({
         </Badge>
       </header>
       <h3 className="mt-3 text-[15px] font-semibold leading-6 text-foreground">{post.title}</h3>
-      {post.content && <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{post.content}</p>}
+      {post.content && <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{post.content}</p>}
       {tags.length > 0 && (
         <div className="mt-3 flex gap-1">
           {tags.map((t) => (
@@ -482,7 +634,7 @@ function PostCard({
             if (!post.isLiked) setBurst((b) => b + 1)
             onLike()
           }}
-          aria-pressed={!!post.isLiked}
+          aria-pressed={post.isLiked}
           aria-label={`${post.isLiked ? "Unlike" : "Like"}, ${post.likes} likes`}
           whileTap={{ scale: 0.92 }}
           transition={spring.snappy}
@@ -510,14 +662,24 @@ function PostCard({
           )}
         >
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          <span className="tabular-nums">{replyCount}</span>
-          <span className="hidden sm:inline">{replyCount === 1 ? "reply" : "replies"}</span>
+          <span className="tabular-nums">{post.replies}</span>
+          <span className="hidden sm:inline">{post.replies === 1 ? "reply" : "replies"}</span>
         </button>
         <span className="flex-1" />
+        {post.mine && (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Delete post"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-2 hover:text-danger"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
         <motion.button
           type="button"
           onClick={onSave}
-          aria-pressed={!!post.saved}
+          aria-pressed={post.saved}
           aria-label={post.saved ? "Remove bookmark" : "Bookmark post"}
           whileTap={{ scale: 0.9 }}
           transition={spring.snappy}
@@ -544,14 +706,24 @@ function PostCard({
             transition={transition.base}
             className="mt-3 flex flex-col gap-3"
           >
+            {post.replies > post.replyList.length && (
+              <p className="text-caption text-subtle-foreground">
+                {post.replies - post.replyList.length} earlier repl{post.replies - post.replyList.length === 1 ? "y" : "ies"} from before this feed
+              </p>
+            )}
             {post.replyList.map((r) => (
               <motion.div key={r.id} layout initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={transition.base} className="flex gap-2.5">
                 <Avatar src={r.avatar} name={r.author} size="xs" className="mt-0.5" />
                 <div className="min-w-0 flex-1 rounded-md bg-surface-2 px-3 py-2">
-                  <p className="text-caption">
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-caption">
                     <span className="font-semibold text-foreground">{r.author}</span> <span className="text-subtle-foreground">· {r.time}</span>
+                    {r.mine && (
+                      <button type="button" onClick={() => onDeleteReply(r)} className="font-medium text-muted-foreground underline-offset-2 hover:text-danger hover:underline">
+                        Delete
+                      </button>
+                    )}
                   </p>
-                  <p className="mt-0.5 text-sm leading-6 text-foreground">{r.text}</p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-sm leading-6 text-foreground">{r.text}</p>
                 </div>
               </motion.div>
             ))}
@@ -561,15 +733,17 @@ function PostCard({
                 aria-label="Write a reply"
                 placeholder="Write a reply…"
                 value={reply}
+                maxLength={2000}
+                disabled={sending}
                 onChange={(e) => setReply(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault()
-                    send()
+                    void send()
                   }
                 }}
                 trailing={
-                  <button type="button" aria-label="Send reply" onClick={send} disabled={!reply.trim()} className="flex rounded p-1 text-primary-text transition-opacity disabled:opacity-40">
+                  <button type="button" aria-label="Send reply" onClick={() => void send()} disabled={!reply.trim() || sending} className="flex rounded p-1 text-primary-text transition-opacity disabled:opacity-40">
                     <Send className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                 }

@@ -20,7 +20,6 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
-import { useSession } from "@/app/session"
 import {
   Badge,
   Button,
@@ -43,16 +42,15 @@ import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import AssignmentSubmitDialog from "@/components/student/AssignmentSubmitDialog"
 import DateTile from "@/components/student/DateTile"
 import QuizRunner from "@/components/student/QuizRunner"
-import type { AssessmentAttempt, AssignmentData, QuizData } from "./studentTypes"
-import { quizQuestionBanks } from "./studentMockData"
-import { daysUntil, dueLabel, parseDate, splitDate } from "./studentUtils"
+import type { AssignmentData, QuizData } from "./studentTypes"
+import { daysUntil, dueLabel, splitDate } from "./studentUtils"
+import type { SubmissionInput } from "./data/actions"
+import { useReminders } from "./data/hooks"
 
 interface AssessmentsPageProps {
   assignments: AssignmentData[]
-  onSubmitAssignment: (id: string, repoUrl: string, comments: string) => void
+  onSubmitAssignment: (id: string, input: SubmissionInput) => Promise<void>
   quizzes: QuizData[]
-  onCompleteQuiz: (id: string, scoreStr: string, pct: number, attemptData?: AssessmentAttempt) => void
-  quizAttempts: Record<string, AssessmentAttempt>
   onToast: (msg: string) => void
   initialTab?: "assignments" | "quizzes"
 }
@@ -60,28 +58,22 @@ interface AssessmentsPageProps {
 type AssignmentFilter = "All" | AssignmentData["status"]
 const STATUS_TONE = { Pending: "warning", Submitted: "info", Graded: "success" } as const
 
-export default function AssessmentsPage({
-  assignments,
-  onSubmitAssignment,
-  quizzes,
-  onCompleteQuiz,
-  quizAttempts,
-  onToast,
-  initialTab = "assignments",
-}: AssessmentsPageProps) {
-  const { user } = useSession()
+export default function AssessmentsPage({ assignments, onSubmitAssignment, quizzes, onToast, initialTab = "assignments" }: AssessmentsPageProps) {
   const [tab, setTab] = useState(initialTab)
   const [submitTarget, setSubmitTarget] = useState<AssignmentData | null>(null)
   const [quizTarget, setQuizTarget] = useState<QuizData | null>(null)
-  const [reviewAttempt, setReviewAttempt] = useState<AssessmentAttempt | null>(null)
+  const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null)
 
   const stats = useMemo(() => {
-    const graded = assignments.filter((a) => a.status === "Graded" && typeof a.score === "number")
-    const doneQuizzes = quizzes.filter((q) => q.status === "Completed")
+    const graded = assignments
+      .filter((a) => a.status === "Graded" && typeof a.score === "number")
+      .sort((a, b) => (a.submittedAt ?? "").localeCompare(b.submittedAt ?? ""))
+    const doneQuizzes = quizzes.filter((q) => q.status === "Completed" && q.latestAttemptId)
     return {
       pending: assignments.filter((a) => a.status === "Pending").length,
       submitted: assignments.filter((a) => a.status === "Submitted").length,
-      avg: graded.length ? Math.round(graded.reduce((s, a) => s + (a.score ?? 0), 0) / graded.length) : 0,
+      avg: graded.length ? Math.round(graded.reduce((s, a) => s + ((a.score ?? 0) / a.maxMarks) * 100, 0) / graded.length) : 0,
+      gradedScores: graded.map((a) => Math.round(((a.score ?? 0) / a.maxMarks) * 100)),
       passed: doneQuizzes.filter((q) => (q.pct ?? 0) >= q.passingPct).length,
       doneQuizzes: doneQuizzes.length,
       openQuizzes: quizzes.filter((q) => q.status === "Active").length,
@@ -89,26 +81,29 @@ export default function AssessmentsPage({
   }, [assignments, quizzes])
 
   const deadlines = useMemo(() => {
+    const now = Date.now()
     const items = [
-      ...assignments.filter((a) => a.status === "Pending").map((a) => ({ id: a.id, title: a.title, course: a.course, due: a.dueDate, kind: "assignment" as const })),
-      ...quizzes.filter((q) => q.status !== "Completed").map((q) => ({ id: q.id, title: q.title, course: q.course, due: q.dueDate, kind: "quiz" as const })),
+      ...assignments.filter((a) => a.status === "Pending").map((a) => ({ id: a.id, title: a.title, course: a.course, due: a.dueDate, at: a.dueAt ?? "", kind: "assignment" as const })),
+      ...quizzes
+        .filter((q) => q.status === "Active" || q.status === "Upcoming")
+        .map((q) => ({ id: q.id, title: q.title, course: q.course, due: q.dueDate, at: q.dueAt ?? "", kind: "quiz" as const })),
     ]
-    return items.sort((a, b) => (parseDate(a.due)?.getTime() ?? 0) - (parseDate(b.due)?.getTime() ?? 0))
+    // Overdue work first, then what's due soonest.
+    return items.sort((a, b) => a.at.localeCompare(b.at)).filter((d) => d.kind === "assignment" || Date.parse(d.at) >= now)
   }, [assignments, quizzes])
 
-  const latestFeedback = assignments.find((a) => a.status === "Graded" && a.feedback)
+  const latestFeedback = assignments.filter((a) => a.status === "Graded" && a.feedback).sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? ""))[0]
 
   const startQuiz = (q: QuizData) => {
-    setReviewAttempt(null)
+    setReviewAttemptId(null)
     setQuizTarget(q)
   }
   const reviewQuiz = (q: QuizData) => {
-    const att = (q.latestAttemptId && quizAttempts[q.latestAttemptId]) || quizAttempts[q.id] || null
-    if (!att) {
+    if (!q.latestAttemptId) {
       onToast("No saved attempt to review yet.")
       return
     }
-    setReviewAttempt(att)
+    setReviewAttemptId(q.latestAttemptId)
     setQuizTarget(q)
   }
   const openDeadline = (d: (typeof deadlines)[number]) => {
@@ -138,7 +133,14 @@ export default function AssessmentsPage({
               <StatCard title="Awaiting grade" value={String(stats.submitted)} trend="With evaluators" tone="info" icon={Send} onClick={() => setTab("assignments")} />
             </StaggerItem>
             <StaggerItem>
-              <StatCard title="Average score" value={`${stats.avg}%`} trend={{ value: "Across graded work", isPositive: true }} tone="success" icon={Trophy} sparkline={[88, 91, 94, 96, 98]} />
+              <StatCard
+                title="Average score"
+                value={stats.gradedScores.length ? `${stats.avg}%` : "–"}
+                trend={stats.gradedScores.length ? { value: `Across ${stats.gradedScores.length} graded`, isPositive: true } : "Nothing graded yet"}
+                tone="success"
+                icon={Trophy}
+                sparkline={stats.gradedScores.length > 1 ? stats.gradedScores : undefined}
+              />
             </StaggerItem>
             <StaggerItem>
               <StatCard
@@ -233,14 +235,11 @@ export default function AssessmentsPage({
       <AssignmentSubmitDialog assignment={submitTarget} onClose={() => setSubmitTarget(null)} onSubmit={onSubmitAssignment} />
       <QuizRunner
         quiz={quizTarget}
-        questions={quizTarget ? (quizQuestionBanks[quizTarget.id] ?? []) : []}
-        reviewAttempt={reviewAttempt}
-        studentName={user.name}
+        reviewAttemptId={reviewAttemptId}
         onClose={() => {
           setQuizTarget(null)
-          setReviewAttempt(null)
+          setReviewAttemptId(null)
         }}
-        onComplete={(scoreStr, pct, att) => quizTarget && onCompleteQuiz(quizTarget.id, scoreStr, pct, att)}
       />
     </div>
   )
@@ -408,9 +407,9 @@ function Quizzes({
   onReview: (q: QuizData) => void
   onToast: (m: string) => void
 }) {
-  const [reminders, setReminders] = useState<Set<string>>(new Set())
-  const order = { Active: 0, Upcoming: 1, Completed: 2 }
-  const sorted = [...quizzes].sort((a, b) => order[a.status] - order[b.status])
+  const reminders = useReminders()
+  const order = { Active: 0, Upcoming: 1, Completed: 2, Closed: 3 }
+  const sorted = [...quizzes].sort((a, b) => order[a.status] - order[b.status] || (a.dueAt ?? "").localeCompare(b.dueAt ?? ""))
 
   if (sorted.length === 0) return <EmptyState size="sm" icon={<ListChecks aria-hidden="true" />} title="No quizzes yet" description="Quizzes appear here when instructors publish them." />
 
@@ -420,7 +419,12 @@ function Quizzes({
         const used = q.attemptsUsed ?? 0
         const max = q.maxAttempts ?? 1
         const passed = q.status === "Completed" && (q.pct ?? 0) >= q.passingPct
-        const reminded = reminders.has(q.id)
+        const reminded = reminders.has("quiz", q.id)
+        const toggleReminder = () =>
+          reminders
+            .toggle("quiz", q.id)
+            .then((on) => on && onToast(`We'll remind you when ${q.title} opens`))
+            .catch((e: Error) => onToast(`Couldn't save the reminder: ${e.message}`))
         return (
           <motion.div key={q.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ ...transition.base, delay: i * 0.05 }}>
             <Card
@@ -436,10 +440,13 @@ function Quizzes({
                       </Badge>
                     ) : q.status === "Upcoming" ? (
                       <Badge tone="neutral">Upcoming</Badge>
+                    ) : q.status === "Closed" ? (
+                      <Badge tone="neutral">Closed</Badge>
                     ) : (
                       <Badge tone={passed ? "success" : "danger"}>{passed ? "Passed" : "Not passed"}</Badge>
                     )}
-                    <Badge tone="neutral">{dueLabel(q.dueDate)}</Badge>
+                    <Badge tone="neutral">{q.status === "Upcoming" && q.availableFrom ? `Opens ${q.availableFrom.split(",")[0]}` : q.status === "Closed" ? `Closed ${q.dueDate}` : dueLabel(q.dueDate)}</Badge>
+                    {q.openAttemptId && <Badge tone="warning">In progress</Badge>}
                   </div>
                   <h3 className="mt-2 text-[15px] font-semibold leading-6 text-foreground">{q.title}</h3>
                   <p className="text-caption text-muted-foreground">{q.course}</p>
@@ -476,34 +483,29 @@ function Quizzes({
                   </span>
                   {used}/{max} attempt{max > 1 ? "s" : ""}
                 </span>
-                {q.status === "Completed" ? (
+                {q.status === "Completed" && q.latestAttemptId ? (
                   <Button variant="outline" size="sm" leftIcon={<CheckCircle2 aria-hidden="true" />} onClick={() => onReview(q)}>
                     Review answers
                   </Button>
-                ) : q.status === "Active" && used < max ? (
+                ) : q.status === "Active" && (q.openAttemptId || used < max) ? (
                   <Button size="sm" onClick={() => onStart(q)}>
-                    Start quiz
+                    {q.openAttemptId ? "Resume quiz" : "Start quiz"}
                   </Button>
-                ) : (
+                ) : q.status === "Upcoming" ? (
                   <motion.div whileTap={{ scale: 0.95 }} transition={spring.snappy}>
                     <Button
                       variant={reminded ? "secondary" : "outline"}
                       size="sm"
                       aria-pressed={reminded}
+                      disabled={!reminders.ready}
                       leftIcon={reminded ? <BellRing className="text-primary-text" aria-hidden="true" /> : <Bell aria-hidden="true" />}
-                      onClick={() => {
-                        setReminders((r) => {
-                          const n = new Set(r)
-                          if (n.has(q.id)) n.delete(q.id)
-                          else n.add(q.id)
-                          return n
-                        })
-                        if (!reminded) onToast(`We'll remind you when ${q.title} opens`)
-                      }}
+                      onClick={() => void toggleReminder()}
                     >
                       {reminded ? "Reminder on" : "Remind me"}
                     </Button>
                   </motion.div>
+                ) : (
+                  <span className="text-caption text-muted-foreground">{q.status === "Closed" ? "Missed" : "No attempts left"}</span>
                 )}
               </div>
             </Card>

@@ -3,6 +3,7 @@ import { Award, Download, ShieldCheck } from "lucide-react"
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui"
 import type { CertificateItem } from "@/pages/student/studentTypes"
 import { createStandardPdfBlob, triggerFileDownload } from "@/pages/student/materialUtils"
+import { verifyUrl } from "@/pages/student/data/grades"
 import CopyButton from "./CopyButton"
 
 interface CertificateDialogProps {
@@ -11,8 +12,6 @@ interface CertificateDialogProps {
   onClose: () => void
   onToast: (msg: string) => void
 }
-
-const verifyUrl = (id: string) => `https://verify.quantumschool.ai/cert/${id}`
 
 /** Certificate preview with PDF download and a copyable verification link. */
 export default function CertificateDialog({ certificate, recipient, onClose, onToast }: CertificateDialogProps) {

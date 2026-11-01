@@ -1,15 +1,16 @@
-import { useEffect, useId, useMemo, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight, FileText, Mic, Users } from "lucide-react"
 import { transition } from "@/lib/motion"
-import { Button, PageHeader, Progress, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
+import { Button, EmptyState, PageHeader, Progress, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
-import type { MentorMeetingInfo, StudentNavPage } from "./studentTypes"
-import { assignedMentorData } from "./studentMockData"
-import { DEFAULT_RESUME, SEED_HISTORY, atsScore, type InterviewSessionResult, type ResumeState } from "./career/careerData"
+import type { StudentNavPage } from "./studentTypes"
+import { atsScore, type ResumeState } from "./career/careerData"
 import InterviewStudio from "./career/InterviewStudio"
 import ResumeStudio from "./career/ResumeStudio"
-import MentorshipPanel from "./career/MentorshipPanel"
+import MentorshipPanel, { upcomingMeeting } from "./career/MentorshipPanel"
+import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import { loadCareer, saveInterview, saveResume, starterResume, type CareerData } from "./data/career"
 
 type CareerTab = "interviews" | "resume" | "mentorship"
 
@@ -20,46 +21,52 @@ interface CareerHubPageProps {
   initialTab?: CareerTab
 }
 
-const RESUME_KEY = "quantum_resume_v2"
-const HISTORY_KEY = "quantum_interview_history_v2"
-
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T
-  } catch {
-    // ignore and use the fallback
-  }
-  return fallback
-}
-
 export default function CareerHubPage({ onToast, initialTab = "interviews" }: CareerHubPageProps) {
+  const { profile, isDemo, now } = useStudentData()
+  const res = useStudentResource<CareerData>("career", loadCareer, 120_000)
   const [tab, setTab] = useState<CareerTab>(initialTab)
-  const [history, setHistory] = useState<InterviewSessionResult[]>(() => load(HISTORY_KEY, SEED_HISTORY))
-  const [resume, setResume] = useState<ResumeState>(() => load(RESUME_KEY, DEFAULT_RESUME))
-  const [meeting, setMeeting] = useState<MentorMeetingInfo>(assignedMentorData.meeting ?? { status: "Not Scheduled" })
   const patternId = `career-grid-${useId().replace(/:/g, "")}`
+  const { mutate } = res
 
-  useEffect(() => {
+  // The resume edits locally and saves a moment after typing stops.
+  const [draft, setDraft] = useState<ResumeState | null>(null)
+  const [resumeState, setResumeState] = useState<"saved" | "saving" | "error">("saved")
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const pending = useRef<ResumeState | null>(null)
+  const resume = draft ?? res.data?.resume ?? starterResume(profile, isDemo)
+  const flush = useCallback(async () => {
+    clearTimeout(saveTimer.current)
+    const next = pending.current
+    if (!next) return
+    pending.current = null
+    setResumeState("saving")
     try {
-      localStorage.setItem(RESUME_KEY, JSON.stringify(resume))
+      await saveResume(next)
+      mutate((d) => ({ ...d, resume: next }))
+      setResumeState(pending.current ? "saving" : "saved")
     } catch {
-      // storage unavailable
+      pending.current ??= next
+      setResumeState("error")
     }
-  }, [resume])
-  useEffect(() => {
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20)))
-    } catch {
-      // storage unavailable
-    }
-  }, [history])
+  }, [mutate])
+  const changeResume = (r: ResumeState) => {
+    setDraft(r)
+    pending.current = r
+    setResumeState("saving")
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => void flush(), 900)
+  }
+  // Leaving the page saves what's pending.
+  useEffect(() => () => void flush(), [flush])
+
+  const history = useMemo(() => res.data?.sessions ?? [], [res.data])
+  const meeting = useMemo(() => (res.data ? upcomingMeeting(res.data, profile.mentor_id, now) : undefined), [res.data, profile.mentor_id, now])
 
   const metrics = useMemo(() => {
     const recent = history.slice(0, 3)
     const interview = recent.length ? Math.round(recent.reduce((s, h) => s + h.score, 0) / recent.length) : 0
     const ats = atsScore(resume)
-    const mentorship = meeting.status === "Scheduled" ? 100 : 40
+    const mentorship = meeting ? 100 : 40
     return [
       { id: "interviews" as const, label: "Interview practice", value: interview, icon: Mic, action: "Practise an interview" },
       { id: "resume" as const, label: "Resume strength", value: ats, icon: FileText, action: "Improve your resume" },
@@ -68,6 +75,34 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
   }, [history, resume, meeting])
   const readiness = Math.round(metrics[0].value * 0.4 + metrics[1].value * 0.4 + metrics[2].value * 0.2)
   const weakest = [...metrics].sort((a, b) => a.value - b.value)[0]
+
+  if (res.error && !res.data) {
+    return (
+      <div className="flex flex-col">
+        <PageHeader eyebrow="Career" title="Career Hub" description="Practise interviews, polish your resume and meet your mentor." />
+        <EmptyState
+          icon={<Users aria-hidden="true" />}
+          title="The Career Hub didn't load"
+          description={res.error.message}
+          action={
+            <Button variant="secondary" onClick={() => void res.reload()}>
+              Try again
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+  if (!res.data) {
+    return (
+      <div className="flex flex-col gap-5" role="status" aria-label="Loading the Career Hub">
+        <Skeleton className="h-16 w-1/3" />
+        <Skeleton className="h-48" />
+        <Skeleton className="h-80" />
+      </div>
+    )
+  }
+  const data = res.data
 
   return (
     <div className="flex flex-col">
@@ -151,13 +186,24 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
           </TabsTrigger>
         </TabsList>
         <TabsContent value="interviews" className="mt-5">
-          <InterviewStudio history={history} onSaveSession={(s) => setHistory((h) => [s, ...h])} onToast={onToast} />
+          <InterviewStudio
+            history={history}
+            onSaveSession={async (s) => {
+              const saved = await saveInterview(s)
+              mutate((d) => ({ ...d, sessions: [saved, ...d.sessions] }))
+              return saved
+            }}
+            onToast={onToast}
+          />
         </TabsContent>
         <TabsContent value="resume" className="mt-5">
-          <ResumeStudio resume={resume} onChange={setResume} onToast={onToast} />
+          <p className="mb-3 text-caption text-muted-foreground" aria-live="polite">
+            {resumeState === "saving" ? "Saving…" : resumeState === "error" ? "Not saved yet. We'll retry when you make the next change." : "All changes saved to your account."}
+          </p>
+          <ResumeStudio resume={resume} onChange={changeResume} onToast={onToast} />
         </TabsContent>
         <TabsContent value="mentorship" className="mt-5">
-          <MentorshipPanel meeting={meeting} onMeetingChange={setMeeting} onToast={onToast} />
+          <MentorshipPanel data={data} mentorId={profile.mentor_id} onChange={mutate} onToast={onToast} />
         </TabsContent>
       </Tabs>
     </div>

@@ -42,6 +42,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   Tabs,
   TabsContent,
   TabsList,
@@ -53,13 +54,15 @@ import ProgressRing from "@/components/charts/ProgressRing"
 import CourseCover from "@/components/shared/CourseCover"
 import AssignmentSubmitDialog from "@/components/student/AssignmentSubmitDialog"
 import QuizRunner from "@/components/student/QuizRunner"
-import type { AssessmentAttempt, AssignmentData, CourseItem, LessonItem, QuizData, ResourceMaterial, StudentNavPage } from "./studentTypes"
-import { courseMaterials, quizQuestionBanks } from "./studentMockData"
+import type { AssignmentData, CourseItem, LessonItem, QuizData, ResourceMaterial, StudentNavPage } from "./studentTypes"
 import { downloadCourseMaterialsZip, downloadSingleMaterial } from "./materialUtils"
-import { coverCategory } from "./studentUtils"
-import { buildCurriculum, parseMinutes, seedQuestions, type CourseQuestion } from "./course/courseData"
+import { coverCategory, relTime } from "./studentUtils"
+import { parseMinutes } from "./course/courseData"
 import LessonPlayer from "./course/LessonPlayer"
 import CurriculumList from "./course/CurriculumList"
+import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import { askQuestion, deleteQuestion, loadMaterials, loadQandA, setQuestionVote, type QandAData } from "./data/course"
+import type { SubmissionInput } from "./data/actions"
 
 interface CourseDetailsPageProps {
   selectedCourseId: string
@@ -69,12 +72,10 @@ interface CourseDetailsPageProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
   onToast: (msg: string) => void
   onOpenAiModal: () => void
-  onEnrollCourse?: (course: CourseItem) => void
+  onEnrollCourse?: (course: CourseItem) => Promise<void> | void
   assignments?: AssignmentData[]
-  onSubmitAssignment?: (id: string, repoUrl: string, comments: string) => void
+  onSubmitAssignment?: (id: string, input: SubmissionInput) => Promise<void>
   quizzes?: QuizData[]
-  onCompleteQuiz?: (id: string, scoreStr: string, pct: number, attemptData?: AssessmentAttempt) => void
-  quizAttempts?: Record<string, AssessmentAttempt>
 }
 
 const INSTRUCTOR_AVATAR: Record<string, string> = {
@@ -98,7 +99,17 @@ export default function CourseDetailsPage(props: CourseDetailsPageProps) {
 }
 
 function CatalogView({ course, onBackToCourses, onEnrollCourse }: CourseDetailsPageProps & { course: CourseItem }) {
-  const modules = useMemo(() => buildCurriculum(course), [course])
+  const { view } = useStudentData()
+  const modules = view.curriculum[course.id] ?? []
+  const [enrolling, setEnrolling] = useState(false)
+  const enroll = async () => {
+    setEnrolling(true)
+    try {
+      await onEnrollCourse?.(course)
+    } finally {
+      setEnrolling(false)
+    }
+  }
   return (
     <div className="flex flex-col">
       <PageHeader
@@ -114,7 +125,7 @@ function CatalogView({ course, onBackToCourses, onEnrollCourse }: CourseDetailsP
             <p className="text-sm leading-6 text-muted-foreground">{course.description}</p>
             <Facts course={course} />
             <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" onClick={() => onEnrollCourse?.(course)}>
+              <Button size="lg" loading={enrolling} onClick={() => void enroll()}>
                 Enroll and start learning
               </Button>
               <span className="flex items-center gap-1 text-caption text-muted-foreground">
@@ -150,14 +161,13 @@ function CourseView({
   assignments = [],
   onSubmitAssignment,
   quizzes = [],
-  onCompleteQuiz,
-  quizAttempts = {},
 }: CourseDetailsPageProps & { course: CourseItem }) {
   const { user } = useSession()
-  const modules = useMemo(() => buildCurriculum(course), [course])
+  const data = useStudentData()
+  const modules = useMemo(() => data.view.curriculum[course.id] ?? [], [data.view.curriculum, course.id])
   const flat = useMemo(() => modules.flatMap((m, mi) => m.lessons.map((lesson) => ({ lesson, moduleIndex: mi }))), [modules])
+  const completed = data.view.completed
 
-  const [completed, setCompleted] = useState<Set<string>>(() => new Set(flat.filter((f) => f.lesson.status === "Completed").map((f) => f.lesson.id)))
   const [activeId, setActiveId] = useState<string>(
     () =>
       (flat.find((f) => f.lesson.status === "In Progress") ?? flat.find((f) => f.lesson.status !== "Locked" && f.lesson.status !== "Completed") ?? flat[0])
@@ -166,7 +176,8 @@ function CourseView({
   const [tab, setTab] = useState("overview")
   const [submitTarget, setSubmitTarget] = useState<AssignmentData | null>(null)
   const [quizTarget, setQuizTarget] = useState<QuizData | null>(null)
-  const [reviewAttempt, setReviewAttempt] = useState<AssessmentAttempt | null>(null)
+  const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null)
+  const materials = useStudentResource(`materials:${course.id}`, () => loadMaterials(course.id), 300_000)
 
   // A lesson opens when it was never locked, is done, or follows a completed lesson.
   const unlocked = useMemo(() => {
@@ -182,35 +193,32 @@ function CourseView({
   const prev = flat[activeIndex - 1]
   const next = flat[activeIndex + 1]
   const isDone = active ? completed.has(active.lesson.id) : false
-  const pct = flat.length ? Math.round((completed.size / flat.length) * 100) : 0
+  const doneHere = flat.filter((f) => completed.has(f.lesson.id)).length
+  const pct = flat.length ? Math.round((doneHere / flat.length) * 100) : 0
   const minutesLeft = flat.filter((f) => !completed.has(f.lesson.id)).reduce((s, f) => s + parseMinutes(f.lesson.duration), 0)
 
-  const courseAssignments = assignments.filter((a) => a.course === course.title)
-  const courseQuizzes = quizzes.filter((q) => q.course === course.title)
-  const materials = courseMaterials[course.id] ?? []
+  const courseAssignments = assignments.filter((a) => a.courseId === course.id)
+  const courseQuizzes = quizzes.filter((q) => q.courseId === course.id)
+  const materialList = materials.data ?? []
   const enrolled = courses.filter((c) => c.status !== "Catalog")
 
+  const { setLessonComplete } = data
   const completeLesson = useCallback(
     (id: string) => {
-      setCompleted((s) => {
-        if (s.has(id)) return s
-        const n = new Set(s)
-        n.add(id)
-        return n
-      })
-      onToast("Lesson complete. Nice work!")
+      if (completed.has(id)) return
+      setLessonComplete(id, true)
+        .then((r) => {
+          if (r.certificate) onToast(`Course complete! Your certificate "${r.certificate.title}" is ready.`)
+          else onToast(r.completed === r.total ? "Course complete. Nice work!" : "Lesson complete. Nice work!")
+        })
+        .catch((e: Error) => onToast(`Couldn't save your progress: ${e.message}`))
     },
-    [onToast],
+    [completed, setLessonComplete, onToast],
   )
   const toggleDone = () => {
     if (!active) return
-    if (isDone) {
-      setCompleted((s) => {
-        const n = new Set(s)
-        n.delete(active.lesson.id)
-        return n
-      })
-    } else completeLesson(active.lesson.id)
+    if (isDone) setLessonComplete(active.lesson.id, false).catch((e: Error) => onToast(`Couldn't save your progress: ${e.message}`))
+    else completeLesson(active.lesson.id)
   }
   const select = (lesson: LessonItem) => {
     setActiveId(lesson.id)
@@ -309,7 +317,7 @@ function CourseView({
             <TabsList aria-label="Course sections" className="w-full justify-start">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="materials">
-                Materials <span className="tabular-nums text-subtle-foreground">{materials.length}</span>
+                Materials <span className="tabular-nums text-subtle-foreground">{materials.data ? materialList.length : ""}</span>
               </TabsTrigger>
               <TabsTrigger value="assessments">
                 Assessments <span className="tabular-nums text-subtle-foreground">{courseAssignments.length + courseQuizzes.length}</span>
@@ -321,7 +329,27 @@ function CourseView({
               <Overview course={course} modules={modules.map((m) => ({ title: m.title, done: m.lessons.every((l) => completed.has(l.id)) }))} />
             </TabsContent>
             <TabsContent value="materials" className="mt-5">
-              <Materials materials={materials} courseTitle={course.title} onToast={onToast} />
+              {materials.error ? (
+                <EmptyState
+                  size="sm"
+                  icon={<AlertTriangle aria-hidden="true" />}
+                  title="Materials didn't load"
+                  description={materials.error.message}
+                  action={
+                    <Button size="sm" variant="secondary" onClick={() => void materials.reload()}>
+                      Try again
+                    </Button>
+                  }
+                />
+              ) : materials.loading ? (
+                <div className="grid gap-2" role="status" aria-label="Loading materials">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-16" />
+                  ))}
+                </div>
+              ) : (
+                <Materials materials={materialList} courseTitle={course.title} onToast={onToast} />
+              )}
             </TabsContent>
             <TabsContent value="assessments" className="mt-5">
               <Assessments
@@ -329,16 +357,15 @@ function CourseView({
                 quizzes={courseQuizzes}
                 onSubmit={setSubmitTarget}
                 onStartQuiz={(q) => {
-                  setReviewAttempt(null)
+                  setReviewAttemptId(null)
                   setQuizTarget(q)
                 }}
                 onReviewQuiz={(q) => {
-                  const att = (q.latestAttemptId && quizAttempts[q.latestAttemptId]) || quizAttempts[q.id] || null
-                  if (!att) {
+                  if (!q.latestAttemptId) {
                     onToast("No saved attempt to review yet.")
                     return
                   }
-                  setReviewAttempt(att)
+                  setReviewAttemptId(q.latestAttemptId)
                   setQuizTarget(q)
                 }}
               />
@@ -358,7 +385,7 @@ function CourseView({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">Your progress</p>
                 <p className="text-caption text-muted-foreground">
-                  {completed.size} of {flat.length} lessons · {minutesLeft >= 60 ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m` : `${minutesLeft}m`} left
+                  {doneHere} of {flat.length} lessons · {minutesLeft >= 60 ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m` : `${minutesLeft}m`} left
                 </p>
                 <Badge tone="warning" className="mt-2 max-w-full">
                   <Timer className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -384,18 +411,17 @@ function CourseView({
       <AssignmentSubmitDialog
         assignment={submitTarget}
         onClose={() => setSubmitTarget(null)}
-        onSubmit={(id, repo, comments) => onSubmitAssignment?.(id, repo, comments)}
+        onSubmit={async (id, input) => {
+          await onSubmitAssignment?.(id, input)
+        }}
       />
       <QuizRunner
         quiz={quizTarget}
-        questions={quizTarget ? (quizQuestionBanks[quizTarget.id] ?? []) : []}
-        reviewAttempt={reviewAttempt}
-        studentName={user.name}
+        reviewAttemptId={reviewAttemptId}
         onClose={() => {
           setQuizTarget(null)
-          setReviewAttempt(null)
+          setReviewAttemptId(null)
         }}
-        onComplete={(scoreStr, p, att) => quizTarget && onCompleteQuiz?.(quizTarget.id, scoreStr, p, att)}
       />
     </div>
   )
@@ -607,19 +633,76 @@ function Assessments({
   )
 }
 
-function QandA({ course, userName, userAvatar, onToast }: { course: CourseItem; userName: string; userAvatar?: string; onToast: (m: string) => void }) {
-  const [questions, setQuestions] = useState<CourseQuestion[]>(() => seedQuestions(course))
-  const [draft, setDraft] = useState("")
+interface QuestionView {
+  id: string
+  author: string
+  avatar?: string
+  time: string
+  text: string
+  votes: number
+  voted: boolean
+  mine: boolean
+  answer?: { author: string; text: string }
+}
 
-  const post = () => {
+function QandA({ course, userName, userAvatar, onToast }: { course: CourseItem; userName: string; userAvatar?: string; onToast: (m: string) => void }) {
+  const { uid, now } = useStudentData()
+  const qa = useStudentResource<QandAData>(`qa:${course.id}`, () => loadQandA(course.id), 60_000)
+  const [draft, setDraft] = useState("")
+  const [posting, setPosting] = useState(false)
+
+  const questions = useMemo<QuestionView[]>(() => {
+    const voted = new Set(qa.data?.voted ?? [])
+    return (qa.data?.questions ?? []).map((q) => ({
+      id: q.id,
+      author: q.author_name,
+      avatar: q.author_avatar ?? undefined,
+      time: relTime(q.created_at, now),
+      text: q.body,
+      votes: q.base_votes + q.vote_count,
+      voted: voted.has(q.id),
+      mine: q.author_id === uid,
+      answer: q.answer_text ? { author: q.answer_author ?? course.instructor, text: q.answer_text } : undefined,
+    }))
+  }, [qa.data, uid, now, course.instructor])
+
+  const post = async () => {
     const text = draft.trim()
-    if (!text) return
-    setQuestions((qs) => [{ id: `q-${Date.now()}`, author: userName, avatar: userAvatar, time: "Just now", text, votes: 0 }, ...qs])
-    setDraft("")
-    onToast("Question posted to the course board")
+    if (!text || posting) return
+    setPosting(true)
+    try {
+      const row = await askQuestion(course.id, text)
+      qa.mutate((d) => ({ ...d, questions: [row, ...d.questions] }))
+      setDraft("")
+      onToast("Question posted to the course board")
+    } catch (e) {
+      onToast(`Couldn't post your question: ${(e as Error).message}`)
+    } finally {
+      setPosting(false)
+    }
   }
-  const vote = (id: string) =>
-    setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, voted: !q.voted, votes: q.votes + (q.voted ? -1 : 1) } : q)))
+  const applyVote = (id: string, on: boolean) =>
+    qa.mutate((d) => ({
+      questions: d.questions.map((q) => (q.id === id ? { ...q, vote_count: Math.max(0, q.vote_count + (on ? 1 : -1)) } : q)),
+      voted: on ? [...d.voted.filter((v) => v !== id), id] : d.voted.filter((v) => v !== id),
+    }))
+  const vote = (q: QuestionView) => {
+    const on = !q.voted
+    applyVote(q.id, on)
+    setQuestionVote(q.id, on).catch((e: Error) => {
+      applyVote(q.id, !on)
+      onToast(`Couldn't save your vote: ${e.message}`)
+    })
+  }
+  const remove = async (id: string) => {
+    try {
+      await deleteQuestion(id)
+      qa.mutate((d) => ({ ...d, questions: d.questions.filter((q) => q.id !== id) }))
+      onToast("Question removed")
+    } catch (e) {
+      onToast(`Couldn't remove the question: ${(e as Error).message}`)
+    }
+  }
 
   return (
     <div className="grid gap-4">
@@ -630,20 +713,44 @@ function QandA({ course, userName, userAvatar, onToast }: { course: CourseItem; 
             aria-label="Ask a question"
             placeholder="Ask your instructor or classmates about this course…"
             value={draft}
+            maxLength={2000}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) post()
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void post()
             }}
             className="min-h-[72px]"
           />
           <div className="mt-2 flex items-center justify-between gap-2">
             <span className="text-caption text-subtle-foreground">Ctrl + Enter to post</span>
-            <Button size="sm" variant="secondary" leftIcon={<Send aria-hidden="true" />} disabled={!draft.trim()} onClick={post}>
+            <Button size="sm" variant="secondary" leftIcon={<Send aria-hidden="true" />} disabled={!draft.trim()} loading={posting} onClick={() => void post()}>
               Post question
             </Button>
           </div>
         </div>
       </div>
+      {qa.error && (
+        <EmptyState
+          size="sm"
+          icon={<AlertTriangle aria-hidden="true" />}
+          title="Questions didn't load"
+          description={qa.error.message}
+          action={
+            <Button size="sm" variant="secondary" onClick={() => void qa.reload()}>
+              Try again
+            </Button>
+          }
+        />
+      )}
+      {qa.loading && (
+        <div className="grid gap-3" role="status" aria-label="Loading questions">
+          {[0, 1].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      )}
+      {qa.data && questions.length === 0 && (
+        <EmptyState size="sm" icon={<MessageSquare aria-hidden="true" />} title="No questions yet" description="Ask the first one. Your instructor and classmates will see it here." />
+      )}
       <motion.ul layout className="grid gap-3">
         <AnimatePresence initial={false}>
           {questions.map((q) => (
@@ -658,10 +765,16 @@ function QandA({ course, userName, userAvatar, onToast }: { course: CourseItem; 
             >
               <Avatar src={q.avatar} name={q.author} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm">
-                  <span className="font-semibold text-foreground">{q.author}</span> <span className="text-caption text-subtle-foreground">· {q.time}</span>
+                <p className="flex flex-wrap items-center gap-x-1.5 text-sm">
+                  <span className="font-semibold text-foreground">{q.author}</span>
+                  <span className="text-caption text-subtle-foreground">· {q.time}</span>
+                  {q.mine && !q.answer && (
+                    <button type="button" onClick={() => void remove(q.id)} className="text-caption font-medium text-muted-foreground underline-offset-2 hover:text-danger hover:underline">
+                      Delete
+                    </button>
+                  )}
                 </p>
-                <p className="mt-1 text-sm leading-6 text-foreground">{q.text}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-foreground">{q.text}</p>
                 {q.answer && (
                   <div className="mt-3 rounded-md border-l-2 border-primary bg-surface-2 px-3 py-2">
                     <p className="flex items-center gap-1.5 text-caption font-semibold text-primary-text">
@@ -673,7 +786,7 @@ function QandA({ course, userName, userAvatar, onToast }: { course: CourseItem; 
               </div>
               <motion.button
                 type="button"
-                onClick={() => vote(q.id)}
+                onClick={() => vote(q)}
                 aria-pressed={!!q.voted}
                 aria-label={`Upvote, ${q.votes} votes`}
                 whileTap={{ scale: 0.9 }}

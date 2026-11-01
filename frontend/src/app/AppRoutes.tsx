@@ -15,6 +15,7 @@ const EvaluatorPortal = lazy(() => import("@/pages/evaluator/EvaluatorPortal"))
 const SupportPortal = lazy(() => import("@/pages/support"))
 const AdminPortal = lazy(() => import("@/pages/admin/AdminPortal"))
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"))
+const VerifyCertificatePage = lazy(() => import("@/pages/VerifyCertificatePage"))
 const DesignSystemPage: ComponentType | null = import.meta.env.DEV ? lazy(() => import("@/pages/dev/DesignSystemPage")) : null
 
 /** Callbacks every legacy portal expects. */
@@ -103,6 +104,15 @@ export default function AppRoutes() {
       <Route path="/" element={<Navigate to="/auth" replace />} />
       <Route path="/auth" element={<AuthRoute />} />
       <Route path="/login" element={<AuthRoute />} />
+      {/* Public: anyone with a shared certificate link can check it. */}
+      <Route
+        path="/verify/:credentialId"
+        element={
+          <Suspense fallback={<RouteFallback variant="page" />}>
+            <VerifyCertificatePage />
+          </Suspense>
+        }
+      />
       <Route
         path="/student/*"
         element={

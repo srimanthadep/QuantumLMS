@@ -21,52 +21,51 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   Textarea,
   Tooltip,
 } from "@/components/ui"
 import CopyButton from "@/components/student/CopyButton"
 import type { NoteItem } from "./studentTypes"
-import { initialNotesList, initialStudentCourses } from "./studentMockData"
-import { downloadTextFile } from "./studentUtils"
+import { downloadTextFile, relTime } from "./studentUtils"
+import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import { createNote, deleteNote, loadNotes, updateNote, type NoteInput, type NoteRow } from "./data/notes"
 
 interface MyNotesPageProps {
   onToast: (msg: string) => void
 }
 
-type Note = NoteItem & { pinned?: boolean }
+type Note = NoteItem & { pinned?: boolean; row: NoteRow }
 
-const STORAGE_KEY = "quantum_student_notes_v2"
-const COURSES = initialStudentCourses.map((c) => c.title)
-
-function loadNotes(): Note[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Note[]
-  } catch {
-    // fall through to seed data
-  }
-  return initialNotesList.map((n, i) => ({ ...n, pinned: i === 0 }))
-}
-
-const EMPTY = { title: "", course: COURSES[0] ?? "", tags: "", content: "", snippet: "" }
+const toNote = (r: NoteRow, now: number): Note => ({
+  id: r.id,
+  title: r.title,
+  course: r.course,
+  content: r.content,
+  snippet: r.snippet ?? undefined,
+  tags: r.tags,
+  lesson: r.lesson ?? undefined,
+  pinned: r.pinned,
+  updatedAt: r.updated_at,
+  lastModified: relTime(r.updated_at, now),
+  row: r,
+})
 
 export default function MyNotesPage({ onToast }: MyNotesPageProps) {
-  const [notes, setNotes] = useState<Note[]>(loadNotes)
+  const { view, now } = useStudentData()
+  const res = useStudentResource("notes", loadNotes, 120_000)
+  const notes = useMemo(() => (res.data ?? []).map((r) => toNote(r, now)), [res.data, now])
+  const COURSES = useMemo(() => [...new Set([...view.courses.map((c) => c.title), ...notes.map((n) => n.course).filter(Boolean)])], [view.courses, notes])
+  const EMPTY = { title: "", course: COURSES[0] ?? "", tags: "", content: "", snippet: "" }
   const [query, setQuery] = useState("")
   const [course, setCourse] = useState("all")
   const [tag, setTag] = useState<string | null>(null)
   const [editing, setEditing] = useState<Note | "new" | null>(null)
   const [form, setForm] = useState(EMPTY)
   const [titleError, setTitleError] = useState<string | null>(null)
-  const [trash, setTrash] = useState<{ note: Note; index: number } | null>(null)
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
-    } catch {
-      // storage unavailable; notes stay in memory
-    }
-  }, [notes])
+  const [saving, setSaving] = useState(false)
+  const [trash, setTrash] = useState<{ note: Note } | null>(null)
+  const setRows = res.mutate
 
   useEffect(() => {
     if (!trash) return
@@ -86,7 +85,7 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
       .filter((n) => course === "all" || n.course === course)
       .filter((n) => !tag || n.tags.includes(tag))
       .filter((n) => !q || [n.title, n.content, n.snippet ?? "", n.tags.join(" ")].some((v) => v.toLowerCase().includes(q)))
-      .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned))
+      .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
   }, [notes, course, tag, query])
 
   const openEditor = (n: Note | "new") => {
@@ -95,48 +94,73 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
     setForm(n === "new" ? EMPTY : { title: n.title, course: n.course, tags: n.tags.join(", "), content: n.content, snippet: n.snippet ?? "" })
   }
 
-  const save = (e?: React.FormEvent) => {
+  const save = async (e?: React.FormEvent) => {
     e?.preventDefault()
+    if (saving) return
     if (!form.title.trim()) {
       setTitleError("Give the note a title.")
       return
     }
-    const data = {
+    const data: NoteInput = {
       title: form.title.trim(),
       course: form.course,
       content: form.content.trim(),
-      snippet: form.snippet.trim() || undefined,
-      tags: form.tags
-        .split(",")
-        .map((t) => t.trim().replace(/^#/, ""))
-        .filter(Boolean),
-      lastModified: "Just now",
+      snippet: form.snippet.trim() || null,
+      tags: [
+        ...new Set(
+          form.tags
+            .split(",")
+            .map((t) => t.trim().replace(/^#/, ""))
+            .filter(Boolean),
+        ),
+      ].slice(0, 20),
     }
-    if (editing === "new") {
-      setNotes((list) => [{ id: `nt-${Date.now()}`, ...data }, ...list])
-      onToast("Note created")
-    } else if (editing) {
-      setNotes((list) => list.map((n) => (n.id === editing.id ? { ...n, ...data } : n)))
-      onToast("Note saved")
+    setSaving(true)
+    try {
+      if (editing === "new") {
+        const row = await createNote(data)
+        setRows((list) => [row, ...list])
+        onToast("Note created")
+      } else if (editing) {
+        const row = await updateNote(editing.id, data)
+        setRows((list) => list.map((r) => (r.id === row.id ? row : r)))
+        onToast("Note saved")
+      }
+      setEditing(null)
+    } catch (err) {
+      setTitleError((err as Error).message)
+    } finally {
+      setSaving(false)
     }
-    setEditing(null)
   }
 
   const remove = (n: Note) => {
-    const index = notes.findIndex((x) => x.id === n.id)
-    setNotes((list) => list.filter((x) => x.id !== n.id))
-    setTrash({ note: n, index })
+    setRows((list) => list.filter((r) => r.id !== n.id))
+    deleteNote(n.id)
+      .then(() => setTrash({ note: n }))
+      .catch((e: Error) => {
+        setRows((list) => (list.some((r) => r.id === n.id) ? list : [n.row, ...list]))
+        onToast(`Couldn't delete the note: ${e.message}`)
+      })
   }
   const undo = () => {
     if (!trash) return
-    setNotes((list) => {
-      const next = [...list]
-      next.splice(Math.min(trash.index, next.length), 0, trash.note)
-      return next
-    })
+    const { note } = trash
     setTrash(null)
+    createNote({ title: note.title, course: note.course, content: note.content, snippet: note.snippet ?? null, tags: note.tags, pinned: note.pinned, lesson: note.lesson ?? null })
+      .then((row) => setRows((list) => [row, ...list]))
+      .catch((e: Error) => onToast(`Couldn't restore the note: ${e.message}`))
   }
-  const togglePin = (id: string) => setNotes((list) => list.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)))
+  const togglePin = (id: string) => {
+    const n = notes.find((x) => x.id === id)
+    if (!n) return
+    const pinned = !n.pinned
+    setRows((list) => list.map((r) => (r.id === id ? { ...r, pinned } : r)))
+    updateNote(id, { pinned }).catch((e: Error) => {
+      setRows((list) => list.map((r) => (r.id === id ? { ...r, pinned: !pinned } : r)))
+      onToast(`Couldn't update the note: ${e.message}`)
+    })
+  }
 
   const exportMd = () => {
     const md = visible
@@ -153,7 +177,7 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
       <PageHeader
         eyebrow="Study notes"
         title="Notes"
-        description="Lecture annotations, formulas and code snippets, saved on this device."
+        description="Lecture annotations, formulas and code snippets, saved to your account."
         actions={
           <>
             <Button variant="outline" leftIcon={<Download aria-hidden="true" />} onClick={exportMd} disabled={visible.length === 0}>
@@ -221,7 +245,24 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
         })}
       </div>
 
-      {visible.length === 0 ? (
+      {res.error && !res.data ? (
+        <EmptyState
+          icon={<NotebookPen aria-hidden="true" />}
+          title="Your notes didn't load"
+          description={res.error.message}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => void res.reload()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : !res.data ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading notes">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-44" />
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
         <EmptyState
           icon={<NotebookPen aria-hidden="true" />}
           title={filtersActive ? "No notes match" : "No notes yet"}
@@ -352,7 +393,7 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
             onKeyDown={(e) => {
               if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
                 e.preventDefault()
-                save()
+                void save()
               }
             }}
             className="grid gap-4"
@@ -360,7 +401,7 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
           >
             <DialogHeader>
               <DialogTitle>{editing === "new" ? "New note" : "Edit note"}</DialogTitle>
-              <DialogDescription>Ctrl + S saves. Notes are stored on this device.</DialogDescription>
+              <DialogDescription>Ctrl + S saves. Notes sync to your account.</DialogDescription>
             </DialogHeader>
             <Field label="Title" required error={titleError}>
               <Input
@@ -405,10 +446,12 @@ export default function MyNotesPage({ onToast }: MyNotesPageProps) {
               />
             </Field>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)} disabled={saving}>
                 Cancel
               </Button>
-              <Button type="submit">{editing === "new" ? "Create note" : "Save changes"}</Button>
+              <Button type="submit" loading={saving}>
+                {editing === "new" ? "Create note" : "Save changes"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

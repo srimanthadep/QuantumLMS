@@ -39,9 +39,10 @@ import {
   PageHeader,
   Progress,
   SegmentedControl,
+  Skeleton,
 } from "@/components/ui"
 import AreaChart, { type AreaSeries } from "@/components/charts/AreaChart"
-import BarChart, { type BarDatum } from "@/components/charts/BarChart"
+import BarChart from "@/components/charts/BarChart"
 import DonutChart from "@/components/charts/DonutChart"
 import ProgressRing from "@/components/charts/ProgressRing"
 import Sparkline from "@/components/charts/Sparkline"
@@ -51,15 +52,18 @@ import Reveal from "@/components/motion/Reveal"
 import CourseCover from "@/components/shared/CourseCover"
 import DateTile from "@/components/student/DateTile"
 import type { AssignmentData, CourseItem, QuizData, StudentNavPage, TimetableSlot } from "./studentTypes"
-import { attendanceData, initialAssignmentsList, initialQuizzesList, initialStudentCourses, timetableSchedule } from "./studentMockData"
-import { coverCategory, DEMO_TODAY, dueLabel } from "./studentUtils"
+import { coverCategory, dueLabel } from "./studentUtils"
+import { useStudentData } from "./data/StudentDataProvider"
+import { useActivity, useAttendance, useReminders, useTimetable } from "./data/hooks"
+import { upcomingSlots } from "./data/schedule"
+import { bestStudyWindow, studyAnalytics, studyStreak } from "./data/insights"
 
 interface StudentDashboardProps {
   onNavigate: (page: StudentNavPage, courseId?: string) => void
   onToast: (msg: string) => void
-  courses?: CourseItem[]
-  assignments?: AssignmentData[]
-  quizzes?: QuizData[]
+  courses: CourseItem[]
+  assignments: AssignmentData[]
+  quizzes: QuizData[]
 }
 
 type TimeRange = "Week" | "Month"
@@ -70,38 +74,6 @@ const METRIC_TONE: Record<MetricTone, { tile: string; line: string; text: string
   success: { tile: "bg-success-soft text-success ring-success/20", line: "var(--success)", text: "text-success" },
   warning: { tile: "bg-warning-soft text-warning ring-warning/20", line: "var(--warning)", text: "text-warning" },
   info: { tile: "bg-info-soft text-info ring-info/20", line: "var(--info)", text: "text-info" },
-}
-
-const ANALYTICS: Record<TimeRange, { labels: string[]; focus: number[]; goal: number[]; bars: BarDatum[]; total: number; change: string }> = {
-  Week: {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    focus: [1.2, 2.4, 1.8, 3.6, 2.1, 2.9, 0.8],
-    goal: [2, 2, 2, 2, 2, 2, 2],
-    bars: [
-      { label: "Mon", value: 64 },
-      { label: "Tue", value: 88 },
-      { label: "Wed", value: 72 },
-      { label: "Thu", value: 96, highlight: true },
-      { label: "Fri", value: 81 },
-      { label: "Sat", value: 90 },
-      { label: "Sun", value: 56 },
-    ],
-    total: 14.8,
-    change: "+18% from last week",
-  },
-  Month: {
-    labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-    focus: [11.8, 14.2, 13.6, 14.8],
-    goal: [12, 12, 12, 12],
-    bars: [
-      { label: "W1", value: 78 },
-      { label: "W2", value: 94 },
-      { label: "W3", value: 89 },
-      { label: "W4", value: 98, highlight: true },
-    ],
-    total: 54.4,
-    change: "+12% from last month",
-  },
 }
 
 function greeting(): string {
@@ -120,18 +92,18 @@ function isLive(slot: TimetableSlot) {
   return slot.status === "Live Now"
 }
 
-const WEEKDAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-const DEMO_DAY = "Tuesday"
-
 function dateForSlot(slot: TimetableSlot): { month: string; day: string } {
-  const date = new Date(DEMO_TODAY)
-  const base = WEEKDAYS.indexOf(DEMO_DAY as TimetableSlot["day"])
-  const offset = (WEEKDAYS.indexOf(slot.day) - base + WEEKDAYS.length) % WEEKDAYS.length
-  date.setDate(date.getDate() + offset)
+  const date = slot.nextStart ?? new Date()
   return {
     month: date.toLocaleDateString("en-US", { month: "short" }),
     day: String(date.getDate()),
   }
+}
+
+/** Ids of priority items the student ticked off (kept in profile.ui_state). */
+function doneIds(uiState: unknown): string[] {
+  const v = uiState && typeof uiState === "object" && !Array.isArray(uiState) ? (uiState as Record<string, unknown>).dashboard_done : undefined
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []
 }
 
 interface PriorityItem {
@@ -202,19 +174,19 @@ function ChartLabel({ icon: Icon, label, value, detail, tone }: { icon: LucideIc
   )
 }
 
-export default function StudentDashboardPage({
-  onNavigate,
-  onToast,
-  courses = initialStudentCourses,
-  assignments = initialAssignmentsList,
-  quizzes = initialQuizzesList,
-}: StudentDashboardProps) {
+export default function StudentDashboardPage({ onNavigate, onToast, courses, assignments, quizzes }: StudentDashboardProps) {
   const { user } = useSession()
+  const data = useStudentData()
   const firstName = user.name.split(" ")[0]
-  const today = DEMO_TODAY.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })
+  const today = new Date(data.now).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })
   const [range, setRange] = useState<TimeRange>("Week")
-  const [completed, setCompleted] = useState<Set<string>>(new Set())
-  const [reminders, setReminders] = useState<Set<string>>(new Set())
+  const completed = useMemo(() => new Set(doneIds(data.profile.ui_state)), [data.profile.ui_state])
+  const reminders = useReminders()
+  const timetable = useTimetable()
+  const attendanceRes = useAttendance()
+  const activity = useActivity()
+  const attendance = attendanceRes.data
+  const attendancePct = attendance?.overallPercentage ?? 0
   const [activeCourseId, setActiveCourseId] = useState<string>(() => courses.find((course) => course.status === "In Progress")?.id ?? courses[0]?.id ?? "")
 
   const inProgress = useMemo(() => courses.filter((course) => course.status === "In Progress"), [courses])
@@ -230,7 +202,14 @@ export default function StudentDashboardPage({
     const contentHours = enrolled.reduce((sum, course) => sum + toHours(course.duration), 0)
     return { modulesComplete, modulesTotal, averageProgress, contentHours }
   }, [enrolled])
-  const chart = ANALYTICS[range]
+  const activityRows = useMemo(() => activity.data ?? [], [activity.data])
+  const chart = useMemo(() => studyAnalytics(activityRows, range, data.now), [activityRows, range, data.now])
+  const week = useMemo(() => studyAnalytics(activityRows, "Week", data.now), [activityRows, data.now])
+  const streak = useMemo(() => studyStreak(activityRows, data.now), [activityRows, data.now])
+  const studyWindow = useMemo(() => bestStudyWindow(Object.values(data.raw.progress)), [data.raw.progress])
+  const currentLessonId = activeCourseId ? data.view.curriculum[activeCourseId]?.flatMap((m) => m.lessons).find((l) => l.status === "In Progress")?.id : undefined
+  const focusReminder = (data.profile.ui_state as Record<string, unknown> | null)?.focus_reminder === true
+  const overdue = assignments.filter((a) => a.status === "Pending" && a.dueAt && Date.parse(a.dueAt) < data.now).length
 
   const priorityItems = useMemo<PriorityItem[]>(() => {
     const pendingAssignments = assignments
@@ -257,10 +236,10 @@ export default function StudentDashboardPage({
         route: "Quizzes" as StudentNavPage,
         tone: "primary" as const,
       }))
-    const lesson = activeCourse
+    const lesson = activeCourse && activeCourse.status === "In Progress"
       ? [
           {
-            id: `lesson-${activeCourse.id}`,
+            id: `lesson-${currentLessonId ?? activeCourse.id}`,
             kind: "lesson" as const,
             title: activeCourse.lastWatched,
             detail: activeCourse.title,
@@ -271,12 +250,14 @@ export default function StudentDashboardPage({
         ]
       : []
     return [...pendingAssignments, ...activeQuizzes, ...lesson].slice(0, 4)
-  }, [assignments, quizzes, activeCourse])
+  }, [assignments, quizzes, activeCourse, currentLessonId])
 
-  const upcoming = useMemo(() => timetableSchedule.filter((slot) => slot.status !== "Completed").slice(0, 3), [])
+  const upcoming = useMemo(() => upcomingSlots(timetable.week?.slots ?? [], 3), [timetable.week])
   const liveSession = upcoming.find(isLive) ?? upcoming[0]
   const completedItems = priorityItems.filter((item) => completed.has(item.id)).length
-  const focusScore = Math.min(98, Math.round(metrics.averageProgress * 0.45 + attendanceData.overallPercentage * 0.35 + Math.max(0, 100 - priorityItems.length * 8) * 0.2))
+  const nextPriority = priorityItems.find((p) => !completed.has(p.id))
+  const focusScore = Math.min(98, Math.round(metrics.averageProgress * 0.45 + attendancePct * 0.35 + Math.max(0, 100 - (priorityItems.length - completedItems) * 8) * 0.2))
+  const pace = week.total >= (week.target * Math.min(7, new Date(data.now).getDay() || 7)) / 7
   const completedModules = metrics.modulesComplete
   const activeModules = inProgress.length
   const remainingModules = Math.max(0, metrics.modulesTotal - completedModules - activeModules)
@@ -289,27 +270,29 @@ export default function StudentDashboardPage({
     setActiveCourseId(course.id)
     onNavigate("Course Details", course.id)
   }
+  const saveUiState = (patch: Record<string, unknown>) => {
+    const current = (data.profile.ui_state && typeof data.profile.ui_state === "object" && !Array.isArray(data.profile.ui_state) ? data.profile.ui_state : {}) as Record<string, unknown>
+    return data.updateProfile({ ui_state: { ...current, ...patch } as never })
+  }
   const togglePriority = (item: PriorityItem) => {
-    setCompleted((items) => {
-      const next = new Set(items)
-      if (next.has(item.id)) next.delete(item.id)
-      else {
-        next.add(item.id)
-        onToast(`Completed: ${item.title}`)
-      }
-      return next
-    })
+    const done = !completed.has(item.id)
+    // Only ids still in the queue are kept, so the list can't grow without bound.
+    const next = priorityItems.map((p) => p.id).filter((id) => (id === item.id ? done : completed.has(id)))
+    saveUiState({ dashboard_done: next })
+      .then(() => done && onToast(`Completed: ${item.title}`))
+      .catch((e: Error) => onToast(`Couldn't save: ${e.message}`))
   }
   const toggleReminder = (slot: TimetableSlot) => {
-    setReminders((current) => {
-      const next = new Set(current)
-      if (next.has(slot.id)) next.delete(slot.id)
-      else {
-        next.add(slot.id)
-        onToast(`Reminder set for ${slot.courseName}`)
-      }
-      return next
-    })
+    reminders
+      .toggle("slot", slot.id)
+      .then((on) => on && onToast(`Reminder set for ${slot.courseName}, 15 minutes before it starts`))
+      .catch((e: Error) => onToast(`Couldn't save the reminder: ${e.message}`))
+  }
+  const toggleFocusReminder = () => {
+    const on = !focusReminder
+    saveUiState({ focus_reminder: on })
+      .then(() => onToast(on ? `A focus-session reminder is set for ${studyWindow?.start ?? "7 PM"}` : "Focus reminder turned off"))
+      .catch((e: Error) => onToast(`Couldn't save: ${e.message}`))
   }
 
   return (
@@ -416,17 +399,19 @@ export default function StudentDashboardPage({
                     </ProgressRing>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-white">Focus score</p>
-                      <p className="mt-0.5 text-caption leading-5 text-white/80">You are ahead of your weekly learning pace.</p>
+                      <p className="mt-0.5 text-caption leading-5 text-white/80">
+                        {pace ? "You are on pace for your weekly learning goal." : "A short session today keeps you on pace for the week."}
+                      </p>
                       <span className="mt-2 inline-flex items-center gap-1 text-caption font-medium text-success">
-                        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> +8 points this week
+                        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> {week.change}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/12 bg-black/20 p-3 backdrop-blur-sm">
                   {[
-                    { label: "Streak", value: "5", suffix: "days", icon: Flame, tone: "text-warning" },
-                    { label: "This week", value: "14.8", suffix: "hours", icon: Clock, tone: "text-secondary" },
+                    { label: "Streak", value: String(streak), suffix: streak === 1 ? "day" : "days", icon: Flame, tone: "text-warning" },
+                    { label: "This week", value: String(week.total), suffix: "hours", icon: Clock, tone: "text-secondary" },
                     { label: "Done", value: `${completedItems}/${priorityItems.length || 0}`, suffix: "priorities", icon: CheckCircle2, tone: "text-success" },
                   ].map((stat) => (
                     <div key={stat.label} className="min-w-0 border-r border-white/10 px-2 last:border-r-0">
@@ -465,20 +450,19 @@ export default function StudentDashboardPage({
             />
             <MetricTile
               label="Attendance pulse"
-              value={`${attendanceData.overallPercentage}%`}
-              detail="Top 5% of your cohort"
+              value={attendance ? `${attendance.overallPercentage}%` : "–"}
+              detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} classes attended` : "No classes recorded yet") : "Loading…"}
               icon={CheckCircle2}
               tone="info"
-              sparkline={[89, 91, 92, 94, attendanceData.overallPercentage]}
+              sparkline={attendance && attendance.subjects.length > 1 ? attendance.subjects.map((s) => s.percentage) : undefined}
               onClick={() => onNavigate("Attendance")}
             />
             <MetricTile
               label="Priority queue"
-              value={`${priorityItems.length}`}
-              detail={priorityItems[0] ? dueLabel(priorityItems[0].due) : "All clear"}
+              value={`${priorityItems.length - completedItems}`}
+              detail={nextPriority ? (nextPriority.kind === "lesson" ? nextPriority.due : dueLabel(nextPriority.due)) : "All clear"}
               icon={ListTodo}
               tone="warning"
-              sparkline={[5, 4, 4, 3, priorityItems.length]}
               onClick={() => document.getElementById("priority-queue")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             />
           </div>
@@ -518,16 +502,16 @@ export default function StudentDashboardPage({
                     transition={transition.base}
                   >
                     <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <ChartLabel icon={Clock} label="Focused study" value={`${chart.total}h`} detail={range === "Week" ? "this week" : "this month"} tone="primary" />
-                      <ChartLabel icon={Target} label="Goal completion" value={`${Math.round((chart.total / (range === "Week" ? 14 : 48)) * 100)}%`} detail="of target" tone="success" />
-                      <ChartLabel icon={Zap} label="Best session" value={range === "Week" ? "3.6h" : "14.8h"} detail={range === "Week" ? "Thursday" : "Week 4"} tone="info" />
+                      <ChartLabel icon={Clock} label="Focused study" value={`${chart.total}h`} detail={range === "Week" ? "last 7 days" : "last 4 weeks"} tone="primary" />
+                      <ChartLabel icon={Target} label="Goal completion" value={`${Math.round((chart.total / chart.target) * 100)}%`} detail={`of ${chart.target}h target`} tone="success" />
+                      <ChartLabel icon={Zap} label="Best session" value={`${chart.best.hours}h`} detail={chart.best.hours ? chart.best.label : "none yet"} tone="info" />
                     </div>
                     <AreaChart
                       labels={chart.labels}
                       series={activitySeries}
                       height={238}
                       yMin={0}
-                      yMax={range === "Week" ? 4 : 16}
+                      yMax={chart.yMax}
                       formatValue={(value) => `${value}h`}
                       label={`${range} focused study time and learning goals`}
                     />
@@ -540,7 +524,7 @@ export default function StudentDashboardPage({
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-secondary-text" aria-hidden="true" /> Daily goal
                   </span>
-                  <span className="ml-auto font-medium text-success">On pace for your weekly target</span>
+                  <span className={cn("ml-auto font-medium", chart.total >= chart.previous ? "text-success" : "text-warning")}>{chart.change}</span>
                 </div>
               </CardContent>
             </Card>
@@ -552,7 +536,7 @@ export default function StudentDashboardPage({
                     <CardTitle>Mastery map</CardTitle>
                     <p className="mt-1 text-caption text-muted-foreground">Your course portfolio at a glance.</p>
                   </div>
-                  <Badge tone="success">On track</Badge>
+                  <Badge tone={overdue ? "warning" : "success"}>{overdue ? `${overdue} overdue` : "On track"}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -738,8 +722,8 @@ export default function StudentDashboardPage({
                     <CardTitle>Weekly learning rhythm</CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">Consistency matters more than one long study session.</p>
                   </div>
-                  <Badge tone="success">
-                    <Flame className="h-3 w-3" aria-hidden="true" /> 5-day streak
+                  <Badge tone={streak ? "success" : "neutral"}>
+                    <Flame className="h-3 w-3" aria-hidden="true" /> {streak ? `${streak}-day streak` : "Start a streak today"}
                   </Badge>
                 </CardHeader>
                 <CardContent>
@@ -750,9 +734,12 @@ export default function StudentDashboardPage({
                   </AnimatePresence>
                   <div className="mt-4 flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5">
                     <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Zap className="h-4 w-4 text-warning" aria-hidden="true" /> Your strongest study window is 7–9 PM.
+                      <Zap className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+                      {studyWindow ? `Your strongest study window is ${studyWindow.label}.` : "Complete a few lessons to find your best study window."}
                     </span>
-                    <Button variant="ghost" size="sm" onClick={() => onToast("A focus-session reminder has been set for 7 PM")}>Set focus reminder</Button>
+                    <Button variant={focusReminder ? "secondary" : "ghost"} size="sm" aria-pressed={focusReminder} onClick={toggleFocusReminder}>
+                      {focusReminder ? "Focus reminder on" : "Set focus reminder"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -768,10 +755,13 @@ export default function StudentDashboardPage({
                   <Button variant="link" size="sm" onClick={() => onNavigate("Schedule")}>Open schedule</Button>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
+                  {timetable.loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-[62px]" />)}
+                  {timetable.error && <p className="text-sm text-muted-foreground">Your timetable didn't load. {timetable.error.message}</p>}
+                  {timetable.week && upcoming.length === 0 && <p className="text-sm text-muted-foreground">No classes scheduled.</p>}
                   {upcoming.map((slot, index) => {
                     const live = isLive(slot)
                     const date = dateForSlot(slot)
-                    const reminded = reminders.has(slot.id)
+                    const reminded = reminders.has("slot", slot.id)
                     return (
                       <motion.div
                         key={slot.id}

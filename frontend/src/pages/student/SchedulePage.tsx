@@ -48,6 +48,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   Tabs,
   TabsContent,
   TabsList,
@@ -60,8 +61,10 @@ import AnimatedNumber from "@/components/motion/AnimatedNumber"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import DateTile from "@/components/student/DateTile"
 import type { AnnouncementItem, EventItem, TimetableSlot } from "./studentTypes"
-import { attendanceData, campusEvents, schoolAnnouncements, timetableSchedule } from "./studentMockData"
-import { downloadTextFile } from "./studentUtils"
+import { campusParts, campusTime, downloadTextFile, fmtDate, isoDay } from "./studentUtils"
+import { useStudentResource } from "./data/StudentDataProvider"
+import { useAttendance, useReminders, useTimetable } from "./data/hooks"
+import { loadCampusFeed, markAnnouncementsRead, requestLeave, setEventRegistration, upcomingSlots, type CampusFeed } from "./data/schedule"
 
 export type ScheduleTab = "timetable" | "attendance" | "events" | "announcements"
 
@@ -71,39 +74,24 @@ interface SchedulePageProps {
 }
 
 const DAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-const TODAY: TimetableSlot["day"] = timetableSchedule.find((s) => s.status === "Live Now")?.day ?? "Monday"
 
-function parseTime(t: string): number {
-  const m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(t)
-  if (!m) return 0
-  let h = Number(m[1]) % 12
-  if (m[3].toUpperCase() === "PM") h += 12
-  return h * 60 + Number(m[2])
-}
 const slotRange = (s: TimetableSlot) => {
-  const [a, b] = s.time.split("-").map((x) => x.trim())
-  return { start: a, end: b, minutes: parseTime(b) - parseTime(a) }
+  const [a, b] = s.time.split(" - ").map((x) => x.trim())
+  return { start: a, end: b, minutes: (s.endsMin ?? 0) - (s.startsMin ?? 0) }
 }
 
-function toIcs(slots: TimetableSlot[]): string {
-  const now = new Date()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-  const fmt = (d: Date, minutes: number) => {
-    const x = new Date(d)
-    x.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0)
-    return x.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")
-  }
+/** Weekly recurring events for the shown week, in UTC so any calendar app places them correctly. */
+function toIcs(slots: TimetableSlot[], weekStart: Date): string {
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")
+  const w = campusParts(weekStart.getTime())
   const events = slots.map((s) => {
-    const day = new Date(monday)
-    day.setDate(monday.getDate() + DAYS.indexOf(s.day))
-    const [a, b] = s.time.split("-").map((x) => parseTime(x))
+    const di = DAYS.indexOf(s.day)
     return [
       "BEGIN:VEVENT",
       `UID:${s.id}@quantumschool.ai`,
-      `DTSTAMP:${fmt(now, now.getHours() * 60 + now.getMinutes())}`,
-      `DTSTART:${fmt(day, a)}`,
-      `DTEND:${fmt(day, b)}`,
+      `DTSTAMP:${fmt(new Date())}`,
+      `DTSTART:${fmt(campusTime(w.y, w.m, w.d + di, s.startsMin ?? 0))}`,
+      `DTEND:${fmt(campusTime(w.y, w.m, w.d + di, s.endsMin ?? 0))}`,
       "RRULE:FREQ=WEEKLY;COUNT=12",
       `SUMMARY:${s.courseCode} ${s.courseName}`,
       `LOCATION:${s.room}`,
@@ -114,23 +102,46 @@ function toIcs(slots: TimetableSlot[]): string {
   return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Quantum School of AI//Timetable//EN", ...events, "END:VCALENDAR"].join("\r\n")
 }
 
+function LoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <EmptyState
+      size="sm"
+      icon={<CalendarDays aria-hidden="true" />}
+      title="This section didn't load"
+      description={message}
+      action={
+        <Button size="sm" variant="secondary" onClick={onRetry}>
+          Try again
+        </Button>
+      }
+    />
+  )
+}
+
+function useCampusFeed() {
+  return useStudentResource<CampusFeed>("campus", () => loadCampusFeed(), 120_000)
+}
+
 export default function SchedulePage({ onToast, initialTab = "timetable" }: SchedulePageProps) {
   const [tab, setTab] = useState<ScheduleTab>(initialTab)
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(schoolAnnouncements)
-  const unread = announcements.filter((a) => !a.isRead).length
+  const timetable = useTimetable()
+  const feed = useCampusFeed()
+  const unread = feed.data?.announcements.filter((a) => !a.isRead).length ?? 0
 
   return (
     <div className="flex flex-col">
       <PageHeader
-        eyebrow="Fall semester 2026"
+        eyebrow={timetable.week ? `Week of ${fmtDate(timetable.week.weekStart).replace(/, \d{4}$/, "")}` : "Schedule"}
         title="Schedule"
         description="Classes, attendance, campus events and announcements in one place."
         actions={
           <Button
             variant="outline"
             leftIcon={<Download aria-hidden="true" />}
+            disabled={!timetable.week}
             onClick={() => {
-              downloadTextFile(toIcs(timetableSchedule), "Quantum_Timetable_Fall_2026.ics", "text/calendar;charset=utf-8")
+              if (!timetable.week) return
+              downloadTextFile(toIcs(timetable.week.slots, timetable.week.weekStart), `Quantum_Timetable_${isoDay(timetable.week.weekStart)}.ics`, "text/calendar;charset=utf-8")
               onToast("Timetable exported. Import the .ics file into your calendar.")
             }}
           >
@@ -172,9 +183,25 @@ export default function SchedulePage({ onToast, initialTab = "timetable" }: Sche
           <Events onToast={onToast} />
         </TabsContent>
         <TabsContent value="announcements" className="mt-5">
-          <Announcements items={announcements} setItems={setAnnouncements} onToast={onToast} />
+          {feed.error ? (
+            <LoadError message={feed.error.message} onRetry={() => void feed.reload()} />
+          ) : feed.data ? (
+            <Announcements items={feed.data.announcements} onToast={onToast} />
+          ) : (
+            <SectionSkeleton />
+          )}
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function SectionSkeleton() {
+  return (
+    <div className="grid gap-3" role="status" aria-label="Loading">
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className="h-20" />
+      ))}
     </div>
   )
 }
@@ -182,28 +209,30 @@ export default function SchedulePage({ onToast, initialTab = "timetable" }: Sche
 /* ------------------------------- Timetable ------------------------------- */
 
 function Timetable({ onToast }: { onToast: (m: string) => void }) {
-  const [day, setDay] = useState<TimetableSlot["day"]>(TODAY)
-  const [reminders, setReminders] = useState<Set<string>>(new Set())
-  const slots = timetableSchedule.filter((s) => s.day === day)
-  const live = timetableSchedule.find((s) => s.status === "Live Now")
-  const upNext = live ?? timetableSchedule.find((s) => s.status === "Upcoming")
+  const timetable = useTimetable()
+  const all = useMemo(() => timetable.week?.slots ?? [], [timetable.week])
+  const today = timetable.week?.today ?? null
+  const [picked, setDay] = useState<TimetableSlot["day"] | null>(null)
+  const day = picked ?? today ?? "Monday"
+  const reminders = useReminders()
+  const slots = all.filter((s) => s.day === day)
+  const live = all.find((s) => s.status === "Live Now")
+  const upNext = live ?? upcomingSlots(all, 1)[0]
 
   const week = useMemo(() => {
-    const online = timetableSchedule.filter((s) => s.isOnline).length
-    const minutes = timetableSchedule.reduce((sum, s) => sum + slotRange(s).minutes, 0)
-    return { online, campus: timetableSchedule.length - online, hours: Math.round(minutes / 6) / 10 }
-  }, [])
+    const online = all.filter((s) => s.isOnline).length
+    const minutes = all.reduce((sum, s) => sum + slotRange(s).minutes, 0)
+    return { online, campus: all.length - online, hours: Math.round(minutes / 6) / 10 }
+  }, [all])
 
   const toggleReminder = (s: TimetableSlot) =>
-    setReminders((r) => {
-      const n = new Set(r)
-      if (n.has(s.id)) n.delete(s.id)
-      else {
-        n.add(s.id)
-        onToast(`Reminder set for ${s.courseName}, 15 minutes before it starts`)
-      }
-      return n
-    })
+    reminders
+      .toggle("slot", s.id)
+      .then((on) => on && onToast(`Reminder set for ${s.courseName}, 15 minutes before it starts`))
+      .catch((e: Error) => onToast(`Couldn't save the reminder: ${e.message}`))
+
+  if (timetable.error) return <LoadError message={timetable.error.message} onRetry={() => void timetable.reload()} />
+  if (!timetable.week) return <SectionSkeleton />
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -211,7 +240,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
         <div role="radiogroup" aria-label="Day" className="grid grid-cols-5 gap-2">
           {DAYS.map((d) => {
             const active = d === day
-            const count = timetableSchedule.filter((s) => s.day === d).length
+            const count = all.filter((s) => s.day === d).length
             return (
               <button
                 key={d}
@@ -232,7 +261,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
                 <span className="relative text-caption tabular-nums">
                   {count} class{count === 1 ? "" : "es"}
                 </span>
-                {d === TODAY && (
+                {d === today && (
                   <span className="relative mt-1 rounded-full bg-primary px-1.5 text-[9px] font-semibold uppercase tracking-wider text-primary-foreground">Today</span>
                 )}
               </button>
@@ -255,7 +284,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
               const r = slotRange(s)
               const isLive = s.status === "Live Now"
               const isDone = s.status === "Completed"
-              const reminded = reminders.has(s.id)
+              const reminded = reminders.has("slot", s.id)
               return (
                 <motion.li
                   key={s.id}
@@ -305,7 +334,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
                         Join now
                       </Button>
                     ) : isDone ? (
-                      <Button variant="ghost" size="sm" leftIcon={<PlayCircle aria-hidden="true" />} onClick={() => onToast(`Opening the recording of ${s.courseName}`)}>
+                      <Button variant="ghost" size="sm" leftIcon={<PlayCircle aria-hidden="true" />} onClick={() => onToast(`The recording of ${s.courseName} appears in the course once your instructor publishes it`)}>
                         Recording
                       </Button>
                     ) : (
@@ -349,7 +378,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
               <p className="text-caption font-medium uppercase tracking-wider text-primary-text">{upNext.status === "Live Now" ? "Happening now" : "Up next"}</p>
               <CardTitle className="text-lg">{upNext.courseName}</CardTitle>
               <p className="text-caption text-muted-foreground">
-                {upNext.day} · {upNext.time}
+                {upNext.nextStart ? upNext.nextStart.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) : upNext.day} · {upNext.time}
               </p>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -381,7 +410,7 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
               ]}
               center={
                 <>
-                  <span className="text-xl font-semibold tabular-nums text-foreground">{timetableSchedule.length}</span>
+                  <span className="text-xl font-semibold tabular-nums text-foreground">{all.length}</span>
                   <span className="text-[10px] uppercase tracking-wider text-subtle-foreground">classes</span>
                 </>
               }
@@ -402,25 +431,46 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
 
 /* ------------------------------- Attendance ------------------------------ */
 
+const LEAVE_TONE = { Pending: "warning", Approved: "success", Declined: "danger" } as const
+
 function Attendance({ onToast }: { onToast: (m: string) => void }) {
-  const a = attendanceData
+  const res = useAttendance()
+  const timetable = useTimetable()
   const [leaveOpen, setLeaveOpen] = useState(false)
-  const [course, setCourse] = useState(a.subjects[0]?.code ?? "")
+  const [course, setCourse] = useState("")
   const [date, setDate] = useState("")
   const [reason, setReason] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
 
-  const submitLeave = (e: React.FormEvent) => {
+  if (res.error) return <LoadError message={res.error.message} onRetry={() => void res.reload()} />
+  const a = res.data
+  if (!a) return <SectionSkeleton />
+
+  // Leave can be requested for any course on the timetable, not only ones with attendance so far.
+  const courseOptions = [...new Map([...a.subjects.map((s) => [s.code, s.name] as const), ...(timetable.week?.slots ?? []).map((s) => [s.courseCode, s.courseName] as const)]).entries()]
+  const selected = course || courseOptions[0]?.[0] || ""
+
+  const submitLeave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!date || reason.trim().length < 10) {
       setError(!date ? "Pick the date you'll be away." : "Add a short reason (10+ characters).")
       return
     }
-    setLeaveOpen(false)
-    setDate("")
-    setReason("")
-    setError(null)
-    onToast("Leave request sent to Academic Affairs")
+    setSending(true)
+    try {
+      const row = await requestLeave(selected, date, reason)
+      res.mutate((d) => ({ ...d, leaves: [row, ...d.leaves] }))
+      setLeaveOpen(false)
+      setDate("")
+      setReason("")
+      setError(null)
+      onToast("Leave request sent to Academic Affairs")
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSending(false)
+    }
   }
 
   const stats = [
@@ -441,9 +491,11 @@ function Attendance({ onToast }: { onToast: (m: string) => void }) {
               </div>
             </ProgressRing>
             <div>
-              <p className="text-sm font-semibold text-foreground">Good standing</p>
+              <p className="text-sm font-semibold text-foreground">{a.overallPercentage >= 75 ? "Good standing" : "Below the 75% minimum"}</p>
               <p className="text-caption text-muted-foreground">
-                {a.attendedClasses} of {a.totalClasses} classes · minimum required 75%
+                {a.totalClasses
+                  ? `${a.attendedClasses} of ${a.totalClasses - a.excusedClasses} classes${a.excusedClasses ? ` · ${a.excusedClasses} excused` : ""} · minimum 75%`
+                  : "No classes recorded yet · minimum 75%"}
               </p>
             </div>
             <div className="grid w-full grid-cols-3 gap-2">
@@ -457,9 +509,26 @@ function Attendance({ onToast }: { onToast: (m: string) => void }) {
                 </div>
               ))}
             </div>
-            <Button variant="outline" block leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setLeaveOpen(true)}>
+            <Button variant="outline" block leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setLeaveOpen(true)} disabled={!courseOptions.length}>
               Request leave
             </Button>
+            {a.leaves.length > 0 && (
+              <div className="w-full border-t border-border pt-4 text-left">
+                <p className="mb-2 text-caption font-medium uppercase tracking-wider text-subtle-foreground">Your leave requests</p>
+                <ul className="flex flex-col gap-2">
+                  {a.leaves.slice(0, 4).map((l) => (
+                    <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate text-foreground">
+                        <span className="font-mono text-caption text-muted-foreground">{l.course_code}</span> · {fmtDate(l.leave_date)}
+                      </span>
+                      <Badge tone={LEAVE_TONE[l.status as keyof typeof LEAVE_TONE] ?? "neutral"} size="sm">
+                        {l.status}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
       </StaggerItem>
@@ -470,6 +539,7 @@ function Attendance({ onToast }: { onToast: (m: string) => void }) {
             <span className="text-caption text-muted-foreground">Threshold 75%</span>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
+            {a.subjects.length === 0 && <p className="text-sm text-muted-foreground">Attendance appears here after your first classes.</p>}
             {a.subjects.map((s) => {
               const tone = s.percentage >= 90 ? "success" : s.percentage >= 75 ? "warning" : "danger"
               return (
@@ -505,30 +575,32 @@ function Attendance({ onToast }: { onToast: (m: string) => void }) {
               <DialogDescription>Approved leave is marked as an excused absence.</DialogDescription>
             </DialogHeader>
             <Field label="Course">
-              <Select value={course} onValueChange={setCourse}>
+              <Select value={selected} onValueChange={setCourse}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {a.subjects.map((s) => (
-                    <SelectItem key={s.id} value={s.code}>
-                      {s.code} · {s.name}
+                  {courseOptions.map(([code, name]) => (
+                    <SelectItem key={code} value={code}>
+                      {code} · {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
             <Field label="Date" required>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" min={isoDay()} value={date} onChange={(e) => setDate(e.target.value)} />
             </Field>
             <Field label="Reason" required error={error}>
-              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Medical appointment, conference travel…" />
+              <Textarea value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} placeholder="Medical appointment, conference travel…" />
             </Field>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setLeaveOpen(false)}>
+              <Button type="button" variant="ghost" onClick={() => setLeaveOpen(false)} disabled={sending}>
                 Cancel
               </Button>
-              <Button type="submit">Send request</Button>
+              <Button type="submit" loading={sending}>
+                Send request
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -549,24 +621,31 @@ const CATEGORY_ICON: Record<EventItem["category"], typeof Sparkles> = {
 }
 
 function Events({ onToast }: { onToast: (m: string) => void }) {
+  const feed = useCampusFeed()
   const [category, setCategory] = useState<Category>("All")
-  const [registered, setRegistered] = useState<Set<string>>(() => new Set(campusEvents.filter((e) => e.registered).map((e) => e.id)))
-  const list = campusEvents.filter((e) => category === "All" || e.category === category)
+  const now = Date.now()
+  // Past events drop off once they end.
+  const events = (feed.data?.events ?? []).filter((e) => Date.parse(e.endsAt ?? e.startsAt ?? "") >= now)
+  const list = events.filter((e) => category === "All" || e.category === category)
   const featured = list.find((e) => e.isFeatured)
   const rest = list.filter((e) => e !== featured)
+  const registered = new Set(events.filter((e) => e.registered).map((e) => e.id))
 
-  const toggle = (e: EventItem) =>
-    setRegistered((r) => {
-      const n = new Set(r)
-      if (n.has(e.id)) {
-        n.delete(e.id)
-        onToast(`Registration cancelled for ${e.title}`)
-      } else {
-        n.add(e.id)
-        onToast(`You're registered for ${e.title}`)
-      }
-      return n
-    })
+  const setRegistered = (id: string, on: boolean) =>
+    feed.mutate((d) => ({ ...d, events: d.events.map((x) => (x.id === id ? { ...x, registered: on } : x)) }))
+  const toggle = (e: EventItem) => {
+    const on = !e.registered
+    setRegistered(e.id, on)
+    setEventRegistration(e.id, on)
+      .then(() => onToast(on ? `You're registered for ${e.title}` : `Registration cancelled for ${e.title}`))
+      .catch((err: Error) => {
+        setRegistered(e.id, !on)
+        onToast(`Couldn't update your registration: ${err.message}`)
+      })
+  }
+
+  if (feed.error) return <LoadError message={feed.error.message} onRetry={() => void feed.reload()} />
+  if (!feed.data) return <SectionSkeleton />
 
   return (
     <div className="flex flex-col gap-4">
@@ -686,18 +765,23 @@ const ANN_TONE: Record<AnnouncementItem["category"], "danger" | "info" | "warnin
   General: "neutral",
 }
 
-function Announcements({
-  items,
-  setItems,
-  onToast,
-}: {
-  items: AnnouncementItem[]
-  setItems: React.Dispatch<React.SetStateAction<AnnouncementItem[]>>
-  onToast: (m: string) => void
-}) {
+function Announcements({ items, onToast }: { items: AnnouncementItem[]; onToast: (m: string) => void }) {
+  const feed = useCampusFeed()
   const [open, setOpen] = useState<string | null>(items.find((a) => !a.isRead)?.id ?? null)
   const unread = items.filter((a) => !a.isRead).length
-  const markRead = (id: string) => setItems((list) => list.map((a) => (a.id === id ? { ...a, isRead: true } : a)))
+  const setRead = (ids: string[], read: boolean) =>
+    feed.mutate((d) => ({ ...d, announcements: d.announcements.map((a) => (ids.includes(a.id) ? { ...a, isRead: read } : a)) }))
+  const markIds = (ids: string[], done?: string) => {
+    setRead(ids, true)
+    markAnnouncementsRead(ids)
+      .then(() => done && onToast(done))
+      .catch((e: Error) => {
+        setRead(ids, false)
+        onToast(`Couldn't update announcements: ${e.message}`)
+      })
+  }
+  const markRead = (id: string) => markIds([id])
+  const setItems = () => markIds(items.filter((a) => !a.isRead).map((a) => a.id), "All announcements marked as read")
 
   return (
     <div className="flex flex-col gap-3">
@@ -708,10 +792,7 @@ function Announcements({
           size="sm"
           leftIcon={<Check aria-hidden="true" />}
           disabled={!unread}
-          onClick={() => {
-            setItems((list) => list.map((a) => ({ ...a, isRead: true })))
-            onToast("All announcements marked as read")
-          }}
+          onClick={setItems}
         >
           Mark all as read
         </Button>

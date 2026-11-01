@@ -173,11 +173,6 @@ export function countConcepts(q: InterviewQuestion, answer: string): number {
   return scoreAnswer(q, answer).found.length
 }
 
-export const SEED_HISTORY: InterviewSessionResult[] = [
-  { id: "iv-1", date: "Oct 18, 2026", role: "AI Engineer", type: "Technical", level: "Fresher", score: 81, durationSeconds: 1260, responses: [] },
-  { id: "iv-2", date: "Oct 12, 2026", role: "ML Engineer", type: "Behavioral", level: "Fresher", score: 72, durationSeconds: 980, responses: [] },
-]
-
 export interface ResumeEntry {
   id: string
   title: string

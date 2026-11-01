@@ -14,7 +14,10 @@ interface TopBarProps {
   onOpenPalette: () => void
   onSwitchRole: (role: UserRole) => void
   onLogout: () => void
-  onResetDemo: () => void
+  /** Omitted when the account has no demo data to reset. */
+  onResetDemo?: () => void
+  /** Where the account's data lives, shown above "Sign out". */
+  storageNote?: string
   onOpenSettings?: () => void
   notifications?: NotificationSource
   /** Optional content between the search trigger and the actions (e.g. a portal filter). */
@@ -32,6 +35,7 @@ export default function TopBar({
   onSwitchRole,
   onLogout,
   onResetDemo,
+  storageNote,
   onOpenSettings,
   notifications,
   children,
@@ -71,7 +75,7 @@ export default function TopBar({
         {/* Visible at every width: on phones this is the only way to change theme and accent. */}
         <ThemeAccentPicker />
         <NotificationsMenu source={notifications} />
-        <UserMenu user={user} onSwitchRole={onSwitchRole} onLogout={onLogout} onResetDemo={onResetDemo} onOpenSettings={onOpenSettings} />
+        <UserMenu user={user} onSwitchRole={onSwitchRole} onLogout={onLogout} onResetDemo={onResetDemo} storageNote={storageNote} onOpenSettings={onOpenSettings} />
       </div>
     </header>
   )

@@ -28,7 +28,8 @@ import { LEVELS, PRACTICE_TYPES, QUESTION_BANK, ROLES, countConcepts, scoreAnswe
 
 interface InterviewStudioProps {
   history: InterviewSessionResult[]
-  onSaveSession: (s: InterviewSessionResult) => void
+  /** Saves the scored session to the student's history and returns the stored copy. */
+  onSaveSession: (s: Omit<InterviewSessionResult, "id" | "date">) => Promise<InterviewSessionResult>
   onToast: (msg: string) => void
 }
 
@@ -72,9 +73,7 @@ export default function InterviewStudio({ history, onSaveSession, onToast }: Int
       sampleAnswer: q.sampleAnswer,
       ...scoreAnswer(q, final[i] ?? ""),
     }))
-    const session: InterviewSessionResult = {
-      id: `iv-${Date.now()}`,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+    const scored = {
       role,
       type,
       level,
@@ -82,9 +81,15 @@ export default function InterviewStudio({ history, onSaveSession, onToast }: Int
       durationSeconds: elapsed,
       responses,
     }
-    onSaveSession(session)
-    setView({ kind: "result", session })
-    onToast(`Interview scored ${session.score}%`)
+    // The result shows at once; the history entry appears when the save lands.
+    const local: InterviewSessionResult = { ...scored, id: `iv-${Date.now()}`, date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) }
+    setView({ kind: "result", session: local })
+    onSaveSession(scored)
+      .then((saved) => {
+        setView((v) => (v.kind === "result" && v.session.id === local.id ? { kind: "result", session: saved } : v))
+        onToast(`Interview scored ${saved.score}% and saved to your history`)
+      })
+      .catch((e: Error) => onToast(`Interview scored ${scored.score}%, but it couldn't be saved: ${e.message}`))
   }
 
   const next = () => {
@@ -277,7 +282,7 @@ export default function InterviewStudio({ history, onSaveSession, onToast }: Int
             <button
               key={h.id}
               type="button"
-              onClick={() => (h.responses.length ? setView({ kind: "result", session: h }) : onToast("Detailed answers are only kept for sessions taken on this device."))}
+              onClick={() => (h.responses.length ? setView({ kind: "result", session: h }) : onToast("This session was recorded without detailed answers."))}
               className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-surface-2"
             >
               <ProgressRing value={h.score} size={40} thickness={4} tone={scoreTone(h.score)} label={`Score ${h.score}%`}>

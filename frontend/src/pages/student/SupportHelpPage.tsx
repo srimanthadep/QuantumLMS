@@ -50,6 +50,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  Skeleton,
   Tabs,
   TabsContent,
   TabsList,
@@ -58,8 +59,22 @@ import {
 } from "@/components/ui"
 import CopyButton from "@/components/student/CopyButton"
 import type { FaqItem, StudentNavPage, SupportTicket, TicketCategory, TicketPriority, TicketReply, TicketStatus } from "./studentTypes"
-import { initialFaqs, initialSupportTickets } from "./studentMockData"
-import { stamp } from "./studentUtils"
+import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import {
+  attachmentUrl,
+  createTicket,
+  loadChat,
+  loadSupport,
+  MAX_TICKET_FILE_BYTES,
+  replyToTicket,
+  sendChat,
+  setTicketStatus,
+  toTicket,
+  voteFaq,
+  type ChatRow,
+  type NewTicket,
+  type SupportData,
+} from "./data/support"
 
 interface SupportHelpPageProps {
   onToast: (msg: string) => void
@@ -97,28 +112,42 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 export default function SupportHelpPage({ onToast, onOpenAiModal, onNavigate }: SupportHelpPageProps) {
   const { user } = useSession()
+  const { uid, refresh } = useStudentData()
+  const res = useStudentResource<SupportData>("support", loadSupport, 60_000)
   const [tab, setTab] = useState("help")
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<(typeof FAQ_CATEGORIES)[number]>("All")
-  const [votes, setVotes] = useState<Record<string, "up" | "down">>({})
-  const [tickets, setTickets] = useState<SupportTicket[]>(initialSupportTickets)
   const [openTicket, setOpenTicket] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const votes = res.data?.votes ?? {}
+  const tickets = useMemo(() => res.data?.tickets ?? [], [res.data])
+  const { mutate } = res
 
   const faqs = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return initialFaqs.filter((f) => (category === "All" || f.category === category) && (!q || `${f.question} ${f.answer}`.toLowerCase().includes(q)))
-  }, [query, category])
+    return (res.data?.faqs ?? []).filter((f) => (category === "All" || f.category === category) && (!q || `${f.question} ${f.answer}`.toLowerCase().includes(q)))
+  }, [res.data, query, category])
   const activeTickets = tickets.filter((t) => t.status === "Open" || t.status === "In Progress").length
   const current = tickets.find((t) => t.id === openTicket) ?? null
 
   const vote = (f: FaqItem, v: "up" | "down") => {
-    setVotes((m) => ({ ...m, [f.id]: v }))
-    onToast(v === "up" ? "Thanks! Glad that helped." : "Thanks for the feedback. Raise a ticket if you still need help.")
+    const before = votes[f.id]
+    mutate((d) => ({ ...d, votes: { ...d.votes, [f.id]: v } }))
+    voteFaq(f.id, v)
+      .then(() => onToast(v === "up" ? "Thanks! Glad that helped." : "Thanks for the feedback. Raise a ticket if you still need help."))
+      .catch((e: Error) => {
+        mutate((d) => {
+          const next = { ...d.votes }
+          if (before) next[f.id] = before
+          else delete next[f.id]
+          return { ...d, votes: next }
+        })
+        onToast(`Couldn't save your feedback: ${e.message}`)
+      })
   }
 
-  const updateTicket = (id: string, fn: (t: SupportTicket) => SupportTicket) => setTickets((list) => list.map((t) => (t.id === id ? fn(t) : t)))
+  const updateTicket = (id: string, fn: (t: SupportTicket) => SupportTicket) => mutate((d) => ({ ...d, tickets: d.tickets.map((t) => (t.id === id ? fn(t) : t)) }))
 
   return (
     <div className="flex flex-col">
@@ -234,7 +263,24 @@ export default function SupportHelpPage({ onToast, onOpenAiModal, onNavigate }: 
           <div className="no-scrollbar mb-4 overflow-x-auto">
             <SegmentedControl size="sm" aria-label="Article category" options={FAQ_CATEGORIES.map((c) => ({ value: c, label: c }))} value={category} onChange={setCategory} />
           </div>
-          {faqs.length === 0 ? (
+          {res.error && !res.data ? (
+            <EmptyState
+              icon={<LifeBuoy aria-hidden="true" />}
+              title="Help articles didn't load"
+              description={res.error.message}
+              action={
+                <Button size="sm" variant="secondary" onClick={() => void res.reload()}>
+                  Try again
+                </Button>
+              }
+            />
+          ) : !res.data ? (
+            <div className="grid gap-2" role="status" aria-label="Loading help articles">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14" />
+              ))}
+            </div>
+          ) : faqs.length === 0 ? (
             <EmptyState
               icon={<LifeBuoy aria-hidden="true" />}
               title="No articles match"
@@ -297,8 +343,23 @@ export default function SupportHelpPage({ onToast, onOpenAiModal, onNavigate }: 
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-5">
-          {tickets.length === 0 ? (
-            <EmptyState icon={<Ticket aria-hidden="true" />} title="No tickets" description="Raised tickets appear here." />
+          {!res.data ? (
+            <div className="grid gap-2" role="status" aria-label="Loading tickets">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-20" />
+              ))}
+            </div>
+          ) : tickets.length === 0 ? (
+            <EmptyState
+              icon={<Ticket aria-hidden="true" />}
+              title="No tickets"
+              description="Raised tickets appear here."
+              action={
+                <Button size="sm" onClick={() => setCreating(true)}>
+                  Raise a ticket
+                </Button>
+              }
+            />
           ) : (
             <motion.ul layout className="overflow-hidden rounded-lg border border-border bg-surface">
               <AnimatePresence initial={false}>
@@ -335,32 +396,36 @@ export default function SupportHelpPage({ onToast, onOpenAiModal, onNavigate }: 
         userName={user.name}
         userAvatar={user.avatar}
         onClose={() => setOpenTicket(null)}
-        onReply={(text) => {
+        onReply={async (text) => {
           if (!current) return
-          const reply: TicketReply = { id: `rep-${Date.now()}`, author: `${user.name} (Student)`, role: "Student", avatar: user.avatar, timestamp: stamp(), content: text }
-          updateTicket(current.id, (t) => ({ ...t, replies: [...t.replies, reply], lastUpdate: "Just now", status: t.status === "Resolved" || t.status === "Closed" ? "Open" : t.status }))
+          const reply = await replyToTicket(uid, current.id, text)
+          updateTicket(current.id, (t) => ({ ...t, replies: [...t.replies, reply], lastUpdate: "Just now by You", status: t.status === "Resolved" || t.status === "Closed" ? "Open" : t.status }))
           onToast("Reply sent to the support team")
         }}
-        onStatus={(status) => {
+        onStatus={async (status) => {
           if (!current) return
-          updateTicket(current.id, (t) => ({ ...t, status, lastUpdate: "Just now" }))
-          onToast(status === "Resolved" ? "Ticket marked as resolved" : "Ticket reopened")
+          try {
+            const row = await setTicketStatus(current.id, status)
+            updateTicket(current.id, (t) => ({ ...toTicket(row, []), replies: t.replies }))
+            onToast(status === "Resolved" ? "Ticket marked as resolved" : "Ticket reopened")
+          } catch (e) {
+            onToast(`Couldn't update the ticket: ${(e as Error).message}`)
+          }
         }}
+        onOpenAttachment={(path) =>
+          attachmentUrl(path)
+            .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
+            .catch((e: Error) => onToast(e.message))
+        }
       />
 
       <NewTicketDialog
         open={creating}
         onClose={() => setCreating(false)}
-        onCreate={(t) => {
-          const ticket: SupportTicket = {
-            ...t,
-            id: `TKT-${Math.floor(10000 + Math.random() * 89999)}`,
-            status: "Open",
-            createdDate: "Just now",
-            lastUpdate: "Awaiting staff triage",
-            replies: [{ id: `rep-${Date.now()}`, author: `${user.name} (Student)`, role: "Student", avatar: user.avatar, timestamp: stamp(), content: t.description, attachmentName: t.attachmentName }],
-          }
-          setTickets((list) => [ticket, ...list])
+        onCreate={async (t) => {
+          const ticket = await createTicket(uid, t)
+          mutate((d) => ({ ...d, tickets: [ticket, ...d.tickets] }))
+          refresh("notifications")
           setCreating(false)
           setTab("tickets")
           onToast(`Ticket ${ticket.id} created. We'll reply soon.`)
@@ -411,28 +476,53 @@ function TicketSheet({
   onClose,
   onReply,
   onStatus,
+  onOpenAttachment,
 }: {
   ticket: SupportTicket | null
   userName: string
   userAvatar?: string
   onClose: () => void
-  onReply: (text: string) => void
-  onStatus: (s: TicketStatus) => void
+  onReply: (text: string) => Promise<void>
+  onStatus: (s: TicketStatus) => Promise<void>
+  onOpenAttachment: (path: string) => void
 }) {
   const last = useRef<SupportTicket | null>(null)
   if (ticket) last.current = ticket
   const t = ticket ?? last.current
   const [reply, setReply] = useState("")
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [updating, setUpdating] = useState(false)
   const end = useRef<HTMLDivElement>(null)
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [t?.replies.length])
-
-  const send = () => {
-    const text = reply.trim()
-    if (!text) return
-    onReply(text)
+  useEffect(() => {
+    setError(null)
     setReply("")
+  }, [ticket?.id])
+
+  const send = async () => {
+    const text = reply.trim()
+    if (!text || sending) return
+    setSending(true)
+    setError(null)
+    try {
+      await onReply(text)
+      setReply("")
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setSending(false)
+    }
+  }
+  const status = async (s: TicketStatus) => {
+    setUpdating(true)
+    try {
+      await onStatus(s)
+    } finally {
+      setUpdating(false)
+    }
   }
   const closed = t?.status === "Resolved" || t?.status === "Closed"
 
@@ -467,11 +557,20 @@ function TicketSheet({
                         <span className="text-caption text-subtle-foreground">{r.timestamp}</span>
                       </p>
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{r.content}</p>
-                      {r.attachmentName && (
-                        <span className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-caption text-foreground">
-                          <Paperclip className="h-3 w-3" aria-hidden="true" /> {r.attachmentName}
-                        </span>
-                      )}
+                      {r.attachmentName &&
+                        (r.attachmentPath ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenAttachment(r.attachmentPath!)}
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-caption text-foreground transition-colors hover:border-primary-border"
+                          >
+                            <Paperclip className="h-3 w-3" aria-hidden="true" /> {r.attachmentName}
+                          </button>
+                        ) : (
+                          <span className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-caption text-foreground">
+                            <Paperclip className="h-3 w-3" aria-hidden="true" /> {r.attachmentName}
+                          </span>
+                        ))}
                     </motion.li>
                   )
                 })}
@@ -491,23 +590,30 @@ function TicketSheet({
                 aria-label="Reply to support"
                 placeholder={closed ? "Replying reopens this ticket…" : "Write a reply…"}
                 value={reply}
+                maxLength={5000}
+                disabled={sending}
                 onChange={(e) => setReply(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send()
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void send()
                 }}
                 className="min-h-[72px]"
               />
+              {error && (
+                <p role="alert" className="text-caption font-medium text-danger">
+                  {error}
+                </p>
+              )}
               <div className="flex items-center justify-between gap-2">
                 {closed ? (
-                  <Button variant="ghost" size="sm" leftIcon={<RotateCcw aria-hidden="true" />} onClick={() => onStatus("Open")}>
+                  <Button variant="ghost" size="sm" leftIcon={<RotateCcw aria-hidden="true" />} loading={updating} onClick={() => void status("Open")}>
                     Reopen
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="sm" leftIcon={<CheckCircle2 aria-hidden="true" />} onClick={() => onStatus("Resolved")}>
+                  <Button variant="ghost" size="sm" leftIcon={<CheckCircle2 aria-hidden="true" />} loading={updating} onClick={() => void status("Resolved")}>
                     Mark resolved
                   </Button>
                 )}
-                <Button size="sm" leftIcon={<Send aria-hidden="true" />} onClick={send} disabled={!reply.trim()}>
+                <Button size="sm" leftIcon={<Send aria-hidden="true" />} onClick={() => void send()} disabled={!reply.trim()} loading={sending}>
                   Send reply
                 </Button>
               </div>
@@ -519,21 +625,14 @@ function TicketSheet({
   )
 }
 
-function NewTicketDialog({
-  open,
-  onClose,
-  onCreate,
-}: {
-  open: boolean
-  onClose: () => void
-  onCreate: (t: Pick<SupportTicket, "category" | "priority" | "subject" | "description" | "attachmentName" | "attachmentSize">) => void
-}) {
+function NewTicketDialog({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (t: NewTicket) => Promise<void> }) {
   const [category, setCategory] = useState<TicketCategory>(TICKET_CATEGORIES[0])
   const [priority, setPriority] = useState<TicketPriority>("Medium")
   const [subject, setSubject] = useState("")
   const [description, setDescription] = useState("")
   const [file, setFile] = useState<File | null>(null)
-  const [errors, setErrors] = useState<{ subject?: string; description?: string }>({})
+  const [errors, setErrors] = useState<{ subject?: string; description?: string; form?: string }>({})
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -543,28 +642,30 @@ function NewTicketDialog({
     setDescription("")
     setFile(null)
     setErrors({})
+    setSending(false)
   }, [open])
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (sending) return
     const next = {
       subject: subject.trim().length < 8 ? "Summarise the issue in at least 8 characters." : undefined,
       description: description.trim().length < 20 ? "Describe what happened in at least 20 characters." : undefined,
     }
     setErrors(next)
     if (next.subject || next.description) return
-    onCreate({
-      category,
-      priority,
-      subject: subject.trim(),
-      description: description.trim(),
-      attachmentName: file?.name,
-      attachmentSize: file ? `${Math.max(1, Math.round(file.size / 1024))} KB` : undefined,
-    })
+    setSending(true)
+    try {
+      await onCreate({ category, priority, subject: subject.trim(), description: description.trim(), file })
+    } catch (err) {
+      setErrors({ form: (err as Error).message })
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !sending && onClose()}>
       <DialogContent className="sm:max-w-xl">
         <form onSubmit={submit} className="grid gap-4" noValidate>
           <DialogHeader>
@@ -590,24 +691,49 @@ function NewTicketDialog({
             <SegmentedControl aria-label="Priority" options={PRIORITIES.map((p) => ({ value: p, label: p }))} value={priority} onChange={setPriority} block />
           </div>
           <Field label="Subject" required error={errors.subject}>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Can't access the GPU cluster" />
+            <Input value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Can't access the GPU cluster" />
           </Field>
           <Field label="Description" required error={errors.description}>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What happened, what you expected, and any error messages" className="min-h-[110px]" />
+            <Textarea value={description} maxLength={5000} onChange={(e) => setDescription(e.target.value)} placeholder="What happened, what you expected, and any error messages" className="min-h-[110px]" />
           </Field>
           <div className="flex items-center gap-2">
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-2">
               <Paperclip className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               {file ? "Change file" : "Attach a file"}
-              <input type="file" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <input
+                type="file"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  e.target.value = ""
+                  if (f && f.size > MAX_TICKET_FILE_BYTES) {
+                    setErrors((x) => ({ ...x, form: `${f.name} is larger than 10 MB.` }))
+                    return
+                  }
+                  setErrors((x) => ({ ...x, form: undefined }))
+                  setFile(f)
+                }}
+              />
             </label>
-            {file && <span className="min-w-0 truncate text-caption text-muted-foreground">{file.name}</span>}
+            {file && (
+              <span className="flex min-w-0 items-center gap-1 text-caption text-muted-foreground">
+                <span className="truncate">{file.name}</span>
+                <button type="button" aria-label="Remove attachment" onClick={() => setFile(null)} className="flex rounded p-0.5 hover:text-foreground">
+                  <X className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </span>
+            )}
           </div>
+          {errors.form && (
+            <p role="alert" className="text-caption font-medium text-danger">
+              {errors.form}
+            </p>
+          )}
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={sending}>
               Cancel
             </Button>
-            <Button type="submit" leftIcon={<Send aria-hidden="true" />}>
+            <Button type="submit" leftIcon={<Send aria-hidden="true" />} loading={sending}>
               Submit ticket
             </Button>
           </DialogFooter>
@@ -621,40 +747,50 @@ interface ChatMessage {
   id: string
   from: "agent" | "me"
   text: string
+  failed?: boolean
 }
 
-function agentReply(text: string): string {
-  const t = text.toLowerCase()
-  if (/gpu|cluster|quota/.test(t)) return "For GPU quota, I can raise a priority request with DevOps. Could you share your namespace and the hours you need?"
-  if (/attend|leave|absent/.test(t)) return "You can request leave from Schedule → Attendance. If it's medical, attach the slip and Academic Affairs will mark it excused."
-  if (/assign|submit|deadline/.test(t)) return "Submissions can be updated until the deadline from the Assessments page. Want me to check an extension for you?"
-  if (/certificate|transcript/.test(t)) return "Certificates and the PDF transcript are under Grades & Certificates. Each has a verification link you can share."
-  return "Thanks! I'm looking into it now. Could you share a little more detail so I can route this to the right team?"
-}
+const toMessage = (r: ChatRow): ChatMessage => ({ id: String(r.id), from: r.sender === "agent" ? "agent" : "me", text: r.body })
 
+/** Learner Success chat. The conversation is stored with the student; replies come from the backend. */
 function LiveChat({ open, onClose, userName, userAvatar }: { open: boolean; onClose: () => void; userName: string; userAvatar?: string }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([{ id: "m0", from: "agent", text: `Hi ${userName.split(" ")[0]}! I'm Neha from Learner Success. What can I help you with today?` }])
+  const chat = useStudentResource<ChatRow[]>(open ? "chat" : null, loadChat, 30_000)
+  const greeting: ChatMessage = { id: "greeting", from: "agent", text: `Hi ${userName.split(" ")[0]}! I'm Neha from Learner Success. What can I help you with today?` }
+  const [pending, setPending] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [typing, setTyping] = useState(false)
   const end = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const messages = [greeting, ...(chat.data ?? []).map(toMessage), ...pending]
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages.length, typing])
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  const send = () => {
+  const send = async () => {
     const text = draft.trim()
-    if (!text) return
-    setMessages((m) => [...m, { id: `m-${Date.now()}`, from: "me", text }])
+    if (!text || typing) return
+    const temp: ChatMessage = { id: `pending-${Date.now()}`, from: "me", text }
+    setPending((p) => [...p, temp])
     setDraft("")
     setTyping(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => {
+    try {
+      const rows = await sendChat(text)
+      const mine = rows.filter((r) => r.sender === "student")
+      const agent = rows.filter((r) => r.sender === "agent")
+      setPending((p) => p.filter((m) => m.id !== temp.id))
+      chat.mutate((list) => [...list, ...mine])
+      // A short pause so the reply reads like someone typed it.
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => {
+        setTyping(false)
+        chat.mutate((list) => [...list, ...agent])
+      }, 900)
+    } catch {
       setTyping(false)
-      setMessages((m) => [...m, { id: `a-${Date.now()}`, from: "agent", text: agentReply(text) }])
-    }, 1300)
+      setPending((p) => p.map((m) => (m.id === temp.id ? { ...m, failed: true } : m)))
+    }
   }
 
   return (
@@ -678,14 +814,18 @@ function LiveChat({ open, onClose, userName, userAvatar }: { open: boolean; onCl
                 className={cn("flex items-end gap-2", m.from === "me" && "flex-row-reverse")}
               >
                 {m.from === "me" ? <Avatar src={userAvatar} name={userName} size="xs" /> : <Avatar src="/assets/teacher-female.png" name="Neha Kapoor" size="xs" />}
-                <p
-                  className={cn(
-                    "max-w-[80%] rounded-lg px-3 py-2 text-sm leading-6",
-                    m.from === "me" ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm border border-border bg-surface-2 text-foreground",
-                  )}
-                >
-                  {m.text}
-                </p>
+                <div className={cn("flex max-w-[80%] flex-col", m.from === "me" && "items-end")}>
+                  <p
+                    className={cn(
+                      "whitespace-pre-wrap rounded-lg px-3 py-2 text-sm leading-6",
+                      m.from === "me" ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm border border-border bg-surface-2 text-foreground",
+                      m.failed && "opacity-60",
+                    )}
+                  >
+                    {m.text}
+                  </p>
+                  {m.failed && <span className="mt-0.5 text-[11px] font-medium text-danger">Not sent. Check your connection and try again.</span>}
+                </div>
               </motion.div>
             ))}
             <AnimatePresence>
@@ -711,12 +851,12 @@ function LiveChat({ open, onClose, userName, userAvatar }: { open: boolean; onCl
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            send()
+            void send()
           }}
           className="flex items-center gap-2 border-t border-border p-4"
         >
-          <Input aria-label="Message" placeholder="Type your message…" value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
-          <Button type="submit" size="icon" aria-label="Send message" disabled={!draft.trim()}>
+          <Input aria-label="Message" placeholder="Type your message…" value={draft} maxLength={2000} onChange={(e) => setDraft(e.target.value)} autoFocus />
+          <Button type="submit" size="icon" aria-label="Send message" disabled={!draft.trim() || typing}>
             <Send aria-hidden="true" />
           </Button>
         </form>

@@ -30,7 +30,9 @@ import {
   ThemeControls,
 } from "@/components/ui"
 import type { StudentNavPage } from "./studentTypes"
-import { studentProfileData } from "./studentMockData"
+import { useStudentData } from "./data/StudentDataProvider"
+import { uploadAvatar } from "./data/actions"
+import { changePassword, describeDevice, enrollTotp, listTotpFactors, signOutOtherDevices, unenrollTotp, verifyTotp, type TotpEnrollment, type TotpFactor } from "./data/account"
 
 type SettingsTab = "profile" | "appearance" | "notifications" | "security"
 
@@ -41,7 +43,6 @@ interface StudentSettingsPageProps {
   initialTab?: SettingsTab
 }
 
-const PREFS_KEY = "quantum_student_notification_prefs"
 const PREF_GROUPS = [
   {
     title: "Learning",
@@ -70,14 +71,16 @@ const PREF_GROUPS = [
 type PrefId = (typeof PREF_GROUPS)[number]["items"][number]["id"]
 const DEFAULT_PREFS: Record<PrefId, boolean> = { live: true, deadlines: true, quizzes: true, grades: true, mentions: true, squads: false, digest: true }
 
-function loadPrefs(): Record<PrefId, boolean> {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY)
-    if (raw) return { ...DEFAULT_PREFS, ...JSON.parse(raw) }
-  } catch {
-    // ignore
+/** Saved preferences (profiles.notification_prefs) over the defaults. */
+function readPrefs(saved: unknown): Record<PrefId, boolean> {
+  const out = { ...DEFAULT_PREFS }
+  if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+    for (const k of Object.keys(out) as PrefId[]) {
+      const v = (saved as Record<string, unknown>)[k]
+      if (typeof v === "boolean") out[k] = v
+    }
   }
-  return DEFAULT_PREFS
+  return out
 }
 
 function strength(pw: string): { score: number; label: string; tone: "danger" | "warning" | "success" } {
@@ -144,79 +147,115 @@ function SaveButton({ dirty, saving, saved, label = "Save changes" }: { dirty: b
   )
 }
 
+/** Runs an async save and shows "Saved" for a moment afterwards. Rejections surface through onError. */
 function useSaveState() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const run = (fn: () => void) => {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const run = async (fn: () => Promise<void>, onError: (message: string) => void) => {
     setSaving(true)
-    setTimeout(() => {
-      fn()
-      setSaving(false)
+    try {
+      await fn()
       setSaved(true)
-      setTimeout(() => setSaved(false), 1800)
-    }, 600)
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => setSaved(false), 1800)
+    } catch (e) {
+      onError((e as Error).message)
+    } finally {
+      setSaving(false)
+    }
   }
   return { saving, saved, run }
 }
 
 function Profile({ onToast }: { onToast: (m: string) => void }) {
   const { user } = useSession()
-  const initial = useMemo(
-    () => ({ name: user.name, phone: studentProfileData.phone, bio: "AI engineering student focused on retrieval systems and multi-agent orchestration.", location: "Bengaluru, India" }),
-    [user.name],
-  )
+  const { profile, uid, updateProfile } = useStudentData()
+  const initial = useMemo(() => ({ name: profile.full_name, phone: profile.phone, bio: profile.bio, location: profile.location }), [profile])
   const [form, setForm] = useState(initial)
-  const [saved, setSavedForm] = useState(initial)
-  const [photo, setPhoto] = useState<string | undefined>(user.avatar)
+  const [error, setError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const { saving, saved: justSaved, run } = useSaveState()
   const fileRef = useRef<HTMLInputElement>(null)
-  const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial)
+
+  // A profile reload (another tab, demo reset) refreshes the form unless it has unsaved edits.
+  const prevInitial = useRef(initial)
+  useEffect(() => {
+    setForm((f) => (JSON.stringify(f) === JSON.stringify(prevInitial.current) ? initial : f))
+    prevInitial.current = initial
+  }, [initial])
+
+  const changePhoto = async (f: File) => {
+    setUploading(true)
+    try {
+      const url = await uploadAvatar(uid, f)
+      await updateProfile({ avatar_url: url })
+      onToast("Profile photo updated")
+    } catch (e) {
+      onToast(`Couldn't update the photo: ${(e as Error).message}`)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        run(() => {
-          setSavedForm(form)
-          onToast("Profile updated")
-        })
+        const name = form.name.trim()
+        if (!name) {
+          setError("Enter your name.")
+          return
+        }
+        setError(null)
+        void run(
+          async () => {
+            await updateProfile({ full_name: name, phone: form.phone.trim(), location: form.location.trim(), bio: form.bio.trim() })
+            setForm((f) => ({ ...f, name, phone: f.phone.trim(), location: f.location.trim(), bio: f.bio.trim() }))
+            onToast("Profile updated")
+          },
+          (m) => setError(m),
+        )
       }}
       className="grid gap-5"
     >
       <Card>
         <CardContent className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center">
           <div className="relative w-fit">
-            <Avatar src={photo} name={form.name} size="xl" />
+            <Avatar src={profile.avatar_url ?? undefined} name={form.name} size="xl" className={cn(uploading && "opacity-60")} />
             <button
               type="button"
               aria-label="Change photo"
+              disabled={uploading}
               onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-3 text-foreground shadow-[var(--elev-sm)] transition-transform hover:scale-105"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-3 text-foreground shadow-[var(--elev-sm)] transition-transform hover:scale-105 disabled:opacity-60"
             >
               <Camera className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp,image/gif"
               className="sr-only"
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (!f) return
-                setPhoto(URL.createObjectURL(f))
-                onToast("Photo updated for this session")
+                e.target.value = ""
+                if (f) void changePhoto(f)
               }}
             />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-semibold text-foreground">{form.name}</p>
-            <p className="text-sm text-muted-foreground">{studentProfileData.program}</p>
+            <p className="text-lg font-semibold text-foreground">{form.name || user.name}</p>
+            <p className="text-sm text-muted-foreground">{profile.program}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Badge tone="neutral" className="font-mono">
-                {studentProfileData.rollNumber}
+                {profile.roll_number}
               </Badge>
-              <Badge tone="primary">{studentProfileData.batch}</Badge>
+              <Badge tone="primary">{profile.batch}</Badge>
             </div>
+            <p className="mt-2 text-caption text-muted-foreground">{uploading ? "Uploading photo…" : "PNG, JPG, WebP or GIF up to 2 MB."}</p>
           </div>
         </CardContent>
       </Card>
@@ -225,24 +264,24 @@ function Profile({ onToast }: { onToast: (m: string) => void }) {
           <CardTitle>Personal details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name">
-            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+          <Field label="Full name" error={error}>
+            <Input value={form.name} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </Field>
-          <Field label="Email" hint="Managed by your school account">
-            <Input value={user.email} disabled />
+          <Field label="Email" hint="Your sign-in email">
+            <Input value={profile.email} disabled />
           </Field>
           <Field label="Phone">
-            <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            <Input value={form.phone} maxLength={40} inputMode="tel" onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
           </Field>
           <Field label="Location">
-            <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
+            <Input value={form.location} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
           </Field>
           <Field label="Bio" className="sm:col-span-2" hint={`${form.bio.length}/200`}>
             <Textarea value={form.bio} maxLength={200} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} />
           </Field>
         </CardContent>
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
-          <Button type="button" variant="ghost" disabled={!dirty || saving} onClick={() => setForm(saved)}>
+          <Button type="button" variant="ghost" disabled={!dirty || saving} onClick={() => setForm(initial)}>
             Discard
           </Button>
           <SaveButton dirty={dirty} saving={saving} saved={justSaved} />
@@ -282,16 +321,18 @@ function Appearance() {
 }
 
 function Notifications({ onToast }: { onToast: (m: string) => void }) {
-  const [prefs, setPrefs] = useState<Record<PrefId, boolean>>(loadPrefs)
-  const [quiet, setQuiet] = useState("22-07")
-  useEffect(() => {
-    try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
-    } catch {
-      // ignore
-    }
-  }, [prefs])
+  const { profile, updateProfile } = useStudentData()
+  const prefs = readPrefs(profile.notification_prefs)
+  const quiet = profile.quiet_hours
   const on = Object.values(prefs).filter(Boolean).length
+  const setPrefs = (next: Record<PrefId, boolean>, message: string) =>
+    updateProfile({ notification_prefs: next })
+      .then(() => onToast(message))
+      .catch((e: Error) => onToast(`Couldn't save: ${e.message}`))
+  const setQuiet = (v: string) =>
+    updateProfile({ quiet_hours: v })
+      .then(() => onToast(v === "off" ? "Quiet hours off" : "Quiet hours updated"))
+      .catch((e: Error) => onToast(`Couldn't save: ${e.message}`))
 
   return (
     <div className="grid gap-5">
@@ -309,14 +350,7 @@ function Notifications({ onToast }: { onToast: (m: string) => void }) {
                     <span className="block text-sm font-medium text-foreground">{item.label}</span>
                     <span className="block text-caption text-muted-foreground">{item.hint}</span>
                   </label>
-                  <Switch
-                    id={id}
-                    checked={prefs[item.id]}
-                    onCheckedChange={(v) => {
-                      setPrefs((p) => ({ ...p, [item.id]: v }))
-                      onToast(`${item.label} ${v ? "on" : "off"}`)
-                    }}
-                  />
+                  <Switch id={id} checked={prefs[item.id]} onCheckedChange={(v) => void setPrefs({ ...prefs, [item.id]: v }, `${item.label} ${v ? "on" : "off"}`)} />
                 </div>
               )
             })}
@@ -331,7 +365,7 @@ function Notifications({ onToast }: { onToast: (m: string) => void }) {
               {on} notification types on. Push notifications pause during quiet hours.
             </p>
           </div>
-          <Select value={quiet} onValueChange={setQuiet}>
+          <Select value={quiet} onValueChange={(v) => void setQuiet(v)}>
             <SelectTrigger aria-label="Quiet hours" className="sm:w-48">
               <SelectValue />
             </SelectTrigger>
@@ -368,43 +402,116 @@ function PasswordInput({ value, onChange, autoComplete, ...rest }: { value: stri
 }
 
 function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogout?: () => void }) {
+  const { profile, isDemo } = useStudentData()
   const [current, setCurrent] = useState("")
   const [next, setNext] = useState("")
   const [confirm, setConfirm] = useState("")
   const [errors, setErrors] = useState<{ current?: string; next?: string; confirm?: string }>({})
-  const [twoFactor, setTwoFactor] = useState(true)
-  const [sessions, setSessions] = useState([
-    { id: "s1", icon: Laptop, device: "Chrome on Windows", place: "Bengaluru, India", when: "Active now", current: true },
-    { id: "s2", icon: Smartphone, device: "Safari on iPhone 15", place: "Bengaluru, India", when: "2 days ago", current: false },
-    { id: "s3", icon: Laptop, device: "Firefox on Ubuntu", place: "Campus Lab 3", when: "Last week", current: false },
-  ])
   const { saving, saved, run } = useSaveState()
   const s = strength(next)
+
+  // Two-factor authentication (TOTP authenticator apps).
+  const [factors, setFactors] = useState<TotpFactor[] | null>(null)
+  const [enrolling, setEnrolling] = useState<TotpEnrollment | null>(null)
+  const [code, setCode] = useState("")
+  const [mfaError, setMfaError] = useState<string | null>(null)
+  const [mfaBusy, setMfaBusy] = useState(false)
+  useEffect(() => {
+    listTotpFactors()
+      .then(setFactors)
+      .catch(() => setFactors([]))
+  }, [])
+  const twoFactor = !!factors?.length
+
+  const toggle2fa = async (on: boolean) => {
+    setMfaError(null)
+    setMfaBusy(true)
+    try {
+      if (on) {
+        setEnrolling(await enrollTotp())
+        setCode("")
+      } else {
+        for (const f of factors ?? []) await unenrollTotp(f.id)
+        setFactors([])
+        onToast("Two-factor authentication off")
+      }
+    } catch (e) {
+      onToast((e as Error).message)
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+  const confirm2fa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!enrolling) return
+    setMfaBusy(true)
+    setMfaError(null)
+    try {
+      await verifyTotp(enrolling.factorId, code)
+      setFactors(await listTotpFactors())
+      setEnrolling(null)
+      onToast("Two-factor authentication on. You'll enter a code at your next sign-in.")
+    } catch (err) {
+      setMfaError((err as Error).message)
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+  const cancelEnroll = () => {
+    const pendingFactor = enrolling
+    setEnrolling(null)
+    if (pendingFactor) unenrollTotp(pendingFactor.factorId).catch(() => undefined)
+  }
+
+  const [signingOut, setSigningOut] = useState(false)
+  const signOutOthers = async () => {
+    setSigningOut(true)
+    try {
+      await signOutOtherDevices()
+      onToast("Signed out of all other devices")
+    } catch (e) {
+      onToast(`Couldn't sign out other devices: ${(e as Error).message}`)
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const errs = {
       current: current ? undefined : "Enter your current password.",
-      next: next.length < 8 ? "Use at least 8 characters." : s.label === "Weak" ? "Add numbers, symbols or mixed case." : undefined,
+      next: next.length < 8 ? "Use at least 8 characters." : s.label === "Weak" ? "Add numbers, symbols or mixed case." : next === current ? "Choose a different password." : undefined,
       confirm: confirm !== next ? "Passwords don't match." : undefined,
     }
     setErrors(errs)
     if (errs.current || errs.next || errs.confirm) return
-    run(() => {
-      setCurrent("")
-      setNext("")
-      setConfirm("")
-      onToast("Password changed")
-    })
+    void run(
+      async () => {
+        await changePassword(profile.email, current, next)
+        setCurrent("")
+        setNext("")
+        setConfirm("")
+        onToast("Password changed")
+      },
+      (m) => setErrors(/current/i.test(m) ? { current: m } : { next: m }),
+    )
   }
 
   return (
     <div className="grid gap-5">
+      {isDemo && (
+        <Card className="border-warning/30 bg-warning-soft">
+          <CardContent className="pt-5 text-sm text-foreground">
+            This is the shared demo account, so its password, two-factor settings and other devices' sessions can't be changed. Create your own student account to try them.
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Change password</CardTitle>
         </CardHeader>
         <form onSubmit={submit} noValidate>
+          <fieldset disabled={isDemo} className="contents">
           <CardContent className="grid gap-4 sm:max-w-md">
             <Field label="Current password" error={errors.current}>
               <PasswordInput value={current} onChange={setCurrent} autoComplete="current-password" />
@@ -427,6 +534,7 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
           <div className="flex justify-end border-t border-border px-5 py-3">
             <SaveButton dirty={!!(current || next || confirm)} saving={saving} saved={saved} label="Update password" />
           </div>
+          </fieldset>
         </form>
       </Card>
 
@@ -434,66 +542,66 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
         <CardContent className="flex items-center justify-between gap-4 pt-5">
           <label htmlFor="two-factor" className="min-w-0 cursor-pointer">
             <span className="block text-sm font-medium text-foreground">Two-factor authentication</span>
-            <span className="block text-caption text-muted-foreground">Ask for a code from your authenticator app at sign-in.</span>
+            <span className="block text-caption text-muted-foreground">
+              {factors === null ? "Checking…" : twoFactor ? "On. Sign-in asks for a code from your authenticator app." : "Ask for a code from your authenticator app at sign-in."}
+            </span>
           </label>
-          <Switch
-            id="two-factor"
-            checked={twoFactor}
-            onCheckedChange={(v) => {
-              setTwoFactor(v)
-              onToast(v ? "Two-factor authentication on" : "Two-factor authentication off")
-            }}
-          />
+          <Switch id="two-factor" checked={twoFactor || !!enrolling} disabled={isDemo || factors === null || mfaBusy} onCheckedChange={(v) => (v ? void toggle2fa(true) : enrolling ? cancelEnroll() : void toggle2fa(false))} />
         </CardContent>
+        <AnimatePresence initial={false}>
+          {enrolling && (
+            <motion.form
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: transition.fast }}
+              transition={transition.base}
+              onSubmit={confirm2fa}
+              className="grid gap-4 border-t border-border px-5 py-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start"
+            >
+              <img src={enrolling.qrCode} alt="QR code for your authenticator app" className="h-40 w-40 rounded-md border border-border bg-white p-2" />
+              <div className="grid gap-3">
+                <p className="text-sm text-foreground">Scan the code with Google Authenticator, 1Password or a similar app, then enter the 6-digit code it shows.</p>
+                <p className="text-caption text-muted-foreground">
+                  Can't scan? Enter this key: <span className="break-all font-mono text-foreground">{enrolling.secret}</span>
+                </p>
+                <Field label="Code" error={mfaError}>
+                  <Input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={8} placeholder="123456" className="max-w-[10rem] font-mono" />
+                </Field>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" loading={mfaBusy} disabled={code.replace(/\s/g, "").length < 6}>
+                    Turn on
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={cancelEnroll} disabled={mfaBusy}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </Card>
 
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">
           <CardTitle>Where you're signed in</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={sessions.length < 2}
-            onClick={() => {
-              setSessions((list) => list.filter((x) => x.current))
-              onToast("Signed out of all other devices")
-            }}
-          >
-            Sign out others
+          <Button variant="ghost" size="sm" disabled={isDemo} loading={signingOut} onClick={() => void signOutOthers()}>
+            Sign out other devices
           </Button>
         </CardHeader>
         <CardContent className="grid gap-1">
-          <AnimatePresence initial={false}>
-            {sessions.map((x) => (
-              <motion.div key={x.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: 16, transition: transition.fast }} transition={transition.base} className="flex items-center gap-3 rounded-md px-1 py-2">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted-foreground ring-1 ring-inset ring-border">
-                  <x.icon className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{x.device}</p>
-                  <p className="truncate text-caption text-muted-foreground">
-                    {x.place} · {x.when}
-                  </p>
-                </div>
-                {x.current ? (
-                  <Badge tone="success" dot>
-                    This device
-                  </Badge>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSessions((list) => list.filter((y) => y.id !== x.id))
-                      onToast(`Signed out of ${x.device}`)
-                    }}
-                  >
-                    Sign out
-                  </Button>
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          <div className="flex items-center gap-3 rounded-md px-1 py-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted-foreground ring-1 ring-inset ring-border">
+              {/Android|iPhone|iPad/.test(navigator.userAgent) ? <Smartphone className="h-4 w-4" aria-hidden="true" /> : <Laptop className="h-4 w-4" aria-hidden="true" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{describeDevice()}</p>
+              <p className="truncate text-caption text-muted-foreground">Active now</p>
+            </div>
+            <Badge tone="success" dot>
+              This device
+            </Badge>
+          </div>
+          <p className="px-1 pt-1 text-caption text-muted-foreground">Signing out other devices ends every session except this one.</p>
         </CardContent>
       </Card>
 

@@ -1,15 +1,14 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react"
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
+import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
 import PageTransition from "@/components/motion/PageTransition"
-import type {
-  StudentNavPage,
-  CourseItem,
-  AssignmentData,
-  QuizData,
-  AssessmentAttempt,
-} from "./studentTypes"
+import { useToast } from "@/components/ui/toast"
+import type { StudentNavPage, CourseItem } from "./studentTypes"
 import StudentDashboardPage from "./StudentDashboardPage"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
+import StudentDataProvider, { useStudentData } from "./data/StudentDataProvider"
+import type { SubmissionInput } from "./data/actions"
+import { relTime } from "./studentUtils"
 const MyCoursesPage = lazy(() => import("./MyCoursesPage"))
 const CourseDetailsPage = lazy(() => import("./CourseDetailsPage"))
 const SchedulePage = lazy(() => import("./SchedulePage"))
@@ -20,13 +19,18 @@ const CareerHubPage = lazy(() => import("./CareerHubPage"))
 const StudentSettingsPage = lazy(() => import("./StudentSettingsPage"))
 const SupportHelpPage = lazy(() => import("./SupportHelpPage"))
 const MyNotesPage = lazy(() => import("./MyNotesPage"))
-import {
-  initialStudentCourses,
-  catalogCourses,
-  initialAssignmentsList,
-  initialQuizzesList,
-  initialQuizAttempts,
-} from "./studentMockData"
+
+/** Notification links (set by the backend) -> student pages. */
+const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
+  announcements: "Announcements",
+  support: "Support & Help",
+  assessments: "Assessments",
+  quizzes: "Quizzes",
+  mentorship: "Mentor Details",
+  certificates: "Certificates",
+  grades: "Grades",
+  courses: "My Courses",
+}
 
 /** Shell nav id -> student page. */
 const NAV_TO_PAGE: Record<string, StudentNavPage> = {
@@ -188,141 +192,83 @@ function parseInitialTab(): StudentNavPage {
   return "Dashboard"
 }
 
-export default function StudentPortal({ onOpenAiModal, onLogout, onToast }: StudentPortalProps) {
-  const [activeTab, setActiveTabState] = useState<StudentNavPage>(() =>
-    parseInitialTab(),
+function courseFromUrl(): string | null {
+  if (typeof window === "undefined") return null
+  return new URLSearchParams(window.location.search).get("course")
+}
+
+/** Signs the student in and loads their data, then renders the portal. */
+export default function StudentPortal(props: StudentPortalProps) {
+  return (
+    <StudentDataProvider>
+      <StudentPortalBody {...props} />
+    </StudentDataProvider>
   )
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("c-1")
-  const [courses, setCourses] = useState<CourseItem[]>(initialStudentCourses)
-  const [catalog, setCatalog] = useState<CourseItem[]>(catalogCourses)
-  const [assignments, setAssignments] = useState<AssignmentData[]>(
-    initialAssignmentsList,
-  )
-  const [quizzes, setQuizzes] = useState<QuizData[]>(initialQuizzesList)
-  const [quizAttempts, setQuizAttempts] = useState<Record<string, AssessmentAttempt>>(() => {
+}
+
+function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalProps) {
+  const data = useStudentData()
+  const toast = useToast()
+  const { courses, catalog, assignments, quizzes } = data.view
+  const [activeTab, setActiveTabState] = useState<StudentNavPage>(() => parseInitialTab())
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(() => courseFromUrl() ?? courses[0]?.id ?? catalog[0]?.id ?? "")
+
+  // Navigate helper that updates URL history cleanly
+  const navigateTo = useCallback((page: StudentNavPage, courseId?: string) => {
+    setActiveTabState(page)
+    if (courseId) setSelectedCourseId(courseId)
+    document.getElementById("main")?.scrollTo({ top: 0 })
     try {
-      const saved = localStorage.getItem("quantum_student_quiz_attempts")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        return { ...initialQuizAttempts, ...parsed }
-      }
+      const slug = page.toLowerCase().replace(/\s+/g, "-").replace("&", "and")
+      const url = new URL(window.location.href)
+      url.searchParams.set("page", slug)
+      if (page === "Course Details" && courseId) url.searchParams.set("course", courseId)
+      else if (page !== "Course Details") url.searchParams.delete("course")
+      window.history.pushState(null, "", url.toString())
     } catch {
       // ignore
     }
-    return initialQuizAttempts
-  })
-  // Navigate helper that updates URL history cleanly
-  const navigateTo = useCallback(
-    (page: StudentNavPage, courseId?: string) => {
-      setActiveTabState(page)
-      if (courseId) {
-        setSelectedCourseId(courseId)
-      }
-      document.getElementById("main")?.scrollTo({ top: 0 })
-
-      if (typeof window !== "undefined") {
-        try {
-          const slug = page
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace("&", "and")
-          const url = new URL(window.location.href)
-          url.searchParams.set("page", slug)
-          window.history.pushState(null, "", url.toString())
-        } catch {
-          // ignore
-        }
-      }
-    },
-    [],
-  )
+  }, [])
 
   useEffect(() => {
     const handlePopState = () => {
       setActiveTabState(parseInitialTab())
+      const c = courseFromUrl()
+      if (c) setSelectedCourseId(c)
     }
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  const handleEnrollCourse = (newCourse: CourseItem) => {
-    const enrolledItem: CourseItem = {
-      ...newCourse,
-      status: "In Progress",
-      progress: 0,
-      completedModules: 0,
-      lastWatched: "Module 1 · Orientation",
-    }
-    setCourses((prev) => [enrolledItem, ...prev])
-    setCatalog((prev) => prev.filter((c) => c.id !== newCourse.id))
-    setSelectedCourseId(enrolledItem.id)
-    onToast(`Enrolled in "${newCourse.title}" successfully! 🎉`)
-    navigateTo("Course Details", enrolledItem.id)
-  }
-
-  const handleSubmitAssignment = (
-    id: string,
-    repoUrl: string,
-    comments: string,
-  ) => {
-    setAssignments((prev) =>
-      prev.map((a) => {
-        if (a.id === id) {
-          return {
-            ...a,
-            status: "Submitted",
-            submissionDate: "Just now",
-            repoUrl: repoUrl || undefined,
-            comments: comments || undefined,
-            uploadedFileName: "solution_srimanth_assignment.zip (4.8 MB)",
-          }
-        }
-        return a
-      }),
-    )
-    onToast("Assignment submitted successfully for evaluation! 🚀")
-  }
-
-  const handleCompleteQuiz = (
-    id: string,
-    scoreStr: string,
-    pct: number,
-    attemptData?: AssessmentAttempt,
-  ) => {
-    setQuizzes((prev) =>
-      prev.map((q) => {
-        if (q.id === id) {
-          return {
-            ...q,
-            status: "Completed",
-            score: scoreStr,
-            pct,
-            latestAttemptId: attemptData?.id || q.latestAttemptId,
-            attemptsUsed: (q.attemptsUsed || 0) + 1,
-          }
-        }
-        return q
-      }),
-    )
-    if (attemptData) {
-      setQuizAttempts((prev) => {
-        const updated = {
-          ...prev,
-          [attemptData.id]: attemptData,
-          [id]: attemptData,
-        }
-        try {
-          localStorage.setItem(
-            "quantum_student_quiz_attempts",
-            JSON.stringify(updated),
-          )
-        } catch {
-          // ignore
-        }
-        return updated
-      })
+  const handleEnrollCourse = async (course: CourseItem) => {
+    try {
+      await data.enroll(course)
+      onToast(`Enrolled in "${course.title}". Your first lesson is ready.`)
+      navigateTo("Course Details", course.id)
+    } catch (e) {
+      toast.error((e as Error).message)
     }
   }
+
+  const handleSubmitAssignment = async (id: string, input: SubmissionInput) => {
+    await data.submitAssignment(id, input)
+    onToast("Assignment submitted for evaluation")
+  }
+
+  const { notifications: notificationRows, markNotificationRead, markAllNotificationsRead } = data
+  const notifications = useMemo<NotificationSource>(
+    () => ({
+      items: notificationRows.map((n) => ({ id: n.id, title: n.title, message: n.message, timestamp: relTime(n.created_at, data.now), read: !!n.read_at, kind: n.kind as ShellNotification["kind"] })),
+      onSelect: (n) => {
+        markNotificationRead(n.id)
+        const row = notificationRows.find((r) => r.id === n.id)
+        const page = row?.link ? NOTIFICATION_PAGE[row.link] : undefined
+        if (page) navigateTo(page)
+      },
+      onMarkAllRead: markAllNotificationsRead,
+    }),
+    [notificationRows, markNotificationRead, markAllNotificationsRead, navigateTo, data.now],
+  )
 
   const renderPage = () => {
     switch (activeTab) {
@@ -351,8 +297,6 @@ export default function StudentPortal({ onOpenAiModal, onLogout, onToast }: Stud
             assignments={assignments}
             onSubmitAssignment={handleSubmitAssignment}
             quizzes={quizzes}
-            onCompleteQuiz={handleCompleteQuiz}
-            quizAttempts={quizAttempts}
           />
         )
       case "Schedule":
@@ -376,8 +320,6 @@ export default function StudentPortal({ onOpenAiModal, onLogout, onToast }: Stud
             assignments={assignments}
             onSubmitAssignment={handleSubmitAssignment}
             quizzes={quizzes}
-            onCompleteQuiz={handleCompleteQuiz}
-            quizAttempts={quizAttempts}
             onToast={onToast}
             initialTab={activeTab === "Quizzes" ? "quizzes" : "assignments"}
           />
@@ -417,7 +359,7 @@ export default function StudentPortal({ onOpenAiModal, onLogout, onToast }: Stud
   }
 
   return (
-    <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")}>
+    <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")} notifications={notifications}>
       <PageTransition transitionKey={activeTab === "Course Details" ? `course-${selectedCourseId}` : activeTab} className="w-full">
         <Suspense fallback={<StudentPageFallback />}>{renderPage()}</Suspense>
       </PageTransition>

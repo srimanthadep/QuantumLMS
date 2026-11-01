@@ -71,6 +71,12 @@ export interface ResumeData {
 
 export interface CourseItem {
   id: string
+  /** Course code, e.g. "AI-401". */
+  code?: string
+  totalLessons?: number
+  completedLessons?: number
+  /** ISO time of the latest completed lesson. */
+  lastActivityAt?: string
   title: string
   category: string
   image: string
@@ -95,6 +101,7 @@ export interface LessonItem {
   id: string
   title: string
   duration: string
+  minutes?: number
   type: "video" | "reading" | "lab"
   status: "Completed" | "In Progress" | "Locked"
   summary: string
@@ -129,6 +136,12 @@ export interface ResourceMaterial {
 export interface TimetableSlot {
   id: string
   day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday"
+  /** Minutes after midnight (campus time). */
+  startsMin?: number
+  endsMin?: number
+  /** Start of the next (or current, when live) occurrence. */
+  nextStart?: Date
+  courseId?: string | null
   time: string
   courseCode: string
   courseName: string
@@ -152,6 +165,10 @@ export interface AssignmentData {
   id: string
   title: string
   course: string
+  courseId?: string
+  /** ISO due time; dueDate is its display form. */
+  dueAt?: string
+  submittedAt?: string
   dueDate: string
   maxMarks: number
   status: "Pending" | "Submitted" | "Graded"
@@ -198,11 +215,18 @@ export interface QuizData {
   id: string
   title: string
   course: string
+  courseId?: string
+  dueAt?: string
+  availableAt?: string
+  /** An attempt that was started and is still running on the server. */
+  openAttemptId?: string
+  openDeadline?: string
   dueDate: string
   durationMinutes: number
   questionCount: number
   passingPct: number
-  status: "Active" | "Upcoming" | "Completed"
+  /** Closed: the due date passed without an attempt. */
+  status: "Active" | "Upcoming" | "Completed" | "Closed"
   score?: string
   pct?: number
   availableFrom?: string
@@ -223,10 +247,13 @@ export interface GradeItem {
   totalScore: number
   letterGrade: "A+" | "A" | "A-" | "B+" | "B"
   status: "Passed with Honors" | "Passed" | "In Progress"
+  term?: string
 }
 
 export interface EventItem {
   id: string
+  startsAt?: string
+  endsAt?: string
   title: string
   category: "Hackathons" | "Guest Lectures" | "Workshops" | "Academic"
   date: string
@@ -257,6 +284,8 @@ export interface NoteItem {
   id: string
   title: string
   course: string
+  pinned?: boolean
+  updatedAt?: string
   lastModified: string
   content: string
   snippet?: string
@@ -266,6 +295,7 @@ export interface NoteItem {
 
 export interface CertificateItem {
   id: string
+  courseId?: string | null
   title: string
   course: string
   issueDate: string
@@ -338,10 +368,14 @@ export interface TicketReply {
   content: string
   attachmentName?: string
   attachmentSize?: string
+  /** Storage path of an uploaded attachment (ticket-attachments bucket). */
+  attachmentPath?: string
 }
 
 export interface SupportTicket {
   id: string
+  createdAt?: string
+  updatedAt?: string
   category: TicketCategory
   subject: string
   description: string

@@ -3,9 +3,11 @@ import { Icon } from "../../components/Icon"
 import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { demoAccounts } from "../../data/demoAccounts"
 import type { UserRole } from "../../types"
+import { cancelStudentSignIn, studentSignIn, studentSignUp, studentVerifyCode } from "./studentAuth"
 
 interface AuthPageProps {
   onLogin: (user: {
+    id?: string
     name: string
     role: UserRole
     email: string
@@ -28,9 +30,18 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Student accounts with two-factor authentication enter their authenticator code after the password.
+  const [mfaStep, setMfaStep] = useState(false)
+  const [code, setCode] = useState("")
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole)
+    setErrorMessage(null)
+    if (mfaStep) {
+      setMfaStep(false)
+      void cancelStudentSignIn()
+    }
     const account = demoAccounts.find((d) => d.role === selectedRole)
     if (account) {
       setEmail(account.email)
@@ -39,9 +50,37 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }
   }
 
-  const handleQuickLaunch = (targetRole: UserRole) => {
+  /** Runs a student sign-in step and hands the signed-in student to onLogin. */
+  const runStudent = async (step: () => Promise<Parameters<AuthPageProps["onLogin"]>[0] | "mfa">) => {
     setIsLoading(true)
+    setErrorMessage(null)
+    try {
+      const result = await step()
+      if (result === "mfa") {
+        setMfaStep(true)
+        setCode("")
+        return
+      }
+      setMfaStep(false)
+      onLogin(result)
+    } catch (e) {
+      setErrorMessage((e as Error).message || "Sign-in failed. Try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleQuickLaunch = (targetRole: UserRole) => {
     const account = demoAccounts.find((d) => d.role === targetRole)
+    if (account && targetRole === "Student") {
+      setEmail(account.email)
+      setPassword(account.password)
+      setRole(targetRole)
+      setFullName(account.name)
+      void runStudent(() => studentSignIn(account.email, account.password))
+      return
+    }
+    setIsLoading(true)
     if (account) {
       setEmail(account.email)
       setPassword(account.password)
@@ -62,6 +101,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (role === "Student") {
+      if (mfaStep) void runStudent(() => studentVerifyCode(code))
+      else if (mode === "signin") void runStudent(() => studentSignIn(email, password))
+      else void runStudent(() => studentSignUp(fullName, email, password))
+      return
+    }
     setIsLoading(true)
     const account = demoAccounts.find((d) => d.role === role)
     setTimeout(() => {
@@ -77,8 +122,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   }
 
   const handleForgotPassword = () => {
-    setInfoMessage("A password reset link has been dispatched to your email address.")
-    setTimeout(() => setInfoMessage(null), 4000)
+    setInfoMessage(
+      role === "Student"
+        ? "Email support@quantumschool.ai from your registered address and Learner Success will reset your password."
+        : "A password reset link has been dispatched to your email address.",
+    )
+    setTimeout(() => setInfoMessage(null), 6000)
   }
 
   return (
@@ -332,14 +381,38 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
               <button
                 type="button"
                 className={`auth-tab-btn ${mode === "signin" ? "active" : ""}`}
-                onClick={() => setMode("signin")}
+                onClick={() => {
+                  setMode("signin")
+                  setErrorMessage(null)
+                  const demo = demoAccounts.find((d) => d.role === role)
+                  // An empty form gets the role's demo account back.
+                  if (demo && !email && !password) {
+                    setEmail(demo.email)
+                    setPassword(demo.password)
+                    setFullName(demo.name)
+                  }
+                }}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 className={`auth-tab-btn ${mode === "signup" ? "active" : ""}`}
-                onClick={() => setMode("signup")}
+                onClick={() => {
+                  setMode("signup")
+                  setErrorMessage(null)
+                  if (mfaStep) {
+                    setMfaStep(false)
+                    void cancelStudentSignIn()
+                  }
+                  const demo = demoAccounts.find((d) => d.role === role)
+                  // New student accounts start from a blank form instead of the shared demo login.
+                  if (role === "Student" && demo && email === demo.email) {
+                    setEmail("")
+                    setPassword("")
+                    setFullName("")
+                  }
+                }}
               >
                 Create Account
               </button>
@@ -459,10 +532,48 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                 <span>{infoMessage}</span>
               </div>
             )}
+            {errorMessage && (
+              <div role="alert" className="mb-3 px-3 py-2 rounded-xl bg-red-50 text-red-800 border border-red-200 text-xs font-semibold">
+                {errorMessage}
+              </div>
+            )}
 
             {/* Form Fields */}
             <form onSubmit={handleSubmit}>
-              {mode === "signup" && (
+              {mfaStep && (
+                <div className="auth-input-group">
+                  <label className="auth-label" htmlFor="auth-mfa-code">
+                    Authenticator code
+                  </label>
+                  <div className="auth-input-wrapper">
+                    <Icon name="settings" size={16} />
+                    <input
+                      id="auth-mfa-code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      autoFocus
+                      maxLength={8}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="6-digit code from your app"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaStep(false)
+                      setErrorMessage(null)
+                      void cancelStudentSignIn()
+                    }}
+                    className="mt-1 text-[11px] text-purple-700 hover:text-purple-900 font-semibold"
+                  >
+                    Use a different account
+                  </button>
+                </div>
+              )}
+              {!mfaStep && mode === "signup" && (
                 <div className="auth-input-group">
                   <label className="auth-label">Full Name</label>
                   <div className="auth-input-wrapper">
@@ -478,6 +589,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                 </div>
               )}
 
+              {!mfaStep && (
+              <>
               <div className="auth-input-group">
                 <label className="auth-label">Email or School ID</label>
                 <div className="auth-input-wrapper">
@@ -523,7 +636,10 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
+                {role === "Student" && mode === "signup" && <p className="mt-1 text-[11px] text-zinc-500">At least 8 characters.</p>}
               </div>
+              </>
+              )}
 
               {/* Remember Me Checkbox */}
               <div className="flex items-center justify-between mb-4">
@@ -548,10 +664,14 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
               >
                 <span>
                   {isLoading
-                    ? "Signing in..."
-                    : mode === "signin"
-                      ? `Sign In as ${role} →`
-                      : `Create ${role} Account & Launch →`}
+                    ? mode === "signup" && !mfaStep
+                      ? "Creating account..."
+                      : "Signing in..."
+                    : mfaStep
+                      ? "Verify code →"
+                      : mode === "signin"
+                        ? `Sign In as ${role} →`
+                        : `Create ${role} Account & Launch →`}
                 </span>
               </button>
             </form>
