@@ -12,6 +12,8 @@
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
     "format": "npm --prefix frontend run format",
-    "typecheck": "npm --prefix frontend run typecheck"
+    "typecheck": "npm --prefix frontend run typecheck",
+    "db:migrate": "npm --prefix backend run migrate",
+    "test:backend": "npm --prefix backend run test"
   }
 }
