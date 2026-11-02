@@ -17,9 +17,7 @@
     "cognito:local": "cognito-local",
     "cognito:setup": "tsx --env-file=.env scripts/setup-cognito.ts",
     "cognito:smoke": "tsx --env-file=.env scripts/cognito-smoke.ts",
-    "test": "tsx --env-file=.env --test --test-concurrency=2 tests/*.test.ts",
-    "legacy:migrate": "node scripts/apply-migrations.mjs",
-    "legacy:clean-storage": "node scripts/clean-storage.mjs"
+    "test": "tsx --env-file=.env --test --test-concurrency=2 tests/*.test.ts"
   },
   "engines": {
     "node": ">=22"

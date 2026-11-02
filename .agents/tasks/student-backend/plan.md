@@ -1,5 +1,9 @@
 # Student portal backend (Supabase)
 
+> **Superseded (Nov 2026)** by `../aws-backend/plan.md`: the API now runs on Fastify with Cognito sign-in and uses
+> Supabase only as PostgreSQL. The Supabase migrations, scripts and tools below were removed; they're in git history.
+> `tools/live-smoke.mjs` was rewritten for the new API and is still used.
+
 User request (Oct 31, 2026): "create the entire backend for student, connect every single thing, everything must work
 perfectly". Supabase project `yydvlrfsjmpwqthsmzyp` (eu-north-1, Postgres 17), empty at start. Credentials were given in
 chat: they are used only from the environment of setup commands and never written to the repo.
