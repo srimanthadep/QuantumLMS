@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   LifeBuoy,
@@ -6,13 +6,17 @@ import {
   Clock,
   ArrowRight,
   MessageSquare,
-  AlertCircle,
-  CheckCircle2,
-  Layers,
   ArrowUp,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
-import { SupportTicket, getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
-import { Card, CardContent } from "@/components/ui/card";
+import { SUPPORT_CATEGORIES } from "./supportTicketsData";
+import {
+  getAllTickets,
+  subscribeToTickets,
+  type SupportTicket,
+} from "@/services/ticketService";
+import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -28,12 +32,43 @@ import {
 } from "@/components/ui/select";
 
 export const TicketsInboxPage: React.FC = () => {
-  const [tickets] = useState<SupportTicket[]>(getAllSupportTickets());
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
   const urlFilter = searchParams.get("filter") || searchParams.get("status") || "all";
   const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [statusFilter, setStatusFilter] = useState(urlFilter === "escalated" ? "escalated" : "all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getAllTickets();
+      setTickets(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load tickets from Supabase.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const unsubscribe = subscribeToTickets(() => {
+      loadData();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadData]);
 
   useEffect(() => {
     const q = searchParams.get("search");
@@ -45,16 +80,18 @@ export const TicketsInboxPage: React.FC = () => {
       setStatusFilter(f);
     }
   }, [searchParams]);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
 
-  const listRef = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-
-  const openCount = tickets.filter((t) => t.status === "open").length;
-  const pendingCount = tickets.filter((t) => t.status === "pending").length;
-  const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
-  const escalatedCount = tickets.filter((t) => t.priority === "high" || t.status === "open").length;
+  const openCount = tickets.filter((t) => t.status.toLowerCase() === "open").length;
+  const pendingCount = tickets.filter(
+    (t) => t.status.toLowerCase() === "in progress" || t.status.toLowerCase() === "pending"
+  ).length;
+  const resolvedCount = tickets.filter((t) => t.status.toLowerCase() === "resolved").length;
+  const escalatedCount = tickets.filter(
+    (t) =>
+      t.priority.toLowerCase() === "urgent" ||
+      t.priority.toLowerCase() === "high" ||
+      t.status.toLowerCase() === "open"
+  ).length;
 
   const filteredTickets = tickets.filter((tkt) => {
     const query = searchQuery.toLowerCase().trim();
@@ -63,19 +100,31 @@ export const TicketsInboxPage: React.FC = () => {
       tkt.subject.toLowerCase().includes(query) ||
       tkt.studentName.toLowerCase().includes(query) ||
       tkt.ticketNumber.toLowerCase().includes(query) ||
+      tkt.id.toLowerCase().includes(query) ||
       tkt.studentBatch.toLowerCase().includes(query) ||
-      (tkt.assignedAgent && tkt.assignedAgent.toLowerCase().includes(query));
+      (tkt.assignedAgent && tkt.assignedAgent.toLowerCase().includes(query)) ||
+      tkt.description.toLowerCase().includes(query);
 
     if (!matchesSearch) return false;
+
+    const s = tkt.status.toLowerCase();
+    const p = tkt.priority.toLowerCase();
+
     if (statusFilter === "escalated") {
-      if (tkt.priority !== "high") return false;
-    } else if (statusFilter !== "all" && tkt.status !== statusFilter) {
-      return false;
+      if (p !== "urgent" && p !== "high") return false;
+    } else if (statusFilter === "open") {
+      if (s !== "open") return false;
+    } else if (statusFilter === "pending") {
+      if (s !== "in progress" && s !== "pending") return false;
+    } else if (statusFilter === "resolved") {
+      if (s !== "resolved" && s !== "closed") return false;
     }
 
     if (categoryFilter !== "all" && tkt.category !== categoryFilter) return false;
 
-    if (priorityFilter !== "all" && tkt.priority !== priorityFilter) return false;
+    if (priorityFilter !== "all") {
+      if (p !== priorityFilter.toLowerCase()) return false;
+    }
 
     return true;
   });
@@ -96,15 +145,15 @@ export const TicketsInboxPage: React.FC = () => {
     setTimeout(checkScrollState, 350);
   };
 
-  const getCategoryBadgeClass = (category: string) => {
-    const found = SUPPORT_CATEGORIES.find(
-      (c) => c.id === category || (category === "General Help & Feedback" && c.id === "Others")
-    );
-    return found ? found.badgeClass : "bg-slate-50 text-zinc-600 border-slate-200";
-  };
-
   const getPriorityBadge = (priority: SupportTicket["priority"]) => {
-    switch (priority) {
+    const p = priority.toLowerCase();
+    switch (p) {
+      case "urgent":
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold">
+            Urgent
+          </Badge>
+        );
       case "high":
         return (
           <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-bold">
@@ -133,7 +182,7 @@ export const TicketsInboxPage: React.FC = () => {
       icon: "mail",
       label: "All Tickets",
       value: `${tickets.length}`,
-      trend: "All registered requests",
+      trend: "Database records",
       tone: "lavender",
     },
     {
@@ -145,16 +194,16 @@ export const TicketsInboxPage: React.FC = () => {
     },
     {
       icon: "info",
-      label: "Pending Review",
+      label: "In Progress",
       value: `${pendingCount}`,
-      trend: "In verification",
+      trend: "Active resolution",
       tone: "yellow",
     },
     {
       icon: "check-circle",
       label: "Resolved",
       value: `${resolvedCount}`,
-      trend: "SLA met",
+      trend: "SLA completed",
       tone: "lime",
     },
   ];
@@ -174,7 +223,7 @@ export const TicketsInboxPage: React.FC = () => {
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-primary-text" />
             <Input
-              placeholder="Search students or topics..."
+              placeholder="Search students, subject or ticket #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-xs rounded-full border border-primary-border bg-surface text-foreground placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -204,6 +253,7 @@ export const TicketsInboxPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent align="end" className="rounded-2xl border border-primary-border bg-surface text-foreground shadow-xl min-w-[140px]">
                 <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
@@ -226,13 +276,22 @@ export const TicketsInboxPage: React.FC = () => {
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
-                  Pending
+                  In Progress
                 </TabsTrigger>
                 <TabsTrigger value="resolved" className="text-xs rounded-full font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
                   Resolved
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+
+            <button
+              onClick={loadData}
+              disabled={isLoading}
+              className="p-2 rounded-full border border-zinc-200 text-zinc-600 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+              title="Refresh database records"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </div>
       </div>
@@ -246,9 +305,7 @@ export const TicketsInboxPage: React.FC = () => {
               <LifeBuoy className="h-4 w-4 text-purple-600" />
               <span>Support Tickets Queue</span>
             </span>
-            <span className="text-xs text-zinc-400 font-medium">({filteredTickets.length} tickets)</span>
-
-
+            <span className="text-xs text-zinc-400 font-medium">({filteredTickets.length} tickets from Supabase)</span>
 
             {/* Scroll Bar Directional Controls */}
             <div className="flex items-center gap-1 ml-0.5">
@@ -294,7 +351,20 @@ export const TicketsInboxPage: React.FC = () => {
           onScroll={checkScrollState}
           className="p-2 sm:p-2 flex-1 min-h-0 overflow-y-auto scroll-smooth divide-y divide-slate-100 bg-surface support-queue-scrollbar pr-2"
         >
-          {filteredTickets.length === 0 ? (
+          {isLoading && tickets.length === 0 ? (
+            <div className="py-16 text-center text-xs text-zinc-400">
+              <RefreshCw className="h-6 w-6 mx-auto animate-spin text-purple-600 mb-2" />
+              <span>Fetching live tickets from Supabase database...</span>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-xs text-rose-600 space-y-2">
+              <AlertCircle className="h-6 w-6 mx-auto text-rose-500 mb-1" />
+              <p className="font-bold text-sm">{error}</p>
+              <Button size="sm" onClick={loadData} className="mt-2 text-xs">
+                Retry Connection
+              </Button>
+            </div>
+          ) : filteredTickets.length === 0 ? (
             <div className="p-8 text-center text-xs text-zinc-500">
               <LifeBuoy className="h-7 w-7 mx-auto text-zinc-300 mb-1.5" />
               <p className="font-semibold text-zinc-700 text-sm">No tickets matching this filter</p>
@@ -314,92 +384,87 @@ export const TicketsInboxPage: React.FC = () => {
               </Button>
             </div>
           ) : (
-            filteredTickets.map((tkt) => (
-              <div
-                key={tkt.id}
-                className="px-4 py-2 sm:px-5 sm:py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 hover:bg-primary-soft/30 transition-colors"
-              >
-                <div className="space-y-0.5 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-mono text-xs font-bold text-primary-text bg-primary-soft border border-primary/30 px-2.5 py-0.5 rounded-full">
-                      {tkt.ticketNumber}
-                    </span>
-                    <span className="text-xs font-bold text-foreground">
-                      {tkt.studentName}
-                    </span>
-                    <span className="text-xs text-zinc-300">•</span>
-                    <span className="text-xs text-zinc-500 font-medium">{tkt.createdAt}</span>
+            filteredTickets.map((tkt) => {
+              const s = tkt.status.toLowerCase();
+              return (
+                <div
+                  key={tkt.id}
+                  className="px-4 py-2 sm:px-5 sm:py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 hover:bg-primary-soft/30 transition-colors"
+                >
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-xs font-bold text-primary-text bg-primary-soft border border-primary/30 px-2.5 py-0.5 rounded-full">
+                        {tkt.ticketNumber}
+                      </span>
+                      <span className="text-xs font-bold text-foreground">
+                        {tkt.studentName}
+                      </span>
+                      <span className="text-xs text-zinc-300">•</span>
+                      <span className="text-xs text-zinc-500 font-medium">
+                        {new Date(tkt.created_at).toLocaleDateString()}
+                      </span>
 
-                    {tkt.priority === "high" && (
-                      <span className="badge-status-assigned text-[10px] px-2 py-0.5 font-bold">
-                        High
-                      </span>
-                    )}
-                    {tkt.priority === "medium" && (
-                      <span className="badge-status-in-progress text-[10px] px-2 py-0.5 font-bold">
-                        Medium
-                      </span>
-                    )}
-                    {tkt.priority === "low" && (
-                      <span className="badge-status-not-started text-[10px] px-2 py-0.5 font-bold">
-                        Low
-                      </span>
-                    )}
+                      {getPriorityBadge(tkt.priority)}
 
-                    {tkt.status === "open" && (
-                      <span className="badge-status-in-progress text-[10px] px-2 py-0.5 font-bold">
-                        In Progress
-                      </span>
-                    )}
-                    {tkt.status === "pending" && (
-                      <span className="badge-status-assigned text-[10px] px-2 py-0.5 font-bold">
-                        Assigned
-                      </span>
-                    )}
-                    {tkt.status === "resolved" && (
-                      <span className="badge-status-completed text-[10px] px-2 py-0.5 font-bold">
-                        Completed
-                      </span>
-                    )}
+                      {s === "open" && (
+                        <span className="badge-status-in-progress text-[10px] px-2 py-0.5 font-bold">
+                          Open
+                        </span>
+                      )}
+                      {(s === "in progress" || s === "pending") && (
+                        <span className="badge-status-assigned text-[10px] px-2 py-0.5 font-bold">
+                          In Progress
+                        </span>
+                      )}
+                      {s === "resolved" && (
+                        <span className="badge-status-completed text-[10px] px-2 py-0.5 font-bold">
+                          Resolved
+                        </span>
+                      )}
+                      {s === "closed" && (
+                        <span className="badge-status-not-started text-[10px] px-2 py-0.5 font-bold">
+                          Closed
+                        </span>
+                      )}
 
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-semibold rounded-full border-primary-border text-foreground bg-surface"
-                    >
-                      {tkt.category}
-                    </Badge>
-
-                    {tkt.proposedAction && (
-                      <Badge variant="outline" className="text-[10px] bg-primary-soft text-primary-text border-primary/30 font-bold rounded-full">
-                        Proposed: {tkt.proposedAction.type === "batch_move" ? "Batch Move" : `${tkt.proposedAction.extensionDays || 30}-day Extension`}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold rounded-full border-primary-border text-foreground bg-surface"
+                      >
+                        {tkt.category}
                       </Badge>
-                    )}
+                    </div>
+
+                    <Link to={`/support/ticket/${tkt.id}`} className="group block">
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-primary-text transition-colors">
+                        {tkt.subject}
+                      </h3>
+                    </Link>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-foreground/70 font-medium">
+                      <span>
+                        Batch: <strong className="text-foreground">{tkt.studentBatch}</strong>
+                      </span>
+                      <span>
+                        Assigned Agent:{" "}
+                        <strong className="text-foreground">{tkt.assignedAgent || "Unassigned"}</strong>
+                      </span>
+                      <span>
+                        Email: <span className="font-mono text-zinc-600">{tkt.studentEmail}</span>
+                      </span>
+                    </div>
                   </div>
 
-                  <Link to={`/support/ticket/${tkt.id}`} className="group block">
-                    <h3 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-primary-text transition-colors">
-                      {tkt.subject}
-                    </h3>
-                  </Link>
-
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-foreground/70 font-medium">
-                    <span>Batch: <strong className="text-foreground">{tkt.studentBatch}</strong></span>
-                    <span>Assigned Agent: <strong className="text-foreground">{tkt.assignedAgent || "Unassigned"}</strong></span>
-                    <span>Email: <span className="font-mono text-zinc-600">{tkt.studentEmail}</span></span>
+                  <div className="flex items-center justify-between lg:justify-end gap-2 pt-1 lg:pt-0 border-t lg:border-t-0 border-primary-soft shrink-0">
+                    <Link to={`/support/ticket/${tkt.id}`}>
+                      <button className="btn-support-secondary text-xs h-7.5 px-3.5 gap-1.5 font-bold cursor-pointer">
+                        Open Workstation <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </Link>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between lg:justify-end gap-2 pt-1 lg:pt-0 border-t lg:border-t-0 border-primary-soft shrink-0">
-                  <Link to={`/support/ticket/${tkt.id}`}>
-                    <button
-                      className="btn-support-secondary text-xs h-7.5 px-3.5 gap-1.5 font-bold cursor-pointer"
-                    >
-                      Open Workstation <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
 

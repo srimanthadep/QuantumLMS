@@ -45,15 +45,28 @@ import { spring } from "@/lib/motion"
 import { useTeacherData } from "./teacherStore"
 import { firstName } from "./teacherUtils"
 
-type TopicId = "live" | "recordings" | "grading" | "courses" | "doubts" | "account"
+type TopicId =
+  | "account"
+  | "live"
+  | "assignments"
+  | "courses"
+  | "technical"
+  | "payments"
+  | "notifications"
+  | "others"
+  | "recordings"
+  | "grading"
+  | "doubts"
 
 const TOPICS: { id: TopicId; title: string; detail: string; icon: LucideIcon; tone: IconTone }[] = [
-  { id: "live", title: "Live classes", detail: "Starting, recording and running the room", icon: Radio, tone: "danger" },
-  { id: "recordings", title: "Recordings", detail: "Chapters, transcripts and publishing", icon: PlayCircle, tone: "secondary" },
-  { id: "grading", title: "Grading", detail: "Scores, feedback and reminders", icon: ClipboardCheck, tone: "warning" },
-  { id: "courses", title: "Course builder", detail: "Modules, lessons and materials", icon: BookOpen, tone: "primary" },
-  { id: "doubts", title: "Doubts", detail: "Answering and resolving questions", icon: MessageCircleQuestion, tone: "info" },
-  { id: "account", title: "Account", detail: "Notifications, security and privacy", icon: ShieldCheck, tone: "success" },
+  { id: "account", title: "Login & Account", detail: "Authentication, security, password and profile access", icon: ShieldCheck, tone: "success" },
+  { id: "live", title: "Live Class", detail: "Starting, recording and running live classrooms", icon: Radio, tone: "danger" },
+  { id: "assignments", title: "Assignments & Exams", detail: "Grading, evaluations, rubrics and deadline appeals", icon: ClipboardCheck, tone: "warning" },
+  { id: "courses", title: "Course Content", detail: "Course builder, syllabus, lessons and materials", icon: BookOpen, tone: "primary" },
+  { id: "technical", title: "Technical Problem", detail: "Platform errors, streaming bugs and tool outages", icon: PlayCircle, tone: "danger" },
+  { id: "payments", title: "Payments & Certificates", detail: "Payouts, invoicing and certificate issuing", icon: Ticket, tone: "secondary" },
+  { id: "notifications", title: "Notifications", detail: "Email broadcasts, in-app alerts and SMS updates", icon: Mail, tone: "info" },
+  { id: "others", title: "Others", detail: "General teacher support and feedback", icon: MessageCircleQuestion, tone: "neutral" },
 ]
 
 const FAQ: { id: string; topic: TopicId; q: string; a: string }[] = [
@@ -112,7 +125,6 @@ export default function SupportPage() {
   const [formTopic, setFormTopic] = useState<TopicId>("live")
   const [subject, setSubject] = useState("")
   const [message, setMessage] = useState("")
-  const [priority, setPriority] = useState<"low" | "normal" | "urgent">("normal")
   const [errors, setErrors] = useState<{ subject?: string; message?: string }>({})
 
   useEffect(() => {
@@ -140,8 +152,7 @@ export default function SupportPage() {
     setTickets((list) => [{ id, subject: subject.trim(), topic: formTopic, status: "Open", updated: "Sent just now" }, ...list])
     setSubject("")
     setMessage("")
-    setPriority("normal")
-    notify(priority === "urgent" ? `Request ${id} sent. Urgent requests get a reply within 30 minutes.` : `Request ${id} sent. We usually reply within 2 hours.`)
+    notify(`Request ${id} sent. We usually reply within 2 hours.`)
   }
 
   return (
@@ -281,7 +292,7 @@ export default function SupportPage() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={submit} noValidate className="grid gap-4">
-                    <Field label="Topic">
+                    <Field label="Category">
                       <Select value={formTopic} onValueChange={(v) => setFormTopic(v as TopicId)}>
                         <SelectTrigger>
                           <SelectValue />
@@ -301,21 +312,6 @@ export default function SupportPage() {
                     <Field label="What happened?" required error={errors.message}>
                       <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="What you did, what you expected, and what you saw instead" />
                     </Field>
-                    <div className="grid gap-1.5">
-                      <span className="text-sm font-medium text-foreground">Priority</span>
-                      <span className="-mt-1 text-caption text-muted-foreground">Choose Urgent only if a class can't go ahead.</span>
-                      <SegmentedControl
-                        aria-label="Priority"
-                        block
-                        options={[
-                          { value: "low" as const, label: "Low" },
-                          { value: "normal" as const, label: "Normal" },
-                          { value: "urgent" as const, label: "Urgent" },
-                        ]}
-                        value={priority}
-                        onChange={setPriority}
-                      />
-                    </div>
                     <Button type="submit" leftIcon={<Send aria-hidden="true" />}>
                       Send request
                     </Button>

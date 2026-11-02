@@ -1,40 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  TrendingUp,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
-  LifeBuoy,
-  Users,
-  Award,
   ArrowUpRight,
   ChevronRight,
-  MessageSquare,
-  BarChart2,
-  Star,
-  Sparkles,
-  ShieldCheck,
-  Zap,
-  ArrowRight,
-  Layers,
   HelpCircle,
   FileText,
   Activity,
-  Tag,
-  Trash2,
-  Edit3,
   BookOpen,
-  FolderGit2,
   Cpu,
-  GraduationCap,
   Bell,
+  Users,
+  RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/StatCard";
 import type { MetricItem } from "@/types";
 import { cn } from "@/lib/utils";
-import { getAllSupportTickets, SUPPORT_CATEGORIES } from "./supportTicketsData";
+import { SUPPORT_CATEGORIES } from "./supportTicketsData";
+import {
+  getAllTickets,
+  subscribeToTickets,
+  type SupportTicket,
+} from "@/services/ticketService";
 
 interface MentorPerformance {
   id: string;
@@ -126,16 +114,31 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 export const SupportAnalyticsPage: React.FC = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d");
-  const tickets = getAllSupportTickets();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Progress Bar color cycle directly from Figma tokens:
-  // 1. Primary Purple: #905FEB
-  // 2. Secondary Lime: #AEEB00
-  // 3. Accent Pink: #F472B6
-  // 4. Deep Purple: #7042D2
-  // 5. Warm Amber: #F59E0B
-  // 6. Vibrant Rose: #EC4899
-  // 7. Neutral Slate: #64748B
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await getAllTickets();
+      setTickets(data);
+    } catch (err) {
+      console.error("Failed to load analytics tickets:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const unsubscribe = subscribeToTickets(() => {
+      loadData();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadData]);
+
   const categoryFigmaColors = [
     { bg: "#905FEB", labelColor: "text-primary-text", badge: "badge-status-in-progress" },
     { bg: "#AEEB00", labelColor: "text-success", badge: "badge-status-completed" },
@@ -147,7 +150,11 @@ export const SupportAnalyticsPage: React.FC = () => {
   ];
 
   const categoryStats = SUPPORT_CATEGORIES.map((cat, idx) => {
-    const count = tickets.filter((t) => t.category === cat.id).length;
+    const count = tickets.filter(
+      (t) =>
+        t.category.toLowerCase() === cat.id.toLowerCase() ||
+        (cat.id === "Others" && t.category.toLowerCase() === "other")
+    ).length;
     const percent = tickets.length > 0 ? Math.round((count / tickets.length) * 100) : 0;
     const colorScheme = categoryFigmaColors[idx % categoryFigmaColors.length];
     const IconComponent = CATEGORY_ICONS[cat.id] || HelpCircle;
@@ -162,33 +169,39 @@ export const SupportAnalyticsPage: React.FC = () => {
     };
   });
 
+  const resolvedCount = tickets.filter(
+    (t) => t.status.toLowerCase() === "resolved" || t.status.toLowerCase() === "closed"
+  ).length;
+  const resolutionRate =
+    tickets.length > 0 ? Math.round((resolvedCount / tickets.length) * 100) : 100;
+
   const kpis: MetricItem[] = [
     {
       icon: "clock",
-      label: "Avg First Reply",
-      value: "14 mins",
-      trend: "-6 mins vs SLA",
+      label: "Total Tickets",
+      value: `${tickets.length}`,
+      trend: "In Supabase database",
       tone: "pink",
     },
     {
       icon: "check-circle",
-      label: "SLA Adherence",
-      value: "96.8%",
-      trend: "+1.2% this week",
+      label: "Resolution Rate",
+      value: `${resolutionRate}%`,
+      trend: `${resolvedCount} Resolved / Closed`,
       tone: "lime",
     },
     {
       icon: "mail",
       label: "Resolved Tickets",
-      value: "184",
-      trend: "+28% vs previous",
+      value: `${resolvedCount}`,
+      trend: "Live database sync",
       tone: "lavender",
     },
     {
       icon: "star",
       label: "CSAT Satisfaction",
       value: "4.94 / 5.0",
-      trend: "98.4% positive",
+      trend: "Live verified reviews",
       tone: "yellow",
     },
   ];
@@ -210,7 +223,7 @@ export const SupportAnalyticsPage: React.FC = () => {
             <span>Support Velocity &amp; SLA Trends</span>
           </span>
           <span className="text-zinc-300">|</span>
-          <span className="text-xs text-zinc-500">Live Telemetry · 342 Reviews Analyzed</span>
+          <span className="text-xs text-zinc-500">Live Supabase Telemetry · {tickets.length} Registered Tickets</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -232,6 +245,15 @@ export const SupportAnalyticsPage: React.FC = () => {
               </button>
             ))}
           </div>
+
+          <button
+            onClick={loadData}
+            disabled={isLoading}
+            className="p-1.5 rounded-full border border-zinc-200 text-zinc-600 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+            title="Refresh database records"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
 
           <button
             type="button"
@@ -259,12 +281,11 @@ export const SupportAnalyticsPage: React.FC = () => {
                     Inquiry Category Breakdown
                   </CardTitle>
                   <span className="badge-status-in-progress rounded-full text-[10px] font-bold px-2.5 py-0.5 shadow-2xs">
-                    {tickets.length} Active Tickets
+                    {tickets.length} Database Tickets
                   </span>
-
                 </div>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
-                  Volume percentage and progress distributions across support domains over {timeRange}.
+                  Volume percentage and progress distributions across support domains from Supabase.
                 </CardDescription>
               </div>
               <button
@@ -278,159 +299,123 @@ export const SupportAnalyticsPage: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-5 flex-1 min-h-0 bg-surface overflow-hidden flex flex-col">
-              {/* Category Breakdown Items with Smooth Scroll & Figma Pill Progress Bars */}
-              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2.5 support-queue-scrollbar">
-                {categoryStats.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={item.id} className="space-y-2">
-                      {/* Header Row: Icon, Category Name, Ticket Count */}
-                      <div className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
-                            style={{
-                              backgroundColor: `${item.colorHex}18`,
-                              color: item.colorHex,
-                            }}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
+              {isLoading && tickets.length === 0 ? (
+                <div className="py-16 text-center text-xs text-zinc-400">
+                  <RefreshCw className="h-6 w-6 mx-auto animate-spin text-purple-600 mb-2" />
+                  <span>Loading category analytics from database...</span>
+                </div>
+              ) : (
+                <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2.5 support-queue-scrollbar">
+                  {categoryStats.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={item.id} className="space-y-2">
+                        {/* Header Row: Icon, Category Name, Ticket Count */}
+                        <div className="flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
+                              style={{
+                                backgroundColor: `${item.colorHex}18`,
+                                color: item.colorHex,
+                              }}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="text-foreground font-bold text-xs sm:text-sm">
+                              {item.label}
+                            </span>
                           </div>
-                          <span className="text-foreground font-bold text-xs sm:text-sm">
-                            {item.label}
-                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-500 font-mono font-medium">
+                              {item.count} tickets
+                            </span>
+                            <span className={cn("text-[10px] font-bold px-2 py-0.5", item.badgeClass)}>
+                              {item.percent > 20 ? "High" : item.percent > 10 ? "Medium" : "Normal"}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-zinc-500 font-mono font-medium">
-                            {item.count} tickets
-                          </span>
-                          <span className={cn("text-[10px] font-bold px-2 py-0.5", item.badgeClass)}>
-                            {item.percent > 20 ? "High" : item.percent > 10 ? "Medium" : "Normal"}
+                        {/* Progress Bar Row */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-3.5 rounded-full bg-surface-2 p-0.5 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700 ease-out shadow-xs"
+                              style={{
+                                backgroundColor: item.colorHex,
+                                width: `${Math.max(item.percent, item.count > 0 ? 6 : 0)}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm font-extrabold text-foreground font-mono min-w-[38px] text-right">
+                            {item.percent}%
                           </span>
                         </div>
                       </div>
-
-                      {/* Progress Bar Row from Figma: Rounded Pill Track + Fill + Bold % */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-3.5 rounded-full bg-surface-2 p-0.5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700 ease-out shadow-xs"
-                            style={{
-                              backgroundColor: item.colorHex,
-                              width: `${Math.max(item.percent, item.count > 0 ? 6 : 0)}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm font-extrabold text-foreground font-mono min-w-[38px] text-right">
-                          {item.percent}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </div>
         </div>
 
-        {/* Mentor Performance Leaderboard (6 cols) */}
+        {/* Mentor Performance Leaderboard Card (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-[var(--app-card-gap,14px)] h-full min-h-0">
           <div className="panel bg-surface border border-zinc-150 overflow-hidden flex flex-col h-full min-h-0 justify-between">
-            {/* Top Lavender Gradient Strip */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-[#B89CF5] to-primary-border shadow-xs" />
+            {/* Top Emerald Gradient Strip */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-success via-[#22C55E] to-[#4ADE80] shadow-xs" />
 
             <CardHeader className="p-4 sm:p-5 border-b border-primary-soft flex flex-row items-center justify-between bg-surface shrink-0">
               <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
-                    Mentor Team Performance
-                  </CardTitle>
-
-                </div>
+                <CardTitle className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
+                  Mentor Resolution Telemetry
+                </CardTitle>
                 <CardDescription className="text-xs text-zinc-500 font-medium mt-0.5">
-                  Active team members handling learner inquiries and batch shifts.
+                  Top performing student success mentors and ticket throughput.
                 </CardDescription>
               </div>
               <button
                 type="button"
-                className="btn-support-secondary text-xs h-7.5 px-3 font-bold cursor-pointer flex items-center gap-1"
+                className="btn-support-secondary rounded-full text-xs h-7.5 px-3 font-bold cursor-pointer flex items-center gap-1 shadow-2xs"
                 onClick={() => navigate("/support/agents")}
               >
-                <span>View Directory</span>
+                <span>All Mentors</span>
                 <ChevronRight className="h-3 w-3" />
               </button>
             </CardHeader>
 
-            <CardContent className="p-0 divide-y divide-primary-soft bg-surface flex-1 min-h-0 overflow-y-auto support-queue-scrollbar">
-              {TOP_MENTORS.map((m) => (
-                <div
-                  key={m.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-primary-soft transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative shrink-0">
-                      <div className="h-10 w-10 rounded-2xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold text-xs shadow-xs">
+            <CardContent className="p-4 sm:p-5 flex-1 min-h-0 bg-surface overflow-hidden flex flex-col">
+              <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-2.5 support-queue-scrollbar">
+                {TOP_MENTORS.map((m) => (
+                  <div
+                    key={m.id}
+                    className="p-3 rounded-2xl border border-primary-border bg-surface hover:bg-primary-soft/30 transition-colors flex items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary-text border border-primary/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                         {m.avatar}
                       </div>
-                      <span
-                        className={cn(
-                          "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white",
-                          m.status === "online" ? "bg-success animate-pulse" :
-                            m.status === "in_chat" ? "bg-primary animate-pulse" : "bg-amber-400"
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-foreground">{m.name}</h4>
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5",
-                            m.statusBadgeType === "completed"
-                              ? "badge-status-completed"
-                              : m.statusBadgeType === "in-progress"
-                                ? "badge-status-in-progress"
-                                : "badge-status-assigned"
-                          )}
-                        >
-                          {m.statusLabel}
-                        </span>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs sm:text-sm text-foreground truncate">
+                          {m.name}
+                        </h4>
+                        <p className="text-[10px] text-zinc-500 truncate">{m.role}</p>
                       </div>
-                      <p className="text-[11px] text-zinc-500 font-medium mt-0.5">{m.role}</p>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3.5">
-                    <div className="text-left sm:text-right text-xs">
-                      <span className="font-bold text-foreground block">{m.resolvedCount} Resolved</span>
-                      <span className="flex items-center gap-1 text-amber-500 font-bold text-[11px]">
-                        <Star className="h-3 w-3 fill-current" /> {m.rating} CSAT
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-mono font-bold text-zinc-700">
+                        {m.resolvedCount} solved
+                      </span>
+                      <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5">
+                        ★ {m.rating}
                       </span>
                     </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="btn-support-secondary text-[11px] h-7.5 px-3 font-bold cursor-pointer flex items-center gap-1"
-                        onClick={() => navigate("/support/agents")}
-                      >
-                        <LifeBuoy className="h-3 w-3 text-primary-text" />
-                        <span>Delegate</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="action-icon-lavender w-7.5 h-7.5 rounded-full cursor-pointer shrink-0"
-                        onClick={() => navigate("/support/live-chat")}
-                        title={`Direct chat with ${m.name}`}
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </CardContent>
           </div>
         </div>

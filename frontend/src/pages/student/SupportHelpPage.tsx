@@ -84,12 +84,14 @@ interface SupportHelpPageProps {
 
 const FAQ_CATEGORIES = ["All", "Getting Started", "Courses & Labs", "Submissions & Quizzes", "Attendance & Leaves", "Technical"] as const
 const TICKET_CATEGORIES: TicketCategory[] = [
-  "Technical Support",
-  "Live Classes & Attendance",
-  "Assignments & Assessments",
-  "Course & Content Management",
-  "Account & Access Management",
-  "General Help & Feedback",
+  "Login & Account",
+  "Live Class",
+  "Assignments & Exams",
+  "Course Content",
+  "Technical Problem",
+  "Payments & Certificates",
+  "Notifications",
+  "Others",
 ]
 const PRIORITIES: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
 const STATUS_TONE: Record<TicketStatus, "warning" | "info" | "success" | "neutral"> = { Open: "warning", "In Progress": "info", Resolved: "success", Closed: "neutral" }
@@ -686,10 +688,7 @@ function NewTicketDialog({ open, onClose, onCreate }: { open: boolean; onClose: 
               </SelectContent>
             </Select>
           </Field>
-          <div className="grid gap-1.5">
-            <span className="text-sm font-medium text-foreground">Priority</span>
-            <SegmentedControl aria-label="Priority" options={PRIORITIES.map((p) => ({ value: p, label: p }))} value={priority} onChange={setPriority} block />
-          </div>
+          
           <Field label="Subject" required error={errors.subject}>
             <Input value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Can't access the GPU cluster" />
           </Field>
