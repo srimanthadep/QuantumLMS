@@ -1,11 +1,11 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, type Tables } from "@/lib/api"
 import type { ResourceMaterial } from "../studentTypes"
 import { fmtDate } from "../studentUtils"
 
 /* -------------------------------- Materials ------------------------------- */
 
 export async function loadMaterials(courseId: string): Promise<ResourceMaterial[]> {
-  const rows = unwrap(await supabase.from("course_materials").select("*").eq("course_id", courseId).order("position"))
+  const rows = await api.get<Tables<"course_materials">[]>(`/student/courses/${encodeURIComponent(courseId)}/materials`)
   return rows.map((m) => ({
     id: m.id,
     title: m.title,
@@ -35,22 +35,17 @@ export interface QandAData {
 }
 
 export async function loadQandA(courseId: string): Promise<QandAData> {
-  const [questions, votes] = await Promise.all([
-    supabase.from("course_questions").select("*").eq("course_id", courseId).order("created_at", { ascending: false }),
-    supabase.from("course_question_votes").select("question_id"),
-  ])
-  return { questions: unwrap(questions), voted: unwrap(votes).map((v) => v.question_id) }
+  return api.get<QandAData>(`/student/courses/${encodeURIComponent(courseId)}/questions`)
 }
 
 export async function askQuestion(courseId: string, body: string): Promise<QuestionRow> {
-  return unwrap(await supabase.from("course_questions").insert({ course_id: courseId, body: body.trim() }).select("*").single(), "Your question couldn't be posted.")
+  return api.post<QuestionRow>(`/student/courses/${encodeURIComponent(courseId)}/questions`, { body: body.trim() }, "Your question couldn't be posted.")
 }
 
 export async function setQuestionVote(questionId: string, on: boolean) {
-  if (on) unwrap(await supabase.from("course_question_votes").upsert({ question_id: questionId }, { onConflict: "question_id,student_id", ignoreDuplicates: true }).select("question_id"))
-  else unwrap(await supabase.from("course_question_votes").delete().eq("question_id", questionId).select("question_id"))
+  await api.put(`/student/questions/${encodeURIComponent(questionId)}/vote`, { on })
 }
 
 export async function deleteQuestion(id: string) {
-  unwrap(await supabase.from("course_questions").delete().eq("id", id).select("id"))
+  await api.del(`/student/questions/${encodeURIComponent(id)}`)
 }

@@ -1,4 +1,4 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, ApiError, type Tables } from "@/lib/api"
 import type { AnnouncementItem, AttendanceSubject, EventItem, TimetableSlot } from "../studentTypes"
 import { campusParts, campusTime, fmtDate, isoDay, relTime } from "../studentUtils"
 
@@ -8,12 +8,12 @@ export type ReminderType = "slot" | "quiz" | "event"
 const rkey = (type: ReminderType, id: string) => `${type}:${id}`
 
 export async function loadReminders(): Promise<string[]> {
-  return unwrap(await supabase.from("reminders").select("target_type, target_id")).map((r) => rkey(r.target_type as ReminderType, r.target_id))
+  const rows = await api.get<{ target_type: string; target_id: string }[]>("/student/reminders")
+  return rows.map((r) => rkey(r.target_type as ReminderType, r.target_id))
 }
 
 export async function setReminder(type: ReminderType, id: string, on: boolean) {
-  if (on) unwrap(await supabase.from("reminders").upsert({ target_type: type, target_id: id }, { onConflict: "student_id,target_type,target_id", ignoreDuplicates: true }).select("target_id"))
-  else unwrap(await supabase.from("reminders").delete().eq("target_type", type).eq("target_id", id).select("target_id"))
+  await api.put("/student/reminders", { target_type: type, target_id: id, on })
 }
 
 export { rkey as reminderKey }
@@ -34,7 +34,7 @@ const label = (min: number) => {
 export type SlotRow = Tables<"timetable_slots">
 
 export async function loadTimetable(): Promise<SlotRow[]> {
-  return unwrap(await supabase.from("timetable_slots").select("*").order("starts"))
+  return api.get<SlotRow[]>("/student/timetable")
 }
 
 /**
@@ -96,11 +96,9 @@ export interface AttendanceData {
 }
 
 export async function loadAttendance(): Promise<AttendanceData> {
-  const [records, leaves] = await Promise.all([
-    supabase.from("attendance_records").select("course_code, course_name, class_date, status").order("class_date"),
-    supabase.from("leave_requests").select("*").order("created_at", { ascending: false }),
-  ])
-  const rows = unwrap(records)
+  const { records: rows, leaves } = await api.get<{ records: Pick<Tables<"attendance_records">, "course_code" | "course_name" | "class_date" | "status">[]; leaves: Tables<"leave_requests">[] }>(
+    "/student/attendance",
+  )
   const by = new Map<string, { name: string; present: number; late: number; absent: number; excused: number }>()
   for (const r of rows) {
     const s = by.get(r.course_code) ?? { name: r.course_name, present: 0, late: 0, absent: 0, excused: 0 }
@@ -133,13 +131,13 @@ export async function loadAttendance(): Promise<AttendanceData> {
     absentClasses: totals.absent,
     excusedClasses: totals.excused,
     subjects,
-    leaves: unwrap(leaves),
+    leaves,
   }
 }
 
 export async function requestLeave(courseCode: string, date: string, reason: string): Promise<Tables<"leave_requests">> {
-  if (date < isoDay()) throw new Error("Pick today or a later date.")
-  return unwrap(await supabase.from("leave_requests").insert({ course_code: courseCode, leave_date: date, reason: reason.trim() }).select("*").single(), "Your leave request couldn't be sent.")
+  if (date < isoDay()) throw new ApiError("Pick today or a later date.")
+  return api.post<Tables<"leave_requests">>("/student/leave-requests", { course_code: courseCode, leave_date: date, reason: reason.trim() }, "Your leave request couldn't be sent.")
 }
 
 /* ------------------------- Events and announcements ----------------------- */
@@ -157,16 +155,11 @@ function eventDate(start: Date, end: Date | null) {
 }
 
 export async function loadCampusFeed(now = Date.now()): Promise<CampusFeed> {
-  const [events, regs, anns, reads] = await Promise.all([
-    supabase.from("campus_events").select("*").order("starts_at"),
-    supabase.from("event_registrations").select("event_id"),
-    supabase.from("announcements").select("*").order("published_at", { ascending: false }),
-    supabase.from("announcement_reads").select("announcement_id"),
-  ])
-  const registered = new Set(unwrap(regs).map((r) => r.event_id))
-  const read = new Set(unwrap(reads).map((r) => r.announcement_id))
+  const feed = await api.get<{ events: Tables<"campus_events">[]; registered: string[]; announcements: Tables<"announcements">[]; read: string[] }>("/student/campus-feed")
+  const registered = new Set(feed.registered)
+  const read = new Set(feed.read)
   return {
-    events: unwrap(events).map((e) => {
+    events: feed.events.map((e) => {
       const start = new Date(e.starts_at)
       const end = e.ends_at ? new Date(e.ends_at) : null
       return {
@@ -186,7 +179,7 @@ export async function loadCampusFeed(now = Date.now()): Promise<CampusFeed> {
         registered: registered.has(e.id),
       }
     }),
-    announcements: unwrap(anns).map((a) => ({
+    announcements: feed.announcements.map((a) => ({
       id: a.id,
       title: a.title,
       author: a.author,
@@ -202,21 +195,12 @@ export async function loadCampusFeed(now = Date.now()): Promise<CampusFeed> {
 }
 
 export async function setEventRegistration(eventId: string, on: boolean) {
-  if (on) unwrap(await supabase.from("event_registrations").upsert({ event_id: eventId }, { onConflict: "student_id,event_id", ignoreDuplicates: true }).select("event_id"))
-  else unwrap(await supabase.from("event_registrations").delete().eq("event_id", eventId).select("event_id"))
+  await api.put(`/student/events/${encodeURIComponent(eventId)}/registration`, { on })
 }
 
 export async function markAnnouncementsRead(ids: string[]) {
   if (!ids.length) return
-  unwrap(
-    await supabase
-      .from("announcement_reads")
-      .upsert(
-        ids.map((id) => ({ announcement_id: id })),
-        { onConflict: "student_id,announcement_id", ignoreDuplicates: true },
-      )
-      .select("announcement_id"),
-  )
+  await api.post("/student/announcements/read", { ids })
 }
 
 /* ----------------------------- Study activity ----------------------------- */
@@ -225,7 +209,5 @@ export type ActivityRow = Pick<Tables<"study_activity">, "day" | "minutes" | "le
 
 /** The last 120 days of study time, oldest first. */
 export async function loadActivity(): Promise<ActivityRow[]> {
-  const since = new Date()
-  since.setDate(since.getDate() - 120)
-  return unwrap(await supabase.from("study_activity").select("day, minutes, lessons").gte("day", isoDay(since)).order("day"))
+  return api.get<ActivityRow[]>("/student/activity")
 }

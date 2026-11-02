@@ -1,10 +1,11 @@
-// Opens every student page against the live backend as the demo student and reports console errors, failed
-// requests and the rendered heading. Screenshots go to ../shots/<name>.png.
+// Opens every student page against the API as the demo student (the portal signs it in through Cognito) and reports
+// console errors, failed requests and the rendered heading. Screenshots go to ../shots/<name>.png.
 //   node live-smoke.mjs [--base http://localhost:8443] [--only dashboard,grades] [--theme light]
 import { mkdirSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium } from "../../redesign-premium-ui/tools/node_modules/playwright-core/index.mjs"
+import { chromePath, COGNITO_ENDPOINT } from "../../redesign-premium-ui/tools/backend.mjs"
 
 const argv = process.argv
 const arg = (n, d) => (argv.includes(`--${n}`) ? argv[argv.indexOf(`--${n}`) + 1] : d)
@@ -37,8 +38,7 @@ const PAGES = [
 ].filter(([n]) => !only || only.split(",").includes(n))
 
 const student = { id: "u-student", name: "Aarav Mehta", role: "Student", email: "aarav.mehta@learner.ai", title: "Learner · Generative AI Engineering", avatar: "/assets/student-2.png" }
-const exe = path.join(process.env.LOCALAPPDATA, "ms-playwright", "chromium-1140", "chrome-win", "chrome.exe")
-const browser = await chromium.launch({ executablePath: exe })
+const browser = await chromium.launch({ executablePath: chromePath })
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 await context.addInitScript(
   ({ user, theme }) => {
@@ -56,7 +56,8 @@ const problems = []
 page.on("pageerror", (e) => problems.push(`pageerror: ${String(e).slice(0, 300)}`))
 page.on("console", (m) => m.type() === "error" && problems.push(`console: ${m.text().slice(0, 300)}`))
 page.on("response", (r) => {
-  if (r.status() >= 400 && /supabase\.co/.test(r.url())) problems.push(`http ${r.status()} ${r.request().method()} ${r.url().replace(/^https:\/\/[^/]+/, "").slice(0, 160)}`)
+  if (r.status() >= 400 && r.url().startsWith(`${base}/api/`)) problems.push(`http ${r.status()} ${r.request().method()} ${r.url().slice(base.length, base.length + 160)}`)
+  if (r.status() >= 400 && r.url().startsWith(COGNITO_ENDPOINT)) problems.push(`cognito ${r.status()} ${r.request().headers()["x-amz-target"] ?? ""}`)
 })
 page.on("requestfailed", (r) => problems.push(`failed ${r.method()} ${r.url().slice(0, 160)} ${r.failure()?.errorText ?? ""}`))
 

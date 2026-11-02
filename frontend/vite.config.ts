@@ -9,6 +9,9 @@ import siteConfiguration from "./.figma/make/site.json"
 export default defineConfig(({ mode }) => {
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
   const emitSourcemaps = mode === "development"
+  // The browser calls /api on its own origin: here Vite forwards it to the API server (`npm run dev` in backend/);
+  // in AWS, CloudFront routes /api/* to the API service.
+  const apiProxy = { "/api": { target: process.env.API_PROXY_TARGET || "http://localhost:4000", xfwd: true } }
 
   return {
     base: process.env.FIGMA_PUBLIC_URL
@@ -38,10 +41,12 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ["**/.figma/**"],
       },
+      proxy: apiProxy,
     },
     preview: {
       host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
+      proxy: apiProxy,
     },
   }
 })

@@ -3,7 +3,26 @@ import { Icon } from "../../components/Icon"
 import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { demoAccounts } from "../../data/demoAccounts"
 import type { UserRole } from "../../types"
-import { cancelStudentSignIn, studentSignIn, studentSignUp, studentVerifyCode } from "./studentAuth"
+import {
+  cancelStudentSignIn,
+  studentConfirmEmail,
+  studentForgotPassword,
+  studentResendCode,
+  studentResetPassword,
+  studentSignIn,
+  studentSignUp,
+  studentVerifyCode,
+  type StudentStep,
+} from "./studentAuth"
+
+/** The code a student is asked for after the password: authenticator app, email confirmation or a password reset. */
+type CodeStep = "mfa" | "confirm" | "reset"
+
+const CODE_COPY: Record<CodeStep, { label: string; placeholder: string; submit: string }> = {
+  mfa: { label: "Authenticator code", placeholder: "6-digit code from your app", submit: "Verify code →" },
+  confirm: { label: "Email confirmation code", placeholder: "Code from the email we sent", submit: "Confirm email →" },
+  reset: { label: "Reset code", placeholder: "Code from the email we sent", submit: "Set new password →" },
+}
 
 interface AuthPageProps {
   onLogin: (user: {
@@ -31,9 +50,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  // Student accounts with two-factor authentication enter their authenticator code after the password.
-  const [mfaStep, setMfaStep] = useState(false)
+  // After the password a student may be asked for a code (authenticator app, email confirmation, password reset).
+  const [codeStep, setCodeStep] = useState<CodeStep | null>(null)
+  const mfaStep = codeStep !== null
+  const setMfaStep = (on: boolean) => setCodeStep(on ? "mfa" : null)
   const [code, setCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole)
@@ -51,17 +73,19 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   }
 
   /** Runs a student sign-in step and hands the signed-in student to onLogin. */
-  const runStudent = async (step: () => Promise<Parameters<AuthPageProps["onLogin"]>[0] | "mfa">) => {
+  const runStudent = async (step: () => Promise<StudentStep>) => {
     setIsLoading(true)
     setErrorMessage(null)
     try {
       const result = await step()
-      if (result === "mfa") {
-        setMfaStep(true)
+      if (result === "mfa" || result === "confirm") {
+        setCodeStep(result)
         setCode("")
+        if (result === "confirm") setInfoMessage(`We emailed a confirmation code to ${email.trim()}.`)
         return
       }
-      setMfaStep(false)
+      setCodeStep(null)
+      setInfoMessage(null)
       onLogin(result)
     } catch (e) {
       setErrorMessage((e as Error).message || "Sign-in failed. Try again.")
@@ -102,7 +126,14 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (role === "Student") {
-      if (mfaStep) void runStudent(() => studentVerifyCode(code))
+      if (codeStep === "mfa") void runStudent(() => studentVerifyCode(code))
+      else if (codeStep === "confirm") void runStudent(() => studentConfirmEmail(email, code, password))
+      else if (codeStep === "reset")
+        void runStudent(async () => {
+          await studentResetPassword(email, code, newPassword)
+          setPassword(newPassword)
+          return studentSignIn(email, newPassword)
+        })
       else if (mode === "signin") void runStudent(() => studentSignIn(email, password))
       else void runStudent(() => studentSignUp(fullName, email, password))
       return
@@ -121,13 +152,40 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }, 400)
   }
 
-  const handleForgotPassword = () => {
-    setInfoMessage(
-      role === "Student"
-        ? "Email support@quantumschool.ai from your registered address and Learner Success will reset your password."
-        : "A password reset link has been dispatched to your email address.",
-    )
-    setTimeout(() => setInfoMessage(null), 6000)
+  const handleForgotPassword = async () => {
+    if (role !== "Student") {
+      setInfoMessage("A password reset link has been dispatched to your email address.")
+      setTimeout(() => setInfoMessage(null), 6000)
+      return
+    }
+    if (!email.trim()) {
+      setErrorMessage("Enter your email first, then choose Forgot.")
+      return
+    }
+    setIsLoading(true)
+    setErrorMessage(null)
+    try {
+      await studentForgotPassword(email)
+      setCodeStep("reset")
+      setCode("")
+      setNewPassword("")
+      setInfoMessage(`If ${email.trim()} has an account, we emailed it a reset code.`)
+    } catch (e) {
+      setErrorMessage((e as Error).message || "The reset code couldn't be sent.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resendCode = async () => {
+    setErrorMessage(null)
+    try {
+      if (codeStep === "reset") await studentForgotPassword(email)
+      else await studentResendCode(email)
+      setInfoMessage(`We sent a new code to ${email.trim()}.`)
+    } catch (e) {
+      setErrorMessage((e as Error).message || "A new code couldn't be sent.")
+    }
   }
 
   return (
@@ -540,10 +598,10 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
             {/* Form Fields */}
             <form onSubmit={handleSubmit}>
-              {mfaStep && (
+              {codeStep && (
                 <div className="auth-input-group">
                   <label className="auth-label" htmlFor="auth-mfa-code">
-                    Authenticator code
+                    {CODE_COPY[codeStep].label}
                   </label>
                   <div className="auth-input-wrapper">
                     <Icon name="settings" size={16} />
@@ -557,20 +615,48 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                       maxLength={8}
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      placeholder="6-digit code from your app"
+                      placeholder={CODE_COPY[codeStep].placeholder}
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMfaStep(false)
-                      setErrorMessage(null)
-                      void cancelStudentSignIn()
-                    }}
-                    className="mt-1 text-[11px] text-purple-700 hover:text-purple-900 font-semibold"
-                  >
-                    Use a different account
-                  </button>
+                  {codeStep === "reset" && (
+                    <>
+                      <label className="auth-label mt-3" htmlFor="auth-new-password">
+                        New password
+                      </label>
+                      <div className="auth-input-wrapper">
+                        <Icon name="settings" size={16} />
+                        <input
+                          id="auth-new-password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          required
+                          minLength={10}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="At least 10 characters"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="mt-1 flex flex-wrap gap-x-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCodeStep(null)
+                        setErrorMessage(null)
+                        setInfoMessage(null)
+                        void cancelStudentSignIn()
+                      }}
+                      className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold"
+                    >
+                      Use a different account
+                    </button>
+                    {codeStep !== "mfa" && (
+                      <button type="button" onClick={() => void resendCode()} className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold">
+                        Send a new code
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {!mfaStep && mode === "signup" && (
@@ -611,7 +697,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                   {mode === "signin" && (
                     <button
                       type="button"
-                      onClick={handleForgotPassword}
+                      onClick={() => void handleForgotPassword()}
                       className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold transition-colors"
                     >
                       Forgot?
@@ -636,7 +722,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-                {role === "Student" && mode === "signup" && <p className="mt-1 text-[11px] text-zinc-500">At least 8 characters.</p>}
+                {role === "Student" && mode === "signup" && <p className="mt-1 text-[11px] text-zinc-500">At least 10 characters, with upper and lower case letters and a number.</p>}
               </div>
               </>
               )}
@@ -667,8 +753,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                     ? mode === "signup" && !mfaStep
                       ? "Creating account..."
                       : "Signing in..."
-                    : mfaStep
-                      ? "Verify code →"
+                    : codeStep
+                      ? CODE_COPY[codeStep].submit
                       : mode === "signin"
                         ? `Sign In as ${role} →`
                         : `Create ${role} Account & Launch →`}

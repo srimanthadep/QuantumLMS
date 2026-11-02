@@ -1,11 +1,11 @@
-import { ApiError, supabase, toApiError, unwrap, type Json, type Tables } from "@/lib/supabase"
+import { api, ApiError, fileUrl, uploadFile as upload, type Json, type Tables, type UploadBucket } from "@/lib/api"
 import type { AssessmentAttempt, AssessmentQuestion } from "../studentTypes"
 import { toAttempt, type AttemptRow, type Profile } from "./core"
 
 /* --------------------------------- Courses -------------------------------- */
 
 export async function enroll(courseId: string): Promise<string> {
-  const row = unwrap(await supabase.from("enrollments").insert({ course_id: courseId }).select("enrolled_at").single(), "Enrolling failed. Try again.")
+  const row = await api.post<{ enrolled_at: string }>("/student/enrollments", { course_id: courseId }, "Enrolling failed. Try again.")
   return row.enrolled_at
 }
 
@@ -17,8 +17,7 @@ export interface LessonResult {
 }
 
 export async function setLessonComplete(lessonId: string, done: boolean): Promise<LessonResult> {
-  const res = await supabase.rpc("set_lesson_complete", { p_lesson_id: lessonId, p_done: done })
-  return unwrap(res, "Your progress couldn't be saved.") as unknown as LessonResult
+  return api.post<LessonResult>(`/student/lessons/${encodeURIComponent(lessonId)}/complete`, { done }, "Your progress couldn't be saved.")
 }
 
 /* ------------------------------- Assignments ------------------------------ */
@@ -31,18 +30,9 @@ export function fileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-/** Storage-safe object name that keeps the extension. */
-function objectName(file: File) {
-  const clean = file.name.normalize("NFKD").replace(/[^\w.-]+/g, "_").replace(/_+/g, "_").slice(-80) || "file"
-  return `${Date.now().toString(36)}-${clean}`
-}
-
-/** Uploads to "<bucket>/<uid>/<folder>/<name>" and returns the object path. */
-export async function uploadFile(bucket: "submissions" | "ticket-attachments" | "avatars", uid: string, folder: string, file: File): Promise<string> {
-  const path = `${uid}/${folder}/${objectName(file)}`
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false })
-  if (error) throw new ApiError(/exceeded|too large|413/i.test(error.message) ? "That file is too large." : `Upload failed: ${error.message}`)
-  return path
+/** Uploads to the student's own folder and returns the storage key. */
+export async function uploadFile(bucket: UploadBucket, _uid: string, folder: string, file: File): Promise<string> {
+  return upload(bucket, folder, file)
 }
 
 export interface SubmissionInput {
@@ -51,28 +41,28 @@ export interface SubmissionInput {
   file?: File | null
 }
 
-export async function submitAssignment(uid: string, assignmentId: string, input: SubmissionInput): Promise<Tables<"assignment_submissions">> {
-  let filePath: string | undefined
+export async function submitAssignment(_uid: string, assignmentId: string, input: SubmissionInput): Promise<Tables<"assignment_submissions">> {
+  let fileKey: string | undefined
   if (input.file) {
     if (input.file.size > MAX_SUBMISSION_BYTES) throw new ApiError("Files can be up to 50 MB.")
-    filePath = await uploadFile("submissions", uid, assignmentId, input.file)
+    fileKey = await upload("submissions", assignmentId, input.file)
   }
-  const res = await supabase.rpc("submit_assignment", {
-    p_assignment_id: assignmentId,
-    p_repo_url: input.repoUrl?.trim() || undefined,
-    p_comments: input.comments?.trim() || undefined,
-    p_file_path: filePath,
-    p_file_name: input.file?.name,
-    p_file_size: input.file ? fileSize(input.file.size) : undefined,
-  })
-  return unwrap(res, "Your submission couldn't be saved.")
+  return api.post<Tables<"assignment_submissions">>(
+    `/student/assignments/${encodeURIComponent(assignmentId)}/submission`,
+    {
+      repo_url: input.repoUrl?.trim() || undefined,
+      comments: input.comments?.trim() || undefined,
+      file_key: fileKey,
+      file_name: input.file?.name,
+      file_size: input.file ? fileSize(input.file.size) : undefined,
+    },
+    "Your submission couldn't be saved.",
+  )
 }
 
 /** A short-lived link to a submitted file. */
 export async function submissionFileUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from("submissions").createSignedUrl(path, 300)
-  if (error || !data) throw toApiError(error ?? undefined, "The file couldn't be opened.")
-  return data.signedUrl
+  return fileUrl(path)
 }
 
 /* --------------------------------- Quizzes -------------------------------- */
@@ -113,14 +103,11 @@ interface QuestionJson {
 /** Starts the quiz (or resumes the running attempt). Questions arrive without answers. */
 export async function startQuiz(quizId: string): Promise<LiveQuiz> {
   const requested = Date.now()
-  const p = unwrap(await supabase.rpc("start_quiz", { p_quiz_id: quizId }), "The quiz couldn't be started.") as unknown as {
-    attempt_id: string
-    attempt_number: number
-    deadline_at: string
-    server_now: string
-    answers: Json
-    questions: QuestionJson[]
-  }
+  const p = await api.post<{ attempt_id: string; attempt_number: number; deadline_at: string; server_now: string; answers: Json; questions: QuestionJson[] }>(
+    `/student/quizzes/${encodeURIComponent(quizId)}/start`,
+    {},
+    "The quiz couldn't be started.",
+  )
   const received = Date.now()
   const offset = Date.parse(p.server_now) - (requested + received) / 2
   return {
@@ -132,11 +119,10 @@ export async function startQuiz(quizId: string): Promise<LiveQuiz> {
   }
 }
 
-const toJsonAnswers = (answers: Record<number, number>) => Object.fromEntries(Object.entries(answers).map(([k, v]) => [String(k), v])) as Json
+const toJsonAnswers = (answers: Record<number, number>) => Object.fromEntries(Object.entries(answers).map(([k, v]) => [String(k), v]))
 
 export async function saveQuizAnswers(attemptId: string, answers: Record<number, number>) {
-  const { error } = await supabase.rpc("save_quiz_answers", { p_attempt_id: attemptId, p_answers: toJsonAnswers(answers) })
-  if (error) throw toApiError(error, "Your answers couldn't be saved.")
+  await api.put(`/student/quiz-attempts/${encodeURIComponent(attemptId)}/answers`, { answers: toJsonAnswers(answers) }, "Your answers couldn't be saved.")
 }
 
 export interface QuizReview {
@@ -145,12 +131,11 @@ export interface QuizReview {
   questions: AssessmentQuestion[]
 }
 
-function toReview(json: unknown, uid: string, name?: string): QuizReview {
-  const p = json as { attempt: AttemptRow; questions: QuestionJson[] }
+function toReview(json: { attempt: AttemptRow; questions: QuestionJson[] }, uid: string, name?: string): QuizReview {
   return {
-    row: p.attempt,
-    attempt: toAttempt(p.attempt, uid, name),
-    questions: p.questions.map((q) => ({
+    row: json.attempt,
+    attempt: toAttempt(json.attempt, uid, name),
+    questions: json.questions.map((q) => ({
       id: q.position,
       question: q.question,
       options: q.options,
@@ -163,27 +148,32 @@ function toReview(json: unknown, uid: string, name?: string): QuizReview {
 }
 
 export async function submitQuiz(uid: string, attemptId: string, answers: Record<number, number>, name?: string): Promise<QuizReview> {
-  const res = await supabase.rpc("submit_quiz", { p_attempt_id: attemptId, p_answers: toJsonAnswers(answers) })
-  return toReview(unwrap(res, "The quiz couldn't be submitted. Your answers are saved; try again."), uid, name)
+  const res = await api.post<{ attempt: AttemptRow; questions: QuestionJson[] }>(
+    `/student/quiz-attempts/${encodeURIComponent(attemptId)}/submit`,
+    { answers: toJsonAnswers(answers) },
+    "The quiz couldn't be submitted. Your answers are saved; try again.",
+  )
+  return toReview(res, uid, name)
 }
 
 export async function getQuizReview(uid: string, attemptId: string, name?: string): Promise<QuizReview> {
-  return toReview(unwrap(await supabase.rpc("get_quiz_review", { p_attempt_id: attemptId }), "The review couldn't be loaded."), uid, name)
+  return toReview(await api.get(`/student/quiz-attempts/${encodeURIComponent(attemptId)}/review`, "The review couldn't be loaded."), uid, name)
 }
 
 /* --------------------------------- Profile -------------------------------- */
 
 export type ProfilePatch = Partial<Pick<Profile, "full_name" | "phone" | "location" | "bio" | "avatar_url" | "notification_prefs" | "quiet_hours" | "ui_state">>
 
-export async function updateProfile(uid: string, patch: ProfilePatch): Promise<Profile> {
-  return unwrap(await supabase.from("profiles").update(patch).eq("id", uid).select("*").single(), "Your profile couldn't be saved.")
+export async function updateProfile(_uid: string, patch: ProfilePatch): Promise<Profile> {
+  return api.patch<Profile>("/student/profile", patch, "Your profile couldn't be saved.")
 }
 
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024
 
-export async function uploadAvatar(uid: string, file: File): Promise<string> {
+/** Uploads a profile photo and returns the URL to store as avatar_url. */
+export async function uploadAvatar(_uid: string, file: File): Promise<string> {
   if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new ApiError("Use a PNG, JPG, WebP or GIF image.")
   if (file.size > MAX_AVATAR_BYTES) throw new ApiError("Profile photos can be up to 2 MB.")
-  const path = await uploadFile("avatars", uid, "profile", file)
-  return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl
+  const key = await upload("avatars", "profile", file)
+  return `/api/files/${key}`
 }

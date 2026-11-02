@@ -1,4 +1,4 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, type Tables } from "@/lib/api"
 import type { CertificateItem, CourseItem, GradeItem } from "../studentTypes"
 
 export interface GradesData {
@@ -8,13 +8,9 @@ export interface GradesData {
 }
 
 export async function loadGrades(): Promise<GradesData> {
-  const [grades, gpa, certs] = await Promise.all([
-    supabase.from("grades").select("*").order("position"),
-    supabase.from("gpa_history").select("term, gpa, position").order("position"),
-    supabase.from("certificates").select("*").order("issued_at", { ascending: false, nullsFirst: false }),
-  ])
+  const r = await api.get<{ grades: Tables<"grades">[]; gpa: { term: string; gpa: number }[]; certificates: Tables<"certificates">[] }>("/student/grades")
   return {
-    grades: unwrap(grades).map((g) => ({
+    grades: r.grades.map((g) => ({
       id: g.id,
       courseCode: g.course_code,
       courseTitle: g.course_title,
@@ -27,8 +23,8 @@ export async function loadGrades(): Promise<GradesData> {
       status: g.status as GradeItem["status"],
       term: g.term,
     })),
-    gpaHistory: unwrap(gpa).map((r) => ({ term: r.term, gpa: Number(r.gpa) })),
-    certificates: unwrap(certs),
+    gpaHistory: r.gpa.map((x) => ({ term: x.term, gpa: Number(x.gpa) })),
+    certificates: r.certificates,
   }
 }
 

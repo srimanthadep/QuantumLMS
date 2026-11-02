@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react"
-import { ApiError, toApiError } from "@/lib/supabase"
+import { ApiError, toApiError } from "@/lib/api"
 
 /**
  * A tiny keyed cache for backend data. Pages read through useResource: the first visit loads, later visits show the
@@ -37,7 +37,7 @@ export function load<T>(key: string, loader: () => Promise<T>, force = false): P
       return data
     },
     (e: unknown) => {
-      const error = e instanceof ApiError ? e : toApiError(e as { message: string })
+      const error = toApiError(e)
       if (entries.get(key)?.promise === promise) set(key, { error, promise: undefined })
       throw error
     },

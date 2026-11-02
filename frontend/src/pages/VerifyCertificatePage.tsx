@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Award, BadgeCheck, CircleX, Loader2 } from "lucide-react"
 import { Badge, Button, Card } from "@/components/ui"
-import { isSupabaseConfigured, supabase, toApiError } from "@/lib/supabase"
+import { api, toApiError } from "@/lib/api"
 
 interface VerifiedCertificate {
   credential_id: string
@@ -23,17 +23,15 @@ export default function VerifyCertificatePage() {
 
   useEffect(() => {
     let cancelled = false
-    if (!isSupabaseConfigured) {
-      setState({ status: "error", message: "Verification isn't available right now." })
-      return
-    }
     setState({ status: "loading" })
-    supabase.rpc("verify_certificate", { p_credential_id: credentialId }).then(({ data, error }) => {
-      if (cancelled) return
-      if (error) setState({ status: "error", message: toApiError(error, "Verification failed. Try again.").message })
-      else if (!data) setState({ status: "invalid" })
-      else setState({ status: "valid", cert: data as unknown as VerifiedCertificate })
-    })
+    api.get<VerifiedCertificate>(`/public/certificates/${encodeURIComponent(credentialId)}`, "Verification failed. Try again.").then(
+      (cert) => !cancelled && setState({ status: "valid", cert }),
+      (e: unknown) => {
+        if (cancelled) return
+        const err = toApiError(e, "Verification failed. Try again.")
+        setState(err.status === 404 ? { status: "invalid" } : { status: "error", message: err.message })
+      },
+    )
     return () => {
       cancelled = true
     }

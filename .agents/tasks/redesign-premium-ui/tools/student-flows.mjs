@@ -1,12 +1,13 @@
-// End-to-end checks for the student portal against the live Supabase backend.
+// End-to-end checks for the student portal against the Quantum LMS API, signed in through Cognito.
 // Each flow starts from a freshly reset demo student, acts through the UI, then reloads to prove the change persisted.
+// Needs the API (`npm run dev` in backend/), the Cognito emulator started with CODE=123456 (fixed sign-up codes) and
+// the site (`npm run dev` in frontend/).
 // Usage: node student-flows.mjs --base http://localhost:8443 [--flows a,b]
-// Reads VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY from frontend/.env.local. The signup flow deletes its test
-// account afterwards when SUPABASE_ACCESS_TOKEN is set (otherwise it reports the leftover account).
-import { readFileSync } from "node:fs"
+// The signup flow deletes its test account afterwards (Cognito user and database row).
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium } from "playwright-core"
+import { chromePath, closeDb, COGNITO_ENDPOINT, deleteTestAccount, resetDemo as resetDemoAccount } from "./backend.mjs"
 import { demoUsers } from "./routes.mjs"
 
 const argv = process.argv
@@ -16,33 +17,11 @@ const arg = (n, d) => {
 }
 const base = arg("base", "http://localhost:8443")
 const here = path.dirname(fileURLToPath(import.meta.url))
-const env = Object.fromEntries(
-  readFileSync(path.join(here, "../../../../frontend/.env.local"), "utf8")
-    .split(/\r?\n/)
-    .filter((l) => l.includes("="))
-    .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]),
-)
-const SB_URL = env.VITE_SUPABASE_URL
-const SB_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_ANON_KEY
-const DEMO = { email: "aarav.mehta@learner.ai", password: "demo-student" }
-
-async function sb(pathname, { method = "GET", body, token } = {}) {
-  const res = await fetch(`${SB_URL}${pathname}`, {
-    method,
-    headers: { apikey: SB_KEY, "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  const text = await res.text()
-  return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null }
-}
+/** The code cognito-local sends for every sign-up when started with CODE=123456. */
+const SIGNUP_CODE = process.env.SIGNUP_CODE ?? "123456"
 
 /** Restores the shared demo student's data so every flow starts from the same state. */
-async function resetDemo() {
-  const auth = await sb("/auth/v1/token?grant_type=password", { method: "POST", body: DEMO })
-  if (!auth.ok) throw new Error(`demo sign-in failed: ${auth.status}`)
-  const r = await sb("/rest/v1/rpc/reset_my_demo_data", { method: "POST", body: {}, token: auth.data.access_token })
-  if (!r.ok) throw new Error(`demo reset failed: ${r.status} ${JSON.stringify(r.data)}`)
-}
+const resetDemo = () => resetDemoAccount(base)
 
 async function seed(page, user = demoUsers.Student, theme = "dark") {
   await page.addInitScript(
@@ -354,13 +333,21 @@ const flows = {
 
   async signup(page) {
     const email = `flow-${Date.now().toString(36)}@example.com`
+    page.__cleanupEmail = email
     await page.goto(`${base}/auth`, { waitUntil: "networkidle" })
     await page.getByTitle("Student Portal").click()
     await page.getByRole("button", { name: "Create Account" }).click()
     await page.getByPlaceholder("e.g. Marcus Sterling").fill("Flow Tester")
     await page.getByPlaceholder("name@quantum-lms.edu").fill(email)
+    // Too weak for the user pool's policy: the form says what's needed before calling Cognito.
     await page.getByPlaceholder("Enter your password").fill("flow-pass-123")
     await page.getByRole("button", { name: /Create Student Account/ }).click()
+    await page.getByText(/at least 10 characters with upper and lower case/i).first().waitFor({ timeout: 5000 })
+    await page.getByPlaceholder("Enter your password").fill("FlowPass2026")
+    await page.getByRole("button", { name: /Create Student Account/ }).click()
+    // Cognito emails a confirmation code; the emulator's is fixed.
+    await page.getByLabel("Email confirmation code").fill(SIGNUP_CODE)
+    await page.getByRole("button", { name: /Confirm email/ }).click()
     await page.locator("main h1", { hasText: /Flow$/ }).waitFor({ timeout: 20000 })
     await settle(page)
     // A new student starts with the starter courses and no history.
@@ -369,66 +356,12 @@ const flows = {
     await settle(page)
     const enrolled = await page.getByRole("tab", { name: /Enrolled/ }).innerText()
     expect(/4/.test(enrolled), `new student enrolled tab says "${enrolled}"`)
-    page.__cleanupEmail = email
   },
 }
 
-let adminKeyPromise
-/** The project's service key, fetched with SUPABASE_ACCESS_TOKEN; null when the token isn't set. */
-function adminKey() {
-  const token = process.env.SUPABASE_ACCESS_TOKEN
-  if (!token) return Promise.resolve(null)
-  adminKeyPromise ??= (async () => {
-    const ref = new URL(SB_URL).hostname.split(".")[0]
-    const keys = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${token}` } })).json()
-    return keys.find((k) => k.name === "service_role")?.api_key ?? keys.find((k) => k.type === "secret")?.api_key
-  })()
-  return adminKeyPromise
-}
-
-async function deleteUserByEmail(email) {
-  const admin = await adminKey()
-  if (!admin) return `left test account ${email} (set SUPABASE_ACCESS_TOKEN to clean up)`
-  const list = await (await fetch(`${SB_URL}/auth/v1/admin/users?per_page=200`, { headers: { apikey: admin, Authorization: `Bearer ${admin}` } })).json()
-  const user = (list.users ?? []).find((u) => u.email === email)
-  if (!user) return `test account ${email} not found`
-  const res = await fetch(`${SB_URL}/auth/v1/admin/users/${user.id}`, { method: "DELETE", headers: { apikey: admin, Authorization: `Bearer ${admin}` } })
-  return res.ok ? null : `deleting ${email} failed: ${res.status}`
-}
-
-/**
- * The demo reset restores database rows only, so files the flows uploaded (submissions, attachments, avatars) would
- * pile up in the demo student's storage folders. Removes them after the final reset.
- */
-async function emptyDemoStorage() {
-  const admin = await adminKey()
-  if (!admin) return "left the demo student's uploaded files (set SUPABASE_ACCESS_TOKEN to clean up)"
-  const auth = await sb("/auth/v1/token?grant_type=password", { method: "POST", body: DEMO })
-  if (!auth.ok) return `demo sign-in failed: ${auth.status}`
-  const headers = { apikey: admin, Authorization: `Bearer ${admin}`, "Content-Type": "application/json" }
-  let removed = 0
-  for (const bucket of ["submissions", "ticket-attachments", "avatars"]) {
-    const files = []
-    const walk = async (dir) => {
-      const res = await fetch(`${SB_URL}/storage/v1/object/list/${bucket}`, { method: "POST", headers, body: JSON.stringify({ prefix: dir, limit: 1000 }) })
-      if (!res.ok) return
-      for (const item of await res.json()) {
-        if (item.id) files.push(`${dir}${item.name}`)
-        else await walk(`${dir}${item.name}/`)
-      }
-    }
-    await walk(`${auth.data.user.id}/`)
-    if (!files.length) continue
-    const res = await fetch(`${SB_URL}/storage/v1/object/${bucket}`, { method: "DELETE", headers, body: JSON.stringify({ prefixes: files }) })
-    if (!res.ok) return `removing the demo's files from ${bucket} failed: ${res.status}`
-    removed += files.length
-  }
-  return removed ? `removed ${removed} file(s) the flows uploaded for the demo student` : null
-}
-
 const names = (arg("flows", "") || Object.keys(flows).join(",")).split(",").filter(Boolean)
-const exe = path.join(process.env.LOCALAPPDATA, "ms-playwright", "chromium-1140", "chrome-win", "chrome.exe")
-const browser = await chromium.launch({ executablePath: exe })
+const browser = await chromium.launch({ executablePath: chromePath })
+const apiPrefix = `${base}/api/`
 let failed = 0
 for (const n of names) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -437,7 +370,9 @@ for (const n of names) {
   page.on("pageerror", (e) => errors.push(String(e)))
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()))
   page.on("response", (r) => {
-    if (r.status() >= 400 && r.url().startsWith(SB_URL)) errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url().slice(SB_URL.length, SB_URL.length + 120)}`)
+    const url = r.url()
+    if (r.status() >= 400 && url.startsWith(apiPrefix)) errors.push(`HTTP ${r.status()} ${r.request().method()} ${url.slice(base.length, base.length + 120)}`)
+    if (r.status() >= 400 && url.startsWith(COGNITO_ENDPOINT)) errors.push(`Cognito HTTP ${r.status()} ${r.request().headers()["x-amz-target"] ?? ""}`)
   })
   try {
     await resetDemo()
@@ -448,7 +383,7 @@ for (const n of names) {
     await page.screenshot({ path: path.join(here, `../shots/flow-fail-${n}.png`) }).catch(() => {})
   }
   if (page.__cleanupEmail) {
-    const note = await deleteUserByEmail(page.__cleanupEmail).catch((e) => String(e))
+    const note = await deleteTestAccount(page.__cleanupEmail).catch((e) => String(e))
     if (note) console.log("    ", note)
   }
   console.log(`${errors.length ? "FAIL" : "ok  "} ${n}`)
@@ -458,7 +393,6 @@ for (const n of names) {
 }
 await browser.close()
 await resetDemo().catch((e) => console.log("final demo reset failed:", String(e)))
-const storageNote = await emptyDemoStorage().catch((e) => String(e))
-if (storageNote) console.log(storageNote)
+await closeDb()
 console.log(`${names.length - failed}/${names.length} flows passed`)
 process.exit(failed ? 1 : 0)

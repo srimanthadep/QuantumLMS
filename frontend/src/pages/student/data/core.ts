@@ -1,4 +1,4 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, type StudentProfile, type Tables } from "@/lib/api"
 import type { AssessmentAttempt, AssignmentData, CourseItem, LessonItem, ModuleItem, QuizData } from "../studentTypes"
 import { fmtDate, fmtDateTime, relTime, stamp } from "../studentUtils"
 
@@ -7,7 +7,7 @@ import { fmtDate, fmtDateTime, relTime, stamp } from "../studentUtils"
  * and the assignments and quizzes of enrolled courses. Raw rows are cached; deriveCore turns them into the view
  * models the pages render, so a mutation only has to touch the rows.
  */
-export type Profile = Tables<"profiles">
+export type Profile = StudentProfile
 export type AttemptRow = Pick<
   Tables<"quiz_attempts">,
   "id" | "quiz_id" | "attempt_number" | "started_at" | "deadline_at" | "submitted_at" | "time_taken_seconds" | "score" | "max_score" | "pct" | "passed" | "feedback" | "answers"
@@ -31,48 +31,38 @@ export interface CoreRaw {
   attempts: AttemptRow[]
 }
 
-const ATTEMPT_COLUMNS = "id, quiz_id, attempt_number, started_at, deadline_at, submitted_at, time_taken_seconds, score, max_score, pct, passed, feedback, answers"
-
+/** The student's quiz attempts. The server grades any that ran out of time first. */
 export async function loadAttempts(): Promise<AttemptRow[]> {
-  return unwrap(await supabase.from("quiz_attempts").select(ATTEMPT_COLUMNS).order("started_at"))
+  return api.get<AttemptRow[]>("/student/quiz-attempts")
+}
+
+interface CoreResponse {
+  profile: Profile
+  courses: Tables<"courses">[]
+  modules: Tables<"course_modules">[]
+  lessons: LessonRow[]
+  enrollments: { course_id: string; enrolled_at: string }[]
+  progress: { lesson_id: string; completed_at: string }[]
+  assignments: Tables<"assignments">[]
+  submissions: Tables<"assignment_submissions">[]
+  quizzes: Tables<"quizzes">[]
+  attempts: AttemptRow[]
 }
 
 export async function loadCore(uid: string): Promise<CoreRaw> {
-  // Grades attempts that ran out of time while the student was away (pg_cron also does this every minute).
-  const synced = supabase.rpc("sync_my_quizzes").then(
-    () => undefined,
-    () => undefined,
-  )
-  const [profile, courses, modules, lessons, enrollments, progress, assignments, submissions, quizzes, attempts] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", uid).single(),
-    supabase.from("courses").select("*").order("position"),
-    supabase.from("course_modules").select("*").order("course_id").order("position"),
-    supabase.from("lessons").select("id, module_id, course_id, position, title, duration, minutes, type, summary").order("course_id").order("position"),
-    supabase.from("enrollments").select("course_id, enrolled_at"),
-    supabase.from("lesson_progress").select("lesson_id, completed_at"),
-    supabase.from("assignments").select("*").order("due_at"),
-    supabase.from("assignment_submissions").select("*"),
-    supabase.from("quizzes").select("*").order("due_at"),
-    supabase.from("quiz_attempts").select(ATTEMPT_COLUMNS).order("started_at"),
-  ])
-  let attemptRows = unwrap(attempts)
-  const graceMs = 30_000
-  if (attemptRows.some((a) => !a.submitted_at && Date.parse(a.deadline_at) < Date.now() - graceMs)) {
-    await synced
-    attemptRows = await loadAttempts()
-  }
+  const r = await api.get<CoreResponse>("/student/core", "Your profile could not be loaded.")
   return {
     uid,
-    profile: unwrap(profile, "Your profile could not be loaded."),
-    courses: unwrap(courses),
-    modules: unwrap(modules),
-    lessons: unwrap(lessons),
-    enrollments: Object.fromEntries(unwrap(enrollments).map((e) => [e.course_id, e.enrolled_at])),
-    progress: Object.fromEntries(unwrap(progress).map((p) => [p.lesson_id, p.completed_at])),
-    assignments: unwrap(assignments),
-    submissions: Object.fromEntries(unwrap(submissions).map((s) => [s.assignment_id, s])),
-    quizzes: unwrap(quizzes),
-    attempts: attemptRows,
+    profile: r.profile,
+    courses: r.courses,
+    modules: r.modules,
+    lessons: r.lessons,
+    enrollments: Object.fromEntries(r.enrollments.map((e) => [e.course_id, e.enrolled_at])),
+    progress: Object.fromEntries(r.progress.map((p) => [p.lesson_id, p.completed_at])),
+    assignments: r.assignments,
+    submissions: Object.fromEntries(r.submissions.map((s) => [s.assignment_id, s])),
+    quizzes: r.quizzes,
+    attempts: r.attempts,
   }
 }
 

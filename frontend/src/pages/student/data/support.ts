@@ -1,7 +1,7 @@
-import { ApiError, supabase, toApiError, unwrap, type Tables } from "@/lib/supabase"
+import { api, ApiError, fileUrl, uploadFile, type Tables } from "@/lib/api"
 import type { FaqItem, StudentNavPage, SupportTicket, TicketCategory, TicketPriority, TicketReply, TicketStatus } from "../studentTypes"
 import { fmtDateTime, relTime, stamp } from "../studentUtils"
-import { fileSize, uploadFile } from "./actions"
+import { fileSize } from "./actions"
 
 export interface SupportData {
   faqs: FaqItem[]
@@ -45,15 +45,9 @@ export function toTicket(t: TicketRow, replies: ReplyRow[], now = Date.now()): S
 }
 
 export async function loadSupport(): Promise<SupportData> {
-  const [faqs, votes, tickets, replies] = await Promise.all([
-    supabase.from("faqs").select("*").order("position"),
-    supabase.from("faq_votes").select("faq_id, vote"),
-    supabase.from("support_tickets").select("*").order("created_at", { ascending: false }),
-    supabase.from("ticket_replies").select("*").order("created_at"),
-  ])
-  const replyRows = unwrap(replies)
+  const { faqs, votes, tickets, replies: replyRows } = await api.get<{ faqs: Tables<"faqs">[]; votes: { faq_id: string; vote: string }[]; tickets: TicketRow[]; replies: ReplyRow[] }>("/student/support")
   return {
-    faqs: unwrap(faqs).map((f) => ({
+    faqs: faqs.map((f) => ({
       id: f.id,
       category: f.category as FaqItem["category"],
       question: f.question,
@@ -61,13 +55,13 @@ export async function loadSupport(): Promise<SupportData> {
       linkTarget: (f.link_target ?? undefined) as StudentNavPage | undefined,
       linkLabel: f.link_label ?? undefined,
     })),
-    votes: Object.fromEntries(unwrap(votes).map((v) => [v.faq_id, v.vote as "up" | "down"])),
-    tickets: unwrap(tickets).map((t) => toTicket(t, replyRows)),
+    votes: Object.fromEntries(votes.map((v) => [v.faq_id, v.vote as "up" | "down"])),
+    tickets: tickets.map((t) => toTicket(t, replyRows)),
   }
 }
 
 export async function voteFaq(faqId: string, vote: "up" | "down") {
-  unwrap(await supabase.from("faq_votes").upsert({ faq_id: faqId, vote }, { onConflict: "student_id,faq_id" }).select("faq_id"), "Your feedback couldn't be saved.")
+  await api.put(`/student/faqs/${encodeURIComponent(faqId)}/vote`, { vote }, "Your feedback couldn't be saved.")
 }
 
 export interface NewTicket {
@@ -80,48 +74,35 @@ export interface NewTicket {
 
 export const MAX_TICKET_FILE_BYTES = 10 * 1024 * 1024
 
-async function attach(uid: string, ticketFolder: string, file?: File | null) {
+async function attach(ticketFolder: string, file?: File | null) {
   if (!file) return {}
   if (file.size > MAX_TICKET_FILE_BYTES) throw new ApiError("Attachments can be up to 10 MB.")
-  const path = await uploadFile("ticket-attachments", uid, ticketFolder, file)
-  return { path, name: file.name, size: fileSize(file.size) }
+  const key = await uploadFile("ticket-attachments", ticketFolder, file)
+  return { attachment_key: key, attachment_name: file.name, attachment_size: fileSize(file.size) }
 }
 
-export async function createTicket(uid: string, t: NewTicket): Promise<SupportTicket> {
-  const file = await attach(uid, "new", t.file)
-  const row = unwrap(
-    await supabase.rpc("create_support_ticket", {
-      p_category: t.category,
-      p_subject: t.subject,
-      p_description: t.description,
-      p_priority: t.priority,
-      p_attachment_name: file.name,
-      p_attachment_size: file.size,
-      p_attachment_path: file.path,
-    }),
+export async function createTicket(_uid: string, t: NewTicket): Promise<SupportTicket> {
+  const file = await attach("new", t.file)
+  const r = await api.post<{ ticket: TicketRow; replies: ReplyRow[] }>(
+    "/student/support/tickets",
+    { category: t.category, subject: t.subject, description: t.description, priority: t.priority, ...file },
     "The ticket couldn't be created.",
   )
-  const replies = unwrap(await supabase.from("ticket_replies").select("*").eq("ticket_id", row.id).order("created_at"))
-  return toTicket(row, replies)
+  return toTicket(r.ticket, r.replies)
 }
 
-export async function replyToTicket(uid: string, ticketId: string, content: string, file?: File | null): Promise<TicketReply> {
-  const f = await attach(uid, ticketId, file)
-  const row = unwrap(
-    await supabase.rpc("reply_to_support_ticket", { p_ticket_id: ticketId, p_content: content, p_attachment_name: f.name, p_attachment_path: f.path }),
-    "Your reply couldn't be sent.",
-  )
+export async function replyToTicket(_uid: string, ticketId: string, content: string, file?: File | null): Promise<TicketReply> {
+  const f = await attach(ticketId, file)
+  const row = await api.post<ReplyRow>(`/student/support/tickets/${encodeURIComponent(ticketId)}/replies`, { content, ...f }, "Your reply couldn't be sent.")
   return toReply(row)
 }
 
 export async function setTicketStatus(ticketId: string, status: TicketStatus): Promise<TicketRow> {
-  return unwrap(await supabase.rpc("set_support_ticket_status", { p_ticket_id: ticketId, p_status: status }), "The ticket couldn't be updated.")
+  return api.patch<TicketRow>(`/student/support/tickets/${encodeURIComponent(ticketId)}`, { status }, "The ticket couldn't be updated.")
 }
 
 export async function attachmentUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from("ticket-attachments").createSignedUrl(path, 300)
-  if (error || !data) throw toApiError(error ?? undefined, "The attachment couldn't be opened.")
-  return data.signedUrl
+  return fileUrl(path)
 }
 
 /* -------------------------------- Live chat ------------------------------- */
@@ -129,10 +110,10 @@ export async function attachmentUrl(path: string): Promise<string> {
 export type ChatRow = Tables<"support_chat_messages">
 
 export async function loadChat(): Promise<ChatRow[]> {
-  return unwrap(await supabase.from("support_chat_messages").select("*").order("created_at").order("id").limit(200))
+  return api.get<ChatRow[]>("/student/support/chat")
 }
 
 /** Sends a message; resolves to the stored message and the agent's reply. */
 export async function sendChat(body: string): Promise<ChatRow[]> {
-  return unwrap(await supabase.rpc("send_support_chat_message", { p_body: body }), "Your message couldn't be sent.")
+  return api.post<ChatRow[]>("/student/support/chat", { body }, "Your message couldn't be sent.")
 }

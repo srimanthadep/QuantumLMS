@@ -1,15 +1,15 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, type Tables } from "@/lib/api"
 
 export type NotificationRow = Tables<"notifications">
 
 export async function loadNotifications(): Promise<NotificationRow[]> {
-  return unwrap(await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(30))
+  return api.get<NotificationRow[]>("/student/notifications")
 }
 
 export async function markNotificationRead(id: string) {
-  unwrap(await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id).is("read_at", null).select("id"))
+  await api.post("/student/notifications/read", { id })
 }
 
 export async function markAllNotificationsRead() {
-  unwrap(await supabase.from("notifications").update({ read_at: new Date().toISOString() }).is("read_at", null).select("id"))
+  await api.post("/student/notifications/read", {})
 }

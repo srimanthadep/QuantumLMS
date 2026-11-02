@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { Bell, Camera, Check, Eye, EyeOff, KeyRound, Laptop, LogOut, Monitor, Palette, ShieldCheck, Smartphone, User } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,7 +33,8 @@ import {
 import type { StudentNavPage } from "./studentTypes"
 import { useStudentData } from "./data/StudentDataProvider"
 import { uploadAvatar } from "./data/actions"
-import { changePassword, describeDevice, enrollTotp, listTotpFactors, signOutOtherDevices, unenrollTotp, verifyTotp, type TotpEnrollment, type TotpFactor } from "./data/account"
+import { changePassword, describeDevice, enrollTotp, listTotpFactors, signOutAllDevices, unenrollTotp, verifyTotp, type TotpEnrollment, type TotpFactor } from "./data/account"
+import { meetsPasswordPolicy, PASSWORD_RULE } from "@/lib/auth"
 
 type SettingsTab = "profile" | "appearance" | "notifications" | "security"
 
@@ -85,8 +87,8 @@ function readPrefs(saved: unknown): Record<PrefId, boolean> {
 
 function strength(pw: string): { score: number; label: string; tone: "danger" | "warning" | "success" } {
   let s = 0
-  if (pw.length >= 8) s++
-  if (pw.length >= 12) s++
+  if (pw.length >= 10) s++
+  if (pw.length >= 14) s++
   if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++
   if (/\d/.test(pw)) s++
   if (/[^A-Za-z0-9]/.test(pw)) s++
@@ -463,24 +465,28 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
     if (pendingFactor) unenrollTotp(pendingFactor.factorId).catch(() => undefined)
   }
 
+  const session = useSession()
+  const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
-  const signOutOthers = async () => {
+  const signOutEverywhere = async () => {
     setSigningOut(true)
     try {
-      await signOutOtherDevices()
-      onToast("Signed out of all other devices")
+      await signOutAllDevices()
     } catch (e) {
-      onToast(`Couldn't sign out other devices: ${(e as Error).message}`)
-    } finally {
+      onToast((e as Error).message)
       setSigningOut(false)
+      return
     }
+    session.logout()
+    navigate("/auth")
+    onToast("Signed out of all devices. Sign in again to continue.")
   }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const errs = {
       current: current ? undefined : "Enter your current password.",
-      next: next.length < 8 ? "Use at least 8 characters." : s.label === "Weak" ? "Add numbers, symbols or mixed case." : next === current ? "Choose a different password." : undefined,
+      next: !meetsPasswordPolicy(next) ? PASSWORD_RULE : next === current ? "Choose a different password." : undefined,
       confirm: confirm !== next ? "Passwords don't match." : undefined,
     }
     setErrors(errs)
@@ -502,7 +508,7 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
       {isDemo && (
         <Card className="border-warning/30 bg-warning-soft">
           <CardContent className="pt-5 text-sm text-foreground">
-            This is the shared demo account, so its password, two-factor settings and other devices' sessions can't be changed. Create your own student account to try them.
+            This is the shared demo account, so its password, two-factor settings and sessions can't be changed. Create your own student account to try them.
           </CardContent>
         </Card>
       )}
@@ -584,8 +590,8 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">
           <CardTitle>Where you're signed in</CardTitle>
-          <Button variant="ghost" size="sm" disabled={isDemo} loading={signingOut} onClick={() => void signOutOthers()}>
-            Sign out other devices
+          <Button variant="ghost" size="sm" disabled={isDemo} loading={signingOut} onClick={() => void signOutEverywhere()}>
+            Sign out of all devices
           </Button>
         </CardHeader>
         <CardContent className="grid gap-1">
@@ -601,7 +607,7 @@ function Security({ onToast, onLogout }: { onToast: (m: string) => void; onLogou
               This device
             </Badge>
           </div>
-          <p className="px-1 pt-1 text-caption text-muted-foreground">Signing out other devices ends every session except this one.</p>
+          <p className="px-1 pt-1 text-caption text-muted-foreground">Signing out of all devices ends every session of your account, this one included. You'll sign in again here.</p>
         </CardContent>
       </Card>
 

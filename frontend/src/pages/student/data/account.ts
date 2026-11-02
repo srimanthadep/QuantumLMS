@@ -1,11 +1,15 @@
-import { ApiError, supabase } from "@/lib/supabase"
+import { getCurrentUser } from "aws-amplify/auth"
+import { api, ApiError } from "@/lib/api"
+import { beginTotpSetup, changePassword as cognitoChangePassword, disableTotp, finishTotpSetup, isTotpEnabled } from "@/lib/auth"
 
-/** Checks the current password by signing in with it, then sets the new one. */
-export async function changePassword(email: string, current: string, next: string) {
-  const check = await supabase.auth.signInWithPassword({ email, password: current })
-  if (check.error) throw new ApiError("Your current password is incorrect.")
-  const { error } = await supabase.auth.updateUser({ password: next })
-  if (error) throw new ApiError(/same/i.test(error.message) ? "Choose a password you haven't used here before." : error.message)
+/** Account security through Cognito: password, authenticator app and sessions. */
+
+export async function changePassword(_email: string, current: string, next: string) {
+  try {
+    await cognitoChangePassword(current, next)
+  } catch (e) {
+    throw new ApiError((e as Error).message)
+  }
 }
 
 export interface TotpFactor {
@@ -14,10 +18,9 @@ export interface TotpFactor {
   createdAt: string
 }
 
+/** Cognito keeps one authenticator per account. */
 export async function listTotpFactors(): Promise<TotpFactor[]> {
-  const { data, error } = await supabase.auth.mfa.listFactors()
-  if (error) throw new ApiError(error.message)
-  return data.totp.map((f) => ({ id: f.id, friendlyName: f.friendly_name ?? undefined, createdAt: f.created_at }))
+  return (await isTotpEnabled()) ? [{ id: "totp", friendlyName: "Authenticator app", createdAt: "" }] : []
 }
 
 export interface TotpEnrollment {
@@ -28,34 +31,43 @@ export interface TotpEnrollment {
 }
 
 export async function enrollTotp(): Promise<TotpEnrollment> {
-  // Clear half-finished enrollments first; the server rejects a second unverified factor with the same name.
-  const { data: listed } = await supabase.auth.mfa.listFactors()
-  for (const f of listed?.all ?? []) if (f.status === "unverified") await supabase.auth.mfa.unenroll({ factorId: f.id })
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}` })
-  if (error) throw new ApiError(/demo account/i.test(error.message) || /database error/i.test(error.message) ? "The shared demo account can't turn on two-factor authentication." : error.message)
-  return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret }
+  let account = "student"
+  try {
+    const u = await getCurrentUser()
+    account = u.signInDetails?.loginId ?? u.username
+  } catch {
+    // keep the generic label
+  }
+  try {
+    const setup = await beginTotpSetup(account)
+    return { factorId: "totp", qrCode: setup.qrCode, secret: setup.secret }
+  } catch (e) {
+    throw new ApiError((e as Error).message)
+  }
 }
 
-export async function verifyTotp(factorId: string, code: string) {
-  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: code.replace(/\s+/g, "") })
-  if (error) throw new ApiError(/invalid|expired/i.test(error.message) ? "That code didn't work. Enter the current 6-digit code." : error.message)
+export async function verifyTotp(_factorId: string, code: string) {
+  try {
+    await finishTotpSetup(code)
+  } catch (e) {
+    throw new ApiError((e as Error).message)
+  }
 }
 
-export async function unenrollTotp(factorId: string) {
-  const { error } = await supabase.auth.mfa.unenroll({ factorId })
-  if (error) throw new ApiError(/aal2/i.test(error.message) ? "Sign in again with your authenticator code, then turn it off." : error.message)
+export async function unenrollTotp(_factorId: string) {
+  try {
+    await disableTotp()
+  } catch (e) {
+    throw new ApiError((e as Error).message)
+  }
 }
 
-/** True when the account has a verified second factor that this session hasn't passed yet. */
-export async function needsSecondFactor(): Promise<boolean> {
-  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-  if (error) return false
-  return data.nextLevel === "aal2" && data.currentLevel !== "aal2"
-}
-
-export async function signOutOtherDevices() {
-  const { error } = await supabase.auth.signOut({ scope: "others" })
-  if (error) throw new ApiError(error.message)
+/**
+ * Ends every session of this account, this device included: Cognito revokes the refresh tokens and the API stops
+ * accepting the access tokens issued so far. The caller then signs out here.
+ */
+export async function signOutAllDevices() {
+  await api.post("/me/sign-out-everywhere", {}, "Couldn't sign out of all devices. Try again.")
 }
 
 /** "Chrome on Windows" from the user agent. */

@@ -18,7 +18,7 @@ const KEY_USER = "quantum_current_user"
 const ROLES = Object.keys(ROLE_HOME) as UserRole[]
 
 export interface LoginInput {
-  /** Backend user id (students signed in with Supabase). */
+  /** Backend user id (students signed in with Cognito). */
   id?: string
   name: string
   role: UserRole
@@ -32,7 +32,7 @@ interface SessionValue {
   role: UserRole
   user: CurrentUser
   login: (user: LoginInput) => void
-  /** Ends the session, including the student's Supabase sign-in. */
+  /** Ends the session, including the student's Cognito sign-in on this device. */
   logout: () => void
   /** Switch to another role's demo account. Returns that role's home path. */
   switchRole: (role: UserRole) => string
@@ -109,9 +109,9 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
       persist(false, s.user)
       return { ...s, isAuthenticated: false }
     })
-    // Loaded on demand so portals that don't use the backend don't pay for the client.
-    import("@/lib/supabase")
-      .then(({ supabase }) => supabase.auth.signOut())
+    // Loaded on demand so portals that don't use the backend don't pay for the auth client.
+    import("@/lib/auth")
+      .then(({ signOutHere }) => signOutHere())
       .catch(() => undefined)
   }, [])
 
@@ -138,9 +138,8 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   const role = state.user.role
   const resetDemoData = useCallback(async () => {
     if (role === "Student") {
-      const { supabase, toApiError } = await import("@/lib/supabase")
-      const { error } = await supabase.rpc("reset_my_demo_data")
-      if (error) throw toApiError(error, "The demo data couldn't be reset.")
+      const { api } = await import("@/lib/api")
+      await api.post("/student/demo/reset", {}, "The demo data couldn't be reset.")
     }
     try {
       const keep = new Set([KEY_AUTH, KEY_ROLE, KEY_USER, "app_theme_mode", "app_theme_accent", "quantum_shell_collapsed"])

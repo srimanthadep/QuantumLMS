@@ -5,7 +5,9 @@ import { useSession } from "@/app/session"
 import RouteFallback from "@/app/RouteFallback"
 import { Button, EmptyState } from "@/components/ui"
 import { useToast } from "@/components/ui/toast"
-import { DEMO_STUDENT, isDemoStudentEmail, isSupabaseConfigured, supabase, toApiError } from "@/lib/supabase"
+import { Hub } from "aws-amplify/utils"
+import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError, type StudentProfile } from "@/lib/api"
+import { currentUserId, isAuthConfigured, signInWithEmail } from "@/lib/auth"
 import type { CourseItem } from "../studentTypes"
 import * as actions from "./actions"
 import { deriveCore, loadAttempts, loadCore, type CoreRaw, type CoreView, type Profile } from "./core"
@@ -41,7 +43,7 @@ function FullPageError({ title, message, onRetry, onBack }: { title: string; mes
 }
 
 /**
- * Makes sure a Supabase session exists before the portal renders. Demo sessions (role switcher, quick launch) sign
+ * Makes sure a Cognito session exists before the portal renders. Demo sessions (role switcher, quick launch) sign
  * in the shared demo student; a real student whose sign-in expired goes back to the sign-in page.
  */
 function SessionGate({ children }: { children: (uid: string) => ReactNode }) {
@@ -62,25 +64,31 @@ function SessionGate({ children }: { children: (uid: string) => ReactNode }) {
 
   const check = useCallback(async () => {
     setState({ status: "checking" })
-    if (!isSupabaseConfigured) {
-      setState({ status: "error", message: "The student backend isn't configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in frontend/.env.local." })
+    if (!isAuthConfigured) {
+      setState({ status: "error", message: "Sign-in isn't configured. Set VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID in frontend/.env.local." })
       return
     }
     try {
-      let current = (await supabase.auth.getSession()).data.session
-      if (!current) {
+      let signedIn = await currentUserId()
+      if (!signedIn) {
         if (!isDemoStudentEmail(sessionRef.current.user.email)) {
           toSignIn()
           return
         }
-        const { data, error } = await supabase.auth.signInWithPassword(DEMO_STUDENT)
-        if (error || !data.session) throw error ?? new Error("Sign-in failed")
-        current = data.session
+        if ((await signInWithEmail(DEMO_STUDENT.email, DEMO_STUDENT.password)) !== "done") throw new Error("The demo account couldn't be signed in.")
+        signedIn = await currentUserId()
       }
-      uidRef.current = current.user.id
-      setState({ status: "ready", uid: current.user.id })
+      // The API knows the account by its own id (and creates the student profile on first use).
+      const profile = await api.get<StudentProfile>("/student/profile", "We couldn't open your student profile.")
+      uidRef.current = profile.id
+      setState({ status: "ready", uid: profile.id })
     } catch (e) {
-      setState({ status: "error", message: toApiError(e as { message: string }, "We couldn't sign you in to the student portal.").message })
+      const err = toApiError(e, "We couldn't sign you in to the student portal.")
+      if (err.status === 401 || err.status === 403) {
+        toSignIn()
+        return
+      }
+      setState({ status: "error", message: err.message })
     }
   }, [toSignIn])
 
@@ -88,25 +96,15 @@ function SessionGate({ children }: { children: (uid: string) => ReactNode }) {
     void check()
   }, [check])
 
-  // Signing out in another tab, or in as someone else, is reflected here. Deferred: Supabase calls inside the
-  // callback would wait on the auth lock that is still held.
+  // Signing out in another tab, or an expired refresh token, sends the student back to sign in.
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event, s) => {
-      setTimeout(() => {
-        if (event === "SIGNED_OUT") {
-          if (!uidRef.current) return
-          uidRef.current = null
-          clearAll()
-          if (sessionRef.current.isAuthenticated && sessionRef.current.role === "Student") toSignIn()
-          return
-        }
-        if (s && uidRef.current && s.user.id !== uidRef.current) {
-          uidRef.current = s.user.id
-          setState({ status: "ready", uid: s.user.id })
-        }
-      }, 0)
+    return Hub.listen("auth", ({ payload }) => {
+      if (payload.event !== "signedOut" && payload.event !== "tokenRefresh_failure") return
+      if (!uidRef.current) return
+      uidRef.current = null
+      clearAll()
+      if (sessionRef.current.isAuthenticated && sessionRef.current.role === "Student") toSignIn()
     })
-    return () => data.subscription.unsubscribe()
   }, [toSignIn])
 
   if (state.status === "checking") return <RouteFallback />

@@ -1,4 +1,4 @@
-import { supabase, unwrap, type Tables } from "@/lib/supabase"
+import { api, type Tables } from "@/lib/api"
 
 export type NoteRow = Tables<"notes">
 
@@ -13,24 +13,21 @@ export interface NoteInput {
 }
 
 export async function loadNotes(): Promise<NoteRow[]> {
-  return unwrap(await supabase.from("notes").select("*").order("updated_at", { ascending: false }))
+  return api.get<NoteRow[]>("/student/notes")
 }
 
 export async function createNote(input: NoteInput): Promise<NoteRow> {
-  return unwrap(
-    await supabase
-      .from("notes")
-      .insert({ title: input.title, course: input.course, content: input.content, snippet: input.snippet ?? null, tags: input.tags, pinned: input.pinned ?? false, lesson: input.lesson ?? null })
-      .select("*")
-      .single(),
+  return api.post<NoteRow>(
+    "/student/notes",
+    { title: input.title, course: input.course, content: input.content, snippet: input.snippet ?? null, tags: input.tags, pinned: input.pinned ?? false, lesson: input.lesson ?? null },
     "The note couldn't be saved.",
   )
 }
 
 export async function updateNote(id: string, patch: Partial<NoteInput>): Promise<NoteRow> {
-  return unwrap(await supabase.from("notes").update(patch).eq("id", id).select("*").single(), "The note couldn't be saved.")
+  return api.patch<NoteRow>(`/student/notes/${encodeURIComponent(id)}`, patch, "The note couldn't be saved.")
 }
 
 export async function deleteNote(id: string) {
-  unwrap(await supabase.from("notes").delete().eq("id", id).select("id"), "The note couldn't be deleted.")
+  await api.del(`/student/notes/${encodeURIComponent(id)}`, "The note couldn't be deleted.")
 }
