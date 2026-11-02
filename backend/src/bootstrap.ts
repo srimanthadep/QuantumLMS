@@ -5,12 +5,15 @@ import type { Config } from "./config.js"
 import type { AppContext } from "./context.js"
 import { createDb, createPool } from "./db/client.js"
 import type { Role } from "./db/schema.js"
+import { onboardStudent } from "./modules/student/index.js"
 import { createLocalStorage } from "./storage/local.js"
 import { createS3Storage } from "./storage/s3.js"
 import type { Storage } from "./storage/storage.js"
 
 /** Role -> what happens when a new account of that role signs in for the first time. */
-export const onboarding: Partial<Record<Role, Onboard>> = {}
+function onboardingFor(config: Config): Partial<Record<Role, Onboard>> {
+  return { Student: (tx, user) => onboardStudent(tx, user, { config }) }
+}
 
 /** Wires the real dependencies. Tests pass overrides for Cognito, token verification and storage. */
 export function createContext(config: Config, overrides: { cognito?: CognitoGateway; verifyToken?: VerifyToken; storage?: Storage } = {}): AppContext {
@@ -32,6 +35,6 @@ export function createContext(config: Config, overrides: { cognito?: CognitoGate
     verifyToken,
     storage,
     localStorage,
-    resolveUser: (claims) => resolveUser(db, cognito, claims, { demoEmails, onboard: onboarding }),
+    resolveUser: (claims) => resolveUser(db, cognito, claims, { demoEmails, onboard: onboardingFor(config) }),
   }
 }

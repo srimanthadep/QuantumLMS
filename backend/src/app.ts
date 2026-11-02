@@ -20,6 +20,8 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     logger: opts.logger === false ? false : { level: ctx.config.LOG_LEVEL, redact: ["req.headers.authorization"] },
     trustProxy: true,
     bodyLimit: 1024 * 1024,
+    // Signed local upload links carry their token in the path.
+    routerOptions: { maxParamLength: 2048 },
   })
 
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "cross-origin" } })

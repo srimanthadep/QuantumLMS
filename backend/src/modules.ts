@@ -1,10 +1,13 @@
 import type { FastifyBaseLogger, FastifyInstance } from "fastify"
 import type { AppContext } from "./context.js"
+import { studentModule } from "./modules/student/index.js"
+import { startQuizSweep } from "./modules/student/quizzes.js"
 
 /** Route modules registered by the server (and by tests through buildApp). */
-export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = []
+export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [studentModule]
 
 /** Background jobs. Returns a function that stops them. */
-export function startJobs(_ctx: AppContext, _log: FastifyBaseLogger): () => void {
-  return () => undefined
+export function startJobs(ctx: AppContext, log: FastifyBaseLogger): () => void {
+  const stops = [startQuizSweep(ctx, log)]
+  return () => stops.forEach((stop) => stop())
 }

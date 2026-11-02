@@ -26,6 +26,8 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
 
   // Development only: the targets of signed local upload and download links.
   app.register(async (scope) => {
+    // Every content type arrives as raw bytes here (the default parsers would turn text/plain into a string).
+    scope.removeAllContentTypeParsers()
     scope.addContentTypeParser("*", { parseAs: "buffer", bodyLimit: BUCKETS.submissions.maxBytes + 1024 }, (_req, body, done) => done(null, body))
     scope.put<{ Params: { token: string } }>("/api/local-files/:token", async (req, reply) => {
       const t = local.verify(req.params.token)

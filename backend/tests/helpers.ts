@@ -23,8 +23,8 @@ export interface TestHarness {
   ctx: AppContext
   /** Signs a Cognito-style access token. `overrides` lets tests forge bad ones. */
   token(sub: string, groups?: string[], overrides?: Record<string, unknown>): Promise<string>
-  /** A new Cognito user known to the fake gateway. */
-  user(opts?: { name?: string; groups?: string[]; email?: string }): Promise<TestUser>
+  /** A new Cognito user known to the fake gateway. `keep` leaves the account in place after the run (the demo student). */
+  user(opts?: { name?: string; groups?: string[]; email?: string; keep?: boolean }): Promise<TestUser>
   close(): Promise<void>
 }
 
@@ -95,7 +95,7 @@ export async function createHarness(): Promise<TestHarness> {
       const sub = randomUUID()
       const email = opts.email ?? `t-${sub.slice(0, 8)}@${TEST_DOMAIN}`
       attributes.set(sub, { email, name: opts.name ?? "Test Learner" })
-      created.push(email)
+      if (!opts.keep) created.push(email)
       const groups = opts.groups ?? []
       const tok = await token(sub, groups)
       return {
@@ -104,7 +104,12 @@ export async function createHarness(): Promise<TestHarness> {
         token: tok,
         groups,
         async call(method, url, payload) {
-          const res = await app.inject({ method, url, headers: { authorization: `Bearer ${tok}` }, payload: payload as InjectOptions["payload"] })
+          const res = await app.inject({
+            method,
+            url,
+            headers: { authorization: `Bearer ${tok}`, ...(payload !== undefined ? { "content-type": "application/json" } : {}) },
+            payload: payload === undefined ? undefined : JSON.stringify(payload),
+          })
           let body: unknown = null
           try {
             body = res.body ? JSON.parse(res.body) : null
