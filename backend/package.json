@@ -13,10 +13,11 @@
     "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
     "db:seed": "tsx --env-file=.env src/db/seed/run.ts",
     "db:check": "tsx --env-file=.env scripts/db-check.ts",
+    "gen:types": "tsx scripts/gen-api-types.ts",
     "cognito:local": "cognito-local",
     "cognito:setup": "tsx --env-file=.env scripts/setup-cognito.ts",
     "cognito:smoke": "tsx --env-file=.env scripts/cognito-smoke.ts",
-    "test": "tsx --env-file=.env --test tests/*.test.ts",
+    "test": "tsx --env-file=.env --test --test-concurrency=2 tests/*.test.ts",
     "legacy:migrate": "node scripts/apply-migrations.mjs",
     "legacy:clean-storage": "node scripts/clean-storage.mjs"
   },

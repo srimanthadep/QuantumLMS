@@ -3,9 +3,10 @@ import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
 import rateLimit from "@fastify/rate-limit"
 import { createHash } from "node:crypto"
-import { sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import type { AppContext } from "./context.js"
-import { AppError, fromPgError } from "./errors.js"
+import { users } from "./db/schema.js"
+import { AppError, forbidden, fromPgError } from "./errors.js"
 import { authenticate, me } from "./http.js"
 import { fileRoutes } from "./routes/files.js"
 
@@ -57,6 +58,20 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
   app.get("/api/me", { preHandler: authenticate(ctx) }, async (req) => {
     const u = me(req)
     return { id: u.id, email: u.email, full_name: u.full_name, avatar_url: u.avatar_url, role: u.role, is_demo: u.is_demo }
+  })
+
+  /** Ends every session of the account, this one included: Cognito revokes the refresh tokens, the API the access tokens. */
+  app.post("/api/me/sign-out-everywhere", { preHandler: authenticate(ctx) }, async (req, reply) => {
+    const u = me(req)
+    if (u.is_demo) throw forbidden("The shared demo account can't sign out other people. Create your own account to try this.")
+    try {
+      await ctx.cognito.signOutEverywhere(u.token)
+    } catch (err) {
+      req.log.warn({ err }, "Cognito global sign-out failed")
+      throw new AppError(502, "upstream_error", "Couldn't sign out of all devices. Try again.")
+    }
+    await ctx.db.update(users).set({ sessions_revoked_at: new Date(), updated_at: new Date() }).where(eq(users.id, u.id))
+    return reply.code(204).send()
   })
 
   await fileRoutes(app, ctx)

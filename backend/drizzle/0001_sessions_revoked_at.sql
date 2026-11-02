@@ -1,0 +1,1 @@
+ALTER TABLE "lms"."users" ADD COLUMN "sessions_revoked_at" timestamp with time zone;

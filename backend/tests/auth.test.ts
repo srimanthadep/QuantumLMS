@@ -80,3 +80,24 @@ describe("accounts", () => {
     assert.equal((await get("/api/me", promoted)).json().role, "Admin")
   })
 })
+
+describe("sign out of all devices", () => {
+  test("refuses every access token issued before it, and accepts the next sign-in", async () => {
+    const u = await h.user()
+    const older = await h.token(u.sub, [], { iat: Math.floor(Date.now() / 1000) - 30 })
+    assert.equal((await get("/api/me", older)).statusCode, 200)
+    const out = await h.app.inject({ method: "POST", url: "/api/me/sign-out-everywhere", headers: { authorization: `Bearer ${older}` } })
+    assert.equal(out.statusCode, 204)
+    const refused = await get("/api/me", older)
+    assert.equal(refused.statusCode, 401)
+    assert.match(refused.json().error.message, /signed out/i)
+    const fresh = await h.token(u.sub, [], { iat: Math.floor(Date.now() / 1000) + 1 })
+    assert.equal((await get("/api/me", fresh)).statusCode, 200)
+  })
+
+  test("the shared demo account can't sign everyone out", async () => {
+    const demo = await h.user({ email: h.ctx.config.DEMO_STUDENT_EMAIL, name: "Aarav Mehta", keep: true })
+    const res = await demo.call("POST", "/api/me/sign-out-everywhere")
+    assert.equal(res.status, 403)
+  })
+})

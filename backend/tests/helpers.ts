@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { inArray, like } from "drizzle-orm"
+import { and, inArray, like, lt } from "drizzle-orm"
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose"
 import type { FastifyInstance, InjectOptions } from "fastify"
 import { buildApp } from "../src/app.js"
@@ -72,18 +72,22 @@ export async function createHarness(): Promise<TestHarness> {
     LOCAL_STORAGE_DIR: uploads,
     UPLOAD_SIGNING_SECRET: "test-upload-signing-secret",
     QUIZ_SWEEP_SECONDS: "0",
+    // Two test files run at once next to the dev server; Supabase's session pooler allows 15 clients in total.
+    DATABASE_POOL_MAX: "4",
   })
   const verifyToken = createTokenVerifier({ issuer: ISSUER, jwksUri: `${ISSUER}/.well-known/jwks.json`, clientId: CLIENT_ID, keys })
   const ctx = createContext(config, { cognito, verifyToken })
   const app = await buildApp(ctx, { logger: false, modules })
   const created: string[] = []
+  // Test files run in parallel, each with its own harness: a run tag keeps one file's cleanup off another's users.
+  const tag = randomUUID().slice(0, 6)
 
-  const token: TestHarness["token"] = (sub, groups = [], { exp, ...overrides } = {}) =>
+  const token: TestHarness["token"] = (sub, groups = [], { exp, iat, ...overrides } = {}) =>
     new SignJWT({ token_use: "access", client_id: CLIENT_ID, username: sub, "cognito:groups": groups, scope: "aws.cognito.signin.user.admin", ...overrides })
       .setProtectedHeader({ alg: "RS256", kid: "test-key" })
       .setIssuer(ISSUER)
       .setSubject(sub)
-      .setIssuedAt()
+      .setIssuedAt(typeof iat === "number" ? iat : undefined)
       .setExpirationTime(typeof exp === "number" ? exp : "15m")
       .sign(privateKey)
 
@@ -93,7 +97,7 @@ export async function createHarness(): Promise<TestHarness> {
     token,
     async user(opts = {}) {
       const sub = randomUUID()
-      const email = opts.email ?? `t-${sub.slice(0, 8)}@${TEST_DOMAIN}`
+      const email = opts.email ?? `t-${tag}-${sub.slice(0, 8)}@${TEST_DOMAIN}`
       attributes.set(sub, { email, name: opts.name ?? "Test Learner" })
       if (!opts.keep) created.push(email)
       const groups = opts.groups ?? []
@@ -122,7 +126,9 @@ export async function createHarness(): Promise<TestHarness> {
     },
     async close() {
       if (created.length) await ctx.db.delete(users).where(inArray(users.email, created))
-      await ctx.db.delete(users).where(like(users.email, `%@${TEST_DOMAIN}`))
+      await ctx.db.delete(users).where(like(users.email, `t-${tag}-%@${TEST_DOMAIN}`))
+      // Leftovers from runs that crashed before cleaning up.
+      await ctx.db.delete(users).where(and(like(users.email, `%@${TEST_DOMAIN}`), lt(users.created_at, new Date(Date.now() - 2 * 3600_000))))
       await app.close()
       await ctx.pool.end()
       rmSync(uploads, { recursive: true, force: true })

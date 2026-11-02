@@ -55,6 +55,10 @@ export async function resolveUser(
 
   const [existing] = await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1)
   if (existing) {
+    // "Sign out of all devices" ends the access tokens Cognito already issued, not only the refresh tokens.
+    if (existing.sessions_revoked_at && claims.issuedAt <= Math.floor(existing.sessions_revoked_at.getTime() / 1000)) {
+      throw unauthorized("You were signed out. Sign in again.")
+    }
     const stale = !existing.last_seen_at || Date.now() - existing.last_seen_at.getTime() > SEEN_EVERY_MS
     if (existing.role !== role || stale) {
       const [u] = await db.update(users).set({ role, last_seen_at: new Date(), updated_at: existing.role !== role ? new Date() : existing.updated_at }).where(eq(users.id, existing.id)).returning()

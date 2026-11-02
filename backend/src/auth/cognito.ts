@@ -29,10 +29,11 @@ export interface CognitoGateway {
 }
 
 export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "COGNITO_ENDPOINT" | "COGNITO_USER_POOL_ID">): CognitoGateway {
+  const emulated = Boolean(config.COGNITO_ENDPOINT)
   const client = new CognitoIdentityProviderClient({
     region: config.COGNITO_REGION,
-    ...(config.COGNITO_ENDPOINT
-      ? { endpoint: config.COGNITO_ENDPOINT, credentials: { accessKeyId: "local", secretAccessKey: "local" } }
+    ...(emulated
+      ? { endpoint: config.COGNITO_ENDPOINT, credentials: { accessKeyId: "local", secretAccessKey: "local" }, maxAttempts: 1 }
       : {}),
   })
   const pool = config.COGNITO_USER_POOL_ID
@@ -55,7 +56,13 @@ export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "CO
       await client.send(new AdminRemoveUserFromGroupCommand({ UserPoolId: pool, Username: username, GroupName: group }))
     },
     async signOutEverywhere(accessToken) {
-      await client.send(new GlobalSignOutCommand({ AccessToken: accessToken }))
+      try {
+        await client.send(new GlobalSignOutCommand({ AccessToken: accessToken }))
+      } catch (e) {
+        // cognito-local has no GlobalSignOut. Locally, the API's sessions_revoked_at check still ends the old sessions.
+        if (emulated && /unsupported/i.test(`${(e as Error).name} ${(e as Error).message}`)) return
+        throw e
+      }
     },
   }
 }

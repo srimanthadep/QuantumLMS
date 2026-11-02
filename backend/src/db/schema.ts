@@ -18,6 +18,7 @@ export const ticket_number_seq = lms.sequence("ticket_number_seq", { startWith: 
 /**
  * Every account. Cognito owns sign-in: cognito_sub links a Cognito user to its row, and is null for seeded demo
  * learners, who can't sign in. The role follows the user's Cognito groups at each sign-in.
+ * sessions_revoked_at is set by "sign out of all devices": access tokens issued at or before it are refused.
  */
 export const users = lms.table("users", {
   id: uuid().primaryKey().defaultRandom().notNull(),
@@ -30,6 +31,7 @@ export const users = lms.table("users", {
   created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
   last_seen_at: timestamp({ withTimezone: true, mode: "date" }),
+  sessions_revoked_at: timestamp({ withTimezone: true, mode: "date" }),
 }, (table) => [
   unique("users_cognito_sub_key").on(table.cognito_sub),
   uniqueIndex("users_email_key").using("btree", sql`lower(${table.email})`),

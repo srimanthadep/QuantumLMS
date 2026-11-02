@@ -7,6 +7,8 @@ export interface TokenClaims {
   sub: string
   username: string
   groups: string[]
+  /** When Cognito issued the token, in seconds. Compared with the account's sessions_revoked_at. */
+  issuedAt: number
   /** The raw token, used to read the user's attributes from Cognito the first time they're seen. */
   token: string
 }
@@ -47,6 +49,6 @@ export function createTokenVerifier(opts: { issuer: string; jwksUri: string; cli
       throw unauthorized("Your session expired. Sign in again.")
     }
     const groups = Array.isArray(payload["cognito:groups"]) ? (payload["cognito:groups"] as unknown[]).filter((g): g is string => typeof g === "string") : []
-    return { sub: payload.sub, username: String(payload.username ?? payload.sub), groups, token }
+    return { sub: payload.sub, username: String(payload.username ?? payload.sub), groups, issuedAt: typeof payload.iat === "number" ? payload.iat : 0, token }
   }
 }

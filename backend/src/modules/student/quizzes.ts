@@ -2,7 +2,7 @@ import { and, asc, eq, isNull, lt, sql } from "drizzle-orm"
 import type { FastifyBaseLogger, FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
-import type { Tx } from "../../db/client.js"
+import type { Db, Tx } from "../../db/client.js"
 import { enrollments, quiz_attempts, quiz_questions, quizzes } from "../../db/schema.js"
 import { badRequest, forbidden, notFound } from "../../errors.js"
 import { me, parse } from "../../http.js"
@@ -65,36 +65,35 @@ export async function gradeAttempt(tx: Tx, attemptId: string, opts: { notify?: b
   }
 }
 
-/** Grades open attempts whose deadline (plus grace) has passed. Returns how many were graded. */
-export async function finalizeExpired(db: AppContext["db"], studentId?: string): Promise<number> {
+/** Grades open attempts whose deadline (plus grace) has passed, each in its own (sub)transaction. Returns how many. */
+export async function finalizeExpired(db: Tx, studentId?: string): Promise<number> {
   const cutoff = new Date(Date.now() - GRACE_MS)
   const open = await db
     .select({ id: quiz_attempts.id })
     .from(quiz_attempts)
     .where(and(isNull(quiz_attempts.submitted_at), lt(quiz_attempts.deadline_at, cutoff), studentId ? eq(quiz_attempts.student_id, studentId) : undefined))
-  for (const { id } of open) await db.transaction((tx) => gradeAttempt(tx, id))
+  // Inside a transaction this opens a savepoint, so one attempt that can't be graded doesn't undo the others.
+  for (const { id } of open) await (db as Db).transaction((tx) => gradeAttempt(tx, id))
   return open.length
 }
 
-/** Background sweep for attempts that ran out while the student was away. One instance at a time (advisory lock). */
+/**
+ * Background sweep for attempts that ran out while the student was away. One instance at a time: the transaction-
+ * scoped advisory lock works through any connection pooler (Supabase session or transaction mode, RDS Proxy).
+ */
 export function startQuizSweep(ctx: AppContext, log: FastifyBaseLogger): () => void {
   const seconds = ctx.config.QUIZ_SWEEP_SECONDS
   if (!seconds) return () => undefined
   const run = async () => {
-    const client = await ctx.pool.connect()
     try {
-      const { rows } = await client.query<{ ok: boolean }>("select pg_try_advisory_lock(7419001) as ok")
-      if (!rows[0]?.ok) return
-      try {
-        const n = await finalizeExpired(ctx.db)
-        if (n) log.info({ graded: n }, "graded expired quiz attempts")
-      } finally {
-        await client.query("select pg_advisory_unlock(7419001)")
-      }
+      const n = await ctx.db.transaction(async (tx) => {
+        const lock = await tx.execute(sql`select pg_try_advisory_xact_lock(7419001) as ok`)
+        if (!(lock.rows[0] as { ok?: boolean } | undefined)?.ok) return 0
+        return finalizeExpired(tx)
+      })
+      if (n) log.info({ graded: n }, "graded expired quiz attempts")
     } catch (err) {
       log.warn({ err }, "quiz sweep failed")
-    } finally {
-      client.release()
     }
   }
   const timer = setInterval(() => void run(), seconds * 1000)
