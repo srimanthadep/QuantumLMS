@@ -37,6 +37,15 @@ export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "CO
       : {}),
   })
   const pool = config.COGNITO_USER_POOL_ID
+  /** cognito-local doesn't implement every operation. Locally, the ones it lacks have nothing to undo, so they're skipped. */
+  const unlessUnsupported = async (call: () => Promise<unknown>) => {
+    try {
+      await call()
+    } catch (e) {
+      if (emulated && /unsupported/i.test(`${(e as Error).name} ${(e as Error).message}`)) return
+      throw e
+    }
+  }
   return {
     async getAttributes(accessToken) {
       const res = await client.send(new GetUserCommand({ AccessToken: accessToken }))
@@ -47,7 +56,8 @@ export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "CO
       await client.send(new AdminSetUserPasswordCommand({ UserPoolId: pool, Username: username, Password: password, Permanent: true }))
     },
     async disableMfa(username) {
-      await client.send(new AdminSetUserMFAPreferenceCommand({ UserPoolId: pool, Username: username, SoftwareTokenMfaSettings: { Enabled: false, PreferredMfa: false } }))
+      // The emulator has no MFA, so there's never any to turn off there.
+      await unlessUnsupported(() => client.send(new AdminSetUserMFAPreferenceCommand({ UserPoolId: pool, Username: username, SoftwareTokenMfaSettings: { Enabled: false, PreferredMfa: false } })))
     },
     async addToGroup(username, group) {
       await client.send(new AdminAddUserToGroupCommand({ UserPoolId: pool, Username: username, GroupName: group }))
@@ -56,13 +66,8 @@ export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "CO
       await client.send(new AdminRemoveUserFromGroupCommand({ UserPoolId: pool, Username: username, GroupName: group }))
     },
     async signOutEverywhere(accessToken) {
-      try {
-        await client.send(new GlobalSignOutCommand({ AccessToken: accessToken }))
-      } catch (e) {
-        // cognito-local has no GlobalSignOut. Locally, the API's sessions_revoked_at check still ends the old sessions.
-        if (emulated && /unsupported/i.test(`${(e as Error).name} ${(e as Error).message}`)) return
-        throw e
-      }
+      // cognito-local has no GlobalSignOut. Locally, the API's sessions_revoked_at check still ends the old sessions.
+      await unlessUnsupported(() => client.send(new GlobalSignOutCommand({ AccessToken: accessToken })))
     },
   }
 }

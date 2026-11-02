@@ -6,13 +6,26 @@ import type { AppContext } from "./context.js"
 import { createDb, createPool } from "./db/client.js"
 import type { Role } from "./db/schema.js"
 import { onboardStudent } from "./modules/student/index.js"
+import { onboardEvaluator } from "./modules/evaluator/index.js"
 import { createLocalStorage } from "./storage/local.js"
 import { createS3Storage } from "./storage/s3.js"
 import type { Storage } from "./storage/storage.js"
 
 /** Role -> what happens when a new account of that role signs in for the first time. */
-function onboardingFor(config: Config): Partial<Record<Role, Onboard>> {
-  return { Student: (tx, user) => onboardStudent(tx, user, { config }) }
+function onboardingFor(config: Config, storage: Storage): Partial<Record<Role, Onboard>> {
+  return {
+    Student: (tx, user) => onboardStudent(tx, user, { config }),
+    Evaluator: (tx, user) => onboardEvaluator(tx, user, { config, storage }),
+  }
+}
+
+/** The configured file storage: S3 in AWS, the local disk in development. */
+export function createStorage(config: Config): { storage: Storage; localStorage?: ReturnType<typeof createLocalStorage> } {
+  if (config.STORAGE_DRIVER === "local") {
+    const local = createLocalStorage({ dir: config.LOCAL_STORAGE_DIR, secret: config.UPLOAD_SIGNING_SECRET ?? "test-only-upload-secret" })
+    return { storage: local, localStorage: local }
+  }
+  return { storage: createS3Storage({ bucket: config.S3_BUCKET!, region: config.S3_REGION ?? config.COGNITO_REGION, endpoint: config.S3_ENDPOINT }) }
 }
 
 /** Wires the real dependencies. Tests pass overrides for Cognito, token verification and storage. */
@@ -21,11 +34,7 @@ export function createContext(config: Config, overrides: { cognito?: CognitoGate
   const db = createDb(pool)
   const cognito = overrides.cognito ?? createCognitoGateway(config)
   const verifyToken = overrides.verifyToken ?? createTokenVerifier({ issuer: config.cognitoIssuer, jwksUri: config.cognitoJwksUri, clientId: config.COGNITO_CLIENT_ID })
-  const localStorage =
-    !overrides.storage && config.STORAGE_DRIVER === "local"
-      ? createLocalStorage({ dir: config.LOCAL_STORAGE_DIR, secret: config.UPLOAD_SIGNING_SECRET ?? "test-only-upload-secret" })
-      : undefined
-  const storage = overrides.storage ?? localStorage ?? createS3Storage({ bucket: config.S3_BUCKET!, region: config.S3_REGION ?? config.COGNITO_REGION, endpoint: config.S3_ENDPOINT })
+  const { storage, localStorage } = overrides.storage ? { storage: overrides.storage, localStorage: undefined } : createStorage(config)
   const demoEmails = config.DEMO_MODE ? [config.DEMO_STUDENT_EMAIL, config.DEMO_EVALUATOR_EMAIL].map((e) => e.toLowerCase()) : []
   return {
     config,
@@ -35,6 +44,6 @@ export function createContext(config: Config, overrides: { cognito?: CognitoGate
     verifyToken,
     storage,
     localStorage,
-    resolveUser: (claims) => resolveUser(db, cognito, claims, { demoEmails, onboard: onboardingFor(config) }),
+    resolveUser: (claims) => resolveUser(db, cognito, claims, { demoEmails, onboard: onboardingFor(config, storage) }),
   }
 }

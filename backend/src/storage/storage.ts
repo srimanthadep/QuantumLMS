@@ -30,6 +30,10 @@ export interface Storage {
   remove(keys: string[]): Promise<void>
   /** Lists every key under a prefix (cleanup after a demo reset). */
   list(prefix: string): Promise<string[]>
+  /** The first maxBytes of an object and its full size, or null when it doesn't exist (inline file previews). */
+  read(key: string, maxBytes: number): Promise<{ data: Buffer; size: number } | null>
+  /** Writes an object from the server (seeded demo files). Uploads from browsers use createUpload. */
+  put(key: string, data: Buffer, contentType: string): Promise<void>
 }
 
 const SAFE = /[^a-zA-Z0-9._-]+/g

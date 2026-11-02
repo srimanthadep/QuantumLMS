@@ -42,5 +42,23 @@ export function createS3Storage(opts: { bucket: string; region?: string; endpoin
       } while (token)
       return keys
     },
+    async read(key, maxBytes) {
+      try {
+        const r = await client.send(new GetObjectCommand({ Bucket, Key: key, Range: `bytes=0-${Math.max(0, maxBytes - 1)}` }))
+        const data = Buffer.from(await r.Body!.transformToByteArray())
+        // ContentRange is "bytes 0-1023/52311": the part after the slash is the object's full size.
+        const size = Number(/\/(\d+)$/.exec(r.ContentRange ?? "")?.[1] ?? r.ContentLength ?? data.length)
+        return { data, size }
+      } catch (e) {
+        const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+        if (status === 404 || (e as Error).name === "NoSuchKey") return null
+        // An empty object has no byte 0 to range over.
+        if (status === 416) return { data: Buffer.alloc(0), size: 0 }
+        throw e
+      }
+    },
+    async put(key, data, contentType) {
+      await client.send(new PutObjectCommand({ Bucket, Key: key, Body: data, ContentType: contentType }))
+    },
   }
 }

@@ -12,6 +12,7 @@ import { authenticate, me, parse } from "../../http.js"
 import { BUCKETS, objectKey, keyOwner, type Bucket } from "../../storage/storage.js"
 import { campusRoutes, publicCertificateRoutes } from "./campus.js"
 import { courseRoutes } from "./courses.js"
+import { evaluationRoutes } from "./evaluation.js"
 import { notify } from "./notify.js"
 import { quizRoutes } from "./quizzes.js"
 import { socialRoutes } from "./social.js"
@@ -53,6 +54,7 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
     })
 
     await courseRoutes(scope, ctx)
+    await evaluationRoutes(scope, ctx)
     await quizRoutes(scope, ctx)
     await campusRoutes(scope, ctx)
     await socialRoutes(scope, ctx)

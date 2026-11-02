@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
-import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises"
+import { mkdir, open, readdir, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { Storage } from "./storage.js"
 
@@ -72,6 +72,27 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
       }
       await walk(dir)
       return out
+    },
+    async read(key, maxBytes) {
+      let handle
+      try {
+        handle = await open(fileFor(key), "r")
+      } catch {
+        return null
+      }
+      try {
+        const { size } = await handle.stat()
+        const data = Buffer.alloc(Math.min(size, maxBytes))
+        await handle.read(data, 0, data.length, 0)
+        return { data, size }
+      } finally {
+        await handle.close()
+      }
+    },
+    async put(key, data) {
+      const p = fileFor(key)
+      await mkdir(path.dirname(p), { recursive: true })
+      await writeFile(p, data)
     },
     verify(token) {
       const [body, mac] = token.split(".")

@@ -345,7 +345,8 @@ export const assignment_submissions = lms.table("assignment_submissions", {
   unique("assignment_submissions_student_id_assignment_id_key").on(table.student_id, table.assignment_id),
   check("assignment_submissions_comments_check", sql`char_length(comments) <= 4000`),
   check("assignment_submissions_score_check", sql`score >= 0`),
-  check("assignment_submissions_status_check", sql`status = ANY (ARRAY['Submitted'::text, 'Graded'::text])`),
+  // Submitted -> Under Review (an evaluator started) -> Graded (the evaluation was released).
+  check("assignment_submissions_status_check", sql`status = ANY (ARRAY['Submitted'::text, 'Under Review'::text, 'Graded'::text])`),
 ]);
 
 export const quiz_attempts = lms.table("quiz_attempts", {
@@ -1005,4 +1006,170 @@ export const quiz_questions = lms.table("quiz_questions", {
   check("quiz_questions_difficulty_check", sql`difficulty = ANY (ARRAY['Easy'::text, 'Medium'::text, 'Hard'::text])`),
   check("quiz_questions_options_check", sql`(cardinality(options) >= 2) AND (cardinality(options) <= 6)`),
   check("quiz_questions_position_check", sql`"position" > 0`),
+]);
+
+/* ------------------------------------------------------------------------------------------------------------------
+ * Evaluation: evaluators score assignment submissions against a rubric, release the results to students, and answer
+ * students' re-evaluation requests.
+ * ---------------------------------------------------------------------------------------------------------------- */
+
+/** Evaluator details, one row per evaluator (name, email and photo are on users). */
+export const evaluator_profiles = lms.table("evaluator_profiles", {
+  id: uuid().primaryKey().notNull(),
+  title: text().default('Evaluator').notNull(),
+  department: text().default("").notNull(),
+  specializations: text().array().default(sql`'{}'::text[]`).notNull(),
+  /** Portal settings: queue sort, auto-advance, rubric level details, daily goal. */
+  preferences: jsonb().default({}).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({
+      columns: [table.id],
+      foreignColumns: [users.id],
+      name: "evaluator_profiles_id_fkey"
+    }).onDelete("cascade"),
+  check("evaluator_profiles_title_check", sql`(char_length(title) >= 1) AND (char_length(title) <= 120)`),
+  check("evaluator_profiles_department_check", sql`char_length(department) <= 160`),
+  check("evaluator_profiles_specializations_check", sql`cardinality(specializations) <= 12`),
+  check("evaluator_profiles_preferences_check", sql`(jsonb_typeof(preferences) = 'object'::text) AND (pg_column_size(preferences) < 4096)`),
+]);
+
+/** The official marking rubric of an assignment. Its criteria add up to the assignment's max_marks. */
+export const rubrics = lms.table("rubrics", {
+  id: text().primaryKey().notNull(),
+  assignment_id: text().notNull(),
+  title: text().notNull(),
+  version: text().default('v1').notNull(),
+  /** How to mark: what to run or read first, common deductions. */
+  guidance: text().default("").notNull(),
+}, (table) => [
+  foreignKey({
+      columns: [table.assignment_id],
+      foreignColumns: [assignments.id],
+      name: "rubrics_assignment_id_fkey"
+    }).onDelete("cascade"),
+  unique("rubrics_assignment_id_key").on(table.assignment_id),
+]);
+
+export const rubric_criteria = lms.table("rubric_criteria", {
+  id: text().primaryKey().notNull(),
+  rubric_id: text().notNull(),
+  position: integer().notNull(),
+  title: text().notNull(),
+  description: text().default("").notNull(),
+  max_points: integer().notNull(),
+  /** Performance levels, best first: [{ "label": "Exemplary", "points": 30, "description": "…" }]. */
+  levels: jsonb().default([]).notNull(),
+}, (table) => [
+  foreignKey({
+      columns: [table.rubric_id],
+      foreignColumns: [rubrics.id],
+      name: "rubric_criteria_rubric_id_fkey"
+    }).onDelete("cascade"),
+  unique("rubric_criteria_rubric_id_position_key").on(table.rubric_id, table.position),
+  check("rubric_criteria_max_points_check", sql`(max_points > 0) AND (max_points <= 1000)`),
+  check("rubric_criteria_levels_check", sql`jsonb_typeof(levels) = 'array'::text`),
+]);
+
+/** Which assignments an evaluator marks. */
+export const evaluator_assignments = lms.table("evaluator_assignments", {
+  evaluator_id: uuid().notNull(),
+  assignment_id: text().notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  index("evaluator_assignments_assignment_idx").using("btree", table.assignment_id),
+  foreignKey({
+      columns: [table.evaluator_id],
+      foreignColumns: [users.id],
+      name: "evaluator_assignments_evaluator_id_fkey"
+    }).onDelete("cascade"),
+  foreignKey({
+      columns: [table.assignment_id],
+      foreignColumns: [assignments.id],
+      name: "evaluator_assignments_assignment_id_fkey"
+    }).onDelete("cascade"),
+  primaryKey({ columns: [table.evaluator_id, table.assignment_id], name: "evaluator_assignments_pkey"}),
+]);
+
+/**
+ * The marking of one submission. draft: being scored, owned by the evaluator who started it; evaluated: scored and
+ * waiting for release; released: the student sees the score. scores = { "<criterion id>": { "points": 24, "comment": "…" } }.
+ */
+export const evaluations = lms.table("evaluations", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  submission_id: uuid().notNull(),
+  evaluator_id: uuid(),
+  status: text().default('draft').notNull(),
+  scores: jsonb().default({}).notNull(),
+  /** Sum of the criterion points (rubric scale). */
+  total: integer().default(0).notNull(),
+  /** Shared with the student on release. */
+  feedback: text().default("").notNull(),
+  /** Only the evaluator who wrote it sees it. */
+  private_note: text().default("").notNull(),
+  started_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  evaluated_at: timestamp({ withTimezone: true, mode: "date" }),
+  released_at: timestamp({ withTimezone: true, mode: "date" }),
+}, (table) => [
+  index("evaluations_evaluator_idx").using("btree", table.evaluator_id, table.status),
+  foreignKey({
+      columns: [table.submission_id],
+      foreignColumns: [assignment_submissions.id],
+      name: "evaluations_submission_id_fkey"
+    }).onDelete("cascade"),
+  foreignKey({
+      columns: [table.evaluator_id],
+      foreignColumns: [users.id],
+      name: "evaluations_evaluator_id_fkey"
+    }).onDelete("set null"),
+  unique("evaluations_submission_id_key").on(table.submission_id),
+  check("evaluations_status_check", sql`status = ANY (ARRAY['draft'::text, 'evaluated'::text, 'released'::text])`),
+  check("evaluations_scores_check", sql`(jsonb_typeof(scores) = 'object'::text) AND (pg_column_size(scores) < 32768)`),
+  check("evaluations_total_check", sql`total >= 0`),
+  check("evaluations_feedback_check", sql`char_length(feedback) <= 4000`),
+  check("evaluations_private_note_check", sql`char_length(private_note) <= 2000`),
+  check("evaluations_check", sql`((status = 'draft'::text) OR (evaluated_at IS NOT NULL)) AND ((status <> 'released'::text) OR (released_at IS NOT NULL))`),
+]);
+
+/** A student's request to have a released grade looked at again. One per submission. */
+export const reevaluation_requests = lms.table("reevaluation_requests", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  submission_id: uuid().notNull(),
+  student_id: uuid().notNull(),
+  reason: text().notNull(),
+  status: text().default('Pending').notNull(),
+  original_score: integer().notNull(),
+  revised_score: integer(),
+  /** The evaluator's answer to the student. */
+  resolution: text(),
+  handled_by: uuid(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  resolved_at: timestamp({ withTimezone: true, mode: "date" }),
+}, (table) => [
+  index("reevaluation_requests_status_idx").using("btree", table.status, table.created_at),
+  index("reevaluation_requests_student_idx").using("btree", table.student_id),
+  foreignKey({
+      columns: [table.submission_id],
+      foreignColumns: [assignment_submissions.id],
+      name: "reevaluation_requests_submission_id_fkey"
+    }).onDelete("cascade"),
+  foreignKey({
+      columns: [table.student_id],
+      foreignColumns: [profiles.id],
+      name: "reevaluation_requests_student_id_fkey"
+    }).onDelete("cascade"),
+  foreignKey({
+      columns: [table.handled_by],
+      foreignColumns: [users.id],
+      name: "reevaluation_requests_handled_by_fkey"
+    }).onDelete("set null"),
+  unique("reevaluation_requests_submission_id_key").on(table.submission_id),
+  check("reevaluation_requests_status_check", sql`status = ANY (ARRAY['Pending'::text, 'In Review'::text, 'Revised'::text, 'Upheld'::text])`),
+  check("reevaluation_requests_reason_check", sql`(char_length(reason) >= 20) AND (char_length(reason) <= 1000)`),
+  check("reevaluation_requests_resolution_check", sql`char_length(resolution) <= 2000`),
+  check("reevaluation_requests_scores_check", sql`(original_score >= 0) AND ((revised_score IS NULL) OR (revised_score >= 0))`),
+  check("reevaluation_requests_check", sql`((status = ANY (ARRAY['Pending'::text, 'In Review'::text])) AND (resolved_at IS NULL) AND (revised_score IS NULL)) OR ((status = 'Upheld'::text) AND (resolved_at IS NOT NULL) AND (resolution IS NOT NULL) AND (revised_score IS NULL)) OR ((status = 'Revised'::text) AND (resolved_at IS NOT NULL) AND (resolution IS NOT NULL) AND (revised_score IS NOT NULL))`),
 ]);

@@ -4,6 +4,7 @@ import type { Tx } from "../client.js"
 import * as t from "../schema.js"
 import { gradeAttempt } from "../../modules/student/quizzes.js"
 import { contentRows, demoRows } from "./data.js"
+import { seedRubrics, seedStudentEvaluations } from "./evaluator.js"
 import { seedTime } from "./time.js"
 
 /** Inserts rows, or updates every given column when the key exists. Property names are column names. */
@@ -33,6 +34,7 @@ export async function seedContent(tx: Tx, anchor: Date, tz: string) {
   await upsert(tx, t.lessons, r.lessons, t.lessons.id)
   await upsert(tx, t.course_materials, r.course_materials, t.course_materials.id)
   await upsert(tx, t.assignments, r.assignments, t.assignments.id)
+  await seedRubrics(tx)
   await upsert(tx, t.quizzes, r.quizzes, t.quizzes.id)
   await upsert(tx, t.quiz_questions, r.quiz_questions, [t.quiz_questions.quiz_id, t.quiz_questions.position])
   await upsert(tx, t.timetable_slots, r.timetable_slots, t.timetable_slots.id)
@@ -154,6 +156,8 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
     ) s where s.minutes > 0`)
 
   await tx.insert(t.assignment_submissions).values(r.assignment_submissions)
+  // The rubric breakdown behind the seeded grades.
+  await seedStudentEvaluations(tx, studentId)
   await tx.insert(t.quiz_attempts).values(r.quiz_attempts)
   // Past attempts are graded by the same code that grades live submissions.
   await gradeAttempt(tx, "att-qz-3", { notify: false, now: anchor })

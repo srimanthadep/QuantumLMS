@@ -42,7 +42,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get("/api/student/core", async (req) => {
     const s = me(req)
     await finalizeExpired(db, s.id)
-    const [profile, courseRows, modules, lessonRows, enrolled, progress, assignmentRows, submissions, quizRows, attempts] = await Promise.all([
+    const [profile, courseRows, modules, lessonRows, enrolled, progress, assignmentRows, submissions, quizRows, attempts, requests] = await Promise.all([
       studentProfile(db, s.id),
       db.select().from(courses).orderBy(asc(courses.position)),
       db.select().from(course_modules).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
@@ -56,8 +56,13 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       db.select().from(assignment_submissions).where(eq(assignment_submissions.student_id, s.id)),
       db.select().from(quizzes).orderBy(asc(quizzes.due_at)),
       db.select().from(quiz_attempts).where(eq(quiz_attempts.student_id, s.id)).orderBy(asc(quiz_attempts.started_at)),
+      db.execute(sql`
+        select r.id, s.assignment_id, r.status, r.original_score, r.revised_score, r.created_at, r.resolved_at
+        from lms.reevaluation_requests r join lms.assignment_submissions s on s.id = r.submission_id
+        where r.student_id = ${s.id}::uuid`),
     ])
-    return { profile, courses: courseRows, modules, lessons: lessonRows, enrollments: enrolled, progress, assignments: assignmentRows, submissions, quizzes: quizRows, attempts }
+    const reevaluations = requests.rows
+    return { profile, courses: courseRows, modules, lessons: lessonRows, enrollments: enrolled, progress, assignments: assignmentRows, submissions, quizzes: quizRows, attempts, reevaluations }
   })
 
   app.get("/api/student/profile", async (req) => studentProfile(db, me(req).id))
@@ -166,6 +171,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!enrolled) throw forbidden("Enroll in the course to submit this assignment.")
       const prev = await tx.query.assignment_submissions.findFirst({ where: and(eq(assignment_submissions.student_id, s.id), eq(assignment_submissions.assignment_id, a.id)) })
       if (prev?.status === "Graded") throw badRequest("This assignment has already been graded.", "graded")
+      if (prev?.status === "Under Review") throw badRequest("An evaluator is reviewing this submission, so it can't be changed now.", "under_review")
       if (!repo && !fileKey && !prev?.file_path) throw badRequest("Add a repository link or attach a file.")
       const now = new Date()
       const fileName = fileKey ? (b.file_name ?? "").slice(0, 200) || null : null
