@@ -7,8 +7,13 @@ build/
 .vite/
 vite.config.*.timestamp-*
 package-lock.json
-# The API image is built from its lockfile.
+# The API image is built from its lockfile, and deploys use the pinned CDK.
 !/backend/package-lock.json
+!/infra/package-lock.json
+# The web app built for AWS, CDK's output and the deployed stacks' outputs (infra/scripts/deploy.ts)
+dist-aws/
+/infra/cdk.out/
+/infra/outputs.json
 # Local uploads and the local Cognito emulator's data
 /backend/.data/
 /backend/.cognito/

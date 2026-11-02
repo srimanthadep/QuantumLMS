@@ -1,9 +1,11 @@
-// Creates (or reuses) the Cognito user pool, web app client, role groups and demo accounts, then writes the ids into
-// backend/.env and frontend/.env.local.
+// Sets up Cognito for Quantum LMS.
 //
 //   Local emulator:  npm run cognito:local   (separate terminal), then  npm run cognito:setup
-//   Real AWS:        leave COGNITO_ENDPOINT empty, sign in to AWS (aws sso login, or AWS_PROFILE), then
-//                    npm run cognito:setup
+//                    Creates (or reuses) the user pool, web app client, role groups and demo accounts, then writes the
+//                    ids into backend/.env and frontend/.env.local.
+//   AWS:             deploy infra/ first (it creates the pool, the app client and the groups), sign in to AWS
+//                    (aws sso login, or AWS_PROFILE), then  npm run cognito:setup:aws  to add the demo accounts.
+//                    Prints the ids and leaves the local env files alone: they point at the emulator.
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import {
@@ -21,8 +23,13 @@ import {
 import { GROUP_ROLES } from "../src/auth/tokens.js"
 import { DEMO_ACCOUNTS } from "../src/demo-accounts.js"
 
-const region = process.env.COGNITO_REGION || "eu-north-1"
-const endpoint = process.env.COGNITO_ENDPOINT || undefined
+const aws = process.argv.includes("--aws")
+const region = process.env.COGNITO_REGION || process.env.AWS_REGION || "eu-north-1"
+const endpoint = aws ? undefined : process.env.COGNITO_ENDPOINT || undefined
+if (!aws && !endpoint) {
+  console.error("COGNITO_ENDPOINT is empty. For the local emulator set it to http://localhost:9229; for AWS run npm run cognito:setup:aws.")
+  process.exit(1)
+}
 const POOL_NAME = process.env.COGNITO_POOL_NAME || "quantum-lms"
 const CLIENT_NAME = "quantum-lms-web"
 
@@ -30,12 +37,15 @@ const client = new CognitoIdentityProviderClient({
   region,
   ...(endpoint ? { endpoint, credentials: { accessKeyId: "local", secretAccessKey: "local" } } : {}),
 })
-const target = endpoint ? `the local emulator at ${endpoint}` : `AWS (${region})`
-console.log(`Setting up Cognito on ${target}`)
+console.log(`Setting up Cognito on ${endpoint ? `the local emulator at ${endpoint}` : `AWS (${region})`}`)
 
-// 1. User pool: email is the username, optional authenticator-app MFA, email recovery.
+// 1. User pool: email is the username, optional authenticator-app MFA, email recovery. In AWS, infra/ owns it.
 const pools = await client.send(new ListUserPoolsCommand({ MaxResults: 60 }))
 let poolId = pools.UserPools?.find((p) => p.Name === POOL_NAME)?.Id
+if (!poolId && aws) {
+  console.error(`No user pool named ${POOL_NAME} in ${region}. Deploy infra/ first (npm run deploy in infra/).`)
+  process.exit(1)
+}
 if (!poolId) {
   const res = await client.send(
     new CreateUserPoolCommand({
@@ -44,13 +54,10 @@ if (!poolId) {
       AutoVerifiedAttributes: ["email"],
       UsernameConfiguration: { CaseSensitive: false },
       MfaConfiguration: "OPTIONAL",
-      // Authenticator apps only; no SMS (needs an SNS role and costs money).
-      ...(endpoint ? {} : { SoftwareTokenMfaConfiguration: { Enabled: true } }),
       Policies: { PasswordPolicy: { MinimumLength: 10, RequireLowercase: true, RequireUppercase: true, RequireNumbers: true, RequireSymbols: false, TemporaryPasswordValidityDays: 7 } },
       AccountRecoverySetting: { RecoveryMechanisms: [{ Name: "verified_email", Priority: 1 }] },
       AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
       Schema: [{ Name: "name", AttributeDataType: "String", Mutable: true, Required: false }],
-      DeletionProtection: endpoint ? undefined : "ACTIVE",
       UserPoolTags: { app: "quantum-lms" },
     }),
   )
@@ -58,16 +65,20 @@ if (!poolId) {
   console.log(`  created user pool ${poolId}`)
 } else console.log(`  user pool ${poolId} exists`)
 
-// 2. Public web client (no secret). SRP in AWS; the emulator only supports USER_PASSWORD_AUTH.
+// 2. Public web client (no secret). The emulator only supports USER_PASSWORD_AUTH; AWS uses SRP.
 const clients = await client.send(new ListUserPoolClientsCommand({ UserPoolId: poolId, MaxResults: 60 }))
 let clientId = clients.UserPoolClients?.find((c) => c.ClientName === CLIENT_NAME)?.ClientId
+if (!clientId && aws) {
+  console.error(`No app client named ${CLIENT_NAME} in pool ${poolId}. Deploy infra/ first.`)
+  process.exit(1)
+}
 if (!clientId) {
   const res = await client.send(
     new CreateUserPoolClientCommand({
       UserPoolId: poolId,
       ClientName: CLIENT_NAME,
       GenerateSecret: false,
-      ExplicitAuthFlows: ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", ...(endpoint ? ["ALLOW_USER_PASSWORD_AUTH" as const] : [])],
+      ExplicitAuthFlows: ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_PASSWORD_AUTH"],
       PreventUserExistenceErrors: "ENABLED",
       EnableTokenRevocation: true,
       AccessTokenValidity: 60,
@@ -75,7 +86,8 @@ if (!clientId) {
       RefreshTokenValidity: 30,
       TokenValidityUnits: { AccessToken: "minutes", IdToken: "minutes", RefreshToken: "days" },
       ReadAttributes: ["email", "email_verified", "name"],
-      WriteAttributes: ["name"],
+      // Sign-up sends the email and name, so the client must be allowed to write both.
+      WriteAttributes: ["email", "name"],
     }),
   )
   clientId = res.UserPoolClient!.ClientId!
@@ -120,24 +132,22 @@ for (const a of DEMO_ACCOUNTS) {
   console.log(`  ${exists ? "updated" : "created"} ${a.role.toLowerCase()} ${a.email}`)
 }
 
-// 5. Write the ids where the API and the web app read them.
-function upsertEnv(file: string, values: Record<string, string>) {
-  const lines = existsSync(file) ? readFileSync(file, "utf8").split(/\r?\n/) : []
-  for (const [k, v] of Object.entries(values)) {
-    const i = lines.findIndex((l) => l.startsWith(`${k}=`))
-    if (i >= 0) lines[i] = `${k}=${v}`
-    else lines.push(`${k}=${v}`)
+// 5. Locally, write the ids where the API and the web app read them. In AWS, infra/ passes them to both.
+if (aws) {
+  console.log(`user pool ${poolId}, app client ${clientId}`)
+} else {
+  const upsertEnv = (file: string, values: Record<string, string>) => {
+    const lines = existsSync(file) ? readFileSync(file, "utf8").split(/\r?\n/) : []
+    for (const [k, v] of Object.entries(values)) {
+      const i = lines.findIndex((l) => l.startsWith(`${k}=`))
+      if (i >= 0) lines[i] = `${k}=${v}`
+      else lines.push(`${k}=${v}`)
+    }
+    writeFileSync(file, lines.join("\n").replace(/\n*$/, "\n"))
   }
-  writeFileSync(file, lines.join("\n").replace(/\n*$/, "\n"))
+  const backendEnv = fileURLToPath(new URL("../.env", import.meta.url))
+  const frontendEnv = fileURLToPath(new URL("../../frontend/.env.local", import.meta.url))
+  upsertEnv(backendEnv, { COGNITO_REGION: region, COGNITO_USER_POOL_ID: poolId, COGNITO_CLIENT_ID: clientId, COGNITO_ENDPOINT: endpoint! })
+  upsertEnv(frontendEnv, { VITE_COGNITO_REGION: region, VITE_COGNITO_USER_POOL_ID: poolId, VITE_COGNITO_CLIENT_ID: clientId, VITE_COGNITO_ENDPOINT: endpoint!, VITE_COGNITO_AUTH_FLOW: "USER_PASSWORD_AUTH" })
+  console.log("wrote the pool and client ids to backend/.env and frontend/.env.local")
 }
-const backendEnv = fileURLToPath(new URL("../.env", import.meta.url))
-const frontendEnv = fileURLToPath(new URL("../../frontend/.env.local", import.meta.url))
-upsertEnv(backendEnv, { COGNITO_REGION: region, COGNITO_USER_POOL_ID: poolId, COGNITO_CLIENT_ID: clientId, COGNITO_ENDPOINT: endpoint ?? "" })
-upsertEnv(frontendEnv, {
-  VITE_COGNITO_REGION: region,
-  VITE_COGNITO_USER_POOL_ID: poolId,
-  VITE_COGNITO_CLIENT_ID: clientId,
-  VITE_COGNITO_ENDPOINT: endpoint ?? "",
-  VITE_COGNITO_AUTH_FLOW: endpoint ? "USER_PASSWORD_AUTH" : "USER_SRP_AUTH",
-})
-console.log(`wrote the pool and client ids to backend/.env and frontend/.env.local`)

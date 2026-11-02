@@ -1,0 +1,12 @@
+node_modules
+dist
+.data
+.cognito
+.env
+.env.*
+tests
+scripts
+supabase
+*.log
+Dockerfile
+.dockerignore

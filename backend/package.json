@@ -16,6 +16,7 @@
     "gen:types": "tsx scripts/gen-api-types.ts",
     "cognito:local": "cognito-local",
     "cognito:setup": "tsx --env-file=.env scripts/setup-cognito.ts",
+    "cognito:setup:aws": "tsx scripts/setup-cognito.ts --aws",
     "cognito:smoke": "tsx --env-file=.env scripts/cognito-smoke.ts",
     "test": "tsx --env-file=.env --test --test-concurrency=2 tests/*.test.ts"
   },
