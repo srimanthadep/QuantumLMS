@@ -2,9 +2,10 @@
 // exists, colour/accent table values match tokens.css, type and radius
 // utilities exist, and motion token values match src/lib/motion.ts.
 import fs from "node:fs"
+import { fileURLToPath } from "node:url"
 
-// The redesign was merged into main; pass another frontend folder as the first argument to check it instead.
-const fe = process.argv[2] ?? "c:/Users/srima/Downloads/QuantumLMS/frontend"
+// Checks this repo's frontend folder; pass another frontend folder as the first argument to check it instead.
+const fe = process.argv[2] ?? fileURLToPath(new URL("../../../../frontend", import.meta.url))
 const doc = fs.readFileSync(`${fe}/design.md`, "utf8")
 const tokens = fs.readFileSync(`${fe}/src/styles/tokens.css`, "utf8")
 const indexCss = fs.readFileSync(`${fe}/src/index.css`, "utf8")

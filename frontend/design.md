@@ -312,7 +312,7 @@ About 70k lines of existing pages had to look coherent in both themes before eac
      - Coloured 500/600 fills that carry `text-white` use a static shade that keeps the white text at AA, and so do their hover states.
      - In dark mode, `bg-purple-500/600` is `primary` and `bg-purple-700` and the purple hover fills are `primary-hover`, as in light mode.
    - **Size.** Every colour value is declared once, as `--pl-*` (light) and `--pd-*` (dark) constants. The active `--p-*` palette and the island blocks only reference them. Repeating raw `oklch()` / `color-mix()` values per block made the minifier add a fallback copy of each, which added about 115 kB to the built CSS. With the constants, the contrast fixes cost about 42 kB raw and 3.6 kB gzipped: the built CSS went from 293 kB (43.8 kB gzipped) to 335 kB (47.4 kB gzipped).
-2. **One-time codemods,** already applied and not to be rerun:
+2. **One-time codemods,** already applied. The scripts were deleted afterwards and remain in the git history:
    - `codemod-colors.mjs` rewrote brand hex classes and `bg-white` in TSX to semantic tokens, and dark neutral backgrounds to `ink-*`.
    - `split-legacy-css.mjs` and `legacy-color-pass2.mjs` moved the old component CSS into `legacy.css` and rewrote its hard-coded colours to tokens.
    - From the Phase 1 contrast check:
@@ -321,7 +321,7 @@ About 70k lines of existing pages had to look coherent in both themes before eac
      - `fix-hex-contrast.mjs` and `fix-contrast-pass2.mjs` replaced 45 hard-coded colours and `text-black` uses that failed AA in one of the themes.
 3. **`src/styles/legacy.css`** holds the old component CSS moved out of `index.css`. The old variable names (`--purple`, `--lavender`, `--noorly-*`, `--bg-custom`, …) are aliased to tokens at the top of the file.
 
-All of these scripts, and the contrast checkers, live **outside the app source** in `.agents/tasks/redesign-premium-ui/tools/`. Vite never bundles them. To change the bridge, edit the generator there and regenerate. Don't edit the CSS directly.
+The bridge generator (`gen-palette-bridge.mjs`) and the contrast checkers live **outside the app source** in `.agents/tasks/redesign-premium-ui/tools/`. Vite never bundles them. To change the bridge, edit the generator there and regenerate. Don't edit the CSS directly.
 
 ### Remaining legacy usage
 
@@ -337,7 +337,7 @@ Measured on 30 Oct 2026 on `main` in `frontend/src` TS/TSX with `count-legacy.mj
 
 `legacy.css` is unchanged: the teacher pages no longer use its rules, but the rules stay until Phase 8 deletes everything unreferenced.
 
-**Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Notes, the resume, interview history and notification preferences persist in `localStorage` (`quantum_student_notes_v2`, `quantum_resume_v2`, `quantum_interview_history_v2`, `quantum_student_notification_prefs`).
+**Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Student data, including notes, the resume, interview history and notification preferences, is stored in Supabase and loaded through `src/pages/student/data/` (see `backend/README.md`).
 
 **Teacher portal: done.** `pages/teacher` and `components/teacher` were rebuilt from scratch and pass the same check.
 

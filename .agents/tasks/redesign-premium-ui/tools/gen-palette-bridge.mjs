@@ -11,12 +11,14 @@
 //    coloured fills that carry white text, accent (purple) fills and hovers
 import fs from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { toRgb, contrast } from "./colormath.mjs"
 
-const wt = "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui"
-const theme = fs.readFileSync(`${wt}/node_modules/tailwindcss/theme.css`, "utf8")
-const outFile = `${wt}/frontend/src/styles/palette-bridge.css`
-const srcDir = `${wt}/frontend/src`
+// The frontend folder of this repo (this file is in .agents/tasks/redesign-premium-ui/tools).
+const fe = fileURLToPath(new URL("../../../../frontend", import.meta.url))
+const theme = fs.readFileSync(path.join(fe, "node_modules/tailwindcss/theme.css"), "utf8")
+const outFile = path.join(fe, "src/styles/palette-bridge.css")
+const srcDir = path.join(fe, "src")
 
 const shades = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"]
 const tw = {}
@@ -163,7 +165,7 @@ const notInIsland = `:not(:where(${islandSel}), :where(${islandSel}) *)`
 
 // Semantic text tokens inside islands use their dark-theme values in both themes
 // (text-success, text-primary-text, text-muted-foreground... on a dark panel).
-const tokensCss = fs.readFileSync(`${wt}/frontend/src/styles/tokens.css`, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
+const tokensCss = fs.readFileSync(path.join(fe, "src/styles/tokens.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
 const block = (sel) => {
   const m = tokensCss.match(new RegExp(`(?:^|\\n)${sel.replace(/[.[\]"=]/g, "\\$&")}\\s*\\{([^}]*)\\}`))
   return Object.fromEntries([...(m ? m[1] : "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((d) => [d[1], d[2].trim()]))

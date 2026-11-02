@@ -1,9 +1,10 @@
 // Counts legacy colour usage in frontend/src TS/TSX for design.md's "Remaining legacy usage" table.
 // Usage: node count-legacy.mjs [<git-rev>]   (no rev = working tree, including untracked files)
 import { execFileSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 
 const rev = process.argv[2]
-const repo = "c:/Users/srima/Downloads/QuantumLMS"
+const repo = fileURLToPath(new URL("../../../../", import.meta.url))
 const grep = (pattern) => {
   const args = ["-C", repo, "grep", "-o", "-h", "-E"]
   if (!rev) args.push("--untracked")

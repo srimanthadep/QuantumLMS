@@ -1,5 +1,5 @@
 // Scripted end-to-end flows. Later phases add flows to the `flows` map.
-// Usage: node flows.mjs --base http://localhost:8543 --flows name1,name2 --out <dir>
+// Usage: node flows.mjs --base http://localhost:8443 --flows name1,name2 --out <dir>
 import { chromium } from "playwright-core"
 import fs from "node:fs"
 import path from "node:path"
@@ -38,7 +38,8 @@ function expect(cond, msg) {
   if (!cond) throw new Error(msg)
 }
 const desktopNav = (page) => page.locator('aside nav[aria-label="Primary"]')
-const activeLabel = async (page) => (await desktopNav(page).locator('[aria-current="page"]').first().innerText()).trim()
+// First line only: nav items can carry a count badge (Doubts shows the open doubts).
+const activeLabel = async (page) => (await desktopNav(page).locator('[aria-current="page"]').first().innerText()).trim().split("\n")[0].trim()
 
 // ⌘K / Ctrl+K opens the palette; Enter on a result navigates and closes it.
 flows["shell-palette"] = async ({ page, base, out }) => {
@@ -146,12 +147,12 @@ flows["shell-role-switch"] = async ({ page, base }) => {
   expect(label === "Overview", `admin active nav is "${label}"`)
 }
 
-// Ask AI opens the assistant; a suggestion streams a role-aware reply.
+// The floating Clover button opens the assistant; a suggestion streams a role-aware reply.
 flows["shell-ai"] = async ({ page, base }) => {
   await seed(page, "Teacher")
   await page.goto(base + "/teacher", { waitUntil: "networkidle" })
-  await page.locator("header").first().getByRole("button", { name: "Ask AI", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "Quantum AI" })
+  await page.getByRole("button", { name: "Open Clover assistant", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Clover" })
   await dialog.waitFor({ state: "visible", timeout: 3000 })
   await dialog.getByRole("button", { name: /Draft chapter titles/ }).click()
   await dialog.getByText(/Suggested chapters/).waitFor({ timeout: 6000 })
@@ -170,7 +171,7 @@ flows["shell-skip-link"] = async ({ page, base }) => {
   expect(id === "main", `skip link moved focus to "${id}"`)
 }
 
-const base = arg("base", "http://localhost:8543")
+const base = arg("base", "http://localhost:8443")
 const names = String(arg("flows", "")).split(",").filter(Boolean)
 const out = path.resolve(String(arg("out", "../shots/flows")))
 

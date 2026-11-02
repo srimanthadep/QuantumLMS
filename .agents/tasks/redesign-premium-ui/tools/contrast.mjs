@@ -1,11 +1,12 @@
 // Asserts WCAG AA contrast for the semantic tokens in tokens.css.
 // Usage: node contrast.mjs [path/to/tokens.css] [--json]
 import fs from "node:fs"
+import { fileURLToPath } from "node:url"
 
 const file =
   process.argv[2] && !process.argv[2].startsWith("--")
     ? process.argv[2]
-    : "c:/Users/srima/Downloads/QuantumLMS/.worktrees/redesign-premium-ui/frontend/src/styles/tokens.css"
+    : fileURLToPath(new URL("../../../../frontend/src/styles/tokens.css", import.meta.url))
 const css = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
 
 const blocks = {}

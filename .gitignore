@@ -24,7 +24,11 @@ logs/
 /.plugins/
 /.opencode-skills/
 
-# Verification screenshots
+# Local git worktrees
+/.worktrees/
+
+# Verification screenshots (the test tools write them to a shots/ folder)
+.agents/**/shots/
 /analytics_*.png
 /class_*.png
 /modal_*.png

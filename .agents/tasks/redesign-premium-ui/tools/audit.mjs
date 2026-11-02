@@ -1,6 +1,6 @@
 // Visual audit: text contrast (WCAG AA), horizontal overflow on phones, and
 // light panels left inside dark mode. Complements smoke.mjs screenshots.
-// Usage: node audit.mjs --base http://localhost:8543 --groups a,b [--viewports desktop,mobile]
+// Usage: node audit.mjs --base http://localhost:8443 --groups a,b [--viewports desktop,mobile]
 //        [--themes dark,light] [--only name1,name2] --out <dir>
 import { chromium } from "playwright-core"
 import fs from "node:fs"
@@ -13,7 +13,7 @@ function arg(name, def) {
   const v = process.argv[i + 1]
   return v && !v.startsWith("--") ? v : true
 }
-const base = arg("base", "http://localhost:8543")
+const base = arg("base", "http://localhost:8443")
 const groupNames = String(arg("groups", "student")).split(",")
 const viewports = String(arg("viewports", "desktop,mobile")).split(",")
 const themes = String(arg("themes", "dark,light")).split(",")

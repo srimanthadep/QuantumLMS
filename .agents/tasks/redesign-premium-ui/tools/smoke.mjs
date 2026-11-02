@@ -1,5 +1,5 @@
 // Smoke-test harness: loads each route, captures screenshots and console/page errors.
-// Usage: node smoke.mjs --base http://localhost:8543 --groups a,b --out <dir>
+// Usage: node smoke.mjs --base http://localhost:8443 --groups a,b --out <dir>
 //        [--viewports desktop,mobile] [--themes dark,light] [--reduced-motion]
 //        [--tab-through] [--open-nav] [--back-forward] [--only name1,name2]
 import { chromium } from "playwright-core"
@@ -14,7 +14,7 @@ function arg(name, def) {
   return v && !v.startsWith("--") ? v : true
 }
 
-const base = arg("base", "http://localhost:8543")
+const base = arg("base", "http://localhost:8443")
 const groupNames = String(arg("groups", "student")).split(",")
 const out = path.resolve(String(arg("out", "../shots/tmp")))
 const viewports = String(arg("viewports", "desktop,mobile")).split(",")
