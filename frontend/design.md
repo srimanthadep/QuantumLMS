@@ -128,7 +128,7 @@ The font is **Google Sans**, loaded from Google Fonts by the `<link>` tags in `i
 - Weights outside 400–700 (`font-extrabold`, `font-black`) render at 700.
 - The font needs network access to `fonts.gstatic.com`. Offline, text falls back to the system sans.
 
-Mono is the system `ui-monospace` stack. The Sassoon font files remain in `public/fonts/` as user assets, but nothing loads them.
+Mono is the system `ui-monospace` stack.
 
 | Utility | Size / line height, tracking | Use |
 | --- | --- | --- |
@@ -337,7 +337,7 @@ Measured on 30 Oct 2026 on `main` in `frontend/src` TS/TSX with `count-legacy.mj
 
 `legacy.css` is unchanged: the teacher pages no longer use its rules, but the rules stay until Phase 8 deletes everything unreferenced.
 
-**Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Student data, including notes, the resume, interview history and notification preferences, is stored in Supabase and loaded through `src/pages/student/data/` (see `backend/README.md`).
+**Student portal: done.** `pages/student` and `components/student` were rebuilt on the design system and pass the portal check below: no raw palette or hex colour utilities, no `legacy.css` classes, and no `hexColor` props. The shared student building blocks are `CourseCard`, `DateTile`, `CopyButton`, `CertificateDialog`, `QuizRunner` and `AssignmentSubmitDialog` in `src/components/student`. Student data, including notes, the resume, interview history and notification preferences, comes from the Quantum LMS API (`/api/student/*`, see `backend/README.md`) and is loaded through `src/pages/student/data/`. Students sign in with Amazon Cognito; `src/app/CognitoGate.tsx` signs in the shared demo account for demo sessions. Graded work opens `EvaluationDialog` (rubric breakdown, feedback and a re-evaluation request).
 
 **Teacher portal: done.** `pages/teacher` and `components/teacher` were rebuilt from scratch and pass the same check.
 
@@ -346,6 +346,14 @@ Measured on 30 Oct 2026 on `main` in `frontend/src` TS/TSX with `count-legacy.mj
 - **Building blocks** in `src/components/teacher`: `LiveSessionHero` (the dark focal panel for the live or next class), `StudentDrawer`, `GradingSheet`, `ScheduleSessionDialog`, `SendReportDialog` and `IconTile`. The shell gets the open-doubts badge and a teacher `NotificationSource` (live class, urgent doubts, grading, processing recordings).
 - **Persistence:** sessions, doubts and calendar events (`quantum_teacher_sessions_v2`, `quantum_teacher_doubts_v2`, `quantum_teacher_events_v2`), settings (`quantum_teacher_settings_v2`) and support requests (`quantum_teacher_support_tickets_v2`).
 - **Removed** with the old pages: `Modals`, `AttendanceSection`, `AIMonitoringSection`, `ModuleAssignmentSection`, `LessonContentInlineViewer` and `StudentActivityHeatmap`, and every page-level theme picker and Ask AI button.
+
+**Evaluator portal: done.** `pages/evaluator` and `components/evaluator` were rebuilt from scratch on the API and pass the same check.
+
+- **Routing:** `EvaluatorPortal` renders nested `<Routes>` inside `PageTransition`; every page except the dashboard is lazy-loaded. The routes are `/evaluator/dashboard`, `/evaluator/queue` (`?view=ready|released|all`, `?assessment=`), `/evaluator/queue/:submissionId` (the grading workspace; `next` opens the first submission to mark), `/evaluator/reevaluations` (`?request=`), `/evaluator/reports` and `/evaluator/settings`. Old `/evaluator/workspace/:id` and `/evaluator/submissions` links redirect.
+- **Data:** `EvaluatorDataProvider` (`pages/evaluator/data/`) signs in through `CognitoGate` (the demo evaluator for demo sessions), then caches the queue, re-evaluation requests and profile with `lib/resource.ts`, refreshing on focus and every 90 s. `useEvaluator()` exposes them plus the derived `toMark` (pending work and the evaluator's own drafts, drafts first, in the preferred order), `ready` (finished, not released) and `openRequests`. Display helpers live in `data/derive.ts`.
+- **Workspace:** the submission (repository, student notes, the file in `CodeViewer` with line numbers and light syntax colouring, notebooks cell by cell, the brief) beside a sticky rubric panel that sizes itself to the viewport. `RubricScorer` gives each criterion level quick picks with a shared-layout indicator, a points stepper, a `scaleX` bar and a comment; `ScoreDial` keeps the running total and grade. Drafts autosave 1.2 s after the last change. `[` and `]` move between submissions, Ctrl/⌘ + Enter finishes. Finishing checks every criterion and the feedback, then either waits for release or releases at once.
+- **Building blocks** in `src/components/evaluator`: `RubricScorer`, `ScoreDial`, `CodeViewer`, `StatePill`, `MarkingBar` (one bar split by state) and `ReleaseDialog`. Account security is the shared `components/shared/SecuritySettings`, also used by the student portal.
+- **Shell:** the queue badge counts work to mark and the re-evaluations badge counts open requests. The bell is derived from the desk's data (new submissions, open requests, results waiting, deadlines); read state is kept in `localStorage.evaluator_notifications_read`.
 
 ### Retirement plan
 

@@ -80,8 +80,7 @@ function TeacherRoute() {
 }
 
 function EvaluatorRoute() {
-  const p = usePortalProps()
-  return <EvaluatorPortal currentUser={p.currentUser} onToast={p.onToast} />
+  return <EvaluatorPortal />
 }
 
 function SupportRoute() {

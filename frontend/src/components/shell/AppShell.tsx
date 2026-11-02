@@ -101,17 +101,17 @@ export default function AppShell({
     toast.show("You have been signed out.")
   }, [navigate, session, toast])
 
-  // Students keep their data in their account; only the shared demo student has demo data to restore.
-  const isStudent = role === "Student"
-  const canReset = !isStudent || session.user.email.toLowerCase() === getDemoAccount("Student").email
+  // Students and evaluators keep their data in their account; only the shared demo accounts have demo data to restore.
+  const hasAccount = role === "Student" || role === "Evaluator"
+  const canReset = !hasAccount || session.user.email.toLowerCase() === getDemoAccount(role).email
   const resetDemo = useCallback(() => {
-    toast.show(isStudent ? "Restoring the demo student's data…" : "Resetting demo data…")
+    toast.show(hasAccount ? "Restoring the demo account's data…" : "Resetting demo data…")
     session.resetDemoData().catch((e: Error) => toast.error(e.message || "The demo data couldn't be reset."))
-  }, [isStudent, session, toast])
-  const storageNote = isStudent
+  }, [hasAccount, session, toast])
+  const storageNote = hasAccount
     ? canReset
-      ? "Shared demo account · progress is saved online"
-      : "Your progress is saved to your account"
+      ? `Shared demo account · ${role === "Student" ? "progress" : "marking"} is saved online`
+      : `Your ${role === "Student" ? "progress" : "marking"} is saved to your account`
     : undefined
 
   const hasSettings = items.some((i) => i.id === "settings")

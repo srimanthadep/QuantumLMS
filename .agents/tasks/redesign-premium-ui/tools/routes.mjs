@@ -38,10 +38,13 @@ export const groups = {
     { name: "settings", path: "/teacher/settings", role: "Teacher" },
     { name: "support", path: "/teacher/support", role: "Teacher" },
   ],
+  // The evaluator portal runs on the API: the demo evaluator signs in through Cognito.
   evaluator: [
     { name: "dashboard", path: "/evaluator/dashboard", role: "Evaluator" },
-    { name: "submissions", path: "/evaluator/submissions", role: "Evaluator" },
-    { name: "workspace", path: "/evaluator/workspace/sub-101", role: "Evaluator" },
+    { name: "queue", path: "/evaluator/queue", role: "Evaluator" },
+    { name: "queue-ready", path: "/evaluator/queue?view=ready", role: "Evaluator" },
+    { name: "workspace", path: "/evaluator/queue/next", role: "Evaluator" },
+    { name: "reevaluations", path: "/evaluator/reevaluations", role: "Evaluator" },
     { name: "reports", path: "/evaluator/reports", role: "Evaluator" },
     { name: "settings", path: "/evaluator/settings", role: "Evaluator" },
   ],

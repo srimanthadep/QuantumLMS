@@ -21,12 +21,14 @@ interface AreaChartProps {
   yMin?: number
   /** Value at the top gridline (default: a rounded max of the data). */
   yMax?: number
+  /** Label every nth point on the x axis (the tooltip still names every point). Default: all of them. */
+  tickEvery?: number
 }
 
 const W = 600
 
 /** Responsive area chart with gridlines, x labels and a hover crosshair tooltip. */
-export default function AreaChart({ labels, series, height = 220, className, formatValue = (v) => compactNumber.format(v), label, yMin = 0, yMax }: AreaChartProps) {
+export default function AreaChart({ labels, series, height = 220, className, formatValue = (v) => compactNumber.format(v), label, yMin = 0, yMax, tickEvery = 1 }: AreaChartProps) {
   const id = useId().replace(/:/g, "")
   const ref = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<number | null>(null)
@@ -92,13 +94,26 @@ export default function AreaChart({ labels, series, height = 220, className, for
       </svg>
       {/* y-axis max label */}
       <span className="pointer-events-none absolute left-0 top-0 text-[10px] tabular-nums text-subtle-foreground">{formatValue(max)}</span>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-subtle-foreground">
-        {labels.map((l, i) => (
-          <span key={`${l}-${i}`} className={cn(labels.length > 8 && i % 2 === 1 && "hidden sm:inline")}>
-            {l}
-          </span>
-        ))}
-      </div>
+      {tickEvery > 1 ? (
+        // Sparse ticks sit under their own points.
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 text-[10px] text-subtle-foreground">
+          {labels.map((l, i) =>
+            i % tickEvery === 0 || i === labels.length - 1 ? (
+              <span key={`${l}-${i}`} className="absolute whitespace-nowrap" style={{ left: `${(i / Math.max(1, labels.length - 1)) * 100}%`, transform: `translateX(${i === 0 ? "0" : i === labels.length - 1 ? "-100%" : "-50%"})` }}>
+                {l}
+              </span>
+            ) : null,
+          )}
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-subtle-foreground">
+          {labels.map((l, i) => (
+            <span key={`${l}-${i}`} className={cn(labels.length > 8 && i % 2 === 1 && "hidden sm:inline")}>
+              {l}
+            </span>
+          ))}
+        </div>
+      )}
       <AnimatePresence>
         {hover !== null && (
           <motion.div

@@ -39,8 +39,8 @@ interface SessionValue {
   /** Updates the signed-in user's display fields (the student portal syncs them from the backend profile). */
   updateUser: (patch: Partial<Omit<CurrentUser, "role">>) => void
   /**
-   * Restores demo data and reloads. Students: the backend restores the shared demo account (other students get an
-   * error). Other roles: clears their locally stored demo data.
+   * Restores demo data and reloads. Students and evaluators: the API restores the shared demo account (other
+   * accounts get an error). Other roles: clears their locally stored demo data.
    */
   resetDemoData: () => Promise<void>
 }
@@ -137,9 +137,10 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 
   const role = state.user.role
   const resetDemoData = useCallback(async () => {
-    if (role === "Student") {
+    // Students and evaluators keep their data in the API; only the shared demo accounts can be reset there.
+    if (role === "Student" || role === "Evaluator") {
       const { api } = await import("@/lib/api")
-      await api.post("/student/demo/reset", {}, "The demo data couldn't be reset.")
+      await api.post(role === "Student" ? "/student/demo/reset" : "/evaluator/demo/reset", {}, "The demo data couldn't be reset.")
     }
     try {
       const keep = new Set([KEY_AUTH, KEY_ROLE, KEY_USER, "app_theme_mode", "app_theme_accent", "quantum_shell_collapsed"])
