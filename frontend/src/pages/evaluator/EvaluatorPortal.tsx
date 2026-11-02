@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import type { CurrentUser } from "../../types"
 import type { EvaluatorTab, StudentSubmission } from "./types"
 import AppShell from "../../components/shell/AppShell"
 import { useAiAssistant } from "../../components/shell/AiAssistantDialog"
 import type { NotificationSource } from "../../components/shell/NotificationsMenu"
 import PageHeader from "../../components/ui/page-header"
+import PageTransition from "@/components/motion/PageTransition"
 import { Dashboard } from "./Dashboard"
 import { Submissions } from "./Submissions"
 import { EvaluationWorkspace } from "./EvaluationWorkspace"
@@ -19,13 +21,11 @@ import {
   type EvaluatorState,
 } from "./data/evaluatorStorage"
 
-/** Role switching, sign-out and theme now live in the app shell. */
 export interface EvaluatorPortalProps {
   currentUser?: CurrentUser
   onToast: (msg: string) => void
 }
 
-// Parse initial tab or workspace route from window.location
 function parseInitialRoute(): {
   tab: EvaluatorTab
   submissionId: string | null
@@ -50,6 +50,7 @@ function parseInitialRoute(): {
     target.includes("evaluations") ||
     target.includes("assessments") ||
     target.includes("submissions") ||
+    target.includes("queue") ||
     target.includes("reassessment") ||
     target.includes("results") ||
     target.includes("feedback")
@@ -67,7 +68,6 @@ function parseInitialRoute(): {
 }
 
 export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) {
-  // Evaluator State synchronized with localStorage
   const [evaluatorState, setEvaluatorState] = useState<EvaluatorState>(() =>
     loadEvaluatorState()
   )
@@ -83,10 +83,13 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
   >(undefined)
 
   const [searchQuery, setSearchQuery] = useState<string>("")
-  const [queueTab, setQueueTab] = useState<"all" | "reassessment">(() =>
-    typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("reassessment") ? "reassessment" : "all"
-  )
-  const ai = useAiAssistant()
+  const [queueTab, setQueueTab] = useState<"all" | "assigned" | "reassessment" | "published">(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname.toLowerCase()
+      if (p.includes("reassessment") || p.includes("reevaluations")) return "reassessment"
+    }
+    return "all"
+  })
 
   // Listen to cross-component evaluator updates
   useEffect(() => {
@@ -115,8 +118,14 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
   const handleTabChange = useCallback(
     (newTab: EvaluatorTab, context?: any) => {
       setActiveTab(newTab)
-      setActiveSubmissionId(null) // Exit workspace when switching sidebar tabs
-      setQueueTab(context?.filter === "reassessment" ? "reassessment" : "all")
+      setActiveSubmissionId(null)
+      if (context?.filter === "reassessment") {
+        setQueueTab("reassessment")
+      } else if (context?.filter === "published") {
+        setQueueTab("published")
+      } else if (context?.filter === "assigned") {
+        setQueueTab("assigned")
+      }
 
       if (context?.assessmentId) {
         setAssessmentFilterContext(context.assessmentId)
@@ -127,8 +136,8 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
           ? "dashboard"
           : newTab === "Submissions"
           ? context?.filter === "reassessment"
-            ? "reassessments"
-            : "submissions"
+            ? "reevaluations"
+            : "queue"
           : newTab === "Reports"
           ? "reports"
           : "settings"
@@ -146,10 +155,10 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
 
   const handleCloseWorkspace = useCallback(() => {
     setActiveSubmissionId(null)
-    window.history.pushState(null, "", `/evaluator/submissions`)
+    window.history.pushState(null, "", `/evaluator/queue`)
   }, [])
 
-  // Find active workspace submission and assessment
+  // Active workspace submission and assessment
   const activeWorkspaceSubmission = useMemo(() => {
     if (!activeSubmissionId) return null
     return (
@@ -199,6 +208,30 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
     [activeWorkspaceSubmission, evaluatorState.submissions, handleOpenWorkspace]
   )
 
+  // Keyboard navigation for Workspace ([ and ])
+  useEffect(() => {
+    if (!activeWorkspaceSubmission) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+      if (e.key === "[" && hasPrevSubmission) {
+        e.preventDefault()
+        handleNavigateSubmission("prev")
+      } else if (e.key === "]" && hasNextSubmission) {
+        e.preventDefault()
+        handleNavigateSubmission("next")
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        handleCloseWorkspace()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [activeWorkspaceSubmission, hasPrevSubmission, hasNextSubmission, handleNavigateSubmission, handleCloseWorkspace])
+
   // Save draft evaluation handler
   const handleSaveDraft = useCallback(
     (subId: string, evaluation: any) => {
@@ -214,7 +247,6 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
       const nextState = finalizeEvaluation(evaluatorState, subId, evaluation)
       setEvaluatorState(nextState)
 
-      // Auto-advance if configured
       if (evaluatorState.settings.autoAdvanceOnSubmit && hasNextSubmission) {
         handleNavigateSubmission("next")
       } else {
@@ -244,43 +276,10 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
 
   const reassessmentCount = useMemo(
     () =>
-      evaluatorState.submissions.filter((s) => s.status === "Reassessment Requested")
+      evaluatorState.submissions.filter((s) => s.status.includes("Reassessment"))
         .length,
     [evaluatorState.submissions]
   )
-
-  const unreadNotifsCount = useMemo(
-    () => evaluatorState.notifications.filter((n) => !n.read).length,
-    [evaluatorState.notifications]
-  )
-
-  // Header dynamic title & subtitle
-  const headerInfo = useMemo(() => {
-    switch (activeTab) {
-      case "Dashboard":
-        return {
-          title: "Assessor Command Center",
-          subtitle: `Overview · ${pendingCount} submissions pending your evaluation`,
-        }
-      case "Submissions":
-        return {
-          title: "Unified Grading Queue",
-          subtitle: "Evaluate cohort submissions, review reassessments, and release grades",
-        }
-      case "Reports":
-        return {
-          title: "Evaluation Reports & Analytics",
-          subtitle: "Workload distribution, scoring metrics, and completion summaries",
-        }
-      case "Settings":
-        return {
-          title: "Evaluator Settings",
-          subtitle: "Assigned course profiles, grading preferences, and notifications",
-        }
-      default:
-        return { title: "Evaluator Portal", subtitle: "Quantum LMS" }
-    }
-  }, [activeTab, pendingCount])
 
   const notificationSource: NotificationSource = {
     items: evaluatorState.notifications.map((n) => ({
@@ -305,10 +304,14 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
   }
 
   const activeNav =
-    activeTab === "Submissions" ? (queueTab === "reassessment" ? "reevaluations" : "queue") : activeTab.toLowerCase()
+    activeTab === "Submissions"
+      ? queueTab === "reassessment"
+        ? "reevaluations"
+        : "queue"
+      : activeTab.toLowerCase()
 
   const onShellNavigate = (id: string) => {
-    if (id === "queue") handleTabChange("Submissions")
+    if (id === "queue") handleTabChange("Submissions", { filter: "all" })
     else if (id === "reevaluations") handleTabChange("Submissions", { filter: "reassessment" })
     else if (id === "reports") handleTabChange("Reports")
     else if (id === "settings") handleTabChange("Settings")
@@ -323,59 +326,59 @@ export function EvaluatorPortal({ currentUser, onToast }: EvaluatorPortalProps) 
       badges={{ queue: pendingCount, reevaluations: reassessmentCount }}
       notifications={notificationSource}
     >
-      <div className="dashboard-content evaluator-content min-w-0">
-        {/* If in Workspace: Fullscreen grading experience */}
-        {activeWorkspaceSubmission && activeWorkspaceAssessment ? (
-          <EvaluationWorkspace
-            submission={activeWorkspaceSubmission}
-            assessment={activeWorkspaceAssessment}
-            state={evaluatorState}
-            onSaveDraft={handleSaveDraft}
-            onSubmitEvaluation={handleSubmitEvaluation}
-            onBackToSubmissions={handleCloseWorkspace}
-            onNavigateSubmission={handleNavigateSubmission}
-            hasPrevSubmission={hasPrevSubmission}
-            hasNextSubmission={hasNextSubmission}
-            onToast={onToast}
-          />
-        ) : (
-          /* Normal Tab Content */
-          <>
-            <PageHeader title={headerInfo.title} description={headerInfo.subtitle} />
-
-            {activeTab === "Dashboard" && (
-              <Dashboard
+      <div className="evaluator-portal-container min-w-0">
+        <AnimatePresence mode="wait">
+          {activeWorkspaceSubmission && activeWorkspaceAssessment ? (
+            <PageTransition key={`workspace-${activeWorkspaceSubmission.id}`}>
+              <EvaluationWorkspace
+                submission={activeWorkspaceSubmission}
+                assessment={activeWorkspaceAssessment}
                 state={evaluatorState}
-                onNavigateTab={handleTabChange}
-                onOpenWorkspace={handleOpenWorkspace}
-              />
-            )}
-
-            {activeTab === "Submissions" && (
-              <Submissions
-                state={evaluatorState}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                onOpenWorkspace={handleOpenWorkspace}
-                initialAssessmentFilter={assessmentFilterContext}
-                initialQueueTab={queueTab}
-                key={queueTab}
-              />
-            )}
-
-            {activeTab === "Reports" && (
-              <Reports state={evaluatorState} onToast={onToast} />
-            )}
-
-            {activeTab === "Settings" && (
-              <Settings
-                state={evaluatorState}
-                onUpdateState={setEvaluatorState}
+                onSaveDraft={handleSaveDraft}
+                onSubmitEvaluation={handleSubmitEvaluation}
+                onBackToSubmissions={handleCloseWorkspace}
+                onNavigateSubmission={handleNavigateSubmission}
+                hasPrevSubmission={hasPrevSubmission}
+                hasNextSubmission={hasNextSubmission}
                 onToast={onToast}
               />
-            )}
-          </>
-        )}
+            </PageTransition>
+          ) : (
+            <PageTransition key={activeTab}>
+              {activeTab === "Dashboard" && (
+                <Dashboard
+                  state={evaluatorState}
+                  onNavigateTab={handleTabChange}
+                  onOpenWorkspace={handleOpenWorkspace}
+                />
+              )}
+
+              {activeTab === "Submissions" && (
+                <Submissions
+                  state={evaluatorState}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onOpenWorkspace={handleOpenWorkspace}
+                  initialAssessmentFilter={assessmentFilterContext}
+                  initialQueueTab={queueTab}
+                  key={queueTab}
+                />
+              )}
+
+              {activeTab === "Reports" && (
+                <Reports state={evaluatorState} onToast={onToast} />
+              )}
+
+              {activeTab === "Settings" && (
+                <Settings
+                  state={evaluatorState}
+                  onUpdateState={setEvaluatorState}
+                  onToast={onToast}
+                />
+              )}
+            </PageTransition>
+          )}
+        </AnimatePresence>
       </div>
     </AppShell>
   )

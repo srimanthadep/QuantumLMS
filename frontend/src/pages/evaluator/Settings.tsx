@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { motion } from "framer-motion"
 import {
   Settings as SettingsIcon,
   User,
@@ -9,7 +10,22 @@ import {
   Check,
   Shield,
   BookOpen,
+  Sliders,
+  SlidersHorizontal,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Badge,
+  Button,
+  Avatar,
+  Switch,
+  Input,
+} from "@/components/ui"
 import type { EvaluatorState } from "./data/evaluatorStorage"
 import {
   updateEvaluatorSettings,
@@ -59,291 +75,224 @@ export function Settings({ state, onUpdateState, onToast }: SettingsProps) {
     }
   }
 
-  const profile = formSettings.profile
-
   return (
-    <div className="evaluator-settings app-card-stack flex flex-col gap-[var(--app-card-gap,14px)] max-w-4xl">
-      {/* Evaluator Profile Section */}
-      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
-        <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-900">
-              Evaluator Academic Profile
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Assessor credential details managed by Institution Academic Affairs
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={profile.name}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-800 font-semibold cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
-              Academic Role
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={profile.role}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-purple-700 font-bold cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
-              Institutional Email
-            </label>
-            <input
-              type="email"
-              readOnly
-              value={profile.email}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-800 font-mono cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
-              Academic Faculty & School
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={profile.department}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-800 cursor-not-allowed"
-            />
-          </div>
-        </div>
-
-        {/* Assigned Courses Roster */}
+    <div className="space-y-6 max-w-4xl">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">
-            Assigned Teaching & Evaluation Courses (Admin Assigned)
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            {profile.assignedCourses.map((c) => (
-              <div
-                key={c}
-                className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center gap-2 font-medium text-zinc-800"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span>{c}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Evaluation Workspace & Display Preferences */}
-      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
-        <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-            <Eye className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-900">
-              Evaluation Workspace & View Preferences
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Configure submission lists and grading flow behavior
-            </p>
-          </div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Evaluator Preferences & Profile
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your grading studio workflow, SLA reminders, and assessor profile
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <label className="text-[11px] font-bold text-zinc-700 block mb-1">
-              Default Submission Sort Order
-            </label>
-            <select
-              value={formSettings.defaultSort}
-              onChange={(e) =>
-                setFormSettings((prev) => ({
-                  ...prev,
-                  defaultSort: e.target.value as any,
-                }))
-              }
-              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-surface text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
-            >
-              <option value="deadline">Evaluation Deadline (Closest first)</option>
-              <option value="submissionDate">Submission Timestamp (Recent first)</option>
-              <option value="studentName">Student Alphabetical (A-Z)</option>
-              <option value="score">Finalized Score</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-zinc-700 block mb-1">
-              Submission List Style
-            </label>
-            <select
-              value={formSettings.listView}
-              onChange={(e) =>
-                setFormSettings((prev) => ({
-                  ...prev,
-                  listView: e.target.value as any,
-                }))
-              }
-              className="w-full px-3 py-2 rounded-xl border border-zinc-200 bg-surface text-zinc-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
-            >
-              <option value="detailed">Detailed Table (Expanded columns)</option>
-              <option value="compact">Compact Row View</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Toggles */}
-        <div className="space-y-3 pt-2 text-xs">
-          <label className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100 cursor-pointer">
-            <div>
-              <div className="font-bold text-zinc-900">
-                Auto-advance upon Evaluation Submission
-              </div>
-              <div className="text-zinc-500 text-[11px]">
-                Automatically navigate to next pending submission after submitting marks
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={formSettings.autoAdvanceOnSubmit}
-              onChange={(e) =>
-                setFormSettings((prev) => ({
-                  ...prev,
-                  autoAdvanceOnSubmit: e.target.checked,
-                }))
-              }
-              className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100 cursor-pointer">
-            <div>
-              <div className="font-bold text-zinc-900">
-                Show Rubric Percentage Weights
-              </div>
-              <div className="text-zinc-500 text-[11px]">
-                Display weight % alongside criterion marks in grading panel
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={formSettings.showRubricWeights}
-              onChange={(e) =>
-                setFormSettings((prev) => ({
-                  ...prev,
-                  showRubricWeights: e.target.checked,
-                }))
-              }
-              className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Notification Preferences */}
-      <div className="bg-surface rounded-2xl border border-zinc-200/80 shadow-xs p-6 space-y-5">
-        <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-            <Bell className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-900">
-              Notification & Deadline Alerts
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Control alert categories shown in Evaluator Portal
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3 text-xs">
-          <label className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100 cursor-pointer">
-            <div>
-              <div className="font-bold text-zinc-900">
-                New Student Submission Arrivals
-              </div>
-              <div className="text-zinc-500 text-[11px]">
-                Notify when students submit new or revised attempts
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={formSettings.notificationPreferences.newSubmissions}
-              onChange={() => handleToggleNotification("newSubmissions")}
-              className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100 cursor-pointer">
-            <div>
-              <div className="font-bold text-zinc-900">
-                Approaching Evaluation Deadline Reminders
-              </div>
-              <div className="text-zinc-500 text-[11px]">
-                Urgent banners when submissions are within 48h of deadline
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={formSettings.notificationPreferences.deadlineReminders}
-              onChange={() => handleToggleNotification("deadlineReminders")}
-              className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100 cursor-pointer">
-            <div>
-              <div className="font-bold text-zinc-900">
-                Student Reassessment Requests & Appeals
-              </div>
-              <div className="text-zinc-500 text-[11px]">
-                High-priority notification when a student appeals evaluation marks
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={formSettings.notificationPreferences.reassessmentRequests}
-              onChange={() => handleToggleNotification("reassessmentRequests")}
-              className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Save & Reset Actions */}
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handleReset}
-          className="px-4 py-2.5 rounded-xl border border-red-200 text-red-700 hover:bg-red-50 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Portal Data to Defaults</span>
-        </button>
-
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={handleSave}
-          className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+          className="cursor-pointer font-bold shadow-xs"
         >
-          <Save className="w-3.5 h-3.5" />
-          <span>Save Preferences</span>
-        </button>
+          <Save className="h-4 w-4 mr-1.5" />
+          <span>Save Changes</span>
+        </Button>
       </div>
+
+      {/* 2. Assessor Profile Card */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-bold text-foreground">
+              Institutional Evaluator Identity
+            </CardTitle>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl bg-surface-2/60 border border-border">
+            <Avatar
+              src={formSettings.profile.avatar}
+              name={formSettings.profile.name}
+              size="lg"
+              className="ring-2 ring-primary/20"
+            />
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-bold text-foreground">
+                  {formSettings.profile.name}
+                </h3>
+                <Badge tone="primary" size="sm">
+                  {formSettings.profile.title}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formSettings.profile.email} · {formSettings.profile.department}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                Specializations
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {formSettings.profile.assignedSpecializations.map((spec) => (
+                  <Badge key={spec} tone="secondary" size="sm">
+                    {spec}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                Assigned Evaluation Courses
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {formSettings.profile.assignedCourses.map((c) => (
+                  <Badge key={c} tone="neutral" size="sm">
+                    {c}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Grading Studio Preferences */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-bold text-foreground">
+              Grading Studio Workflow
+            </CardTitle>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4 divide-y divide-border/60">
+          <div className="flex items-center justify-between pt-1">
+            <div className="space-y-0.5 max-w-lg">
+              <span className="text-sm font-semibold text-foreground block">
+                Auto-advance on Submission
+              </span>
+              <p className="text-xs text-muted-foreground">
+                When you finalize an evaluation, automatically open the next pending student in your queue.
+              </p>
+            </div>
+            <Switch
+              checked={formSettings.autoAdvanceOnSubmit}
+              onCheckedChange={(checked) =>
+                setFormSettings((prev) => ({ ...prev, autoAdvanceOnSubmit: checked }))
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div className="space-y-0.5 max-w-lg">
+              <span className="text-sm font-semibold text-foreground block">
+                Show Rubric Weight Percentages
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Display explicit criterion weight percentages next to point marks during grading.
+              </p>
+            </div>
+            <Switch
+              checked={formSettings.showRubricWeights}
+              onCheckedChange={(checked) =>
+                setFormSettings((prev) => ({ ...prev, showRubricWeights: checked }))
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Notification Preferences */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-bold text-foreground">
+              SLA & Notification Preferences
+            </CardTitle>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4 divide-y divide-border/60">
+          <div className="flex items-center justify-between pt-1">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-foreground block">
+                New Submission Alerts
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Notify when students submit assignments in your assigned courses.
+              </p>
+            </div>
+            <Switch
+              checked={formSettings.notificationPreferences.newSubmissions}
+              onCheckedChange={() => handleToggleNotification("newSubmissions")}
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-foreground block">
+                24h SLA Deadline Warnings
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Urgent alerts for submissions approaching the grading deadline threshold.
+              </p>
+            </div>
+            <Switch
+              checked={formSettings.notificationPreferences.deadlineReminders}
+              onCheckedChange={() => handleToggleNotification("deadlineReminders")}
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-foreground block">
+                Reassessment Appeals
+              </span>
+              <p className="text-xs text-muted-foreground">
+                High-priority notifications when students request a re-evaluation of marks.
+              </p>
+            </div>
+            <Switch
+              checked={formSettings.notificationPreferences.reassessmentRequests}
+              onCheckedChange={() => handleToggleNotification("reassessmentRequests")}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 5. Danger Zone */}
+      <Card className="border-danger/30 bg-danger-soft/10 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <span className="text-sm font-bold text-danger block">
+              Reset Evaluator Environment
+            </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Re-seed all assessments, student mock files, and draft evaluations to factory defaults.
+            </p>
+          </div>
+
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleReset}
+            className="cursor-pointer font-semibold text-xs shrink-0"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            <span>Reset to Defaults</span>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

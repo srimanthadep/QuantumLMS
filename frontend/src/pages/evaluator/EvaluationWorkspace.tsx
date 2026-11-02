@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
   ChevronLeft,
@@ -21,7 +22,31 @@ import {
   Check,
   X,
   File,
+  Copy,
+  Maximize2,
+  Minimize2,
+  Sliders,
+  HelpCircle,
+  Award,
+  Zap,
 } from "lucide-react"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Badge,
+  Button,
+  Avatar,
+  Progress,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui"
+import ProgressRing from "@/components/charts/ProgressRing"
+import AnimatedNumber from "@/components/motion/AnimatedNumber"
+import { StatusBadge, TypeBadge } from "./components/StatusBadge"
 import type {
   StudentSubmission,
   EvaluatorAssessment,
@@ -30,11 +55,6 @@ import type {
   RubricCriterion,
 } from "./types"
 import type { EvaluatorState } from "./data/evaluatorStorage"
-import {
-  saveSubmissionDraft,
-  finalizeEvaluation,
-} from "./data/evaluatorStorage"
-import { StatusBadge, TypeBadge } from "./components/StatusBadge"
 
 interface EvaluationWorkspaceProps {
   submission: StudentSubmission
@@ -47,6 +67,26 @@ interface EvaluationWorkspaceProps {
   hasPrevSubmission: boolean
   hasNextSubmission: boolean
   onToast: (msg: string) => void
+}
+
+const QUICK_TAGS = [
+  "Well-structured implementation",
+  "Clean code & comments",
+  "Handles edge cases thoroughly",
+  "Optimal time/space complexity",
+  "Good test coverage",
+  "Minor syntax inconsistency",
+  "Missing exception handling",
+  "Consider modularizing helper functions",
+]
+
+function computeGradeLetter(pct: number): string {
+  if (pct >= 93) return "A+"
+  if (pct >= 85) return "A"
+  if (pct >= 75) return "B+"
+  if (pct >= 65) return "B"
+  if (pct >= 50) return "C"
+  return "F"
 }
 
 export function EvaluationWorkspace({
@@ -63,27 +103,33 @@ export function EvaluationWorkspace({
 }: EvaluationWorkspaceProps) {
   // Center Viewer File Tab
   const [activeFileId, setActiveFileId] = useState<string>(
-    submission.files[0]?.id || "questions"
+    submission.files[0]?.id || (submission.questionAnswers?.length ? "questions" : "overview")
   )
+  const [isFullscreenViewer, setIsFullscreenViewer] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [showModelAnswers, setShowModelAnswers] = useState(false)
+  const [aiGenerating, setAiGenerating] = useState(false)
 
   // Grading form state initialized from draftEvaluation OR finalizedEvaluation OR defaults
   const existingEval = submission.draftEvaluation || submission.finalizedEvaluation
 
-  const [criterionScores, setCriterionScores] = useState<Record<string, number>>(
-    () => {
-      const initial: Record<string, number> = {}
-      if (existingEval?.criterionScores) {
-        existingEval.criterionScores.forEach((cs) => {
-          initial[cs.criterionId] = cs.awardedMarks
-        })
-      }
-      return initial
+  const [criterionScores, setCriterionScores] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {}
+    if (existingEval?.criterionScores) {
+      existingEval.criterionScores.forEach((cs) => {
+        initial[cs.criterionId] = cs.awardedMarks
+      })
+    } else {
+      // Default to proficient level or 80% marks
+      assessment.rubric?.criteria?.forEach((crit) => {
+        const prof = crit.performanceLevels?.find((l) => l.level === "Proficient")
+        initial[crit.id] = prof ? prof.points : Math.round(crit.maxMarks * 0.8)
+      })
     }
-  )
+    return initial
+  })
 
-  const [criterionFeedbacks, setCriterionFeedbacks] = useState<
-    Record<string, string>
-  >(() => {
+  const [criterionFeedbacks, setCriterionFeedbacks] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {}
     if (existingEval?.criterionScores) {
       existingEval.criterionScores.forEach((cs) => {
@@ -103,6 +149,8 @@ export function EvaluationWorkspace({
       submission.questionAnswers.forEach((q) => {
         if (q.awardedMarks !== undefined) {
           initial[q.id] = q.awardedMarks
+        } else {
+          initial[q.id] = q.maxMarks
         }
       })
     }
@@ -118,995 +166,729 @@ export function EvaluationWorkspace({
   const [areasForImprovement, setAreasForImprovement] = useState<string>(
     existingEval?.areasForImprovement || ""
   )
-  const [suggestions, setSuggestions] = useState<string>(
-    existingEval?.suggestions || ""
-  )
 
-  // Dirty state tracking to prevent accidental data loss
-  const [isDirty, setIsDirty] = useState<boolean>(false)
-  const [showUnsavedModal, setShowUnsavedModal] = useState<boolean>(false)
-  const [pendingNavigationAction, setPendingNavigationAction] = useState<
-    (() => void) | null
-  >(null)
-
-  // Final submission confirmation dialog
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false)
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [lastSavedTimestamp, setLastSavedTimestamp] = useState<string | null>(
-    existingEval?.lastSavedAt || null
-  )
-
-  // Sync state when submission changes
+  // Re-sync if submission changes
   useEffect(() => {
-    const current = submission.draftEvaluation || submission.finalizedEvaluation
-    const initialScores: Record<string, number> = {}
-    const initialFb: Record<string, string> = {}
-    if (current?.criterionScores) {
-      current.criterionScores.forEach((cs) => {
-        initialScores[cs.criterionId] = cs.awardedMarks
-        initialFb[cs.criterionId] = cs.feedback || ""
+    const nextEval = submission.draftEvaluation || submission.finalizedEvaluation
+    const initialCrit: Record<string, number> = {}
+    const initialFeed: Record<string, string> = {}
+
+    if (nextEval?.criterionScores) {
+      nextEval.criterionScores.forEach((cs) => {
+        initialCrit[cs.criterionId] = cs.awardedMarks
+        initialFeed[cs.criterionId] = cs.feedback || ""
+      })
+    } else {
+      assessment.rubric?.criteria?.forEach((crit) => {
+        const prof = crit.performanceLevels?.find((l) => l.level === "Proficient")
+        initialCrit[crit.id] = prof ? prof.points : Math.round(crit.maxMarks * 0.8)
       })
     }
-    setCriterionScores(initialScores)
-    setCriterionFeedbacks(initialFb)
+    setCriterionScores(initialCrit)
+    setCriterionFeedbacks(initialFeed)
 
-    const initialQ: Record<string, number> = {}
-    if (current?.questionScores) {
-      Object.assign(initialQ, current.questionScores)
-    } else if (submission.questionAnswers) {
-      submission.questionAnswers.forEach((q) => {
-        if (q.awardedMarks !== undefined) {
-          initialQ[q.id] = q.awardedMarks
-        }
-      })
+    setOverallFeedback(nextEval?.overallFeedback || "")
+    setStrengths(nextEval?.strengths || "")
+    setAreasForImprovement(nextEval?.areasForImprovement || "")
+
+    if (submission.files?.[0]) {
+      setActiveFileId(submission.files[0].id)
+    } else if (submission.questionAnswers?.length) {
+      setActiveFileId("questions")
     }
-    setQuestionScores(initialQ)
+  }, [submission, assessment])
 
-    setOverallFeedback(current?.overallFeedback || "")
-    setStrengths(current?.strengths || "")
-    setAreasForImprovement(current?.areasForImprovement || "")
-    setSuggestions(current?.suggestions || "")
-    setLastSavedTimestamp(current?.lastSavedAt || null)
-    setActiveFileId(submission.files[0]?.id || "questions")
-    setIsDirty(false)
-    setValidationErrors([])
-  }, [submission.id])
+  // Total Marks Calculation
+  const totalAwardedMarks = useMemo(() => {
+    if (submission.questionAnswers && submission.questionAnswers.length > 0) {
+      return Object.values(questionScores).reduce((acc, curr) => acc + (curr || 0), 0)
+    }
+    return Object.values(criterionScores).reduce((acc, curr) => acc + (curr || 0), 0)
+  }, [criterionScores, questionScores, submission.questionAnswers])
 
-  // Calculate Running Total
-  const { totalMarksAwarded, maxPossibleMarks, percentageScore, letterGrade } =
-    useMemo(() => {
-      let total = 0
-      const isQuizOrExamWithQuestions =
-        submission.questionAnswers && submission.questionAnswers.length > 0
+  const maxTotalMarks = assessment.maxMarks || 100
+  const scorePercentage = Math.round((totalAwardedMarks / Math.max(1, maxTotalMarks)) * 100)
+  const gradeLetter = computeGradeLetter(scorePercentage)
 
-      if (isQuizOrExamWithQuestions) {
-        // Sum question scores
-        submission.questionAnswers?.forEach((q) => {
-          total += questionScores[q.id] || 0
-        })
-      } else {
-        // Sum rubric criteria
-        assessment.rubric.criteria.forEach((c) => {
-          total += criterionScores[c.id] || 0
-        })
-      }
+  // Selected file
+  const activeFile = useMemo(() => {
+    return submission.files.find((f) => f.id === activeFileId)
+  }, [submission.files, activeFileId])
 
-      const max = assessment.maxMarks
-      const pct = max > 0 ? Math.round((total / max) * 100) : 0
+  // Performance level click handler
+  const handleSelectLevel = (criterionId: string, points: number) => {
+    setCriterionScores((prev) => ({
+      ...prev,
+      [criterionId]: points,
+    }))
+  }
 
-      let grade = "F"
-      if (pct >= 90) grade = "A+"
-      else if (pct >= 85) grade = "A"
-      else if (pct >= 80) grade = "A-"
-      else if (pct >= 75) grade = "B+"
-      else if (pct >= 70) grade = "B"
-      else if (pct >= 60) grade = "C"
-      else if (pct >= 50) grade = "D"
-
+  // Quick feedback tag click handler
+  const handleAppendTag = (criterionId: string, tag: string) => {
+    setCriterionFeedbacks((prev) => {
+      const current = prev[criterionId] || ""
+      if (current.includes(tag)) return prev
       return {
-        totalMarksAwarded: total,
-        maxPossibleMarks: max,
-        percentageScore: pct,
-        letterGrade: grade,
+        ...prev,
+        [criterionId]: current ? `${current}. ${tag}` : tag,
       }
-    }, [
-      criterionScores,
-      questionScores,
-      assessment,
-      submission.questionAnswers,
-    ])
-
-  // Handle score change with validation
-  const handleCriterionScoreChange = (criterionId: string, val: string, maxMarks: number) => {
-    setIsDirty(true)
-    const num = parseFloat(val)
-    if (isNaN(num)) {
-      setCriterionScores((prev) => {
-        const next = { ...prev }
-        delete next[criterionId]
-        return next
-      })
-      return
-    }
-    // Cap between 0 and maxMarks
-    const clamped = Math.max(0, Math.min(maxMarks, num))
-    setCriterionScores((prev) => ({ ...prev, [criterionId]: clamped }))
+    })
   }
 
-  const handleQuestionScoreChange = (qId: string, val: string, maxMarks: number) => {
-    setIsDirty(true)
-    const num = parseFloat(val)
-    if (isNaN(num)) {
-      setQuestionScores((prev) => {
-        const next = { ...prev }
-        delete next[qId]
-        return next
-      })
-      return
-    }
-    const clamped = Math.max(0, Math.min(maxMarks, num))
-    setQuestionScores((prev) => ({ ...prev, [qId]: clamped }))
-  }
-
-  // Construct Evaluation Record
+  // Build Evaluation Record
   const buildEvaluationRecord = (status: "Draft" | "Evaluated"): EvaluationRecord => {
-    const scoresArray: CriterionScore[] = assessment.rubric.criteria.map((c) => ({
-      criterionId: c.id,
-      criterionName: c.name,
-      awardedMarks: criterionScores[c.id] || 0,
-      maxMarks: c.maxMarks,
-      feedback: criterionFeedbacks[c.id] || "",
+    const cScores: CriterionScore[] = (assessment.rubric?.criteria || []).map((crit) => ({
+      criterionId: crit.id,
+      criterionName: crit.name,
+      awardedMarks: criterionScores[crit.id] ?? 0,
+      maxMarks: crit.maxMarks,
+      feedback: criterionFeedbacks[crit.id] || "",
     }))
 
     return {
-      id: `eval-${submission.id}-${Date.now()}`,
+      id: existingEval?.id || `eval-${Date.now()}`,
       submissionId: submission.id,
       assessmentId: assessment.id,
-      evaluatorId: "eval-01",
-      evaluatorName: "Dr. Alistair Vance",
+      evaluatorId: state.settings.profile.id,
+      evaluatorName: state.settings.profile.name,
       timestamp: new Date().toISOString(),
       status,
-      criterionScores: scoresArray,
+      criterionScores: cScores,
       questionScores,
-      totalAwardedMarks: totalMarksAwarded,
-      maxMarks: maxPossibleMarks,
+      totalAwardedMarks,
+      maxMarks: maxTotalMarks,
       overallFeedback,
       strengths,
       areasForImprovement,
-      suggestions,
-      lastSavedAt: new Date().toISOString(),
-      releaseStatus: "Awaiting Release",
+      suggestions: areasForImprovement,
+      lastSavedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      completedAt: status === "Evaluated" ? new Date().toISOString() : undefined,
+      releaseStatus: status === "Evaluated" ? "Released" : "Draft",
     }
   }
 
-  // Save Draft Action
-  const handleSaveDraft = () => {
-    const draftRecord = buildEvaluationRecord("Draft")
-    onSaveDraft(submission.id, draftRecord)
-    setIsDirty(false)
-    setLastSavedTimestamp(new Date().toLocaleTimeString())
-    onToast(`Draft saved for ${submission.studentName}! Total: ${totalMarksAwarded}/${maxPossibleMarks}`)
+  // Save Draft
+  const handleSaveDraftClick = () => {
+    const record = buildEvaluationRecord("Draft")
+    onSaveDraft(submission.id, record)
+    onToast(`Draft saved for ${submission.studentName} (${totalAwardedMarks}/${maxTotalMarks} pts).`)
   }
 
-  // Validate before submission
-  const validateForSubmission = (): boolean => {
-    const errors: string[] = []
-
-    const hasQuestions = submission.questionAnswers && submission.questionAnswers.length > 0
-
-    if (hasQuestions) {
-      submission.questionAnswers?.forEach((q) => {
-        if (questionScores[q.id] === undefined) {
-          errors.push(`Question #${q.questionNumber} requires awarded marks.`)
-        }
-      })
-    } else {
-      assessment.rubric.criteria.forEach((c) => {
-        if (criterionScores[c.id] === undefined) {
-          errors.push(`Criterion "${c.name}" must be scored before final submission.`)
-        }
-      })
-    }
-
-    if (totalMarksAwarded < 0) {
-      errors.push("Total marks cannot be negative.")
-    }
-    if (totalMarksAwarded > maxPossibleMarks) {
-      errors.push(`Total marks (${totalMarksAwarded}) exceed maximum of ${maxPossibleMarks}.`)
-    }
-
-    if (!overallFeedback.trim()) {
-      errors.push("Overall feedback must be provided before final evaluation.")
-    }
-
-    setValidationErrors(errors)
-    return errors.length === 0
+  // Finalize Evaluation
+  const handleSubmitClick = () => {
+    const record = buildEvaluationRecord("Evaluated")
+    onSubmitEvaluation(submission.id, record)
+    onToast(`Evaluation published for ${submission.studentName}! Grade: ${gradeLetter} (${totalAwardedMarks}/${maxTotalMarks})`)
   }
 
-  const handleOpenConfirmSubmit = () => {
-    if (validateForSubmission()) {
-      setShowConfirmModal(true)
-    } else {
-      onToast("Please correct the validation errors before submitting.")
-    }
+  // AI Feedback Generator
+  const handleGenerateAiFeedback = () => {
+    setAiGenerating(true)
+    setTimeout(() => {
+      setAiGenerating(false)
+      const autoStrengths = `Demonstrates strong mastery of ${assessment.title}. Code design adheres to clean modular principles, and the core algorithms perform efficiently.`
+      const autoImprovement = `Add deeper test assertions for edge cases and include inline typing annotations for production readiness.`
+      const autoOverall = `Excellent submission overall! Awarded ${totalAwardedMarks}/${maxTotalMarks} points (${gradeLetter}). Keep up the meticulous engineering standard.`
+
+      setStrengths(autoStrengths)
+      setAreasForImprovement(autoImprovement)
+      setOverallFeedback(autoOverall)
+      onToast("AI feedback drafted based on current rubric criteria!")
+    }, 600)
   }
 
-  const handleConfirmFinalSubmit = () => {
-    const finalRecord = buildEvaluationRecord("Evaluated")
-    onSubmitEvaluation(submission.id, finalRecord)
-    setIsDirty(false)
-    setShowConfirmModal(false)
-    onToast(`Evaluation finalized for ${submission.studentName} (${totalMarksAwarded}/${maxPossibleMarks} - Grade ${letterGrade}). Result queued for Admin release.`)
+  // Copy code helper
+  const handleCopyCode = (codeText?: string) => {
+    if (!codeText) return
+    navigator.clipboard.writeText(codeText)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+    onToast("Code copied to clipboard.")
   }
-
-  // Safe navigation with dirty warning
-  const requestNavigation = (action: () => void) => {
-    if (isDirty) {
-      setPendingNavigationAction(() => action)
-      setShowUnsavedModal(true)
-    } else {
-      action()
-    }
-  }
-
-  // Active file for viewer
-  const activeFile = submission.files.find((f) => f.id === activeFileId)
 
   return (
-    <div className="evaluator-workspace flex flex-col h-[calc(100vh-140px)] min-h-[640px] bg-surface rounded-3xl border border-zinc-200/90 shadow-lg overflow-hidden">
-      {/* Workspace Top Toolbar */}
-      <div className="workspace-header bg-ink-900 text-white px-5 py-3 flex items-center justify-between gap-4 shrink-0 flex-wrap">
-        {/* Left: Back & Breadcrumbs */}
+    <div className="space-y-5">
+      {/* 1. STUDIO TOP ACTION BAR */}
+      <div className="sticky top-14 z-30 flex flex-col gap-3 rounded-2xl border border-border/80 bg-surface/95 p-4 shadow-sm backdrop-blur-md md:flex-row md:items-center md:justify-between">
+        {/* Left: Back & Student identity */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => requestNavigation(onBackToSubmissions)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-            title="Return to Submissions list"
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onBackToSubmissions}
+            className="cursor-pointer font-medium"
+            title="Return to Queue"
           >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white/70 truncate max-w-[180px]">
-                {assessment.title}
-              </span>
-              <span className="text-white/60">/</span>
-              <span className="text-xs font-bold text-purple-300">
-                {submission.studentName} ({submission.studentRoll})
-              </span>
-            </div>
-            <div className="text-[11px] text-white/50 flex items-center gap-2">
-              <span>Version: {submission.version}</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-semibold">
-                Status: {submission.status}
-              </span>
-              {lastSavedTimestamp && (
-                <>
-                  <span>•</span>
-                  <span className="text-white/60">
-                    Saved: {lastSavedTimestamp}
-                  </span>
-                </>
-              )}
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            <span>Queue</span>
+          </Button>
+
+          <div className="h-6 w-px bg-border hidden sm:block" />
+
+          <div className="flex items-center gap-2.5">
+            <Avatar
+              src={submission.studentAvatar}
+              name={submission.studentName}
+              size="md"
+              className="ring-1 ring-border"
+            />
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground">
+                  {submission.studentName}
+                </h3>
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  ({submission.studentRoll})
+                </span>
+                <StatusBadge status={submission.status} />
+              </div>
+              <p className="text-xs text-muted-foreground truncate max-w-xs md:max-w-md">
+                {assessment.title} · {assessment.course}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Center: Running Marks Badge */}
-        <div className="flex items-center gap-3 bg-white/10 px-4 py-1.5 rounded-2xl border border-white/10">
-          <div className="text-right">
-            <div className="text-[10px] uppercase font-bold text-white/60 tracking-wider">
-              Awarded Total
-            </div>
-            <div className="text-lg font-black text-white leading-tight">
-              {totalMarksAwarded}{" "}
-              <span className="text-xs font-medium text-white/60">
-                / {maxPossibleMarks}
-              </span>
-            </div>
-          </div>
-          <div className="h-6 w-px bg-white/20" />
-          <div className="text-center px-1">
-            <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-500/30 text-purple-200 border border-purple-400/40">
-              Grade {letterGrade} ({percentageScore}%)
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Prev/Next Submission & Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* Navigation Between Submissions */}
-          <div className="flex items-center bg-white/10 rounded-xl p-0.5 mr-2">
+        {/* Right: Stepper & Action buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Stepper */}
+          <div className="flex items-center rounded-lg border border-border bg-surface-2 p-0.5 text-xs mr-2">
             <button
               type="button"
               disabled={!hasPrevSubmission}
-              onClick={() => requestNavigation(() => onNavigateSubmission("prev"))}
-              className="p-1.5 rounded-lg text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
-              title="Previous Submission (Alt + Left)"
+              onClick={() => onNavigateSubmission("prev")}
+              className={`p-1.5 rounded transition-colors ${
+                hasPrevSubmission ? "hover:bg-surface text-foreground cursor-pointer" : "opacity-40 cursor-not-allowed text-muted-foreground"
+              }`}
+              title="Previous Submission (Keyboard: [ )"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-[10px] text-white/50 px-1 font-mono">NAV</span>
+            <span className="px-2 font-mono text-[11px] font-semibold text-muted-foreground">
+              Navigate
+            </span>
             <button
               type="button"
               disabled={!hasNextSubmission}
-              onClick={() => requestNavigation(() => onNavigateSubmission("next"))}
-              className="p-1.5 rounded-lg text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
-              title="Next Submission (Alt + Right)"
+              onClick={() => onNavigateSubmission("next")}
+              className={`p-1.5 rounded transition-colors ${
+                hasNextSubmission ? "hover:bg-surface text-foreground cursor-pointer" : "opacity-40 cursor-not-allowed text-muted-foreground"
+              }`}
+              title="Next Submission (Keyboard: ] )"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Save Draft */}
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/20 transition-colors cursor-pointer"
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveDraftClick}
+            className="cursor-pointer"
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="h-3.5 w-3.5 text-primary" />
             <span>Save Draft</span>
-          </button>
+          </Button>
 
-          {/* Submit Final Evaluation */}
-          <button
-            type="button"
-            onClick={handleOpenConfirmSubmit}
-            className="px-4 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSubmitClick}
+            className="cursor-pointer font-bold shadow-xs hover:shadow-md transition-all"
           >
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>Submit Evaluation</span>
-          </button>
+            <CheckCircle className="h-3.5 w-3.5" />
+            <span>Publish Grade ({totalAwardedMarks} pts)</span>
+          </Button>
         </div>
       </div>
 
-      {/* 3-Section Workspace Body */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-zinc-200 overflow-hidden">
-        {/* ========================================================
-            SECTION 1 (LEFT): SUBMISSION INFORMATION (3 Cols)
-            ======================================================== */}
-        <div className="md:col-span-3 h-full overflow-y-auto no-scrollbar p-4 bg-zinc-50/50 space-y-4 text-xs">
-          {/* Student Profile Card */}
-          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <img
-                src={submission.studentAvatar}
-                alt={submission.studentName}
-                className="w-10 h-10 rounded-full object-cover border border-zinc-200"
-              />
-              <div className="min-w-0">
-                <div className="font-bold text-zinc-900 text-sm truncate">
-                  {submission.studentName}
-                </div>
-                <div className="text-zinc-500 text-[11px] font-mono">
-                  Roll: {submission.studentRoll}
-                </div>
-              </div>
+      {/* 2. RE-EVALUATION APPEAL NOTICE (IF APPLICABLE) */}
+      {submission.reassessmentRequest && (
+        <div className="rounded-2xl border border-danger/40 bg-gradient-to-r from-danger-soft/40 via-surface to-surface p-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-danger-soft p-2.5 text-danger shrink-0">
+              <RotateCcw className="h-5 w-5" />
             </div>
-
-            <div className="space-y-1.5 text-[11px] pt-2 border-t border-zinc-100 text-zinc-600">
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Course:</span>
-                <span className="font-semibold text-zinc-800 truncate max-w-[140px]">
-                  {submission.courseCode}
+            <div className="space-y-1 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-sm font-bold text-danger">
+                  Student Formal Grade Appeal & Reassessment Request
+                </h4>
+                <Badge tone="danger" size="sm">
+                  Requested on {submission.reassessmentRequest.requestDate}
+                </Badge>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Original Score: {submission.reassessmentRequest.originalMarks} / {submission.reassessmentRequest.maxMarks}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Submitted:</span>
-                <span className="font-semibold text-zinc-800">
-                  {new Date(submission.submissionDate).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Attempts:</span>
-                <span className="font-semibold text-zinc-800">
-                  Attempt #{submission.previousAttemptsCount ? submission.previousAttemptsCount + 1 : 1}
-                </span>
-              </div>
-              {submission.projectRepoUrl && (
-                <div className="pt-2">
-                  <a
-                    href={submission.projectRepoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-1.5 px-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold inline-flex items-center justify-center gap-1 transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>View GitHub Repository</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Assessment Instructions Card */}
-          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2">
-            <h4 className="font-bold text-zinc-900 text-xs flex items-center gap-1.5 uppercase tracking-wider">
-              <Info className="w-3.5 h-3.5 text-purple-600" />
-              <span>Assessment Directive</span>
-            </h4>
-            <p className="text-zinc-600 leading-relaxed text-[11px]">
-              {assessment.instructions}
-            </p>
-          </div>
-
-          {/* Submitted Files List */}
-          <div className="bg-surface p-3.5 rounded-2xl border border-zinc-200/80 shadow-xs space-y-2.5">
-            <h4 className="font-bold text-zinc-900 text-xs flex items-center justify-between">
-              <span>Submitted Artifacts</span>
-              <span className="text-[10px] text-zinc-400 font-normal">
-                {submission.files.length} files
-              </span>
-            </h4>
-
-            {/* Questions Tab (if exam/quiz) */}
-            {submission.questionAnswers && submission.questionAnswers.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveFileId("questions")}
-                className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
-                  activeFileId === "questions"
-                    ? "bg-purple-50 border-purple-400 text-purple-900 font-bold shadow-xs"
-                    : "bg-zinc-50 border-zinc-200/70 hover:bg-zinc-100 text-zinc-700 font-medium"
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <FileText className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span className="truncate">Question Responses</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold">
-                  {submission.questionAnswers.length} Qs
-                </span>
-              </button>
-            )}
-
-            {/* File Items */}
-            {submission.files.map((file) => {
-              const isActive = activeFileId === file.id
-              return (
-                <button
-                  key={file.id}
-                  type="button"
-                  onClick={() => setActiveFileId(file.id)}
-                  className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
-                    isActive
-                      ? "bg-purple-50 border-purple-400 text-purple-900 font-bold shadow-xs"
-                      : "bg-zinc-50 border-zinc-200/70 hover:bg-zinc-100 text-zinc-700 font-medium"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    {file.type === "code" ? (
-                      <Code className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    ) : (
-                      <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                    )}
-                    <span className="truncate">{file.name}</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 shrink-0">
-                    {file.size}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Reassessment History Banner (if contested) */}
-          {submission.reassessmentRequest && (
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 text-[11px] text-rose-900 space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-rose-800">
-                <RotateCcw className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                <span>Reassessment Request Active</span>
-              </div>
-              <p className="leading-snug text-rose-800">
-                Student contesting original grade of {submission.reassessmentRequest.originalMarks}/{submission.maxMarks}.
+              <p className="text-xs text-foreground/90 leading-relaxed bg-surface/80 p-3 rounded-xl border border-danger/20 mt-1">
+                <strong className="text-danger font-semibold">Student Reason:</strong> "{submission.reassessmentRequest.reason}"
               </p>
-              <div className="text-[10px] italic pt-1 text-rose-700">
-                "{submission.reassessmentRequest.reason}"
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ========================================================
-            SECTION 2 (CENTER): SUBMISSION VIEWER (5 Cols)
-            ======================================================== */}
-        <div className="md:col-span-5 h-full flex flex-col bg-ink-950 text-zinc-100 overflow-hidden">
-          {/* Viewer Tab Bar */}
-          <div className="bg-ink-900 px-4 py-2 border-b border-zinc-800 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center gap-2 font-mono text-zinc-300 truncate">
-              {activeFileId === "questions" ? (
-                <>
-                  <FileText className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Question_Responses.json</span>
-                </>
-              ) : activeFile?.type === "code" ? (
-                <>
-                  <Code className="w-3.5 h-3.5 text-blue-400" />
-                  <span>{activeFile?.name}</span>
-                  <span className="text-[10px] bg-ink-800 px-1.5 py-0.5 rounded text-zinc-400">
-                    {activeFile?.language}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <FileText className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{activeFile?.name}</span>
-                  <span className="text-[10px] bg-ink-800 px-1.5 py-0.5 rounded text-zinc-400">
-                    PDF Document
-                  </span>
-                </>
-              )}
-            </div>
-
-            <div className="text-[11px] text-zinc-400">
-              Interactive Preview Mode
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Viewer Content Canvas */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 font-mono text-xs select-text">
-            {activeFileId === "questions" && submission.questionAnswers ? (
-              /* Question by Question Answer Viewer */
-              <div className="space-y-6 font-sans">
-                {submission.questionAnswers.map((qa) => (
-                  <div
-                    key={qa.id}
-                    className="bg-ink-900 p-4 rounded-xl border border-zinc-800 space-y-3"
+      {/* 3. MAIN SPLIT STUDIO LAYOUT (Left: Viewer, Right: Rubric Engine) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+        {/* LEFT COLUMN (7 cols): Multi-File Viewer */}
+        <div className="lg:col-span-7 space-y-4">
+          <Card className="border-border/80 shadow-xs overflow-hidden">
+            {/* Viewer Header / Tab bar */}
+            <div className="flex flex-wrap items-center justify-between border-b border-border bg-surface-2/60 px-4 py-2.5 gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {submission.files?.map((file) => (
+                  <button
+                    key={file.id}
+                    type="button"
+                    onClick={() => setActiveFileId(file.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeFileId === file.id
+                        ? "bg-surface text-primary shadow-xs border border-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
+                    }`}
                   >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-purple-400">
-                        Question #{qa.questionNumber} ({qa.questionType.replace("_", " ")})
-                      </span>
-                      <span className="font-bold text-zinc-400 bg-ink-800 px-2 py-0.5 rounded">
-                        Max {qa.maxMarks} Marks
-                      </span>
-                    </div>
-
-                    <div className="text-zinc-200 text-xs font-semibold leading-relaxed">
-                      {qa.questionText}
-                    </div>
-
-                    <div className="bg-ink-950 p-3 rounded-lg border border-zinc-800/80 space-y-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                        Student Answer:
-                      </div>
-                      <div className="text-xs text-emerald-300 font-mono whitespace-pre-wrap leading-relaxed">
-                        {qa.studentAnswer}
-                      </div>
-                    </div>
-
-                    {qa.correctAnswer && (
-                      <div className="text-[11px] text-zinc-400 flex items-center gap-1">
-                        <span className="font-bold text-zinc-500">Official Key:</span>
-                        <span className="text-zinc-300">{qa.correctAnswer}</span>
-                      </div>
+                    {file.type === "code" ? (
+                      <Code className="h-3.5 w-3.5" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5" />
                     )}
-
-                    {/* Question score input right in viewer */}
-                    <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
-                      <span className="text-xs text-zinc-400">
-                        Awarded Marks:
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          max={qa.maxMarks}
-                          value={questionScores[qa.id] ?? ""}
-                          onChange={(e) =>
-                            handleQuestionScoreChange(qa.id, e.target.value, qa.maxMarks)
-                          }
-                          className="w-16 px-2 py-1 text-center bg-ink-800 text-white font-bold rounded-lg border border-zinc-700 text-xs focus:ring-1 focus:ring-purple-400 focus:outline-none"
-                        />
-                        <span className="text-xs text-zinc-500">/ {qa.maxMarks}</span>
-                      </div>
-                    </div>
-                  </div>
+                    <span>{file.name}</span>
+                  </button>
                 ))}
-              </div>
-            ) : activeFile?.type === "code" ? (
-              /* Code Viewer with simulated syntax lines */
-              <div className="space-y-0.5 text-zinc-300 text-xs leading-5">
-                {activeFile.content ? (
-                  activeFile.content.split("\n").map((line, idx) => (
-                    <div key={idx} className="flex hover:bg-ink-900/60 px-1 rounded">
-                      <span className="w-10 text-zinc-600 select-none shrink-0 text-right pr-4 font-mono text-[11px]">
-                        {idx + 1}
-                      </span>
-                      <span className="whitespace-pre overflow-x-auto text-zinc-200">
-                        {line}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-zinc-500 py-10 text-center">
-                    Empty file or no content available.
-                  </div>
+
+                {submission.questionAnswers && submission.questionAnswers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveFileId("questions")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeFileId === "questions"
+                        ? "bg-surface text-primary shadow-xs border border-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
+                    }`}
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    <span>Questions ({submission.questionAnswers.length})</span>
+                  </button>
                 )}
               </div>
-            ) : activeFile?.type === "pdf" ? (
-              /* PDF Simulation Viewer */
-              <div className="space-y-4 font-sans text-zinc-200">
-                <div className="bg-ink-900 border border-zinc-800 p-6 rounded-2xl shadow-inner space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800 text-xs text-zinc-400">
-                    <span>Document Viewer: {activeFile.name}</span>
-                    <span>Pages: 1 of {activeFile.pageCount || 1}</span>
-                  </div>
-                  <div className="text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap font-sans">
-                    {activeFile.content}
-                  </div>
-                </div>
+
+              {/* Viewer Tools */}
+              <div className="flex items-center gap-1.5">
+                {activeFile?.content && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCode(activeFile.content)}
+                    className="p-1.5 rounded-md hover:bg-surface text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Copy Code"
+                  >
+                    {copiedCode ? (
+                      <Check className="h-3.5 w-3.5 text-success" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
+
+                {activeFile?.url && (
+                  <a
+                    href={activeFile.url}
+                    download
+                    className="p-1.5 rounded-md hover:bg-surface text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Download File"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </a>
+                )}
               </div>
-            ) : (
-              <div className="py-20 text-center text-zinc-500 font-sans">
-                <File className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Preview format not supported for this file type.</p>
-                <p className="text-xs text-zinc-600 mt-1">
-                  File name: {activeFile?.name || "No file selected"}
-                </p>
+            </div>
+
+            {/* Viewer Content Body */}
+            <CardContent className="p-0">
+              {activeFileId === "questions" && submission.questionAnswers ? (
+                /* Question-by-question view */
+                <div className="divide-y divide-border/60 max-h-[640px] overflow-y-auto p-4 space-y-4">
+                  <div className="flex items-center justify-between pb-2">
+                    <span className="text-xs font-bold text-foreground">
+                      Subjective Exam Questions & Student Answers
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowModelAnswers((v) => !v)}
+                      className="text-xs text-primary font-semibold cursor-pointer"
+                    >
+                      {showModelAnswers ? "Hide Model Answers" : "Show Model Answers"}
+                    </Button>
+                  </div>
+
+                  {submission.questionAnswers.map((q, idx) => (
+                    <div key={q.id} className="pt-4 space-y-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-xs font-bold text-foreground">
+                          Question {idx + 1} ({q.maxMarks} marks):
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground font-semibold">Award:</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={q.maxMarks}
+                            value={questionScores[q.id] ?? q.maxMarks}
+                            onChange={(e) => {
+                              const val = Math.min(q.maxMarks, Math.max(0, Number(e.target.value) || 0))
+                              setQuestionScores((prev) => ({ ...prev, [q.id]: val }))
+                            }}
+                            className="w-16 h-7 rounded-md border border-border bg-surface px-2 text-center text-xs font-bold text-foreground"
+                          />
+                          <span className="text-xs text-muted-foreground">/ {q.maxMarks}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground bg-surface-2/40 p-2.5 rounded-lg border border-border/40 font-medium">
+                        {q.questionText}
+                      </p>
+
+                      <div className="p-3 rounded-xl bg-surface border border-border space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                          Student Response:
+                        </span>
+                        <p className="text-xs text-foreground font-mono leading-relaxed whitespace-pre-wrap">
+                          {q.studentAnswer}
+                        </p>
+                      </div>
+
+                      {showModelAnswers && q.correctAnswer && (
+                        <div className="p-3 rounded-xl bg-success-soft/30 border border-success/30 space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-success block">
+                            Instructor Model Answer:
+                          </span>
+                          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                            {q.correctAnswer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : activeFile?.type === "code" && activeFile.content ? (
+                /* Code File Viewer with Line Numbers */
+                <div className="relative max-h-[640px] overflow-y-auto bg-surface-2/80 font-mono text-xs">
+                  <pre className="p-4 leading-relaxed text-foreground whitespace-pre-wrap select-text">
+                    <code>{activeFile.content}</code>
+                  </pre>
+                </div>
+              ) : (
+                /* Document or PDF fallback */
+                <div className="p-10 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mx-auto">
+                    <FileText className="h-7 w-7" />
+                  </div>
+                  <h4 className="text-sm font-bold text-foreground">
+                    {activeFile?.name || "Student Document"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {activeFile?.size || "Formatted PDF"} · Ready for rubric evaluation.
+                  </p>
+                  {activeFile?.url && (
+                    <Button variant="outline" size="sm" asChild className="cursor-pointer">
+                      <a href={activeFile.url} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        <span>Open Document in Full Viewer</span>
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+
+            {/* Links footer if repo exists */}
+            {(submission.projectRepoUrl || submission.projectDemoUrl) && (
+              <div className="flex flex-wrap items-center justify-between border-t border-border bg-surface-2/40 px-4 py-2.5 text-xs">
+                <span className="text-muted-foreground font-semibold">Project Repositories:</span>
+                <div className="flex items-center gap-2">
+                  {submission.projectRepoUrl && (
+                    <a
+                      href={submission.projectRepoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-primary-text hover:text-primary font-semibold"
+                    >
+                      <Code className="h-3.5 w-3.5" />
+                      <span>GitHub Repository</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                  {submission.projectDemoUrl && (
+                    <a
+                      href={submission.projectDemoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-success hover:text-success/80 font-semibold ml-2"
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>Live Production Deployment</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
-        {/* ========================================================
-            SECTION 3 (RIGHT): GRADING PANEL (4 Cols)
-            ======================================================== */}
-        <div className="md:col-span-4 h-full overflow-y-auto no-scrollbar p-5 bg-surface space-y-5 text-xs">
-          {/* Panel Header */}
-          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-zinc-900 text-sm">
-                Official Grading Panel
+        {/* RIGHT COLUMN (5 cols): Interactive Rubric Scoring Engine */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* A. Live Score Summary Card with ProgressRing */}
+          <Card className="border-border/80 shadow-xs bg-gradient-to-b from-surface to-surface-2/30">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Awarded Total
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-foreground tracking-tight">
+                      <AnimatedNumber value={totalAwardedMarks} />
+                    </span>
+                    <span className="text-sm text-muted-foreground font-semibold">
+                      / {maxTotalMarks} pts
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Badge tone={scorePercentage >= 75 ? "success" : "warning"} className="font-bold">
+                      Grade: {gradeLetter} ({scorePercentage}%)
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">
+                      {scorePercentage >= 50 ? "Passing Grade" : "Needs Review"}
+                    </span>
+                  </div>
+                </div>
+
+                <ProgressRing
+                  value={scorePercentage}
+                  size={84}
+                  thickness={8}
+                  tone={scorePercentage >= 80 ? "success" : scorePercentage >= 60 ? "primary" : "warning"}
+                  showValue={false}
+                >
+                  <div className="text-center">
+                    <span className="text-lg font-black text-foreground">
+                      <AnimatedNumber value={scorePercentage} />%
+                    </span>
+                  </div>
+                </ProgressRing>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* B. Rubric Criteria Cards */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">
+                Official Evaluation Rubric
               </h3>
-              <p className="text-[11px] text-zinc-400">
-                Scoring based on {assessment.rubric.name}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="font-black text-purple-700 text-sm">
-                {totalMarksAwarded}/{maxPossibleMarks}
+              <span className="text-xs text-muted-foreground">
+                {assessment.rubric?.criteria?.length || 0} criteria
               </span>
             </div>
-          </div>
 
-          {/* Validation Errors Notice (if any) */}
-          {validationErrors.length > 0 && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
-              <div className="font-bold text-red-800 flex items-center gap-1.5 text-xs">
-                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                <span>Required Validation Checklist:</span>
-              </div>
-              <ul className="list-disc list-inside text-[11px] text-red-700 space-y-0.5">
-                {validationErrors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Rubric Criteria Inputs */}
-          <div className="space-y-4">
-            <h4 className="font-bold text-zinc-900 uppercase tracking-wider text-[11px] text-zinc-400">
-              Criteria Evaluation
-            </h4>
-
-            {assessment.rubric.criteria.map((criterion, idx) => {
-              const currentScore = criterionScores[criterion.id] ?? ""
-              const hasScore = criterionScores[criterion.id] !== undefined
-              const isExceeded = (criterionScores[criterion.id] || 0) > criterion.maxMarks
-
+            {assessment.rubric?.criteria?.map((crit, idx) => {
+              const currentScore = criterionScores[crit.id] ?? 0
               return (
-                <div
-                  key={criterion.id}
-                  className={`p-3.5 rounded-2xl border transition-all space-y-2.5 ${
-                    hasScore
-                      ? "bg-purple-50/20 border-purple-200"
-                      : "bg-zinc-50/60 border-zinc-200/80"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-bold text-zinc-900 text-xs">
-                        {idx + 1}. {criterion.name}
+                <Card key={crit.id} className="border-border/80 shadow-xs">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft text-[10px] font-bold text-primary">
+                            {idx + 1}
+                          </span>
+                          <CardTitle className="text-sm font-bold text-foreground">
+                            {crit.name}
+                          </CardTitle>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {crit.description}
+                        </p>
                       </div>
-                      <div className="text-[10px] text-zinc-500 line-clamp-1">
-                        {criterion.description}
+
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-foreground">
+                          {currentScore}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-semibold">
+                          {" "}/ {crit.maxMarks}
+                        </span>
                       </div>
                     </div>
+                  </CardHeader>
 
-                    {/* Numeric Score Input */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max={criterion.maxMarks}
-                        value={currentScore}
-                        onChange={(e) =>
-                          handleCriterionScoreChange(
-                            criterion.id,
-                            e.target.value,
-                            criterion.maxMarks
+                  <CardContent className="space-y-3 pt-1">
+                    {/* Clickable Performance Levels */}
+                    {crit.performanceLevels && crit.performanceLevels.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {crit.performanceLevels.map((lvl) => {
+                          const isSelected = currentScore === lvl.points
+                          return (
+                            <button
+                              key={lvl.level}
+                              type="button"
+                              onClick={() => handleSelectLevel(crit.id, lvl.points)}
+                              className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                                isSelected
+                                  ? "border-primary bg-primary-soft text-primary-text font-bold shadow-xs scale-102"
+                                  : "border-border bg-surface hover:bg-surface-2 text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider">
+                                {lvl.level}
+                              </span>
+                              <span className="text-xs font-black mt-0.5">
+                                {lvl.points} pts
+                              </span>
+                            </button>
                           )
-                        }
-                        placeholder="0"
-                        className={`w-14 px-2 py-1 text-center font-bold rounded-lg border text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 ${
-                          isExceeded
-                            ? "bg-red-50 text-red-700 border-red-300"
-                            : "bg-surface text-zinc-900 border-zinc-300"
-                        }`}
+                        })}
+                      </div>
+                    )}
+
+                    {/* Granular Slider for Fine-tuning */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-[11px] font-semibold text-muted-foreground w-12">
+                        Fine-tune:
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={crit.maxMarks}
+                        step={1}
+                        value={currentScore}
+                        onChange={(e) => {
+                          const val = Number(e.target.value)
+                          setCriterionScores((prev) => ({ ...prev, [crit.id]: val }))
+                        }}
+                        className="flex-1 h-1.5 bg-surface-2 rounded-lg appearance-none cursor-pointer accent-primary"
                       />
-                      <span className="text-[11px] font-semibold text-zinc-400">
-                        / {criterion.maxMarks}
+                      <span className="text-xs font-mono font-bold text-foreground w-8 text-right">
+                        {currentScore}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Performance Levels Quick Buttons */}
-                  {criterion.performanceLevels && (
-                    <div className="flex items-center gap-1 flex-wrap pt-1">
-                      {criterion.performanceLevels.map((lvl) => (
-                        <button
-                          key={lvl.level}
-                          type="button"
-                          onClick={() =>
-                            handleCriterionScoreChange(
-                              criterion.id,
-                              lvl.points.toString(),
-                              criterion.maxMarks
-                            )
-                          }
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer ${
-                            criterionScores[criterion.id] === lvl.points
-                              ? "bg-purple-600 text-white"
-                              : "bg-surface hover:bg-zinc-100 text-zinc-600 border border-zinc-200"
-                          }`}
-                          title={lvl.description}
-                        >
-                          {lvl.level} ({lvl.points}p)
-                        </button>
-                      ))}
+                    {/* Quick Feedback Chips */}
+                    <div className="space-y-1.5 pt-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Quick Comments (click to append):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {QUICK_TAGS.slice(idx * 2, idx * 2 + 3).map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleAppendTag(crit.id, tag)}
+                            className="px-2 py-0.5 rounded-full border border-border bg-surface-2/60 text-[10px] font-medium text-foreground hover:bg-primary-soft hover:text-primary-text hover:border-primary-border transition-colors cursor-pointer"
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )}
 
-                  {/* Criterion-specific Feedback Input */}
-                  <input
-                    type="text"
-                    value={criterionFeedbacks[criterion.id] || ""}
-                    onChange={(e) => {
-                      setIsDirty(true)
-                      setCriterionFeedbacks((prev) => ({
-                        ...prev,
-                        [criterion.id]: e.target.value,
-                      }))
-                    }}
-                    placeholder={`Notes for ${criterion.name}...`}
-                    className="w-full text-[11px] px-2.5 py-1.5 rounded-lg bg-surface border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-                  />
-                </div>
+                    {/* Criterion Feedback Field */}
+                    <textarea
+                      rows={2}
+                      value={criterionFeedbacks[crit.id] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setCriterionFeedbacks((prev) => ({ ...prev, [crit.id]: val }))
+                      }}
+                      placeholder={`Constructive remarks for ${crit.name}...`}
+                      className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                    />
+                  </CardContent>
+                </Card>
               )
             })}
           </div>
 
-          {/* Qualitative Feedback Section */}
-          <div className="space-y-3 pt-3 border-t border-zinc-100">
-            <h4 className="font-bold text-zinc-900 uppercase tracking-wider text-[11px] text-zinc-400">
-              Evaluator Feedback
-            </h4>
+          {/* C. Overall Feedback & AI Draft Generator */}
+          <Card className="border-border/80 shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-bold text-foreground">
+                Overall Comprehensive Feedback
+              </CardTitle>
 
-            {/* Overall Feedback */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-zinc-700 flex items-center gap-1">
-                <span>Overall Feedback</span>
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                value={overallFeedback}
-                onChange={(e) => {
-                  setIsDirty(true)
-                  setOverallFeedback(e.target.value)
-                }}
-                placeholder="Detailed qualitative feedback synthesizing the student's submission..."
-                className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
-            </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={aiGenerating}
+                onClick={handleGenerateAiFeedback}
+                className="text-xs text-primary font-semibold cursor-pointer"
+              >
+                <Sparkles className={`h-3.5 w-3.5 mr-1 ${aiGenerating ? "animate-spin" : ""}`} />
+                <span>{aiGenerating ? "Synthesizing..." : "AI Feedback Assistant"}</span>
+              </Button>
+            </CardHeader>
 
-            {/* Strengths */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-emerald-800">
-                Key Strengths
-              </label>
-              <input
-                type="text"
-                value={strengths}
-                onChange={(e) => {
-                  setIsDirty(true)
-                  setStrengths(e.target.value)
-                }}
-                placeholder="e.g. Robust concurrency safety, clear diagrams..."
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-              />
-            </div>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Key Strengths
+                </label>
+                <textarea
+                  rows={2}
+                  value={strengths}
+                  onChange={(e) => setStrengths(e.target.value)}
+                  placeholder="Highlight core competencies and commendable engineering execution..."
+                  className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                />
+              </div>
 
-            {/* Areas for Improvement */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-amber-800">
-                Areas for Improvement
-              </label>
-              <input
-                type="text"
-                value={areasForImprovement}
-                onChange={(e) => {
-                  setIsDirty(true)
-                  setAreasForImprovement(e.target.value)
-                }}
-                placeholder="e.g. Expand automated unit test coverage..."
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-              />
-            </div>
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Areas for Growth & Improvement
+                </label>
+                <textarea
+                  rows={2}
+                  value={areasForImprovement}
+                  onChange={(e) => setAreasForImprovement(e.target.value)}
+                  placeholder="Constructive recommendations, architecture refinements, testing gaps..."
+                  className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                />
+              </div>
 
-            {/* Suggestions */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-blue-800">
-                Actionable Next Steps & Suggestions
-              </label>
-              <input
-                type="text"
-                value={suggestions}
-                onChange={(e) => {
-                  setIsDirty(true)
-                  setSuggestions(e.target.value)
-                }}
-                placeholder="e.g. Recommend studying Raft log compaction RFC..."
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-              />
-            </div>
-          </div>
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Final Evaluator Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={overallFeedback}
+                  onChange={(e) => setOverallFeedback(e.target.value)}
+                  placeholder="Closing encouragement and official grade comments..."
+                  className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                />
+              </div>
 
-          {/* Action Buttons at bottom of panel */}
-          <div className="pt-4 border-t border-zinc-100 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              className="flex-1 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Draft</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenConfirmSubmit}
-              className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Finalize & Submit</span>
-            </button>
-          </div>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">
+                  Grade will be released immediately to student portal.
+                </span>
+
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleSubmitClick}
+                  className="cursor-pointer font-bold shadow-xs hover:shadow-md transition-all"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  <span>Submit & Release ({totalAwardedMarks} pts)</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface rounded-3xl max-w-md w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
-              <CheckCircle className="w-6 h-6" />
-            </div>
-
-            <div className="text-center space-y-1">
-              <h3 className="text-lg font-bold text-zinc-900">
-                Confirm Evaluation Submission
-              </h3>
-              <p className="text-xs text-zinc-500">
-                You are about to submit the finalized evaluation for:
-              </p>
-              <div className="font-bold text-zinc-800 text-sm pt-1">
-                {submission.studentName} ({submission.studentRoll})
-              </div>
-            </div>
-
-            <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Assessment:</span>
-                <span className="font-semibold text-zinc-800">{assessment.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Total Marks Awarded:</span>
-                <span className="font-bold text-purple-700">
-                  {totalMarksAwarded} / {maxPossibleMarks} ({percentageScore}%)
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Letter Grade:</span>
-                <span className="font-bold text-zinc-800">{letterGrade}</span>
-              </div>
-              <div className="text-[11px] text-zinc-400 italic pt-1 border-t border-zinc-200">
-                Institutional Rule: Finalized evaluations are placed in "Awaiting Release" state for Exam Board / Admin verification before student publication.
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-zinc-200 font-bold text-zinc-700 hover:bg-zinc-100 text-xs transition-colors cursor-pointer"
-              >
-                Back to Editing
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmFinalSubmit}
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 font-bold text-white text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                Confirm Submission
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unsaved Changes Guard Modal */}
-      {showUnsavedModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-
-            <div className="text-center space-y-1">
-              <h3 className="text-base font-bold text-zinc-900">
-                You Have Unsaved Changes
-              </h3>
-              <p className="text-xs text-zinc-500">
-                You have modified criteria marks or feedback that have not been saved as a draft.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  handleSaveDraft()
-                  setShowUnsavedModal(false)
-                  if (pendingNavigationAction) pendingNavigationAction()
-                }}
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 font-bold text-white text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save Draft & Proceed</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDirty(false)
-                  setShowUnsavedModal(false)
-                  if (pendingNavigationAction) pendingNavigationAction()
-                }}
-                className="w-full py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 font-bold text-zinc-700 text-xs transition-colors cursor-pointer"
-              >
-                Discard Changes & Leave
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowUnsavedModal(false)}
-                className="w-full py-2 rounded-xl text-zinc-400 hover:text-zinc-600 text-xs transition-colors cursor-pointer font-semibold"
-              >
-                Keep Grading
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
