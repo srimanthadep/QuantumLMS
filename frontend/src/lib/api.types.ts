@@ -166,6 +166,34 @@ export interface Rows {
     course_id: string
     enrolled_at: string
   }
+  evaluations: {
+    id: string
+    submission_id: string
+    evaluator_id: string | null
+    status: string
+    scores: Json
+    total: number
+    feedback: string
+    private_note: string
+    started_at: string
+    updated_at: string
+    evaluated_at: string | null
+    released_at: string | null
+  }
+  evaluator_assignments: {
+    evaluator_id: string
+    assignment_id: string
+    created_at: string
+  }
+  evaluator_profiles: {
+    id: string
+    title: string
+    department: string
+    specializations: string[]
+    preferences: Json
+    created_at: string
+    updated_at: string
+  }
   event_registrations: {
     student_id: string
     event_id: string
@@ -381,6 +409,20 @@ export interface Rows {
     available_from: string | null
     due_at: string
   }
+  reevaluation_requests: {
+    id: string
+    submission_id: string
+    student_id: string
+    reason: string
+    status: string
+    original_score: number
+    revised_score: number | null
+    resolution: string | null
+    handled_by: string | null
+    created_at: string
+    updated_at: string
+    resolved_at: string | null
+  }
   reminders: {
     student_id: string
     target_type: string
@@ -391,6 +433,22 @@ export interface Rows {
     student_id: string
     data: Json
     updated_at: string
+  }
+  rubric_criteria: {
+    id: string
+    rubric_id: string
+    position: number
+    title: string
+    description: string
+    max_points: number
+    levels: Json
+  }
+  rubrics: {
+    id: string
+    assignment_id: string
+    title: string
+    version: string
+    guidance: string
   }
   squad_members: {
     squad_id: string

@@ -171,7 +171,8 @@ export interface AssignmentData {
   submittedAt?: string
   dueDate: string
   maxMarks: number
-  status: "Pending" | "Submitted" | "Graded"
+  /** Under Review: an evaluator has started marking, so the work can't be resubmitted. */
+  status: "Pending" | "Submitted" | "Under Review" | "Graded"
   priority: "High" | "Medium" | "Normal"
   submissionDate?: string
   grade?: string
@@ -181,6 +182,8 @@ export interface AssignmentData {
   repoUrl?: string
   comments?: string
   uploadedFileName?: string
+  /** The student's re-evaluation request for this grade, if any. */
+  reevaluation?: { status: "Pending" | "In Review" | "Revised" | "Upheld"; originalScore: number; revisedScore: number | null }
 }
 
 export interface AssessmentQuestion {

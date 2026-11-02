@@ -153,9 +153,15 @@ export async function finishPasswordReset(email: string, code: string, newPasswo
 
 /** The signed-in user's Cognito id, or null. */
 export async function currentUserId(): Promise<string | null> {
+  return (await currentSignIn())?.userId ?? null
+}
+
+/** Who is signed in to Cognito on this device: id and the email they signed in with. */
+export async function currentSignIn(): Promise<{ userId: string; email: string } | null> {
   if (!isAuthConfigured) return null
   try {
-    return (await getCurrentUser()).userId
+    const u = await getCurrentUser()
+    return { userId: u.userId, email: (u.signInDetails?.loginId ?? u.username).toLowerCase() }
   } catch {
     return null
   }

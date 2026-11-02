@@ -547,7 +547,7 @@ function Materials({ materials, courseTitle, onToast }: { materials: ResourceMat
   )
 }
 
-const ASSIGNMENT_TONE = { Pending: "warning", Submitted: "info", Graded: "success" } as const
+const ASSIGNMENT_TONE = { Pending: "warning", Submitted: "info", "Under Review": "warning", Graded: "success" } as const
 
 function Assessments({
   assignments,
@@ -579,7 +579,13 @@ function Assessments({
                 </div>
                 <p className="mt-1.5 text-sm font-medium text-foreground">{a.title}</p>
                 <p className="text-caption text-muted-foreground">
-                  {a.status === "Graded" ? `Graded · ${a.grade} (${a.score}/${a.maxMarks})` : a.status === "Submitted" ? `Submitted ${a.submissionDate}` : `Due ${a.dueDate} · ${a.maxMarks} marks`}
+                  {a.status === "Graded"
+                    ? `Graded · ${a.grade} (${a.score}/${a.maxMarks})`
+                    : a.status === "Under Review"
+                      ? `Under review · submitted ${a.submissionDate}`
+                      : a.status === "Submitted"
+                        ? `Submitted ${a.submissionDate}`
+                        : `Due ${a.dueDate} · ${a.maxMarks} marks`}
                 </p>
               </div>
               {a.status === "Pending" ? (
@@ -590,7 +596,7 @@ function Assessments({
                 <Button variant="ghost" size="sm" onClick={() => onSubmit(a)}>
                   Resubmit
                 </Button>
-              ) : (
+              ) : a.status === "Under Review" ? null : (
                 <ProgressRing value={a.score ?? 0} size={44} thickness={4} tone="success" label={`${a.title} score`}>
                   <span className="text-[10px] font-semibold tabular-nums text-foreground">{a.score}</span>
                 </ProgressRing>

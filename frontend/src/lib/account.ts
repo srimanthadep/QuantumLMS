@@ -31,7 +31,7 @@ export interface TotpEnrollment {
 }
 
 export async function enrollTotp(): Promise<TotpEnrollment> {
-  let account = "student"
+  let account = "account"
   try {
     const u = await getCurrentUser()
     account = u.signInDetails?.loginId ?? u.username

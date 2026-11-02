@@ -29,6 +29,18 @@ export interface CoreRaw {
   submissions: Record<string, Tables<"assignment_submissions">>
   quizzes: Tables<"quizzes">[]
   attempts: AttemptRow[]
+  /** assignment_id -> the student's re-evaluation request */
+  reevaluations: Record<string, ReevaluationRow>
+}
+
+export interface ReevaluationRow {
+  id: string
+  assignment_id: string
+  status: "Pending" | "In Review" | "Revised" | "Upheld"
+  original_score: number
+  revised_score: number | null
+  created_at: string
+  resolved_at: string | null
 }
 
 /** The student's quiz attempts. The server grades any that ran out of time first. */
@@ -47,6 +59,7 @@ interface CoreResponse {
   submissions: Tables<"assignment_submissions">[]
   quizzes: Tables<"quizzes">[]
   attempts: AttemptRow[]
+  reevaluations: ReevaluationRow[]
 }
 
 export async function loadCore(uid: string): Promise<CoreRaw> {
@@ -63,6 +76,7 @@ export async function loadCore(uid: string): Promise<CoreRaw> {
     submissions: Object.fromEntries(r.submissions.map((s) => [s.assignment_id, s])),
     quizzes: r.quizzes,
     attempts: r.attempts,
+    reevaluations: Object.fromEntries((r.reevaluations ?? []).map((x) => [x.assignment_id, x])),
   }
 }
 
@@ -145,11 +159,14 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
         repoUrl: sub?.repo_url ?? undefined,
         comments: sub?.comments ?? undefined,
         uploadedFileName: sub?.file_name ? `${sub.file_name}${sub.file_size ? ` (${sub.file_size})` : ""}` : undefined,
+        reevaluation: raw.reevaluations[a.id]
+          ? { status: raw.reevaluations[a.id].status, originalScore: raw.reevaluations[a.id].original_score, revisedScore: raw.reevaluations[a.id].revised_score }
+          : undefined,
       }
     })
 
   // Work to do first (soonest due), then work with evaluators, then graded work (most recent first).
-  const STATUS_ORDER = { Pending: 0, Submitted: 1, Graded: 2 } as const
+  const STATUS_ORDER = { Pending: 0, Submitted: 1, "Under Review": 1, Graded: 2 } as const
   assignments.sort(
     (a, b) =>
       STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||

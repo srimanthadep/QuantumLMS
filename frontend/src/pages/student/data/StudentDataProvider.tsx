@@ -1,116 +1,18 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
-import { CloudOff, RotateCcw } from "lucide-react"
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useSession } from "@/app/session"
+import CognitoGate, { FullPageError } from "@/app/CognitoGate"
 import RouteFallback from "@/app/RouteFallback"
-import { Button, EmptyState } from "@/components/ui"
 import { useToast } from "@/components/ui/toast"
-import { Hub } from "aws-amplify/utils"
 import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError, type StudentProfile } from "@/lib/api"
-import { currentUserId, isAuthConfigured, signInWithEmail } from "@/lib/auth"
+import { mutate, peek, refresh, useResource, type Resource } from "@/lib/resource"
 import type { CourseItem } from "../studentTypes"
 import * as actions from "./actions"
 import { deriveCore, loadAttempts, loadCore, type CoreRaw, type CoreView, type Profile } from "./core"
+import { requestReevaluation, type StudentRequest } from "./evaluation"
 import { loadNotifications, markAllNotificationsRead, markNotificationRead, type NotificationRow } from "./notifications"
-import { clearAll, mutate, peek, refresh, useResource, type Resource } from "./resource"
 
-/* ------------------------------ Session gate ------------------------------ */
-
-type GateState = { status: "checking" } | { status: "ready"; uid: string } | { status: "error"; message: string }
-
-function FullPageError({ title, message, onRetry, onBack }: { title: string; message: string; onRetry: () => void; onBack?: () => void }) {
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-background p-6">
-      <EmptyState
-        icon={<CloudOff aria-hidden="true" />}
-        title={title}
-        description={message}
-        action={
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={onRetry} leftIcon={<RotateCcw aria-hidden="true" />}>
-              Try again
-            </Button>
-            {onBack && (
-              <Button variant="ghost" onClick={onBack}>
-                Back to sign in
-              </Button>
-            )}
-          </div>
-        }
-      />
-    </div>
-  )
-}
-
-/**
- * Makes sure a Cognito session exists before the portal renders. Demo sessions (role switcher, quick launch) sign
- * in the shared demo student; a real student whose sign-in expired goes back to the sign-in page.
- */
-function SessionGate({ children }: { children: (uid: string) => ReactNode }) {
-  const session = useSession()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [state, setState] = useState<GateState>({ status: "checking" })
-  const uidRef = useRef<string | null>(null)
-  const sessionRef = useRef(session)
-  sessionRef.current = session
-  const hereRef = useRef("")
-  hereRef.current = location.pathname + location.search
-
-  const toSignIn = useCallback(() => {
-    sessionRef.current.logout()
-    navigate(`/auth?redirect=${encodeURIComponent(hereRef.current || "/student")}`, { replace: true })
-  }, [navigate])
-
-  const check = useCallback(async () => {
-    setState({ status: "checking" })
-    if (!isAuthConfigured) {
-      setState({ status: "error", message: "Sign-in isn't configured. Set VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID in frontend/.env.local." })
-      return
-    }
-    try {
-      let signedIn = await currentUserId()
-      if (!signedIn) {
-        if (!isDemoStudentEmail(sessionRef.current.user.email)) {
-          toSignIn()
-          return
-        }
-        if ((await signInWithEmail(DEMO_STUDENT.email, DEMO_STUDENT.password)) !== "done") throw new Error("The demo account couldn't be signed in.")
-        signedIn = await currentUserId()
-      }
-      // The API knows the account by its own id (and creates the student profile on first use).
-      const profile = await api.get<StudentProfile>("/student/profile", "We couldn't open your student profile.")
-      uidRef.current = profile.id
-      setState({ status: "ready", uid: profile.id })
-    } catch (e) {
-      const err = toApiError(e, "We couldn't sign you in to the student portal.")
-      if (err.status === 401 || err.status === 403) {
-        toSignIn()
-        return
-      }
-      setState({ status: "error", message: err.message })
-    }
-  }, [toSignIn])
-
-  useEffect(() => {
-    void check()
-  }, [check])
-
-  // Signing out in another tab, or an expired refresh token, sends the student back to sign in.
-  useEffect(() => {
-    return Hub.listen("auth", ({ payload }) => {
-      if (payload.event !== "signedOut" && payload.event !== "tokenRefresh_failure") return
-      if (!uidRef.current) return
-      uidRef.current = null
-      clearAll()
-      if (sessionRef.current.isAuthenticated && sessionRef.current.role === "Student") toSignIn()
-    })
-  }, [toSignIn])
-
-  if (state.status === "checking") return <RouteFallback />
-  if (state.status === "error") return <FullPageError title="The student portal can't connect" message={state.message} onRetry={() => void check()} onBack={toSignIn} />
-  return <>{children(state.uid)}</>
-}
+// The API knows the account by its own id (and creates the student profile on first use).
+const loadStudentProfile = () => api.get<StudentProfile>("/student/profile", "We couldn't open your student profile.")
 
 /* ------------------------------ Data context ------------------------------ */
 
@@ -125,6 +27,8 @@ interface StudentActions {
   updateProfile: (patch: actions.ProfilePatch) => Promise<Profile>
   markNotificationRead: (id: string) => void
   markAllNotificationsRead: () => void
+  /** Asks for a released grade to be looked at again; the assignment shows the request at once. */
+  requestReevaluation: (assignmentId: string, reason: string) => Promise<StudentRequest>
   /** Asks every cached resource whose name starts with the prefix to reload (e.g. "grades"). */
   refresh: (name: string) => void
 }
@@ -283,6 +187,18 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
         setNotifications((list) => list.map((n) => (n.read_at ? n : { ...n, read_at: at })))
         markAllNotificationsRead().catch((e) => toast.error(toApiError(e).message))
       },
+      requestReevaluation: async (assignmentId, reason) => {
+        const r = await requestReevaluation(assignmentId, reason)
+        patch((raw) => ({
+          ...raw,
+          reevaluations: {
+            ...raw.reevaluations,
+            [assignmentId]: { id: r.id, assignment_id: assignmentId, status: r.status, original_score: r.original_score, revised_score: r.revised_score, created_at: r.created_at, resolved_at: r.resolved_at },
+          },
+        }))
+        refreshName("notifications")
+        return r
+      },
     }
   }, [uid, coreKey, notesKey, reloadCoreResource, toast])
 
@@ -313,12 +229,12 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
 /** Signs the student in (when needed) and loads their data before rendering the portal. */
 export default function StudentDataProvider({ children }: { children: ReactNode }) {
   return (
-    <SessionGate>
+    <CognitoGate demo={DEMO_STUDENT} load={loadStudentProfile} errorTitle="The student portal can't connect">
       {(uid) => (
         <DataLoader key={uid} uid={uid}>
           {children}
         </DataLoader>
       )}
-    </SessionGate>
+    </CognitoGate>
   )
 }

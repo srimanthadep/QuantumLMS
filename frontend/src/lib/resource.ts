@@ -57,6 +57,11 @@ export function peek<T>(key: string): T | undefined {
   return entries.get(key)?.data as T | undefined
 }
 
+/** Stores a value that was loaded elsewhere (e.g. during sign-in), so the first useResource doesn't fetch it again. */
+export function prime<T>(key: string, data: T) {
+  set(key, { data, error: undefined, loadedAt: Date.now(), promise: undefined })
+}
+
 /** Marks keys starting with the prefix as stale: mounted ones reload in the background, others reload on next use. */
 export function refresh(prefix: string) {
   for (const [key, entry] of [...entries.entries()]) {

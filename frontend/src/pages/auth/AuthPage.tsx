@@ -4,16 +4,17 @@ import { ThemeAccentPicker } from "../../components/ui/ThemeAccentPicker"
 import { demoAccounts } from "../../data/demoAccounts"
 import type { UserRole } from "../../types"
 import {
-  cancelStudentSignIn,
-  studentConfirmEmail,
-  studentForgotPassword,
-  studentResendCode,
-  studentResetPassword,
-  studentSignIn,
+  accountConfirmEmail,
+  accountForgotPassword,
+  accountResendCode,
+  accountResetPassword,
+  accountSignIn,
+  accountVerifyCode,
+  cancelAccountSignIn,
   studentSignUp,
-  studentVerifyCode,
-  type StudentStep,
-} from "./studentAuth"
+  usesAccounts,
+  type AccountStep,
+} from "./accountAuth"
 
 /** The code a student is asked for after the password: authenticator app, email confirmation or a password reset. */
 type CodeStep = "mfa" | "confirm" | "reset"
@@ -62,7 +63,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     setErrorMessage(null)
     if (mfaStep) {
       setMfaStep(false)
-      void cancelStudentSignIn()
+      void cancelAccountSignIn()
     }
     const account = demoAccounts.find((d) => d.role === selectedRole)
     if (account) {
@@ -72,8 +73,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }
   }
 
-  /** Runs a student sign-in step and hands the signed-in student to onLogin. */
-  const runStudent = async (step: () => Promise<StudentStep>) => {
+  /** Runs a Cognito sign-in step and hands the signed-in account to onLogin. */
+  const runAccount = async (step: () => Promise<AccountStep>) => {
     setIsLoading(true)
     setErrorMessage(null)
     try {
@@ -96,12 +97,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
   const handleQuickLaunch = (targetRole: UserRole) => {
     const account = demoAccounts.find((d) => d.role === targetRole)
-    if (account && targetRole === "Student") {
+    if (account && usesAccounts(targetRole)) {
       setEmail(account.email)
       setPassword(account.password)
       setRole(targetRole)
       setFullName(account.name)
-      void runStudent(() => studentSignIn(account.email, account.password))
+      void runAccount(() => accountSignIn(account.email, account.password))
       return
     }
     setIsLoading(true)
@@ -125,17 +126,18 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (role === "Student") {
-      if (codeStep === "mfa") void runStudent(() => studentVerifyCode(code))
-      else if (codeStep === "confirm") void runStudent(() => studentConfirmEmail(email, code, password))
+    if (usesAccounts(role)) {
+      if (codeStep === "mfa") void runAccount(() => accountVerifyCode(code))
+      else if (codeStep === "confirm") void runAccount(() => accountConfirmEmail(email, code, password))
       else if (codeStep === "reset")
-        void runStudent(async () => {
-          await studentResetPassword(email, code, newPassword)
+        void runAccount(async () => {
+          await accountResetPassword(email, code, newPassword)
           setPassword(newPassword)
-          return studentSignIn(email, newPassword)
+          return accountSignIn(email, newPassword)
         })
-      else if (mode === "signin") void runStudent(() => studentSignIn(email, password))
-      else void runStudent(() => studentSignUp(fullName, email, password))
+      else if (mode === "signin") void runAccount(() => accountSignIn(email, password))
+      else if (role === "Evaluator") setErrorMessage("Evaluator accounts are set up by your academy. Sign in, or create a student account instead.")
+      else void runAccount(() => studentSignUp(fullName, email, password))
       return
     }
     setIsLoading(true)
@@ -153,7 +155,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   }
 
   const handleForgotPassword = async () => {
-    if (role !== "Student") {
+    if (!usesAccounts(role)) {
       setInfoMessage("A password reset link has been dispatched to your email address.")
       setTimeout(() => setInfoMessage(null), 6000)
       return
@@ -165,7 +167,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     setIsLoading(true)
     setErrorMessage(null)
     try {
-      await studentForgotPassword(email)
+      await accountForgotPassword(email)
       setCodeStep("reset")
       setCode("")
       setNewPassword("")
@@ -180,8 +182,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const resendCode = async () => {
     setErrorMessage(null)
     try {
-      if (codeStep === "reset") await studentForgotPassword(email)
-      else await studentResendCode(email)
+      if (codeStep === "reset") await accountForgotPassword(email)
+      else await accountResendCode(email)
       setInfoMessage(`We sent a new code to ${email.trim()}.`)
     } catch (e) {
       setErrorMessage((e as Error).message || "A new code couldn't be sent.")
@@ -461,7 +463,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                   setErrorMessage(null)
                   if (mfaStep) {
                     setMfaStep(false)
-                    void cancelStudentSignIn()
+                    void cancelAccountSignIn()
                   }
                   const demo = demoAccounts.find((d) => d.role === role)
                   // New student accounts start from a blank form instead of the shared demo login.
@@ -645,7 +647,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                         setCodeStep(null)
                         setErrorMessage(null)
                         setInfoMessage(null)
-                        void cancelStudentSignIn()
+                        void cancelAccountSignIn()
                       }}
                       className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold"
                     >

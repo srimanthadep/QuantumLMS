@@ -41,11 +41,13 @@ import ProgressRing from "@/components/charts/ProgressRing"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import AssignmentSubmitDialog from "@/components/student/AssignmentSubmitDialog"
 import DateTile from "@/components/student/DateTile"
+import EvaluationDialog from "@/components/student/EvaluationDialog"
 import QuizRunner from "@/components/student/QuizRunner"
 import type { AssignmentData, QuizData } from "./studentTypes"
 import { daysUntil, dueLabel, splitDate } from "./studentUtils"
 import type { SubmissionInput } from "./data/actions"
 import { useReminders } from "./data/hooks"
+import { useStudentData } from "./data/StudentDataProvider"
 
 interface AssessmentsPageProps {
   assignments: AssignmentData[]
@@ -55,12 +57,22 @@ interface AssessmentsPageProps {
   initialTab?: "assignments" | "quizzes"
 }
 
-type AssignmentFilter = "All" | AssignmentData["status"]
-const STATUS_TONE = { Pending: "warning", Submitted: "info", Graded: "success" } as const
+/** "Submitted" covers work waiting for an evaluator and work an evaluator has started (Under Review). */
+type AssignmentFilter = "All" | "Pending" | "Submitted" | "Graded"
+const STATUS_TONE = { Pending: "warning", Submitted: "info", "Under Review": "warning", Graded: "success" } as const
+const inFilter = (a: AssignmentData, f: AssignmentFilter) => f === "All" || a.status === f || (f === "Submitted" && a.status === "Under Review")
+const REEVALUATION_BADGE = {
+  Pending: { tone: "info", label: "Re-evaluation requested" },
+  "In Review": { tone: "warning", label: "Re-evaluation in review" },
+  Revised: { tone: "success", label: "Score revised" },
+  Upheld: { tone: "neutral", label: "Score upheld" },
+} as const
 
 export default function AssessmentsPage({ assignments, onSubmitAssignment, quizzes, onToast, initialTab = "assignments" }: AssessmentsPageProps) {
+  const { requestReevaluation } = useStudentData()
   const [tab, setTab] = useState(initialTab)
   const [submitTarget, setSubmitTarget] = useState<AssignmentData | null>(null)
+  const [evaluationTarget, setEvaluationTarget] = useState<AssignmentData | null>(null)
   const [quizTarget, setQuizTarget] = useState<QuizData | null>(null)
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null)
 
@@ -71,7 +83,7 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
     const doneQuizzes = quizzes.filter((q) => q.status === "Completed" && q.latestAttemptId)
     return {
       pending: assignments.filter((a) => a.status === "Pending").length,
-      submitted: assignments.filter((a) => a.status === "Submitted").length,
+      submitted: assignments.filter((a) => inFilter(a, "Submitted")).length,
       avg: graded.length ? Math.round(graded.reduce((s, a) => s + ((a.score ?? 0) / a.maxMarks) * 100, 0) / graded.length) : 0,
       gradedScores: graded.map((a) => Math.round(((a.score ?? 0) / a.maxMarks) * 100)),
       passed: doneQuizzes.filter((q) => (q.pct ?? 0) >= q.passingPct).length,
@@ -169,7 +181,7 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="assignments" className="mt-5">
-                <Assignments assignments={assignments} onSubmit={setSubmitTarget} />
+                <Assignments assignments={assignments} onSubmit={setSubmitTarget} onView={setEvaluationTarget} />
               </TabsContent>
               <TabsContent value="quizzes" className="mt-5">
                 <Quizzes quizzes={quizzes} onStart={startQuiz} onReview={reviewQuiz} onToast={onToast} />
@@ -233,6 +245,7 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
       </Stagger>
 
       <AssignmentSubmitDialog assignment={submitTarget} onClose={() => setSubmitTarget(null)} onSubmit={onSubmitAssignment} />
+      <EvaluationDialog assignment={evaluationTarget} onClose={() => setEvaluationTarget(null)} onRequest={requestReevaluation} onToast={onToast} />
       <QuizRunner
         quiz={quizTarget}
         reviewAttemptId={reviewAttemptId}
@@ -247,15 +260,13 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
 
 /* ------------------------------ Assignments ------------------------------ */
 
-function Assignments({ assignments, onSubmit }: { assignments: AssignmentData[]; onSubmit: (a: AssignmentData) => void }) {
+function Assignments({ assignments, onSubmit, onView }: { assignments: AssignmentData[]; onSubmit: (a: AssignmentData) => void; onView: (a: AssignmentData) => void }) {
   const [filter, setFilter] = useState<AssignmentFilter>("All")
   const [query, setQuery] = useState("")
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  const counts = (s: AssignmentFilter) => (s === "All" ? assignments.length : assignments.filter((a) => a.status === s).length)
-  const list = assignments.filter(
-    (a) => (filter === "All" || a.status === filter) && (!query.trim() || `${a.title} ${a.course}`.toLowerCase().includes(query.trim().toLowerCase())),
-  )
+  const counts = (s: AssignmentFilter) => assignments.filter((a) => inFilter(a, s)).length
+  const list = assignments.filter((a) => inFilter(a, filter) && (!query.trim() || `${a.title} ${a.course}`.toLowerCase().includes(query.trim().toLowerCase())))
 
   return (
     <div className="flex flex-col gap-4">
@@ -313,9 +324,10 @@ function Assignments({ assignments, onSubmit }: { assignments: AssignmentData[];
                     <DateTile month={month} day={day} tone={urgent ? "accent" : "default"} />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge tone={STATUS_TONE[a.status]}>{a.status}</Badge>
+                        <Badge tone={STATUS_TONE[a.status]}>{a.status === "Under Review" ? "Under review" : a.status}</Badge>
                         {a.status === "Pending" && <Badge tone={urgent ? "warning" : "neutral"}>{dueLabel(a.dueDate)}</Badge>}
                         {a.priority === "High" && a.status === "Pending" && <Badge tone="danger">High priority</Badge>}
+                        {a.reevaluation && <Badge tone={REEVALUATION_BADGE[a.reevaluation.status].tone}>{REEVALUATION_BADGE[a.reevaluation.status].label}</Badge>}
                       </div>
                       <h3 className="mt-2 text-[15px] font-semibold leading-6 text-foreground">{a.title}</h3>
                       <p className="text-caption text-muted-foreground">
@@ -337,7 +349,13 @@ function Assignments({ assignments, onSubmit }: { assignments: AssignmentData[];
                         <Button variant="outline" size="sm" onClick={() => onSubmit(a)}>
                           Resubmit
                         </Button>
-                      ) : null}
+                      ) : a.status === "Graded" ? (
+                        <Button variant="outline" size="sm" onClick={() => onView(a)}>
+                          View evaluation
+                        </Button>
+                      ) : (
+                        <span className="hidden text-caption text-muted-foreground sm:inline">An evaluator is marking this</span>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon-sm"
