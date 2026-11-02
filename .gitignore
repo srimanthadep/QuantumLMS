@@ -7,6 +7,11 @@ build/
 .vite/
 vite.config.*.timestamp-*
 package-lock.json
+# The API image is built from its lockfile.
+!/backend/package-lock.json
+# Local uploads and the local Cognito emulator's data
+/backend/.data/
+/backend/.cognito/
 *.tsbuildinfo
 *-debug.log*
 logs/

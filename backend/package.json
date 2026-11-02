@@ -1,18 +1,47 @@
 {
   "name": "quantum-lms-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Supabase schema, functions, seed, scripts and tests for the Quantum LMS student portal",
+  "type": "module",
+  "description": "Quantum LMS API: Fastify on PostgreSQL, AWS Cognito sign-in, S3 uploads",
   "scripts": {
-    "migrate": "node scripts/apply-migrations.mjs",
-    "migrate:status": "node scripts/apply-migrations.mjs --status",
-    "setup-auth": "node scripts/setup-auth.mjs",
-    "frontend-env": "node scripts/frontend-env.mjs",
-    "gen-types": "node scripts/gen-types.mjs",
-    "clean-storage": "node scripts/clean-storage.mjs",
-    "test": "node --test \"tests/*.test.mjs\""
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
+    "db:seed": "tsx --env-file=.env src/db/seed/run.ts",
+    "db:check": "tsx --env-file=.env scripts/db-check.ts",
+    "cognito:local": "cognito-local",
+    "cognito:setup": "tsx --env-file=.env scripts/setup-cognito.ts",
+    "cognito:smoke": "tsx --env-file=.env scripts/cognito-smoke.ts",
+    "test": "tsx --env-file=.env --test tests/*.test.ts",
+    "legacy:migrate": "node scripts/apply-migrations.mjs",
+    "legacy:clean-storage": "node scripts/clean-storage.mjs"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1161.0",
+    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/s3-request-presigner": "^3.1161.0",
+    "@fastify/cors": "^11.3.1",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.2.1",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.7",
+    "jose": "^6.2.15",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "cognito-local": "^5.3.0",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "5.9"
   }
 }
