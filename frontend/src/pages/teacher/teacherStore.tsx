@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { api } from "@/lib/api"
 import type {
   AIMonitoringData,
   CalendarEventItem,
@@ -165,6 +166,145 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   useEffect(() => save(KEYS.doubts, doubts), [doubts])
   useEffect(() => save(KEYS.events, events), [events])
 
+  // Sync Teacher data with Backend API
+  useEffect(() => {
+    let cancelled = false
+    async function fetchTeacherData() {
+      try {
+        const [cRes, dRes, eRes, sRes] = await Promise.allSettled([
+          api.get<{ classes: any[] }>("/teacher/classes"),
+          api.get<{ doubts: any[] }>("/teacher/doubts"),
+          api.get<{ events: any[] }>("/teacher/calendar"),
+          api.get<{ students: any[] }>("/teacher/students"),
+        ])
+        if (cancelled) return
+
+        if (cRes.status === "fulfilled" && cRes.value?.classes?.length) {
+          setSessions((prev) => {
+            const apiSessions: LiveSessionItem[] = cRes.value.classes.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              courseId: c.course_id || "c1",
+              courseName: c.course_title || "GenAI Engineering",
+              courseCode: c.course_code || "AI-101",
+              batchName: "Cohort 14 (Evening)",
+              scheduledDate: "2026-11-10",
+              startTime: c.starts?.slice(0, 5) || "10:00",
+              endTime: c.ends?.slice(0, 5) || "11:30",
+              durationMinutes: 90,
+              status: "Upcoming",
+              platform: "Zoom",
+              meetingUrl: `https://classroom.quantumschool.ai/live/${c.id}`,
+              instructorName: c.instructor || "Instructor",
+              enrolledCount: 38,
+              topicsCovered: [],
+              isReadOnly: false,
+            }))
+            const apiMap = new Map(apiSessions.map((s) => [s.id, s]))
+            const merged = [...apiSessions]
+            for (const p of prev) {
+              if (!apiMap.has(p.id)) merged.push(p)
+            }
+            return merged
+          })
+        }
+
+        if (dRes.status === "fulfilled" && dRes.value?.doubts?.length) {
+          setDoubts((prev) => {
+            const apiDoubts: DoubtItem[] = dRes.value.doubts.map((d: any) => ({
+              id: d.id,
+              studentId: d.student_id || "s-1",
+              studentName: d.student_name || "Student",
+              studentAvatar: d.student_avatar || "/assets/student-1.png",
+              studentRoll: "QAI-104",
+              courseId: d.course_id || "c1",
+              courseName: d.course_title || "Course",
+              courseCode: "AI-101",
+              questionTitle: d.body.slice(0, 50),
+              questionText: d.body,
+              submittedAt: new Date(d.created_at).toLocaleDateString(),
+              priority: "Medium",
+              status: d.answer ? "Resolved" : "Pending",
+              responses: d.answer
+                ? [
+                    {
+                      id: `ans-${d.id}`,
+                      author: d.answer_author || "Teacher",
+                      authorRole: "Teacher",
+                      text: d.answer,
+                      createdAt: "Recently",
+                    },
+                  ]
+                : [],
+            }))
+            const apiMap = new Map(apiDoubts.map((d) => [d.id, d]))
+            const merged = [...apiDoubts]
+            for (const p of prev) {
+              if (!apiMap.has(p.id)) merged.push(p)
+            }
+            return merged
+          })
+        }
+
+        if (eRes.status === "fulfilled" && eRes.value?.events?.length) {
+          setEvents((prev) => {
+            const apiEvents: CalendarEventItem[] = eRes.value.events.map((e: any) => ({
+              id: e.id,
+              title: e.title,
+              category: "Meeting",
+              startDate: new Date(e.starts_at).toISOString().split("T")[0],
+              startTime: e.time_label?.split("-")[0]?.trim() || "10:00",
+              endTime: e.time_label?.split("-")[1]?.trim() || "11:30",
+              location: e.location || "Online Lab",
+              description: e.description || "",
+              isReadOnly: false,
+            }))
+            const apiMap = new Map(apiEvents.map((ev) => [ev.id, ev]))
+            const merged = [...apiEvents]
+            for (const p of prev) {
+              if (!apiMap.has(p.id)) merged.push(p)
+            }
+            return merged
+          })
+        }
+
+        if (sRes.status === "fulfilled" && sRes.value?.students?.length) {
+          setStudents((prev) => {
+            const apiStudents: StudentItem[] = sRes.value.students.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              rollNumber: s.roll_number || "QAI-104",
+              image: s.avatar_url || "/assets/student-1.png",
+              email: s.email,
+              completion: 78,
+              average: 91,
+              attendance: s.attendance_rate || 92,
+              status: "On Track",
+              tone: "purple",
+              subjects: { english: 90, math: 92, science: 91, art: 88 },
+              tags: ["GenAI", "Cohort 14"],
+              assignedCourse: "c1",
+              grade: "A",
+              pendingAssignments: 2,
+            }))
+            const apiMap = new Map(apiStudents.map((st) => [st.id, st]))
+            const merged = [...apiStudents]
+            for (const p of prev) {
+              if (!apiMap.has(p.id)) merged.push(p)
+            }
+            return merged
+          })
+        }
+      } catch {
+        // Safe offline fallback
+      }
+    }
+    fetchTeacherData()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const editCourse = useCallback((id: string, fn: (c: CourseItem) => CourseItem) => setCourses((list) => list.map((c) => (c.id === id ? fn(c) : c))), [])
 
   const addCourse = useCallback(
@@ -267,6 +407,16 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         isReadOnly: false,
       }
       setSessions((list) => [...list, session])
+      api
+        .post("/teacher/classes", {
+          title: input.title,
+          course_id: input.courseId,
+          starts: input.startTime,
+          ends: input.endTime,
+          room: "Online Studio 1",
+          is_online: true,
+        })
+        .catch(() => {})
       return session
     },
     [courses, user.name, user.avatar],
@@ -307,7 +457,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   )
 
   const replyToDoubt = useCallback(
-    (id: string, text: string, resolve: boolean) =>
+    (id: string, text: string, resolve: boolean) => {
       setDoubts((list) =>
         list.map((d) =>
           d.id === id
@@ -318,12 +468,26 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
               }
             : d,
         ),
-      ),
+      )
+      api.post(`/teacher/doubts/${id}/reply`, { answer: text }).catch(() => {})
+    },
     [user.name, user.avatar],
   )
   const setDoubtStatus = useCallback((id: string, status: DoubtItem["status"]) => setDoubts((list) => list.map((d) => (d.id === id ? { ...d, status } : d))), [])
 
-  const addEvent = useCallback((e: Omit<CalendarEventItem, "id" | "isReadOnly">) => setEvents((list) => [...list, { ...e, id: `ev-${Date.now()}`, isReadOnly: false }]), [])
+  const addEvent = useCallback((e: Omit<CalendarEventItem, "id" | "isReadOnly">) => {
+    setEvents((list) => [...list, { ...e, id: `ev-${Date.now()}`, isReadOnly: false }])
+    api
+      .post("/teacher/calendar", {
+        title: e.title,
+        description: e.description || "",
+        location: e.location || "Online Lab",
+        starts_at: e.startDate ? `${e.startDate}T10:00:00Z` : new Date().toISOString(),
+        category: "Workshops",
+        time_label: `${e.startTime || "10:00"} - ${e.endTime || "11:30"}`,
+      })
+      .catch(() => {})
+  }, [])
   const deleteEvent = useCallback((id: string) => setEvents((list) => list.filter((e) => e.id !== id)), [])
 
   const togglePublished = useCallback(

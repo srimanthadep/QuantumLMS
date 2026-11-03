@@ -709,7 +709,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="aarav.mehta@learner.ai"
+                        placeholder="niharika@lms.com"
                         className="w-full h-10 pl-9 pr-3 rounded-lg bg-surface border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/30 outline-hidden transition-all"
                       />
                     </div>

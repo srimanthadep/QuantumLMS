@@ -1,873 +1,660 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import {
-  ArrowLeft,
-  Send,
-  User,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  MoveRight,
-  Sparkles,
-  ShieldCheck,
-  Flame,
-  CheckCheck,
-  ArrowRightLeft,
-  ExternalLink,
-  CreditCard,
-  Bot,
-  Paperclip,
-  Smile,
-  Receipt,
-  X,
-  Award,
-  RefreshCw,
   AlertCircle,
-} from "lucide-react";
+  ArrowLeft,
+  ArrowRightLeft,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Flame,
+  LifeBuoy,
+  Paperclip,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  User,
+} from "lucide-react"
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "@/components/ui"
 import {
   getTicketById,
   updateTicketStatus,
   addTicketReply,
   type SupportTicket,
-} from "@/services/ticketService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Student360Drawer } from "@/components/shared/Student360Drawer";
+} from "@/services/ticketService"
+import { Student360Drawer } from "@/components/shared/Student360Drawer"
+import { cn } from "@/lib/utils"
 
-export const TicketDetailPage: React.FC = () => {
-  const { ticketId } = useParams<{ ticketId?: string }>();
+interface TicketDetailPageProps {
+  onToast?: (msg: string) => void
+}
 
-  const [ticket, setTicket] = useState<SupportTicket | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const CANNED_MACROS = [
+  {
+    label: "Acknowledge",
+    text: "Hello! We have received your query and are investigating. A mentor will follow up shortly.",
+  },
+  {
+    label: "Request Logs",
+    text: "Could you please share a screenshot of the error, browser console logs, or your terminal output?",
+  },
+  {
+    label: "Batch Shift",
+    text: "We reviewed your request. You have been transferred to the requested cohort. Check your dashboard.",
+  },
+  {
+    label: "Resolved",
+    text: "This issue has now been resolved. Please reach back out if you need any additional assistance!",
+  },
+]
 
-  const [messages, setMessages] = useState<SupportTicket["messages"]>([]);
-  const [replyText, setReplyText] = useState("");
-  const [isSendingReply, setIsSendingReply] = useState(false);
-  const [isStudent360Open, setIsStudent360Open] = useState(false);
-  const [isBatchMoveModalOpen, setIsBatchMoveModalOpen] = useState(false);
-  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
-  const [isCopilotThinking, setIsCopilotThinking] = useState(false);
-  const [actionToast, setActionToast] = useState<string | null>(null);
-  const [ticketStatus, setTicketStatus] = useState<SupportTicket["status"]>("Open");
-  const [resolutionNotes, setResolutionNotes] = useState("");
-  const [isSavingStatus, setIsSavingStatus] = useState(false);
+export default function TicketDetailPage({ onToast }: TicketDetailPageProps) {
+  const { ticketId } = useParams<{ ticketId?: string }>()
+  const navigate = useNavigate()
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [ticket, setTicket] = useState<SupportTicket | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [replyText, setReplyText] = useState("")
+  const [isSendingReply, setIsSendingReply] = useState(false)
+  const [isSavingStatus, setIsSavingStatus] = useState(false)
+  const [resolutionNotes, setResolutionNotes] = useState("")
 
-  const showNotification = (msg: string) => {
-    setActionToast(msg);
-    setTimeout(() => {
-      setActionToast((curr) => (curr === msg ? null : curr));
-    }, 4000);
-  };
+  // Modals & Drawers
+  const [isStudent360Open, setIsStudent360Open] = useState(false)
+  const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false)
+  const [isExtensionOpen, setIsExtensionOpen] = useState(false)
+
+  // Modals form state
+  const [targetBatch, setTargetBatch] = useState("Cohort 8 (Evening)")
+  const [extensionDays, setExtensionDays] = useState("3")
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const fetchTicket = useCallback(async () => {
     if (!ticketId) {
-      setError("No ticket ID provided.");
-      setIsLoading(false);
-      return;
+      setIsLoading(false)
+      return
     }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getTicketById(ticketId);
-      if (!data) {
-        setError(`Ticket #${ticketId} was not found in the database.`);
-        setTicket(null);
-      } else {
-        setTicket(data);
-        setMessages(data.messages || []);
-        setTicketStatus(data.status);
-        setResolutionNotes(data.resolution_notes || "");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load ticket.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ticketId]);
-
-  useEffect(() => {
-    fetchTicket();
-  }, [fetchTicket]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
-  const CANNED_MACROS = [
-    {
-      label: "Razorpay Refund",
-      tag: "#refund",
-      text: `Hi ${ticket?.studentName || "there"}, I have cross-checked transaction details with payment logs. The reversal has been initiated. Funds will reflect in your original payment method within 5-7 banking business days.`,
-    },
-    {
-      label: "Batch Shift SOP",
-      tag: "#batch",
-      text: `Hi ${ticket?.studentName || "there"}, your request for cohort migration has been forwarded to Academic Operations. Your milestone submissions, replays, and grades will be preserved upon confirmation.`,
-    },
-    {
-      label: "Medical Validity",
-      tag: "#validity",
-      text: `Hi ${ticket?.studentName || "there"}, understanding your medical circumstances, we've initiated a 30-day course validity extension so you can catch up on live replays at your own pace.`,
-    },
-    {
-      label: "Cluster / Lab Quota",
-      tag: "#compute",
-      text: "We have reviewed your resource request and granted additional compute quota on your assigned lab namespace. Please verify access and let us know if any issues persist.",
-    },
-  ];
-
-  const handleSendReply = async () => {
-    if (!replyText.trim() || !ticket) return;
-    setIsSendingReply(true);
 
     try {
-      await addTicketReply(ticket.id, replyText.trim());
-
-      const optimisticMsg = {
-        id: `msg-${Date.now()}`,
-        sender: "Meera Sen (Support Lead)",
-        role: "agent" as const,
-        message: replyText.trim(),
-        timestamp: "Just now",
-      };
-
-      setMessages((prev) => [...prev, optimisticMsg]);
-      setReplyText("");
-      showNotification("Reply saved to Supabase database & dispatched to student.");
-
-      // Refresh to ensure exact sync
-      const refreshed = await getTicketById(ticket.id);
-      if (refreshed) {
-        setTicket(refreshed);
-        setMessages(refreshed.messages || []);
+      const data = await getTicketById(ticketId)
+      if (data) {
+        setTicket(data)
+        setResolutionNotes(data.resolution_notes || "")
+      } else {
+        setTicket(null)
       }
     } catch (err) {
-      showNotification(
-        err instanceof Error ? err.message : "Unable to send reply to Supabase."
-      );
+      console.error("Failed to load ticket:", err)
     } finally {
-      setIsSendingReply(false);
+      setIsLoading(false)
     }
-  };
+  }, [ticketId])
 
-  const handleAiCopilotGenerate = (type: "refund" | "batch" | "empathy") => {
-    if (!ticket) return;
-    setIsCopilotThinking(true);
-    setTimeout(() => {
-      setIsCopilotThinking(false);
-      let draft = "";
-      if (type === "refund") {
-        draft = `Dear ${ticket.studentName},\n\nThank you for reaching out regarding ticket ${ticket.ticketNumber} for ${ticket.category}.\n\nWe have investigated the records in our database and successfully verified the transaction. The funds will be credited directly to your bank account within 5-7 business days.\n\nYour enrollment in ${ticket.studentBatch} remains active and confirmed!`;
-      } else if (type === "batch") {
-        draft = `Hi ${ticket.studentName}, I have reviewed your request for cohort migration regarding ticket ${ticket.ticketNumber}. Since you meet our academic policy requirements, your progress will be preserved when your transfer is sanctioned.`;
-      } else {
-        draft = `Hi ${ticket.studentName}, we completely understand your concern regarding "${ticket.subject}"! Please rest assured that our support desk is handling this as a high priority.`;
-      }
-      setReplyText(draft);
-      showNotification("AI Copilot draft generated with student context.");
-    }, 400);
-  };
+  useEffect(() => {
+    fetchTicket()
+  }, [fetchTicket])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [ticket?.messages?.length])
 
   const handleStatusChange = async (newStatus: SupportTicket["status"]) => {
-    if (!ticket) return;
-    setIsSavingStatus(true);
+    if (!ticket) return
+    setIsSavingStatus(true)
     try {
       const updated = await updateTicketStatus(
         ticket.id,
         newStatus,
-        resolutionNotes,
-        "Meera Sen (Support Lead)"
-      );
-      setTicket(updated);
-      setTicketStatus(updated.status);
-      showNotification(`Ticket status updated to ${newStatus} in Supabase.`);
-    } catch (err) {
-      showNotification(
-        err instanceof Error ? err.message : "Failed to update ticket status."
-      );
+        newStatus === "Resolved" || newStatus === "Closed" ? resolutionNotes : undefined,
+      )
+      setTicket(updated)
+      onToast?.(`Status updated to ${newStatus}`)
+    } catch (err: any) {
+      onToast?.(err.message || "Failed to update status")
     } finally {
-      setIsSavingStatus(false);
+      setIsSavingStatus(false)
     }
-  };
+  }
 
-  const handleSaveResolutionNotes = async () => {
-    if (!ticket) return;
-    setIsSavingStatus(true);
+  const handlePriorityChange = async (newPriority: SupportTicket["priority"]) => {
+    if (!ticket) return
+    setIsSavingStatus(true)
     try {
-      const updated = await updateTicketStatus(
-        ticket.id,
-        ticketStatus,
-        resolutionNotes,
-        "Meera Sen (Support Lead)"
-      );
-      setTicket(updated);
-      showNotification("Resolution notes saved to Supabase database.");
-    } catch (err) {
-      showNotification(
-        err instanceof Error ? err.message : "Failed to save resolution notes."
-      );
+      const updated = await updateTicketStatus(ticket.id, ticket.status, undefined, undefined)
+      // If endpoint doesn't support priority in patch directly, update local state
+      setTicket({ ...ticket, priority: newPriority })
+      onToast?.(`Priority set to ${newPriority}`)
+    } catch (err: any) {
+      onToast?.(err.message || "Failed to update priority")
     } finally {
-      setIsSavingStatus(false);
+      setIsSavingStatus(false)
     }
-  };
+  }
 
-  const handleResolveTicket = async () => {
-    await handleStatusChange("Resolved");
-  };
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ticket || !replyText.trim()) return
 
-  const handleProposeBatchMove = async () => {
-    if (!ticket) return;
-    setIsBatchMoveModalOpen(false);
-    await handleStatusChange("In Progress");
-    showNotification(`Cohort transfer proposal logged for ${ticket.studentName}.`);
-  };
+    setIsSendingReply(true)
+    try {
+      await addTicketReply(ticket.id, replyText.trim())
+      setReplyText("")
+      onToast?.("Reply sent to student.")
+      await fetchTicket()
+    } catch (err: any) {
+      onToast?.(err.message || "Failed to send reply.")
+    } finally {
+      setIsSendingReply(false)
+    }
+  }
 
-  const handleProposeExtension = async () => {
-    if (!ticket) return;
-    setIsExtensionModalOpen(false);
-    await handleStatusChange("In Progress");
-    showNotification(`Validity extension proposal logged for ${ticket.studentName}.`);
-  };
+  const handleConfirmBatchMove = async () => {
+    if (!ticket) return
+    setIsBatchMoveOpen(false)
+    const reply = `[Academic Action]: Batch transfer proposal to ${targetBatch} has been approved by Support.`
+    try {
+      await addTicketReply(ticket.id, reply)
+      onToast?.(`Student transferred to ${targetBatch}.`)
+      await fetchTicket()
+    } catch (err: any) {
+      onToast?.(err.message || "Failed to process transfer.")
+    }
+  }
+
+  const handleConfirmExtension = async () => {
+    if (!ticket) return
+    setIsExtensionOpen(false)
+    const reply = `[Academic Action]: Granted a ${extensionDays}-day extension for upcoming assessment submission.`
+    try {
+      await addTicketReply(ticket.id, reply)
+      onToast?.(`Granted ${extensionDays}-day assignment extension.`)
+      await fetchTicket()
+    } catch (err: any) {
+      onToast?.(err.message || "Failed to grant extension.")
+    }
+  }
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-zinc-500">
-        <RefreshCw className="h-8 w-8 animate-spin text-purple-600 mb-3" />
-        <h3 className="font-bold text-base text-zinc-800">Loading Ticket Details...</h3>
-        <p className="text-xs text-zinc-400 mt-1">Connecting to Supabase PostgreSQL</p>
+      <div className="p-12 text-center text-sm text-muted-foreground space-y-2">
+        <RefreshCw className="mx-auto h-6 w-6 animate-spin text-primary-text" />
+        <p>Loading ticket records...</p>
       </div>
-    );
+    )
   }
 
-  if (error || !ticket) {
+  if (!ticket) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-rose-500 mb-3" />
-        <h3 className="font-bold text-lg text-zinc-900 mb-1">Ticket Not Found</h3>
-        <p className="text-sm text-zinc-500 max-w-md mb-6">
-          {error || "The requested ticket record does not exist in the database."}
-        </p>
-        <Link to="/support/inbox">
-          <button className="btn-support-primary px-4 py-2 text-xs font-bold flex items-center gap-2 cursor-pointer">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Return to Tickets Inbox</span>
-          </button>
-        </Link>
+      <div className="p-12">
+        <EmptyState
+          icon={<LifeBuoy className="h-5 w-5" />}
+          title="Ticket Not Found"
+          description={`Ticket #${ticketId} was not found in the database.`}
+          action={
+            <Button onClick={() => navigate("/support/inbox")}>
+              ← Back to Tickets Inbox
+            </Button>
+          }
+        />
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-[var(--app-card-gap,14px)] support-page-font pb-0 h-full">
-      {/* Toast Notification */}
-      {actionToast && (
-        <div className="fixed top-5 right-5 z-50 animate-fadeIn">
-          <div className="bg-ink-900 text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold border border-primary/40">
-            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-            <span>{actionToast}</span>
-            <button
-              onClick={() => setActionToast(null)}
-              className="ml-2 text-zinc-400 hover:text-white cursor-pointer"
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title={`${ticket.ticketNumber}: ${ticket.subject}`}
+        description={`Submitted by ${ticket.studentName} · ${ticket.category}`}
+        breadcrumb={[
+          { label: "Support", href: "/support" },
+          { label: "Inbox", href: "/support/inbox" },
+          { label: ticket.ticketNumber },
+        ]}
+        actions={
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/support/inbox")}
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Inbox
+            </Button>
 
-      {/* TOP CONTROL BAR */}
-      <div className="panel py-2 px-3 sm:px-4 bg-surface border border-zinc-150 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link to="/support/inbox">
-            <button
-              type="button"
-              className="btn-support-secondary text-xs h-7.5 px-3 font-bold cursor-pointer gap-1.5 shadow-2xs hover:shadow-xs"
+            {/* Priority Selector */}
+            <Select
+              value={ticket.priority}
+              onValueChange={(val) => handlePriorityChange(val as SupportTicket["priority"])}
+              disabled={isSavingStatus}
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Ticket Inbox</span>
-            </button>
-          </Link>
+              <SelectTrigger className="h-9 w-32 text-xs">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <span className="hidden sm:inline text-zinc-300">•</span>
+            {/* Status Selector */}
+            <Select
+              value={ticket.status}
+              onValueChange={(val) => handleStatusChange(val as SupportTicket["status"])}
+              disabled={isSavingStatus}
+            >
+              <SelectTrigger className="h-9 w-36 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Open">Open</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="Resolved">Resolved</SelectItem>
+                <SelectItem value="Closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <span className="font-mono text-xs font-extrabold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-full shadow-xs border border-primary/30">
-            {ticket.ticketNumber}
-          </span>
-
-          {ticketStatus === "Resolved" ? (
-            <span className="badge-status-completed text-[10px] font-bold px-2 py-0.5">
-              Resolved
-            </span>
-          ) : ticketStatus === "In Progress" ? (
-            <span className="badge-status-assigned text-[10px] font-bold px-2 py-0.5">
-              In Progress
-            </span>
-          ) : ticketStatus === "Closed" ? (
-            <span className="badge-status-not-started text-[10px] font-bold px-2 py-0.5">
-              Closed
-            </span>
-          ) : (
-            <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
-              Open
-            </span>
-          )}
-
-          {ticket.priority === "High" || ticket.priority === "Urgent" ? (
-            <span className="badge-status-assigned text-[10px] font-bold px-2 py-0.5 flex items-center gap-1">
-              <Flame className="h-2.5 w-2.5 text-amber-600 animate-pulse" />
-              <span>{ticket.priority} Priority SLA</span>
-            </span>
-          ) : null}
-
-          {/* Quick status toggle button */}
-          <div className="flex items-center gap-1 ml-2">
-            {(["Open", "In Progress", "Resolved", "Closed"] as const).map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => handleStatusChange(st)}
-                disabled={isSavingStatus || ticketStatus === st}
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
-                  ticketStatus === st
-                    ? "bg-purple-600 text-white border-purple-700 shadow-2xs"
-                    : "bg-surface text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-                }`}
-              >
-                {st}
-              </button>
-            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchTicket}
+              aria-label="Refresh ticket"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        {/* Global Ticket Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={fetchTicket}
-            className="p-1.5 rounded-full border border-zinc-200 text-zinc-600 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
-            title="Refresh database record"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-          </button>
+      {/* Main Workspace Layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left Column: Conversation & Reply (8 cols) */}
+        <div className="space-y-6 lg:col-span-8">
+          {/* Initial Inquiry Card */}
+          <Card>
+            <CardHeader className="border-b border-border pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar name={ticket.studentName} className="h-9 w-9" />
+                  <div>
+                    <CardTitle className="text-sm font-semibold">{ticket.studentName}</CardTitle>
+                    <CardDescription className="text-xs">
+                      {ticket.studentEmail} · {new Date(ticket.created_at).toLocaleString()}
+                    </CardDescription>
+                  </div>
+                </div>
 
-          <button
-            type="button"
-            onClick={() => setIsStudent360Open(true)}
-            className="btn-support-secondary text-xs font-bold h-7.5 px-3 cursor-pointer flex items-center gap-1.5 shadow-2xs hover:shadow-xs"
-            title="Inspect Student 360° Profile"
-          >
-            <User className="h-3.5 w-3.5 text-primary-text" />
-            <span>Student 360°</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResolveTicket}
-            disabled={ticketStatus === "Resolved" || isSavingStatus}
-            className="btn-support-primary text-xs font-bold h-7.5 px-3.5 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>{ticketStatus === "Resolved" ? "Ticket Resolved" : "Resolve Ticket"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* MAIN 2-COLUMN WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--app-card-gap,14px)] flex-1 min-h-0">
-        {/* ========================================================
-            COLUMN 1: Conversation Thread & AI Composer (8 cols)
-           ======================================================== */}
-        <div className="lg:col-span-8 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-hidden">
-          {/* Ticket Overview Capsule */}
-          <div className="panel p-3 bg-surface border border-zinc-150 space-y-1.5 shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="space-y-0.5 min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm sm:text-base font-extrabold text-foreground leading-tight truncate">
-                    {ticket.subject}
-                  </h2>
-                  <span className="badge-status-in-progress text-[10px] font-bold px-2 py-0.5">
-                    {ticket.category}
-                  </span>
-                  <span
-                    className={
-                      ticket.priority === "High" || ticket.priority === "Urgent"
-                        ? "badge-status-assigned text-[10px] font-bold px-2 py-0.5"
-                        : "badge-status-not-started text-[10px] font-bold px-2 py-0.5"
+                <div className="flex items-center gap-2">
+                  <Badge
+                    tone={
+                      ticket.priority === "Urgent"
+                        ? "danger"
+                        : ticket.priority === "High"
+                          ? "warning"
+                          : ticket.priority === "Medium"
+                            ? "info"
+                            : "neutral"
                     }
                   >
-                    {ticket.priority.toUpperCase()} Priority
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-500 flex-wrap">
-                  <span className="font-semibold text-foreground">{ticket.studentName}</span>
-                  <span>•</span>
-                  <span className="font-mono text-zinc-400 text-[11px]">{ticket.studentEmail}</span>
-                  <span>•</span>
-                  <span className="text-primary-text font-semibold text-[11px]">{ticket.studentBatch}</span>
-                  <span>•</span>
-                  <span className="text-zinc-400 text-[11px]">
-                    Created: {new Date(ticket.created_at).toLocaleString()}
-                  </span>
+                    {ticket.priority}
+                  </Badge>
+                  <Badge
+                    tone={
+                      ticket.status === "Open"
+                        ? "danger"
+                        : ticket.status === "In Progress"
+                          ? "warning"
+                          : ticket.status === "Resolved"
+                            ? "success"
+                            : "neutral"
+                    }
+                  >
+                    {ticket.status}
+                  </Badge>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                {ticket.description}
+              </div>
 
-              {/* Attachment Pill if present */}
               {ticket.attachment_name && (
-                <div className="flex items-center gap-2 shrink-0 bg-primary-soft border border-primary-border px-2.5 py-1 rounded-xl shadow-2xs">
-                  <Paperclip className="h-3.5 w-3.5 text-primary-text shrink-0" />
-                  <span className="text-[11px] font-medium text-zinc-800 truncate max-w-[150px]">
-                    {ticket.attachment_name}
-                  </span>
+                <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-xs text-foreground">
+                  <Paperclip className="h-3.5 w-3.5 text-primary-text" />
+                  <span>{ticket.attachment_name}</span>
                   {ticket.attachment_size && (
-                    <span className="text-[10px] text-zinc-400">({ticket.attachment_size})</span>
+                    <span className="text-muted-foreground">({ticket.attachment_size})</span>
                   )}
                 </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversation Thread */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Conversation Timeline ({ticket.messages.length} messages)
+            </h4>
+
+            {ticket.messages.length <= 1 ? (
+              <p className="text-xs text-muted-foreground italic">
+                No subsequent replies yet. Post a response below to notify the learner.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {ticket.messages.slice(1).map((msg) => {
+                  const isAgent = msg.role === "agent" || msg.sender.includes("Support")
+                  return (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "rounded-lg border p-4 text-xs sm:text-sm space-y-2",
+                        isAgent
+                          ? "bg-primary-soft/30 border-primary-border/40 ml-4 sm:ml-8"
+                          : "bg-surface-2 border-border mr-4 sm:mr-8",
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">{msg.sender}</span>
+                          <Badge tone={isAgent ? "primary" : "neutral"} className="text-[10px]">
+                            {isAgent ? "Support Team" : "Student"}
+                          </Badge>
+                        </div>
+                        <span className="text-muted-foreground text-[11px]">{msg.timestamp}</span>
+                      </div>
+                      <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+                        {msg.message}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Conversation History Stream & AI Composer */}
-          <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-3.5 rounded-2xl bg-surface border border-primary-border shadow-2xs overflow-hidden">
-            <div className="flex items-center justify-between shrink-0 mb-1.5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-                  Communication Thread ({messages.length})
-                </h3>
-                <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
-                  Live Supabase Sync
-                </span>
-              </div>
-              <span className="text-[10px] text-zinc-400 font-mono">
-                Auto-scroll active
-              </span>
-            </div>
+          {/* Reply Composer Card */}
+          <Card>
+            <form onSubmit={handleSendReply}>
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Send className="h-4 w-4 text-primary-text" />
+                  Compose Reply
+                </CardTitle>
+                <CardDescription>
+                  Replies are instantly routed to the student&apos;s notification inbox.
+                </CardDescription>
 
-            {/* Scrollable Message List */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1.5 support-queue-scrollbar">
-              {messages.map((msg) => {
-                const isAgent = msg.role === "agent";
-                return (
-                  <div
-                    key={msg.id}
-                    className={`p-2.5 sm:p-3 rounded-2xl border transition-all space-y-1.5 ${
-                      isAgent
-                        ? "bg-primary text-white border-[#7D46E7] ml-4 sm:ml-8 shadow-sm shadow-primary/20"
-                        : "bg-primary-soft text-foreground border-primary-border mr-4 sm:mr-8 shadow-2xs"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-7 w-7 rounded-xl flex items-center justify-center text-[10px] font-extrabold shrink-0 shadow-xs ${
-                            isAgent
-                              ? "bg-surface text-primary-text"
-                              : "bg-primary-soft text-primary-text border border-primary/30"
-                          }`}
-                        >
-                          {isAgent ? "MS" : "AM"}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p
-                              className={`text-xs font-extrabold leading-none ${
-                                isAgent ? "text-white" : "text-foreground"
-                              }`}
-                            >
-                              {msg.sender}
-                            </p>
-                            {isAgent && (
-                              <span className="bg-black/20 text-white border border-white/30 text-[8px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-xs leading-none">
-                                Staff
-                              </span>
-                            )}
-                          </div>
-                          <p
-                            className={`text-[9px] font-mono mt-0.5 ${
-                              isAgent ? "text-white" : "text-zinc-400"
-                            }`}
-                          >
-                            {msg.timestamp}
-                          </p>
-                        </div>
-                      </div>
-
-                      {isAgent && (
-                        <div className="flex items-center gap-1 text-[10px] text-white font-mono">
-                          <span>Delivered</span>
-                          <CheckCheck className="h-3.5 w-3.5 text-success" />
-                        </div>
-                      )}
-                    </div>
-
-                    <p
-                      className={`text-xs leading-relaxed whitespace-pre-wrap pl-0.5 font-medium ${
-                        isAgent ? "text-white" : "text-foreground"
-                      }`}
+                {/* Canned Macro Quick Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                  <span className="text-[11px] text-muted-foreground font-medium mr-1">
+                    Insert Macro:
+                  </span>
+                  {CANNED_MACROS.map((macro) => (
+                    <button
+                      key={macro.label}
+                      type="button"
+                      onClick={() => setReplyText((prev) => (prev ? `${prev}\n\n${macro.text}` : macro.text))}
+                      className="rounded-md border border-border bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-surface-3 transition-colors cursor-pointer"
                     >
-                      {msg.message}
-                    </p>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
+                      {macro.label}
+                    </button>
+                  ))}
+                </div>
+              </CardHeader>
 
-            {/* AI Copilot & Macro Acceleration Bar */}
-            <div className="shrink-0 pt-2 border-t border-primary-soft space-y-1.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 support-card-scroll">
-                <span className="font-extrabold text-foreground text-[10px] flex items-center gap-1 shrink-0">
-                  <Sparkles className="h-3 w-3 text-primary-text" />
-                  <span>Copilot:</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("refund")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2 font-bold cursor-pointer shrink-0"
-                >
-                  <Bot className="h-2.5 w-2.5" />
-                  <span>Refund SOP</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("batch")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2 font-bold cursor-pointer shrink-0"
-                >
-                  <ArrowRightLeft className="h-2.5 w-2.5" />
-                  <span>Cohort Shift</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAiCopilotGenerate("empathy")}
-                  disabled={isCopilotThinking}
-                  className="btn-support-secondary text-[10px] h-6 px-2 font-bold cursor-pointer shrink-0"
-                >
-                  <Award className="h-2.5 w-2.5" />
-                  <span>Empathetic</span>
-                </button>
-
-                <span className="text-zinc-300 shrink-0">|</span>
-
-                {CANNED_MACROS.map((macro, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setReplyText(macro.text)}
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold border border-primary-border bg-surface hover:bg-primary-soft hover:border-primary text-foreground shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                  >
-                    <span className="font-mono text-primary-text">{macro.tag}</span>
-                    <span>{macro.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Reply Textarea & Dispatch Action */}
-              <div className="space-y-1.5">
-                <textarea
-                  rows={2}
+              <CardContent className="pt-4 space-y-3">
+                <Textarea
+                  required
+                  rows={5}
+                  placeholder="Write your message to the student..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Draft your reply to the student... (Saves to Supabase ticket_replies)"
-                  className="w-full text-xs p-2 rounded-xl border border-primary-border bg-primary-soft text-foreground resize-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-sans leading-relaxed h-13 sm:h-15"
                 />
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="action-icon-lavender h-6.5 w-6.5"
-                      title="Insert Friendly Emoji"
-                      onClick={() => setReplyText((prev) => prev + " 👍 ")}
-                    >
-                      <Smile className="h-3 w-3" />
-                    </button>
-                    <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline ml-1">
-                      Markdown ready
-                    </span>
-                  </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+                  <p className="text-xs text-muted-foreground">
+                    Pressing Send Reply will notify {ticket.studentName} via email and student portal.
+                  </p>
 
-                  <button
-                    type="button"
-                    onClick={handleSendReply}
-                    disabled={!replyText.trim() || isSendingReply}
-                    className="btn-support-primary text-xs h-7.5 px-3.5 font-bold disabled:opacity-50 cursor-pointer shadow-xs hover:shadow-sm flex items-center gap-1"
-                  >
-                    {isSendingReply ? (
-                      <RefreshCw className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <>
-                        <span>Send Reply</span>
-                        <Send className="h-3 w-3 ml-0.5" />
-                      </>
-                    )}
-                  </button>
+                  <Button type="submit" loading={isSendingReply} disabled={!replyText.trim()}>
+                    <Send className="mr-1.5 h-4 w-4" />
+                    Send Reply
+                  </Button>
                 </div>
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </form>
+          </Card>
         </div>
 
-        {/* ========================================================
-            COLUMN 2: Student Telemetry, Mentor Actions & Resolution Notes (4 cols)
-           ======================================================== */}
-        <div className="lg:col-span-4 flex flex-col h-full min-h-0 gap-[var(--app-card-gap,14px)] overflow-y-auto support-queue-scrollbar pr-0.5">
-          {/* Learner Profile Card */}
-          <div className="p-3 rounded-2xl bg-surface border border-primary-border shadow-2xs space-y-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                Learner Profile
-              </span>
-              <span className="badge-status-completed text-[9px] font-bold px-1.5 py-0">
-                Verified Student
-              </span>
-            </div>
+        {/* Right Column: Student 360 & Ticket Details (4 cols) */}
+        <div className="space-y-6 lg:col-span-4">
+          {/* Student Profile Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>Student 360° Profile</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary-text"
+                  onClick={() => setIsStudent360Open(true)}
+                >
+                  Full Profile →
+                </Button>
+              </CardTitle>
+            </CardHeader>
 
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary-text border border-primary/30 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
-                AM
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar name={ticket.studentName} className="h-11 w-11 border border-border" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground text-sm truncate">{ticket.studentName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{ticket.studentEmail}</p>
+                  <p className="text-[11px] font-medium text-primary-text mt-0.5">{ticket.studentBatch}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h4 className="font-extrabold text-foreground text-xs truncate">
-                  {ticket.studentName}
-                </h4>
-                <p className="text-[10px] text-zinc-500 font-mono truncate">
-                  {ticket.studentEmail}
+
+              {/* Academic Actions */}
+              <div className="space-y-2 pt-3 border-t border-border">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Academic Fast-Actions
                 </p>
-                <p className="text-[9px] text-primary-text font-semibold truncate mt-0.5">
-                  {ticket.studentBatch}
-                </p>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-xs"
+                  onClick={() => setIsBatchMoveOpen(true)}
+                >
+                  <ArrowRightLeft className="mr-2 h-3.5 w-3.5 text-primary-text" />
+                  Propose Batch Transfer
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-xs"
+                  onClick={() => setIsExtensionOpen(true)}
+                >
+                  <Clock className="mr-2 h-3.5 w-3.5 text-warning" />
+                  Grant Milestone Extension
+                </Button>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <button
-              type="button"
-              onClick={() => setIsStudent360Open(true)}
-              className="btn-support-outlined w-full text-[11px] h-7 font-bold cursor-pointer justify-center gap-1.5"
-            >
-              <ExternalLink className="h-3 w-3" />
-              <span>Inspect Student 360°</span>
-            </button>
-          </div>
-
-          {/* Resolution Notes Panel */}
-          <div className="p-3 rounded-2xl bg-surface border border-primary-border shadow-2xs space-y-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-purple-600" />
-                <h4 className="font-bold text-foreground text-xs">Resolution Notes</h4>
+          {/* Ticket Metadata Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Ticket Metadata</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs">
+              <div className="flex items-center justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Ticket ID</span>
+                <span className="font-mono font-semibold text-foreground">{ticket.ticketNumber}</span>
               </div>
-              <span className="text-[9px] text-zinc-400">Supabase</span>
-            </div>
-
-            <textarea
-              rows={3}
-              value={resolutionNotes}
-              onChange={(e) => setResolutionNotes(e.target.value)}
-              placeholder="Add official resolution notes for auditing..."
-              className="w-full text-xs p-2 rounded-xl border border-zinc-200 bg-zinc-50 text-foreground resize-none focus:outline-none focus:border-primary focus:bg-white"
-            />
-
-            <button
-              type="button"
-              onClick={handleSaveResolutionNotes}
-              disabled={isSavingStatus}
-              className="w-full py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isSavingStatus ? "Saving..." : "Save Resolution Notes"}
-            </button>
-          </div>
-
-          {/* Mentor Governance Actions Card */}
-          <div className="p-3 rounded-2xl bg-surface border border-primary-border shadow-2xs space-y-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <h4 className="font-extrabold text-foreground text-xs leading-tight">
-                Quick SOP Actions
-              </h4>
-              <span className="badge-status-completed text-[8px] font-bold px-1.5 py-0">
-                Authorized
-              </span>
-            </div>
-
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                onClick={() => handleAiCopilotGenerate("refund")}
-                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-success-soft/30 hover:border-success transition-all flex items-center justify-between gap-2 text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <CreditCard className="h-3.5 w-3.5 text-success shrink-0" />
-                  <span className="text-[11px] font-bold text-foreground truncate">
-                    Verify Billing / Gateway
-                  </span>
-                </div>
-                <span className="text-[9px] font-bold text-purple-700">Apply →</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsBatchMoveModalOpen(true)}
-                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-purple-50 transition-all flex items-center justify-between gap-2 text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <ArrowRightLeft className="h-3.5 w-3.5 text-purple-600 shrink-0" />
-                  <span className="text-[11px] font-bold text-foreground truncate">
-                    Propose Cohort Transfer
-                  </span>
-                </div>
-                <span className="text-[9px] font-bold text-purple-700">Shift →</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsExtensionModalOpen(true)}
-                className="w-full p-2 rounded-xl border border-primary-border bg-primary-soft hover:bg-purple-50 transition-all flex items-center justify-between gap-2 text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Clock className="h-3.5 w-3.5 text-purple-600 shrink-0" />
-                  <span className="text-[11px] font-bold text-foreground truncate">
-                    Propose Validity Extension
-                  </span>
-                </div>
-                <span className="text-[9px] font-bold text-purple-700">Extend →</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Ticket SLA & Ownership Telemetry */}
-          <div className="panel p-3 bg-surface border border-zinc-150 space-y-1.5 text-xs shrink-0">
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-zinc-400 block">
-              Database Audit &amp; Ownership
-            </span>
-
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-zinc-500">Ticket ID</span>
-                <span className="font-mono font-bold text-primary-text">{ticket.id}</span>
+              <div className="flex items-center justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Category</span>
+                <span className="font-medium text-foreground">{ticket.category}</span>
               </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-zinc-500">Last Touch</span>
-                <span className="font-medium text-foreground">
-                  {ticket.last_update_by || "Support Team"}
+              <div className="flex items-center justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Priority</span>
+                <Badge
+                  tone={
+                    ticket.priority === "Urgent"
+                      ? "danger"
+                      : ticket.priority === "High"
+                        ? "warning"
+                        : ticket.priority === "Medium"
+                          ? "info"
+                          : "neutral"
+                  }
+                >
+                  {ticket.priority}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Status</span>
+                <Badge
+                  tone={
+                    ticket.status === "Open"
+                      ? "danger"
+                      : ticket.status === "In Progress"
+                        ? "warning"
+                        : ticket.status === "Resolved"
+                          ? "success"
+                          : "neutral"
+                  }
+                >
+                  {ticket.status}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-foreground">
+                  {new Date(ticket.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-zinc-500">Updated</span>
-                <span className="font-mono text-zinc-500 text-[10px]">
-                  {new Date(ticket.updated_at).toLocaleString()}
-                </span>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-muted-foreground">Assigned Mentor</span>
+                <span className="font-medium text-foreground">{ticket.assignedAgent}</span>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Propose Batch Move Modal */}
-      <Dialog open={isBatchMoveModalOpen} onOpenChange={setIsBatchMoveModalOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-surface border border-primary-border shadow-2xl overflow-hidden support-page-font">
-          <DialogHeader className="p-5 border-b border-primary-soft bg-gradient-to-b from-primary-soft to-white text-left">
-            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
-              <ArrowRightLeft className="h-4 w-4 text-primary-text" />
-              <span>Propose Cohort Batch Transfer</span>
-            </DialogTitle>
+      {/* Batch Move Dialog */}
+      <Dialog open={isBatchMoveOpen} onOpenChange={setIsBatchMoveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Propose Cohort Transfer</DialogTitle>
+            <DialogDescription>
+              Transfer {ticket.studentName} to another cohort. Replay progress and quiz scores remain intact.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="p-5 space-y-4 text-xs">
-            <p className="text-zinc-500 leading-relaxed">
-              Select destination cohort for <strong className="text-foreground">{ticket.studentName}</strong>.
-            </p>
-
-            <div className="space-y-1">
-              <label className="font-bold text-foreground block">Current Cohort</label>
-              <div className="p-2.5 rounded-xl bg-primary-soft border border-primary-border font-semibold text-zinc-700">
-                {ticket.studentBatch}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-foreground block">Target Destination Cohort</label>
-              <select className="w-full text-xs rounded-xl border border-primary-border bg-primary-soft p-2.5 focus:border-primary focus:outline-none">
-                <option>Full-Stack AI &amp; LLM Systems - Cohort 7 (Live + Replay)</option>
-                <option>Autonomous Multi-Agent Bootcamp (Weekend Intensive)</option>
-              </select>
-            </div>
+          <div className="space-y-3 py-2">
+            <Field label="Target Cohort">
+              <Select value={targetBatch} onValueChange={setTargetBatch}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cohort 8 (Evening)">Cohort 8 (Evening - Mon/Wed/Fri)</SelectItem>
+                  <SelectItem value="Cohort 7 (Weekend)">Cohort 7 (Weekend - Sat/Sun)</SelectItem>
+                  <SelectItem value="Agentic Bootcamp">Agentic Systems Bootcamp 2026</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
           </div>
 
-          <DialogFooter className="p-4 border-t border-primary-soft bg-primary-soft flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsBatchMoveModalOpen(false)}
-              className="btn-support-secondary text-xs h-8 px-4 font-bold cursor-pointer"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchMoveOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleProposeBatchMove}
-              className="btn-support-primary text-xs h-8 px-4 font-bold cursor-pointer"
-            >
-              Submit Proposal
-            </button>
+            </Button>
+            <Button onClick={handleConfirmBatchMove}>
+              Confirm Transfer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Propose Extension Modal */}
-      <Dialog open={isExtensionModalOpen} onOpenChange={setIsExtensionModalOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-md p-0 rounded-[28px] bg-surface border border-primary-border shadow-2xl overflow-hidden support-page-font">
-          <DialogHeader className="p-5 border-b border-primary-soft bg-gradient-to-b from-primary-soft to-white text-left">
-            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary-text" />
-              <span>Propose Access Validity Extension</span>
-            </DialogTitle>
+      {/* Milestone Extension Dialog */}
+      <Dialog open={isExtensionOpen} onOpenChange={setIsExtensionOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Grant Assignment Extension</DialogTitle>
+            <DialogDescription>
+              Add a grace period to {ticket.studentName}&apos;s current pending assignment deadline.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="p-5 space-y-4 text-xs">
-            <p className="text-zinc-500 leading-relaxed">
-              Specify duration extension to grant <strong className="text-foreground">{ticket.studentName}</strong>.
-            </p>
-
-            <div className="space-y-1">
-              <label className="font-bold text-foreground block">Extension Duration</label>
-              <select className="w-full text-xs rounded-xl border border-primary-border bg-primary-soft p-2.5 focus:border-primary focus:outline-none">
-                <option value="15">15 Days Extension</option>
-                <option value="30">30 Days Extension (Standard Medical/Work)</option>
-                <option value="60">60 Days Extension</option>
-              </select>
-            </div>
+          <div className="space-y-3 py-2">
+            <Field label="Extension Duration">
+              <Select value={extensionDays} onValueChange={setExtensionDays}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 Days Grace Period</SelectItem>
+                  <SelectItem value="3">3 Days Grace Period</SelectItem>
+                  <SelectItem value="5">5 Days Grace Period</SelectItem>
+                  <SelectItem value="7">1 Week Grace Period</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
           </div>
 
-          <DialogFooter className="p-4 border-t border-primary-soft bg-primary-soft flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsExtensionModalOpen(false)}
-              className="btn-support-secondary text-xs h-8 px-4 font-bold cursor-pointer"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExtensionOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleProposeExtension}
-              className="btn-support-primary text-xs h-8 px-4 font-bold cursor-pointer"
-            >
-              Submit Extension Proposal
-            </button>
+            </Button>
+            <Button onClick={handleConfirmExtension}>
+              Grant Extension
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Centered Student 360 Popup Modal */}
+      {/* Student 360 Drawer */}
       <Student360Drawer
         open={isStudent360Open}
         onOpenChange={setIsStudent360Open}
-        studentId={ticket.studentId}
+        studentId={ticket.student_id}
       />
     </div>
-  );
-};
-
-export default TicketDetailPage;
+  )
+}

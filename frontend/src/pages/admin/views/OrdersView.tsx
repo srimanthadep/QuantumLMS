@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
   Receipt,
   RotateCcw,
   Search,
@@ -10,6 +18,7 @@ import {
   FileText,
   CreditCard,
   Wallet,
+  Trash2,
 } from "lucide-react"
 import { InvoiceModal, RefundConfirmDialog } from "@/components/AdminModals"
 import type { useAdminStore, AdminOrder } from "@/data/adminStore"
@@ -20,12 +29,13 @@ interface OrdersViewProps {
 }
 
 export default function OrdersView({ store, onToast }: OrdersViewProps) {
-  const { orders, refundOrder } = store
+  const { orders, refundOrder, deleteOrder } = store
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<AdminOrder | null>(null)
   const [selectedRefundOrder, setSelectedRefundOrder] = useState<AdminOrder | null>(null)
+  const [deletingOrder, setDeletingOrder] = useState<AdminOrder | null>(null)
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -199,11 +209,22 @@ export default function OrdersView({ store, onToast }: OrdersViewProps) {
                           size="sm"
                           onClick={() => setSelectedRefundOrder(ord)}
                           className="h-8 px-2 text-xs text-muted-foreground hover:text-danger"
+                          title="Refund Order"
                         >
                           <RotateCcw className="mr-1 h-3.5 w-3.5" />
                           Refund
                         </Button>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingOrder(ord)}
+                        className="h-8 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
+                        title="Delete Order Record"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -226,6 +247,51 @@ export default function OrdersView({ store, onToast }: OrdersViewProps) {
         onClose={() => setSelectedRefundOrder(null)}
         onConfirmRefund={handleRefundConfirmed}
       />
+
+      {/* Delete Order Confirmation Dialog */}
+      <Dialog open={!!deletingOrder} onOpenChange={(open) => !open && setDeletingOrder(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Delete Order Record?</DialogTitle>
+                <DialogDescription>
+                  This financial transaction record will be permanently deleted from the ledger.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingOrder && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{deletingOrder.orderNumber} · ₹{deletingOrder.amount.toLocaleString("en-IN")}</p>
+              <p className="text-muted-foreground">{deletingOrder.studentName} ({deletingOrder.studentEmail})</p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3">
+            <Button type="button" variant="outline" onClick={() => setDeletingOrder(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (deletingOrder) {
+                  deleteOrder(deletingOrder.id)
+                  onToast(`Order ${deletingOrder.orderNumber} deleted.`)
+                  setDeletingOrder(null)
+                }
+              }}
+            >
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

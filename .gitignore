@@ -16,6 +16,8 @@ dist-aws/
 /infra/outputs.json
 # Local uploads and the local Cognito emulator's data
 /backend/.data/
+/.data/
+/.cognito/
 /backend/.cognito/
 *.tsbuildinfo
 *-debug.log*

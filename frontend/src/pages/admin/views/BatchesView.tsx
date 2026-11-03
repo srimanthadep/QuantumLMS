@@ -2,6 +2,15 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import {
   Layers,
   Plus,
@@ -14,8 +23,10 @@ import {
   Award,
   Sparkles,
   AlertTriangle,
+  Edit2,
+  Trash2,
 } from "lucide-react"
-import type { useAdminStore } from "@/data/adminStore"
+import type { useAdminStore, AdminBatch } from "@/data/adminStore"
 
 interface BatchesViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -23,13 +34,53 @@ interface BatchesViewProps {
 }
 
 export default function BatchesView({ store, onOpenCreateBatch }: BatchesViewProps) {
-  const { batches } = store
+  const { batches, updateBatch, deleteBatch } = store
   const [filter, setFilter] = useState<string>("All")
+
+  // Edit batch state
+  const [editingBatch, setEditingBatch] = useState<AdminBatch | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editSchedule, setEditSchedule] = useState("")
+  const [editMaxSeats, setEditMaxSeats] = useState(100)
+  const [editDeliveryMode, setEditDeliveryMode] = useState<AdminBatch["deliveryMode"]>("Live + Replay")
+  const [editStatus, setEditStatus] = useState<AdminBatch["status"]>("Active")
+
+  // Delete batch state
+  const [deletingBatch, setDeletingBatch] = useState<AdminBatch | null>(null)
 
   const filteredBatches = batches.filter((b) => {
     if (filter === "All") return true
     return b.status === filter
   })
+
+  const handleOpenEdit = (b: AdminBatch) => {
+    setEditingBatch(b)
+    setEditName(b.name)
+    setEditSchedule(b.schedule)
+    setEditMaxSeats(b.maxSeats)
+    setEditDeliveryMode(b.deliveryMode)
+    setEditStatus(b.status)
+  }
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBatch || !editName.trim()) return
+
+    updateBatch(editingBatch.id, {
+      name: editName,
+      schedule: editSchedule,
+      maxSeats: Number(editMaxSeats),
+      deliveryMode: editDeliveryMode,
+      status: editStatus,
+    })
+    setEditingBatch(null)
+  }
+
+  const handleDeleteBatch = () => {
+    if (!deletingBatch) return
+    deleteBatch(deletingBatch.id)
+    setDeletingBatch(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -87,17 +138,37 @@ export default function BatchesView({ store, onOpenCreateBatch }: BatchesViewPro
                       {batch.name}
                     </h3>
                   </div>
-                  <Badge
-                    variant={
-                      batch.status === "Active"
-                        ? "default"
-                        : batch.status === "Upcoming"
-                        ? "secondary"
-                        : "outline"
-                    }
-                  >
-                    {batch.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      variant={
+                        batch.status === "Active"
+                          ? "default"
+                          : batch.status === "Upcoming"
+                          ? "secondary"
+                          : "outline"
+                      }
+                    >
+                      {batch.status}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenEdit(batch)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-primary-text"
+                      title="Edit Batch"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeletingBatch(batch)}
+                      className="h-7 w-7 p-0 text-danger hover:text-danger hover:bg-danger/10"
+                      title="Delete Batch"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Schedule & Timing Info */}
@@ -176,7 +247,125 @@ export default function BatchesView({ store, onOpenCreateBatch }: BatchesViewPro
           )
         })}
       </div>
+
+      {/* Edit Batch Modal */}
+      <Dialog open={!!editingBatch} onOpenChange={(open) => !open && setEditingBatch(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Edit Cohort Batch</DialogTitle>
+                <DialogDescription>Modify batch timing, max capacity, or status</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {editingBatch && (
+            <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Cohort Name</label>
+                <Input
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Schedule</label>
+                <Input
+                  required
+                  value={editSchedule}
+                  onChange={(e) => setEditSchedule(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Max Seats</label>
+                  <Input
+                    type="number"
+                    min={10}
+                    max={1000}
+                    value={editMaxSeats}
+                    onChange={(e) => setEditMaxSeats(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Status</label>
+                  <select
+                    className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Delivery Mode</label>
+                <select
+                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={editDeliveryMode}
+                  onChange={(e) => setEditDeliveryMode(e.target.value as any)}
+                >
+                  <option value="Live + Replay">Live + Replay</option>
+                  <option value="Replay Only">Replay Only</option>
+                </select>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setEditingBatch(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Batch Confirmation Dialog */}
+      <Dialog open={!!deletingBatch} onOpenChange={(open) => !open && setDeletingBatch(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Delete Cohort Batch?</DialogTitle>
+                <DialogDescription>
+                  This cohort will be permanently removed. Registered students may need reassignment.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingBatch && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{deletingBatch.name}</p>
+              <p className="text-muted-foreground">{deletingBatch.courseTitle} · {deletingBatch.schedule}</p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3">
+            <Button type="button" variant="outline" onClick={() => setDeletingBatch(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteBatch}>
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

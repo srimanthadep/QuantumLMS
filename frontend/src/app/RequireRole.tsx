@@ -8,11 +8,13 @@ import RouteFallback from "./RouteFallback"
  * Guards a portal route. Signed-out visitors go to /auth?redirect=<path>.
  * A signed-in user of another role is switched to this route's role, so demo
  * links like /teacher or /admin always open the matching portal.
+ * Super Admin retains full authority across both Admin and Super Admin scopes.
  */
 export default function RequireRole({ role, children }: { role: UserRole; children: ReactNode }) {
   const { isAuthenticated, role: current, switchRole } = useSession()
   const location = useLocation()
-  const mismatch = isAuthenticated && current !== role
+  const isSuperAdminAccessingAdmin = current === "Super Admin" && role === "Admin"
+  const mismatch = isAuthenticated && current !== role && !isSuperAdminAccessingAdmin
 
   useEffect(() => {
     if (mismatch) switchRole(role)

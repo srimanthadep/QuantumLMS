@@ -246,3 +246,4 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
     weeks,
   }
 }
+

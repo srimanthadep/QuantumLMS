@@ -232,7 +232,7 @@ describe("drafts and files", () => {
 
   test("only the shared demo evaluator can reset demo data, and the reset restores its marking history", async () => {
     assert.equal((await e1.call("POST", "/api/evaluator/demo/reset")).status, 403)
-    const demo = await h.user({ email: h.ctx.config.DEMO_EVALUATOR_EMAIL, name: "Meera Nair", groups: ["evaluators"], keep: true })
+    const demo = await h.user({ email: h.ctx.config.DEMO_EVALUATOR_EMAIL, name: "Eval", groups: ["evaluators"], keep: true })
     // Work the demo account starts on a real student's submission goes back to the queue on reset.
     const other = await h.user({ name: "Eval Test Student Four" })
     const sub = await other.call("POST", "/api/student/assignments/asg-1/submission", { repo_url: "https://github.com/eval-test/rag-four" })
@@ -250,7 +250,7 @@ describe("drafts and files", () => {
     const requests = (await demo.call("GET", "/api/evaluator/reevaluations")).body.filter((r: { roll_number: string | null }) => /^QAI-2026-0[1-3]\d$/.test(r.roll_number ?? ""))
     assert.deepEqual(requests.map((r: { status: string }) => r.status).sort(), ["Pending", "Pending", "Revised", "Upheld"])
     const profile = await demo.call("GET", "/api/evaluator/profile")
-    assert.deepEqual([profile.body.full_name, profile.body.title, profile.body.is_demo], ["Meera Nair", "Assessment Lead", true])
+    assert.deepEqual([profile.body.full_name, profile.body.title, profile.body.is_demo], ["Eval", "Assessment Lead", true])
   })
 
   test("evaluators update their own settings", async () => {

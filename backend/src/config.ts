@@ -44,11 +44,11 @@ const schema = z.object({
   CAMPUS_TZ: z.string().default("Asia/Kolkata"),
   /** Demo accounts, quick-launch sign-in and "Reset demo data". */
   DEMO_MODE: bool.default(true),
-  DEMO_STUDENT_EMAIL: z.string().email().default("aarav.mehta@learner.ai"),
-  DEMO_EVALUATOR_EMAIL: z.string().email().default("evaluator@quantumschool.ai"),
-  DEMO_SUPPORT_EMAIL: z.string().email().default("support@quantumschool.ai"),
-  DEMO_ADMIN_EMAIL: z.string().email().default("admin@quantumschool.ai"),
-  DEMO_SUPER_ADMIN_EMAIL: z.string().email().default("superadmin@quantumschool.ai"),
+  DEMO_STUDENT_EMAIL: z.string().email().default("niharika@lms.com"),
+  DEMO_EVALUATOR_EMAIL: z.string().email().default("eval@lms.com"),
+  DEMO_SUPPORT_EMAIL: z.string().email().default("maheshwar@lms.com"),
+  DEMO_ADMIN_EMAIL: z.string().email().default("admin@lms.com"),
+  DEMO_SUPER_ADMIN_EMAIL: z.string().email().default("superadmin@lms.com"),
   /** Grade quiz attempts that ran out of time while the student was away (seconds between runs, 0 = off). */
   QUIZ_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
 })

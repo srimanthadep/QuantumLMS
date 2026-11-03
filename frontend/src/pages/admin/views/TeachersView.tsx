@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
   GraduationCap,
   Plus,
   Star,
@@ -12,8 +20,10 @@ import {
   Search,
   Radio,
   Sparkles,
+  Edit2,
+  Trash2,
 } from "lucide-react"
-import type { useAdminStore } from "@/data/adminStore"
+import type { useAdminStore, AdminTeacher } from "@/data/adminStore"
 
 interface TeachersViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -21,9 +31,18 @@ interface TeachersViewProps {
 }
 
 export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewProps) {
-  const { teachers } = store
+  const { teachers, updateTeacher, deleteTeacher } = store
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("All")
+
+  // Edit teacher state
+  const [editingTeacher, setEditingTeacher] = useState<AdminTeacher | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editRole, setEditRole] = useState<AdminTeacher["role"]>("Lead Instructor")
+  const [editSpecialization, setEditSpecialization] = useState("")
+
+  // Delete teacher state
+  const [deletingTeacher, setDeletingTeacher] = useState<AdminTeacher | null>(null)
 
   const filteredTeachers = teachers.filter((t) => {
     const matchSearch =
@@ -33,6 +52,31 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
     const matchRole = roleFilter === "All" || t.role === roleFilter
     return matchSearch && matchRole
   })
+
+  const handleOpenEdit = (t: AdminTeacher) => {
+    setEditingTeacher(t)
+    setEditName(t.name)
+    setEditRole(t.role)
+    setEditSpecialization(t.specialization)
+  }
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTeacher || !editName.trim()) return
+
+    updateTeacher(editingTeacher.id, {
+      name: editName,
+      role: editRole,
+      specialization: editSpecialization,
+    })
+    setEditingTeacher(null)
+  }
+
+  const handleDeleteTeacher = () => {
+    if (!deletingTeacher) return
+    deleteTeacher(deletingTeacher.id)
+    setDeletingTeacher(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -98,7 +142,6 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                       alt={teacher.name}
                       className="h-12 w-12 rounded-full object-cover border border-border"
                       onError={(e) => {
-                        // fallback
                         ;(e.target as any).src = "/assets/srimanth.png"
                       }}
                     />
@@ -118,18 +161,38 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                   </div>
                 </div>
 
-                <Badge
-                  variant={
-                    teacher.status === "Live Now"
-                      ? "destructive"
-                      : teacher.status === "Available"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="text-xs"
-                >
-                  {teacher.status}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge
+                    variant={
+                      teacher.status === "Live Now"
+                        ? "destructive"
+                        : teacher.status === "Available"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="text-xs"
+                  >
+                    {teacher.status}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenEdit(teacher)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary-text"
+                    title="Edit Instructor"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeletingTeacher(teacher)}
+                    className="h-7 w-7 p-0 text-danger hover:text-danger hover:bg-danger/10"
+                    title="Delete Instructor"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
 
               {/* Specialization Pill */}
@@ -181,7 +244,100 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
           </div>
         ))}
       </div>
+
+      {/* Edit Teacher Modal */}
+      <Dialog open={!!editingTeacher} onOpenChange={(open) => !open && setEditingTeacher(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Edit Faculty Profile</DialogTitle>
+                <DialogDescription>Update teacher name, specialization, or staff role</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {editingTeacher && (
+            <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Full Name</label>
+                <Input
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Specialization Domain</label>
+                <Input
+                  required
+                  value={editSpecialization}
+                  onChange={(e) => setEditSpecialization(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Role</label>
+                <select
+                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as any)}
+                >
+                  <option value="Lead Instructor">Lead Instructor</option>
+                  <option value="Teaching Assistant">Teaching Assistant</option>
+                  <option value="Evaluator">Evaluator</option>
+                </select>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setEditingTeacher(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Teacher Confirmation Dialog */}
+      <Dialog open={!!deletingTeacher} onOpenChange={(open) => !open && setDeletingTeacher(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Remove Faculty Member?</DialogTitle>
+                <DialogDescription>
+                  This teacher will be removed from the active faculty roster.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingTeacher && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{deletingTeacher.name}</p>
+              <p className="text-muted-foreground">{deletingTeacher.email} · {deletingTeacher.role}</p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3">
+            <Button type="button" variant="outline" onClick={() => setDeletingTeacher(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteTeacher}>
+              Confirm Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

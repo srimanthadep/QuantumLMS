@@ -1,22 +1,39 @@
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import {
   Bot,
-  Cpu,
-  Sparkles,
-  Sliders,
-  Wallet,
-  Save,
-  Check,
-  Video,
-  FileAudio,
   ClipboardCheck,
+  Cpu,
+  FileAudio,
+  Save,
+  Sliders,
+  Sparkles,
+  Video,
+  Wallet,
 } from "lucide-react"
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Field,
+  Input,
+  PageHeader,
+  Progress,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  StatCard,
+} from "@/components/ui"
+import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import DonutChart from "@/components/charts/DonutChart"
+import type { MetricItem } from "@/types"
 import type { useSuperAdminStore } from "@/data/adminStore"
+import { cn } from "@/lib/utils"
 
 interface AiUsageViewProps {
   store: ReturnType<typeof useSuperAdminStore>
@@ -33,10 +50,10 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
   const [monthlyBudgetCapInr, setMonthlyBudgetCapInr] = useState(aiUsage.monthlyBudgetCapInr)
 
   const donutData = [
-    { label: "AI Tutor (Clover)", value: aiUsage.tokensByFeature.aiTutor, color: "#6d4aff" },
-    { label: "Whisper Transcription", value: aiUsage.tokensByFeature.transcription, color: "#2563eb" },
-    { label: "Video Chaptering", value: aiUsage.tokensByFeature.videoChaptering, color: "#047857" },
-    { label: "Grading Assist", value: aiUsage.tokensByFeature.evaluatorAssist, color: "#b45309" },
+    { label: "AI Tutor (Clover)", value: aiUsage.tokensByFeature.aiTutor, color: "var(--primary)" },
+    { label: "Whisper Transcription", value: aiUsage.tokensByFeature.transcription, color: "var(--secondary)" },
+    { label: "Video Chaptering", value: aiUsage.tokensByFeature.videoChaptering, color: "var(--success)" },
+    { label: "Grading Assist", value: aiUsage.tokensByFeature.evaluatorAssist, color: "var(--warning)" },
   ]
 
   const handleSave = (e: React.FormEvent) => {
@@ -53,187 +70,220 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
 
   const budgetUsedPct = Math.round((aiUsage.totalCostInr / aiUsage.monthlyBudgetCapInr) * 100)
 
+  const kpis: MetricItem[] = [
+    {
+      icon: "trend",
+      label: "Monthly AI Spend",
+      value: `₹${aiUsage.totalCostInr.toLocaleString("en-IN")}`,
+      trend: `${budgetUsedPct}% of ₹${(aiUsage.monthlyBudgetCapInr / 1000).toFixed(0)}k budget`,
+      tone: "lime",
+    },
+    {
+      icon: "fire",
+      label: "Total Tokens",
+      value: `${(aiUsage.totalTokensMonth / 1_000_000).toFixed(1)}M`,
+      trend: "Current billing cycle",
+      tone: "lavender",
+    },
+    {
+      icon: "star",
+      label: "Primary LLM",
+      value: primaryModel.split(" ")[0],
+      trend: "Fast streaming token tier",
+      tone: "yellow",
+    },
+    {
+      icon: "users",
+      label: "Fallback Ladder",
+      value: "Ready",
+      trend: fallbackModel.split(" ")[0],
+      tone: "pink",
+    },
+  ]
+
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-text">
-            <Cpu className="h-3.5 w-3.5" />
-            Foundation Models & Inference Telemetry
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            AI Engine Usage & Controls
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Token telemetry by feature, API cost expenditure in INR, and LLM temperature orchestration
-          </p>
+      {/* Page Header */}
+      <PageHeader
+        title="AI Model Routing & Compute Quotas"
+        description="Token consumption telemetry, model fallback ladders, temperature parameters, and budget caps."
+        breadcrumb={[{ label: "Platform Console", href: "/super-admin" }, { label: "AI Usage" }]}
+        actions={
+          <Button type="submit">
+            <Save className="mr-1.5 h-4 w-4" />
+            Save AI Parameters
+          </Button>
+        }
+      />
+
+      {/* KPI Cards */}
+      <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((kpi) => (
+          <StaggerItem key={kpi.label}>
+            <StatCard item={kpi} />
+          </StaggerItem>
+        ))}
+      </Stagger>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left Column: Routing Parameters & Features (8 cols) */}
+        <div className="space-y-6 lg:col-span-8">
+          <Card>
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-base sm:text-lg">Inference Engine Routing</CardTitle>
+              <CardDescription>
+                Configure upstream foundation model providers and fallback safety ladders
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Primary Model (Default Inference)">
+                  <Select value={primaryModel} onValueChange={setPrimaryModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Gemini 2.5 Flash">Gemini 2.5 Flash (Google Vertex AI)</SelectItem>
+                      <SelectItem value="Gemini 1.5 Pro">Gemini 1.5 Pro (Ultra Reasoning)</SelectItem>
+                      <SelectItem value="GPT-4o Mini">GPT-4o Mini (OpenAI)</SelectItem>
+                      <SelectItem value="Claude 3.5 Sonnet">Claude 3.5 Sonnet (Anthropic)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field label="Failover Model (Zero Downtime Fallback)">
+                  <Select value={fallbackModel} onValueChange={setFallbackModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GPT-4o Mini">GPT-4o Mini (OpenAI)</SelectItem>
+                      <SelectItem value="Gemini 2.5 Flash">Gemini 2.5 Flash (Google)</SelectItem>
+                      <SelectItem value="Claude 3.5 Haiku">Claude 3.5 Haiku (Anthropic)</SelectItem>
+                      <SelectItem value="Llama 3.3 70B">Llama 3.3 70B (AWS Bedrock)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <Field label="Inference Temperature">
+                  <Input
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    max="1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
+                  />
+                </Field>
+
+                <Field label="Rubric Strictness Score">
+                  <Input
+                    type="number"
+                    step="0.05"
+                    min="0.5"
+                    max="1"
+                    value={strictnessScore}
+                    onChange={(e) => setStrictnessScore(parseFloat(e.target.value) || 0.8)}
+                  />
+                </Field>
+
+                <Field label="Monthly Budget Cap (₹ INR)">
+                  <Input
+                    type="number"
+                    step="5000"
+                    value={monthlyBudgetCapInr}
+                    onChange={(e) => setMonthlyBudgetCapInr(parseInt(e.target.value) || 100000)}
+                  />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tokens Consumed by Feature */}
+          <Card>
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-base">Token Ingestion by Workload</CardTitle>
+              <CardDescription>Breakdown of consumed tokens across academy modules</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {[
+                {
+                  label: "AI Student Tutor (Clover Assistant)",
+                  tokens: aiUsage.tokensByFeature.aiTutor,
+                  pct: Math.round((aiUsage.tokensByFeature.aiTutor / aiUsage.totalTokensMonth) * 100),
+                },
+                {
+                  label: "Whisper Audio & Lecture Transcription",
+                  tokens: aiUsage.tokensByFeature.transcription,
+                  pct: Math.round((aiUsage.tokensByFeature.transcription / aiUsage.totalTokensMonth) * 100),
+                },
+                {
+                  label: "Video Chaptering & Automated Summary",
+                  tokens: aiUsage.tokensByFeature.videoChaptering,
+                  pct: Math.round((aiUsage.tokensByFeature.videoChaptering / aiUsage.totalTokensMonth) * 100),
+                },
+                {
+                  label: "Rubric Grading Assist & Plagiarism Check",
+                  tokens: aiUsage.tokensByFeature.evaluatorAssist,
+                  pct: Math.round((aiUsage.tokensByFeature.evaluatorAssist / aiUsage.totalTokensMonth) * 100),
+                },
+              ].map((feat) => (
+                <div key={feat.label} className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{feat.label}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {(feat.tokens / 1_000_000).toFixed(2)}M tokens ({feat.pct}%)
+                    </span>
+                  </div>
+                  <Progress value={feat.pct} className="h-1.5" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
 
-        <Button type="submit" className="gap-1.5">
-          <Save className="h-4 w-4" />
-          Update AI Engine
-        </Button>
-      </div>
-
-      {/* Highlights Bar */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-xs space-y-1">
-          <div className="text-xs text-muted-foreground">Total Tokens (Current Month)</div>
-          <div className="text-2xl font-bold text-foreground font-mono">
-            {(aiUsage.totalTokensMonth / 1000000).toFixed(1)}M Tokens
-          </div>
-          <div className="text-[11px] text-primary-text font-medium">Primary: {aiUsage.primaryModel}</div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-xs space-y-1">
-          <div className="text-xs text-muted-foreground">Est. Inference Cost (₹)</div>
-          <div className="text-2xl font-bold text-primary-text font-mono">
-            ₹{aiUsage.totalCostInr.toLocaleString("en-IN")}
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            Budget Cap: ₹{aiUsage.monthlyBudgetCapInr.toLocaleString("en-IN")} ({budgetUsedPct}% used)
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-xs space-y-1">
-          <div className="text-xs text-muted-foreground">Clover Real-Time Tutor</div>
-          <div className="text-2xl font-bold text-success font-mono">99.8% Accuracy</div>
-          <div className="text-[11px] text-muted-foreground">Strictness guardrails active</div>
-        </div>
-      </div>
-
-      {/* Token Distribution by Feature */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs space-y-4">
-          <h2 className="text-base font-bold text-foreground">Token Consumption by Capability</h2>
-          <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
-            <div className="h-48 w-48 shrink-0">
-              <DonutChart data={donutData} />
-            </div>
-
-            <div className="space-y-3 w-full text-xs">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border">
-                <span className="flex items-center gap-2 font-medium text-foreground">
-                  <Bot className="h-4 w-4 text-primary-text" /> AI Tutor (Clover)
-                </span>
-                <span className="font-mono font-bold text-foreground">
-                  {(aiUsage.tokensByFeature.aiTutor / 1000000).toFixed(1)}M
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border">
-                <span className="flex items-center gap-2 font-medium text-foreground">
-                  <FileAudio className="h-4 w-4 text-blue-500" /> Whisper Transcription
-                </span>
-                <span className="font-mono font-bold text-foreground">
-                  {(aiUsage.tokensByFeature.transcription / 1000000).toFixed(1)}M
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border">
-                <span className="flex items-center gap-2 font-medium text-foreground">
-                  <Video className="h-4 w-4 text-emerald-500" /> Video Auto-Chaptering
-                </span>
-                <span className="font-mono font-bold text-foreground">
-                  {(aiUsage.tokensByFeature.videoChaptering / 1000000).toFixed(1)}M
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border">
-                <span className="flex items-center gap-2 font-medium text-foreground">
-                  <ClipboardCheck className="h-4 w-4 text-amber-500" /> Evaluator Assist
-                </span>
-                <span className="font-mono font-bold text-foreground">
-                  {(aiUsage.tokensByFeature.evaluatorAssist / 1000000).toFixed(1)}M
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Model Configuration Form */}
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-2 border-b border-border">
-            <Sliders className="h-5 w-5 text-primary-text" />
-            <h2 className="text-base font-bold text-foreground">Model Allocation & Temperature</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Primary Inference Model</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none"
-                  value={primaryModel}
-                  onChange={(e) => setPrimaryModel(e.target.value)}
-                >
-                  <option value="Gemini 2.5 Flash">Gemini 2.5 Flash (Google Cloud)</option>
-                  <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet (AWS Bedrock)</option>
-                  <option value="GPT-4o Mini">GPT-4o Mini (Azure OpenAI)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Failover Backup Model</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none"
-                  value={fallbackModel}
-                  onChange={(e) => setFallbackModel(e.target.value)}
-                >
-                  <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
-                  <option value="Gemini 2.5 Flash">Gemini 2.5 Flash</option>
-                  <option value="Mistral Large 2">Mistral Large 2</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-foreground">Sampling Temperature ({temperature})</span>
-                <span className="text-muted-foreground font-mono">0.0 (Deterministic) - 1.0 (Creative)</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="1.0"
-                step="0.05"
-                value={temperature}
-                onChange={(e) => setTemperature(Number(e.target.value))}
-                className="w-full accent-primary"
+        {/* Right Column: Donut & Budget Meter (4 cols) */}
+        <div className="space-y-6 lg:col-span-4">
+          <Card>
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-base">Token Distribution</CardTitle>
+              <CardDescription>Proportional compute utilization</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 flex flex-col items-center">
+              <DonutChart
+                data={donutData}
+                size={180}
+                thickness={20}
+                formatValue={(v) => `${(v / 1_000_000).toFixed(1)}M`}
               />
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-foreground">Strictness Guardrail Score ({strictnessScore}%)</span>
-                <span className="text-muted-foreground font-mono">Hallucination suppression threshold</span>
+          <Card>
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-base">Budget Exhaustion Meter</CardTitle>
+              <CardDescription>Target monthly spending guardrail</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Spent this month</span>
+                <span className="font-bold text-foreground text-sm">
+                  ₹{aiUsage.totalCostInr.toLocaleString("en-IN")}
+                </span>
               </div>
-              <input
-                type="range"
-                min="50"
-                max="100"
-                step="1"
-                value={strictnessScore}
-                onChange={(e) => setStrictnessScore(Number(e.target.value))}
-                className="w-full accent-primary"
-              />
-            </div>
-
-            <div className="space-y-1.5 pt-2">
-              <label className="text-xs font-semibold text-foreground">Monthly Cap (₹ INR)</label>
-              <Input
-                type="number"
-                min={50000}
-                step={25000}
-                value={monthlyBudgetCapInr}
-                onChange={(e) => setMonthlyBudgetCapInr(Number(e.target.value))}
-              />
-            </div>
-          </div>
+              <Progress value={budgetUsedPct} className="h-2" />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                <span>0%</span>
+                <span className="font-semibold text-primary-text">{budgetUsedPct}% Allocated</span>
+                <span>₹{(aiUsage.monthlyBudgetCapInr / 1000).toFixed(0)}k Cap</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </form>
   )
 }
-

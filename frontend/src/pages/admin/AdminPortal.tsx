@@ -116,7 +116,7 @@ export default function AdminPortal({
   onToast,
 }: AdminPortalProps) {
   // If role is Super Admin, redirect/render SuperAdminPortal
-  if (role === "Super Admin") {
+  if (role === "Super Admin" || currentUser?.role === "Super Admin") {
     return (
       <Suspense fallback={<PageFallback />}>
         <SuperAdminPortal onToast={onToast} currentUser={currentUser} />

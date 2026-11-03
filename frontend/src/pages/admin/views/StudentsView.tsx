@@ -1,17 +1,24 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
   Users,
   UserPlus,
   Search,
-  CheckCircle,
-  AlertTriangle,
-  GraduationCap,
   Sparkles,
+  Edit2,
+  Trash2,
 } from "lucide-react"
-import type { useAdminStore } from "@/data/adminStore"
+import type { useAdminStore, AdminStudent } from "@/data/adminStore"
 
 interface StudentsViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -19,22 +26,56 @@ interface StudentsViewProps {
 }
 
 export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewProps) {
-  const { students, courses } = store
+  const { students, updateStudent, deleteStudent } = store
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
-  const [courseFilter, setCourseFilter] = useState("All")
+  const [selectedBatch, setSelectedBatch] = useState("All")
 
-  const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
-      const matchSearch =
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.email.toLowerCase().includes(search.toLowerCase()) ||
-        s.courseTitle.toLowerCase().includes(search.toLowerCase())
-      const matchStatus = statusFilter === "All" || s.status === statusFilter
-      const matchCourse = courseFilter === "All" || s.courseId === courseFilter
-      return matchSearch && matchStatus && matchCourse
+  // Edit student state
+  const [editingStudent, setEditingStudent] = useState<AdminStudent | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editBatchName, setEditBatchName] = useState("")
+  const [editStatus, setEditStatus] = useState<AdminStudent["status"]>("Active")
+
+  // Delete student state
+  const [deletingStudent, setDeletingStudent] = useState<AdminStudent | null>(null)
+
+  const batches = Array.from(new Set(students.map((s) => s.batchName)))
+
+  const filteredStudents = students.filter((s) => {
+    const matchSearch =
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase()) ||
+      s.courseTitle.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === "All" || s.status === statusFilter
+    const matchBatch = selectedBatch === "All" || s.batchName === selectedBatch
+    return matchSearch && matchStatus && matchBatch
+  })
+
+  const handleOpenEdit = (s: AdminStudent) => {
+    setEditingStudent(s)
+    setEditName(s.name)
+    setEditBatchName(s.batchName)
+    setEditStatus(s.status)
+  }
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingStudent || !editName.trim()) return
+
+    updateStudent(editingStudent.id, {
+      name: editName,
+      batchName: editBatchName,
+      status: editStatus,
     })
-  }, [students, search, statusFilter, courseFilter])
+    setEditingStudent(null)
+  }
+
+  const handleDeleteStudent = () => {
+    if (!deletingStudent) return
+    deleteStudent(deletingStudent.id)
+    setDeletingStudent(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -42,10 +83,10 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Student Roster & Enrolments
+            Learner Directory
           </h1>
           <p className="text-sm text-muted-foreground">
-            Learner progress tracking, live attendance rates, rubric evaluation scores, and cohort management
+            Enrolled students, syllabus completion rates, cohort progress, and evaluation grades
           </p>
         </div>
 
@@ -60,7 +101,7 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search learner by name, email, course..."
+            placeholder="Search students by name, email, or course..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -68,8 +109,7 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Status:</span>
+          <div className="flex items-center gap-1">
             {["All", "Active", "Completed", "At Risk"].map((st) => (
               <Button
                 key={st}
@@ -85,13 +125,13 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
 
           <select
             className="h-8 rounded-md border border-border bg-surface px-2.5 text-xs text-foreground focus:outline-none"
-            value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
+            value={selectedBatch}
+            onChange={(e) => setSelectedBatch(e.target.value)}
           >
-            <option value="All">All Courses</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
+            <option value="All">All Cohorts</option>
+            {batches.map((b) => (
+              <option key={b} value={b}>
+                {b}
               </option>
             ))}
           </select>
@@ -99,24 +139,25 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
       </div>
 
       {/* Students Table */}
-      <div className="rounded-2xl border border-border bg-surface shadow-xs overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-surface-2 text-xs font-semibold text-muted-foreground uppercase">
+            <thead className="border-b border-border bg-surface-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 w-[280px]">Learner</th>
-                <th className="px-4 py-3">Course & Cohort</th>
+                <th className="px-4 py-3">Learner Profile</th>
+                <th className="px-4 py-3">Course Track</th>
                 <th className="px-4 py-3">Enrolled Date</th>
                 <th className="px-4 py-3">Curriculum Progress</th>
                 <th className="px-4 py-3">Attendance</th>
                 <th className="px-4 py-3">Score</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="h-32 text-center text-muted-foreground px-4 py-3">
+                  <td colSpan={8} className="h-32 text-center text-muted-foreground px-4 py-3">
                     No students found matching your criteria.
                   </td>
                 </tr>
@@ -143,7 +184,7 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                     <td className="px-4 py-3">
                       <div className="space-y-0.5">
                         <div className="font-medium text-foreground text-xs">{s.courseTitle}</div>
-                        <div className="text-[11px] text-primary-text">{s.batchName}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">{s.batchName}</div>
                       </div>
                     </td>
 
@@ -195,6 +236,29 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                         {s.status}
                       </Badge>
                     </td>
+
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(s)}
+                          className="h-8 px-2 text-xs text-primary-text hover:text-primary-hover"
+                          title="Edit Learner"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingStudent(s)}
+                          className="h-8 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
+                          title="Delete Learner"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -202,6 +266,101 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
           </table>
         </div>
       </div>
+
+      {/* Edit Student Modal */}
+      <Dialog open={!!editingStudent} onOpenChange={(open) => !open && setEditingStudent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Edit Learner Profile</DialogTitle>
+                <DialogDescription>Modify student details, cohort batch, or progress status</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {editingStudent && (
+            <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Full Name</label>
+                <Input
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Cohort Batch</label>
+                <Input
+                  required
+                  value={editBatchName}
+                  onChange={(e) => setEditBatchName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Status</label>
+                <select
+                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as any)}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="At Risk">At Risk</option>
+                  <option value="Paused">Paused</option>
+                </select>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setEditingStudent(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Student Confirmation Dialog */}
+      <Dialog open={!!deletingStudent} onOpenChange={(open) => !open && setDeletingStudent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Delete Learner Record?</DialogTitle>
+                <DialogDescription>
+                  This student and their active course enrollment will be permanently removed.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingStudent && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{deletingStudent.name}</p>
+              <p className="text-muted-foreground">{deletingStudent.email} · {deletingStudent.courseTitle}</p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3">
+            <Button type="button" variant="outline" onClick={() => setDeletingStudent(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteStudent}>
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

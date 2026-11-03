@@ -4,10 +4,19 @@ import { adminModule } from "./modules/admin/index.js"
 import { evaluatorModule } from "./modules/evaluator/index.js"
 import { studentModule } from "./modules/student/index.js"
 import { supportModule } from "./modules/support/index.js"
+import { teacherModule } from "./modules/teacher/index.js"
+import { superAdminModule } from "./modules/super-admin/index.js"
 import { startQuizSweep } from "./modules/student/quizzes.js"
 
 /** Route modules registered by the server (and by tests through buildApp). */
-export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [studentModule, evaluatorModule, supportModule, adminModule]
+export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [
+  studentModule,
+  evaluatorModule,
+  supportModule,
+  adminModule,
+  teacherModule,
+  superAdminModule,
+]
 
 /** Background jobs. Returns a function that stops them. */
 export function startJobs(ctx: AppContext, log: FastifyBaseLogger): () => void {

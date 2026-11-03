@@ -54,7 +54,7 @@ if (!poolId) {
       AutoVerifiedAttributes: ["email"],
       UsernameConfiguration: { CaseSensitive: false },
       MfaConfiguration: "OPTIONAL",
-      Policies: { PasswordPolicy: { MinimumLength: 10, RequireLowercase: true, RequireUppercase: true, RequireNumbers: true, RequireSymbols: false, TemporaryPasswordValidityDays: 7 } },
+      Policies: { PasswordPolicy: { MinimumLength: 6, RequireLowercase: false, RequireUppercase: false, RequireNumbers: false, RequireSymbols: false, TemporaryPasswordValidityDays: 7 } },
       AccountRecoverySetting: { RecoveryMechanisms: [{ Name: "verified_email", Priority: 1 }] },
       AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
       Schema: [{ Name: "name", AttributeDataType: "String", Mutable: true, Required: false }],

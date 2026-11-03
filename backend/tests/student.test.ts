@@ -278,13 +278,13 @@ describe("demo account", () => {
   })
 
   test("resetting restores the demo student's history", async () => {
-    const demo = await h.user({ email: h.ctx.config.DEMO_STUDENT_EMAIL, name: "Aarav Mehta", keep: true })
+    const demo = await h.user({ email: h.ctx.config.DEMO_STUDENT_EMAIL, name: "Niharika", keep: true })
     assert.equal((await demo.call("POST", "/api/student/support/tickets", { category: "General", subject: "A ticket added by the test", description: "This ticket should disappear after the reset.", priority: "Low" })).status, 200)
     assert.equal((await demo.call("POST", "/api/student/demo/reset")).status, 204)
     const support = await demo.call("GET", "/api/student/support")
     assert.equal(support.body.tickets.length, 4)
     const core = await demo.call("GET", "/api/student/core")
     assert.equal(core.body.profile.is_demo, true)
-    assert.equal(core.body.profile.full_name, "Aarav Mehta")
+    assert.equal(core.body.profile.full_name, "Niharika")
   })
 })

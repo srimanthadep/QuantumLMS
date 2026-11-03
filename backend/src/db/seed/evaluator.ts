@@ -161,7 +161,7 @@ const COLLEAGUE = {
   specializations: ["Data engineering", "Machine learning"],
 }
 const DEMO_PROFILE = {
-  name: "Meera Nair",
+  name: "Eval",
   avatar: "/assets/teacher-female.png",
   title: "Assessment Lead",
   department: "School of Computing & Machine Intelligence",

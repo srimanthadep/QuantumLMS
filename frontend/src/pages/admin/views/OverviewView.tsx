@@ -13,7 +13,6 @@ import {
   BookOpen,
   ArrowUpRight,
   Clock,
-  Sparkles,
   AlertCircle,
   GraduationCap,
 } from "lucide-react"
@@ -56,10 +55,6 @@ export default function OverviewView({
       {/* Welcome & Action Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-text">
-            <Sparkles className="h-3.5 w-3.5" />
-            Quantum School of AI · Academy Operations
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Executive Overview
           </h1>

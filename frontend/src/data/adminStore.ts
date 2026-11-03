@@ -1016,6 +1016,118 @@ export function useAdminStore() {
     }
   }, [])
 
+  // Sync operations: batches, faculty teachers, enrolled students, orders, settings
+  useEffect(() => {
+    let cancelled = false
+    async function fetchOperations() {
+      try {
+        const [bRes, tRes, sRes, oRes, setRes] = await Promise.allSettled([
+          api.get<{ batches: any[] }>("/admin/batches"),
+          api.get<{ teachers: any[] }>("/admin/teachers"),
+          api.get<{ students: any[] }>("/admin/students"),
+          api.get<{ orders: any[] }>("/admin/orders"),
+          api.get<{ settings: any }>("/admin/settings"),
+        ])
+        if (cancelled) return
+
+        if (bRes.status === "fulfilled" && bRes.value?.batches?.length) {
+          setBatches((prev) => {
+            const apiBatches: AdminBatch[] = bRes.value.batches.map((b: any, i: number) => ({
+              id: b.id || `batch-api-${i}`,
+              name: b.name,
+              courseId: b.course_id || "c1",
+              courseTitle: b.course_title || "GenAI Engineering",
+              instructor: "Shanmuk",
+              instructorAvatar: "/assets/shanmuk.png",
+              startDate: "2026-11-10",
+              endDate: "2027-02-15",
+              schedule: b.schedule || "Mon, Wed, Fri · 7:30 PM - 9:30 PM IST",
+              enrolledSeats: b.enrolled_seats || 0,
+              maxSeats: b.max_seats || 100,
+              deliveryMode: b.delivery_mode || "Live + Replay",
+              replayDelayHours: 2,
+              accessExpiryMonths: 12,
+              features: { liveChat: true, doubtClearing: true, aiTutor: true, certificate: true },
+              status: b.status || "Active",
+            }))
+            return apiBatches
+          })
+        }
+
+        if (tRes.status === "fulfilled" && tRes.value?.teachers?.length) {
+          setTeachers((prev) => {
+            const apiTeachers: AdminTeacher[] = tRes.value.teachers.map((t: any) => ({
+              id: t.id,
+              name: t.name,
+              email: t.email,
+              title: "Senior AI Instructor",
+              specialization: "LLMs & Agentic Orchestration",
+              role: (t.role as any) === "Teacher" ? "Lead Instructor" : ((t.role as any) === "Evaluator" ? "Evaluator" : "Teaching Assistant"),
+              assignedCourses: ["Agentic AI Systems"],
+              activeBatches: ["Cohort 14"],
+              studentCount: 142,
+              rating: 4.95,
+              status: "Available",
+              avatar: t.avatar || "/assets/shanmuk.png",
+              attendanceRate: 98,
+            }))
+            return apiTeachers
+          })
+        }
+
+        if (sRes.status === "fulfilled" && sRes.value?.students?.length) {
+          setStudents((prev) => {
+            const apiStudents: AdminStudent[] = sRes.value.students.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              email: s.email,
+              avatar: s.avatar_url || "/assets/student-1.png",
+              courseId: "c1",
+              courseTitle: "Autonomous Agent Architectures",
+              batchId: "b-1",
+              batchName: s.batch_name || "Cohort 7 (Evening)",
+              enrolledAt: "2026-10-15",
+              progress: 74,
+              attendanceRate: s.attendance_rate || 92,
+              evaluationScore: 94,
+              status: "Active",
+            }))
+            return apiStudents
+          })
+        }
+
+        if (oRes.status === "fulfilled" && oRes.value?.orders?.length) {
+          setOrders((prev) => {
+            const apiOrders: AdminOrder[] = oRes.value.orders.map((o: any) => ({
+              id: o.id,
+              orderNumber: o.order_number,
+              studentId: o.student_id || "stu-1",
+              studentName: o.student_name,
+              studentEmail: o.student_email,
+              courseTitle: o.course_title,
+              amount: o.amount || 44999,
+              currency: "INR" as const,
+              method: (o.method as any) || "Razorpay (UPI)",
+              date: o.date,
+              status: (o.status as any) || "Paid",
+            }))
+            return apiOrders
+          })
+        }
+
+        if (setRes.status === "fulfilled" && setRes.value?.settings) {
+          setSettings((prev) => ({ ...prev, ...setRes.value.settings }))
+        }
+      } catch {
+        // Safe offline fallback
+      }
+    }
+    fetchOperations()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const addCourse = useCallback((newCourse: Omit<AdminCourse, "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "cohortCount" | "updatedAt">) => {
     const localId = `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
     const course: AdminCourse = {
@@ -1067,6 +1179,13 @@ export function useAdminStore() {
     api.patch(`/admin/courses/${courseId}`, {}).catch(() => {})
   }, [])
 
+  const updateCourse = useCallback((courseId: string, patch: Partial<AdminCourse>) => {
+    setCourses((prev) =>
+      prev.map((c) => (c.id === courseId ? { ...c, ...patch, updatedAt: new Date().toISOString().split("T")[0] } : c))
+    )
+    api.patch(`/admin/courses/${courseId}`, patch).catch(() => {})
+  }, [])
+
   const deleteCourse = useCallback((courseId: string) => {
     setCourses((prev) => prev.filter((c) => c.id !== courseId))
     api.delete(`/admin/courses/${courseId}`).catch(() => {})
@@ -1082,7 +1201,28 @@ export function useAdminStore() {
     setCourses((prev) =>
       prev.map((c) => (c.id === batch.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c))
     )
+    api
+      .post("/admin/batches", {
+        name: batchData.name,
+        course_id: batchData.courseId,
+        max_seats: batchData.maxSeats,
+        schedule: batchData.schedule,
+        delivery_mode: batchData.deliveryMode,
+      })
+      .catch(() => {})
     return batch
+  }, [])
+
+  const updateBatch = useCallback((batchId: string, patch: Partial<AdminBatch>) => {
+    setBatches((prev) =>
+      prev.map((b) => (b.id === batchId ? { ...b, ...patch } : b))
+    )
+    api.patch(`/admin/batches/${batchId}`, patch).catch(() => {})
+  }, [])
+
+  const deleteBatch = useCallback((batchId: string) => {
+    setBatches((prev) => prev.filter((b) => b.id !== batchId))
+    api.delete(`/admin/batches/${batchId}`).catch(() => {})
   }, [])
 
   const addTeacher = useCallback((teacherData: Omit<AdminTeacher, "id" | "studentCount" | "rating" | "attendanceRate">) => {
@@ -1094,7 +1234,24 @@ export function useAdminStore() {
       attendanceRate: 100,
     }
     setTeachers((prev) => [teacher, ...prev])
+    api.post("/admin/teachers", {
+      name: teacherData.name,
+      email: teacherData.email,
+      role: teacherData.role,
+    }).catch(() => {})
     return teacher
+  }, [])
+
+  const updateTeacher = useCallback((teacherId: string, patch: Partial<AdminTeacher>) => {
+    setTeachers((prev) =>
+      prev.map((t) => (t.id === teacherId ? { ...t, ...patch } : t))
+    )
+    api.patch(`/admin/teachers/${teacherId}`, patch).catch(() => {})
+  }, [])
+
+  const deleteTeacher = useCallback((teacherId: string) => {
+    setTeachers((prev) => prev.filter((t) => t.id !== teacherId))
+    api.delete(`/admin/teachers/${teacherId}`).catch(() => {})
   }, [])
 
   const enrolStudent = useCallback((studentData: { name: string; email: string; courseId: string; batchId: string }) => {
@@ -1126,17 +1283,42 @@ export function useAdminStore() {
         prev.map((c) => (c.id === course.id ? { ...c, enrolledStudents: c.enrolledStudents + 1 } : c))
       )
     }
+    api
+      .post("/admin/students/enrol", {
+        student_id: student.id,
+        course_id: studentData.courseId,
+      })
+      .catch(() => {})
     return student
   }, [courses, batches])
+
+  const updateStudent = useCallback((studentId: string, patch: Partial<AdminStudent>) => {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === studentId ? { ...s, ...patch } : s))
+    )
+    api.patch(`/admin/students/${studentId}`, patch).catch(() => {})
+  }, [])
+
+  const deleteStudent = useCallback((studentId: string) => {
+    setStudents((prev) => prev.filter((s) => s.id !== studentId))
+    api.delete(`/admin/students/${studentId}`).catch(() => {})
+  }, [])
 
   const refundOrder = useCallback((orderId: string, reason: string) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: "Refunded", refundReason: reason } : o))
     )
+    api.post(`/admin/orders/${orderId}/refund`, { reason }).catch(() => {})
+  }, [])
+
+  const deleteOrder = useCallback((orderId: string) => {
+    setOrders((prev) => prev.filter((o) => o.id !== orderId))
+    api.delete(`/admin/orders/${orderId}`).catch(() => {})
   }, [])
 
   const updateSettings = useCallback((newSettings: Partial<AcademySettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }))
+    api.patch("/admin/settings", newSettings).catch(() => {})
   }, [])
 
   return {
@@ -1147,12 +1329,20 @@ export function useAdminStore() {
     orders,
     settings,
     addCourse,
+    updateCourse,
     toggleCourseStatus,
     deleteCourse,
     addBatch,
+    updateBatch,
+    deleteBatch,
     addTeacher,
+    updateTeacher,
+    deleteTeacher,
     enrolStudent,
+    updateStudent,
+    deleteStudent,
     refundOrder,
+    deleteOrder,
     updateSettings,
   }
 }
@@ -1171,6 +1361,45 @@ export function useSuperAdminStore() {
   useEffect(() => saveStorage(KEYS.audit, auditLogs), [auditLogs])
   useEffect(() => saveStorage(KEYS.aiUsage, aiUsage), [aiUsage])
 
+  // Sync with Backend Super Admin endpoints
+  useEffect(() => {
+    let cancelled = false
+    async function fetchSuperAdminData() {
+      try {
+        const [hRes, tRes, rRes, aRes, aiRes] = await Promise.allSettled([
+          api.get<{ services: PlatformServiceHealth[] }>("/super-admin/health"),
+          api.get<{ tenants: TenantHub[] }>("/super-admin/tenants"),
+          api.get<{ matrix: RbacPermissionRow[] }>("/super-admin/rbac"),
+          api.get<{ logs: SecurityAuditLog[] }>("/super-admin/audit"),
+          api.get<AiUsageMetrics>("/super-admin/ai"),
+        ])
+        if (cancelled) return
+
+        if (hRes.status === "fulfilled" && hRes.value?.services?.length) {
+          setServices(hRes.value.services)
+        }
+        if (tRes.status === "fulfilled" && tRes.value?.tenants?.length) {
+          setTenants(tRes.value.tenants)
+        }
+        if (rRes.status === "fulfilled" && rRes.value?.matrix?.length) {
+          setRbac(rRes.value.matrix)
+        }
+        if (aRes.status === "fulfilled" && aRes.value?.logs?.length) {
+          setAuditLogs(aRes.value.logs)
+        }
+        if (aiRes.status === "fulfilled" && aiRes.value?.totalTokensMonth) {
+          setAiUsage(aiRes.value)
+        }
+      } catch {
+        // Safe offline fallback
+      }
+    }
+    fetchSuperAdminData()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const toggleRbacPermission = useCallback((id: string, roleKey: "superAdmin" | "admin" | "teacher" | "evaluator" | "support" | "student") => {
     setRbac((prev) =>
       prev.map((row) => {
@@ -1179,6 +1408,7 @@ export function useSuperAdminStore() {
         return updated
       })
     )
+    api.patch("/super-admin/rbac", { permission_id: id, role: roleKey }).catch(() => {})
     // Add audit log entry
     const log: SecurityAuditLog = {
       id: `log-${Date.now()}`,
@@ -1197,6 +1427,7 @@ export function useSuperAdminStore() {
   }, [])
 
   const flushCache = useCallback(() => {
+    api.post("/super-admin/flush-cache").catch(() => {})
     const log: SecurityAuditLog = {
       id: `log-${Date.now()}`,
       timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
@@ -1214,6 +1445,7 @@ export function useSuperAdminStore() {
   }, [])
 
   const triggerSnapshot = useCallback(() => {
+    api.post("/super-admin/snapshot").catch(() => {})
     const log: SecurityAuditLog = {
       id: `log-${Date.now()}`,
       timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
@@ -1232,6 +1464,7 @@ export function useSuperAdminStore() {
 
   const updateAiModelSettings = useCallback((updates: Partial<AiUsageMetrics>) => {
     setAiUsage((prev) => ({ ...prev, ...updates }))
+    api.patch("/super-admin/ai", updates).catch(() => {})
     const log: SecurityAuditLog = {
       id: `log-${Date.now()}`,
       timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
@@ -1248,12 +1481,37 @@ export function useSuperAdminStore() {
     setAuditLogs((prev) => [log, ...prev])
   }, [])
 
+  const addTenant = useCallback((tenantData: Omit<TenantHub, "id">) => {
+    const tenant: TenantHub = {
+      ...tenantData,
+      id: `hub-${Date.now()}`,
+    }
+    setTenants((prev) => [tenant, ...prev])
+    api.post("/super-admin/tenants", tenantData).catch(() => {})
+    return tenant
+  }, [])
+
+  const updateTenant = useCallback((tenantId: string, patch: Partial<TenantHub>) => {
+    setTenants((prev) =>
+      prev.map((t) => (t.id === tenantId ? { ...t, ...patch } : t))
+    )
+    api.patch(`/super-admin/tenants/${tenantId}`, patch).catch(() => {})
+  }, [])
+
+  const deleteTenant = useCallback((tenantId: string) => {
+    setTenants((prev) => prev.filter((t) => t.id !== tenantId))
+    api.delete(`/super-admin/tenants/${tenantId}`).catch(() => {})
+  }, [])
+
   return {
     services,
     tenants,
     rbac,
     auditLogs,
     aiUsage,
+    addTenant,
+    updateTenant,
+    deleteTenant,
     toggleRbacPermission,
     flushCache,
     triggerSnapshot,

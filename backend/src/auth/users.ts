@@ -59,9 +59,14 @@ export async function resolveUser(
     if (existing.sessions_revoked_at && claims.issuedAt <= Math.floor(existing.sessions_revoked_at.getTime() / 1000)) {
       throw unauthorized("You were signed out. Sign in again.")
     }
+    const isDemo = opts.demoEmails.includes(existing.email.toLowerCase())
     const stale = !existing.last_seen_at || Date.now() - existing.last_seen_at.getTime() > SEEN_EVERY_MS
-    if (existing.role !== role || stale) {
-      const [u] = await db.update(users).set({ role, last_seen_at: new Date(), updated_at: existing.role !== role ? new Date() : existing.updated_at }).where(eq(users.id, existing.id)).returning()
+    if (existing.role !== role || existing.is_demo !== isDemo || stale) {
+      const [u] = await db
+        .update(users)
+        .set({ role, is_demo: isDemo, last_seen_at: new Date(), updated_at: existing.role !== role ? new Date() : existing.updated_at })
+        .where(eq(users.id, existing.id))
+        .returning()
       return toAuth(u)
     }
     return toAuth(existing)

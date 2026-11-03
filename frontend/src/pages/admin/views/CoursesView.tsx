@@ -20,6 +20,8 @@ import {
   Users,
   Wallet,
   Sparkles,
+  Edit2,
+  Trash2,
 } from "lucide-react"
 import type { useAdminStore, AdminCourse } from "@/data/adminStore"
 
@@ -29,12 +31,24 @@ interface CoursesViewProps {
 }
 
 export default function CoursesView({ store, onToast }: CoursesViewProps) {
-  const { courses, addCourse, toggleCourseStatus } = store
+  const { courses, addCourse, updateCourse, toggleCourseStatus, deleteCourse } = store
 
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [selectedStatus, setSelectedStatus] = useState<string>("All")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+
+  // Edit course state
+  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editCategory, setEditCategory] = useState<AdminCourse["category"]>("LLM Engineering")
+  const [editInstructor, setEditInstructor] = useState("Srimanth")
+  const [editPrice, setEditPrice] = useState(39999)
+  const [editCapacity, setEditCapacity] = useState(300)
+  const [editStatus, setEditStatus] = useState<AdminCourse["status"]>("Published")
+
+  // Delete confirm state
+  const [deletingCourse, setDeletingCourse] = useState<AdminCourse | null>(null)
 
   // New course state
   const [newTitle, setNewTitle] = useState("")
@@ -75,6 +89,40 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
     setNewTitle("")
     setIsAddModalOpen(false)
     onToast(`Published new course: "${newTitle}"`)
+  }
+
+  const handleOpenEdit = (c: AdminCourse) => {
+    setEditingCourse(c)
+    setEditTitle(c.title)
+    setEditCategory(c.category)
+    setEditInstructor(c.instructor)
+    setEditPrice(c.price)
+    setEditCapacity(c.capacity)
+    setEditStatus(c.status)
+  }
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCourse || !editTitle.trim()) return
+
+    updateCourse(editingCourse.id, {
+      title: editTitle,
+      category: editCategory,
+      instructor: editInstructor,
+      price: Number(editPrice),
+      capacity: Number(editCapacity),
+      status: editStatus,
+    })
+
+    setEditingCourse(null)
+    onToast(`Updated course: "${editTitle}"`)
+  }
+
+  const handleDeleteCourse = () => {
+    if (!deletingCourse) return
+    deleteCourse(deletingCourse.id)
+    onToast(`Permanently deleted course: "${deletingCourse.title}"`)
+    setDeletingCourse(null)
   }
 
   const handleToggleStatus = (c: AdminCourse) => {
@@ -245,18 +293,39 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(c)}
-                        className="text-xs"
-                      >
-                        {c.status === "Published" ? (
-                          <span className="text-muted-foreground hover:text-danger">Archive</span>
-                        ) : (
-                          <span className="text-success hover:text-success">Publish</span>
-                        )}
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(c)}
+                          className="h-8 px-2 text-xs text-primary-text hover:text-primary-hover"
+                          title="Edit Course"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleStatus(c)}
+                          className="h-8 px-2 text-xs"
+                          title={c.status === "Published" ? "Archive Course" : "Publish Course"}
+                        >
+                          {c.status === "Published" ? (
+                            <span className="text-muted-foreground hover:text-warning">Archive</span>
+                          ) : (
+                            <span className="text-success hover:text-success">Publish</span>
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingCourse(c)}
+                          className="h-8 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
+                          title="Delete Course"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -354,6 +423,140 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
               <Button type="submit">Publish to Catalog</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Course Modal */}
+      <Dialog open={!!editingCourse} onOpenChange={(open) => !open && setEditingCourse(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Edit Course Curriculum</DialogTitle>
+                <DialogDescription>Modify syllabus details, tuition fees, and capacity</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {editingCourse && (
+            <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Course Title</label>
+                <Input
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Domain Category</label>
+                  <select
+                    className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value as any)}
+                  >
+                    <option value="LLM Engineering">LLM Engineering</option>
+                    <option value="Agentic Systems">Agentic Systems</option>
+                    <option value="MLOps">MLOps</option>
+                    <option value="Computer Vision">Computer Vision</option>
+                    <option value="AI Foundations">AI Foundations</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
+                  <Input
+                    required
+                    value={editInstructor}
+                    onChange={(e) => setEditInstructor(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Tuition Fee (₹ INR)</label>
+                  <Input
+                    type="number"
+                    min={1000}
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Max Learner Capacity</label>
+                  <Input
+                    type="number"
+                    min={10}
+                    max={2000}
+                    value={editCapacity}
+                    onChange={(e) => setEditCapacity(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Publication Status</label>
+                <select
+                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as any)}
+                >
+                  <option value="Published">Published</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setEditingCourse(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Course Confirmation Dialog */}
+      <Dialog open={!!deletingCourse} onOpenChange={(open) => !open && setDeletingCourse(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Permanently Delete Course?</DialogTitle>
+                <DialogDescription>
+                  This will remove the course curriculum, modules, and lessons. This action cannot be undone.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingCourse && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{deletingCourse.title}</p>
+              <p className="text-muted-foreground">{deletingCourse.instructor} · {deletingCourse.category} · {deletingCourse.enrolledStudents} learners</p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3">
+            <Button type="button" variant="outline" onClick={() => setDeletingCourse(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteCourse}>
+              Confirm Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

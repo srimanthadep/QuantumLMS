@@ -105,6 +105,13 @@ export const NAV: Record<UserRole, ShellNavItem[]> = {
     item("settings", "Settings", Settings, "secondary"),
   ],
   "Super Admin": [
+    item("overview", "Overview", LayoutDashboard),
+    item("courses", "Courses", BookOpen),
+    item("batches", "Batches", Layers, "main", ["cohorts", "schedules"]),
+    item("teachers", "Teachers", GraduationCap, "main", ["instructors", "faculty"]),
+    item("students", "Students", Users, "main", ["enrolments", "learners"]),
+    item("orders", "Orders", CreditCard, "main", ["payments"]),
+    item("reports", "Reports", FileText),
     item("health", "Platform Health", Activity),
     item("tenants", "Tenants", Building2, "main", ["campuses"]),
     item("access", "Access Control", ShieldCheck, "main", ["rbac", "roles", "permissions"]),

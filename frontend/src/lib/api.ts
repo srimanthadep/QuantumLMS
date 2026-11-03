@@ -9,16 +9,18 @@ const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replac
 export type { Json, StudentProfile, Tables } from "./api.types"
 
 /** The shared demo accounts behind the quick-launch buttons. */
-export const DEMO_STUDENT = { email: "aarav.mehta@learner.ai", password: "DemoStudent2026" } as const
-export const DEMO_EVALUATOR = { email: "evaluator@quantumschool.ai", password: "DemoEvaluator2026" } as const
-export const DEMO_SUPPORT = { email: "support@quantumschool.ai", password: "DemoSupport2026" } as const
-export const DEMO_ADMIN = { email: "admin@quantumschool.ai", password: "DemoAdmin2026" } as const
-export const DEMO_SUPER_ADMIN = { email: "superadmin@quantumschool.ai", password: "DemoSuperAdmin2026" } as const
+export const DEMO_STUDENT = { email: "niharika@lms.com", password: "123456" } as const
+export const DEMO_EVALUATOR = { email: "eval@lms.com", password: "123456" } as const
+export const DEMO_SUPPORT = { email: "maheshwar@lms.com", password: "123456" } as const
+export const DEMO_ADMIN = { email: "admin@lms.com", password: "123456" } as const
+export const DEMO_SUPER_ADMIN = { email: "superadmin@lms.com", password: "123456" } as const
+export const DEMO_TEACHER = { email: "shanmuk@lms.com", password: "123456" } as const
 export const isDemoStudentEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_STUDENT.email
 export const isDemoEvaluatorEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_EVALUATOR.email
 export const isDemoSupportEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_SUPPORT.email
 export const isDemoAdminEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_ADMIN.email
 export const isDemoSuperAdminEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_SUPER_ADMIN.email
+export const isDemoTeacherEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_TEACHER.email
 
 /** Error with a message that is safe to show. */
 export class ApiError extends Error {
