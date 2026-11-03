@@ -7,4 +7,5 @@ import type { Role } from "./db/schema.js"
 export const DEMO_ACCOUNTS: { email: string; password: string; name: string; role: Role; group?: string }[] = [
   { email: process.env.DEMO_STUDENT_EMAIL || "aarav.mehta@learner.ai", password: "DemoStudent2026", name: "Aarav Mehta", role: "Student", group: "students" },
   { email: process.env.DEMO_EVALUATOR_EMAIL || "evaluator@quantumschool.ai", password: "DemoEvaluator2026", name: "Meera Nair", role: "Evaluator", group: "evaluators" },
+  { email: process.env.DEMO_SUPPORT_EMAIL || "support@quantumschool.ai", password: "DemoSupport2026", name: "Neha Kapoor", role: "Support", group: "support" },
 ]

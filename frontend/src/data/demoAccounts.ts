@@ -74,7 +74,7 @@ export const demoAccounts: DemoAccount[] = [
     role: "Support",
     name: "Neha Kapoor",
     email: "support@quantumschool.ai",
-    password: "demo-support",
+    password: "DemoSupport2026",
     title: "Learner Success Specialist",
     badge: "SUPPORT",
     avatar: "/assets/teacher-female.png",

@@ -35,7 +35,7 @@ export function createContext(config: Config, overrides: { cognito?: CognitoGate
   const cognito = overrides.cognito ?? createCognitoGateway(config)
   const verifyToken = overrides.verifyToken ?? createTokenVerifier({ issuer: config.cognitoIssuer, jwksUri: config.cognitoJwksUri, clientId: config.COGNITO_CLIENT_ID })
   const { storage, localStorage } = overrides.storage ? { storage: overrides.storage, localStorage: undefined } : createStorage(config)
-  const demoEmails = config.DEMO_MODE ? [config.DEMO_STUDENT_EMAIL, config.DEMO_EVALUATOR_EMAIL].map((e) => e.toLowerCase()) : []
+  const demoEmails = config.DEMO_MODE ? [config.DEMO_STUDENT_EMAIL, config.DEMO_EVALUATOR_EMAIL, config.DEMO_SUPPORT_EMAIL].map((e) => e.toLowerCase()) : []
   return {
     config,
     pool,

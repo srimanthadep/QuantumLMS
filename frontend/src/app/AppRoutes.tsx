@@ -6,6 +6,8 @@ import { AiAssistantProvider, useAiAssistant } from "@/components/shell/AiAssist
 import { ROLE_HOME, useSession, type LoginInput } from "./session"
 import RequireRole from "./RequireRole"
 import RouteFallback from "./RouteFallback"
+import CognitoGate from "./CognitoGate"
+import { api, DEMO_SUPPORT } from "@/lib/api"
 import { LEGACY_BG, noopHexChange } from "./legacy"
 
 const AuthPage = lazy(() => import("@/pages/auth/AuthPage"))
@@ -86,7 +88,15 @@ function EvaluatorRoute() {
 function SupportRoute() {
   const p = usePortalProps()
   const ai = useAiAssistant()
-  return <SupportPortal currentUser={p.currentUser} onOpenAiModal={() => ai.open()} onToast={p.onToast} />
+  return (
+    <CognitoGate
+      demo={DEMO_SUPPORT}
+      load={() => api.get<{ total: number }>("/support/stats").then(() => ({ id: "support" }))}
+      errorTitle="The support desk can't connect"
+    >
+      {() => <SupportPortal currentUser={p.currentUser} onOpenAiModal={() => ai.open()} onToast={p.onToast} />}
+    </CognitoGate>
+  )
 }
 
 function AdminRoute({ role }: { role: "Admin" | "Super Admin" }) {

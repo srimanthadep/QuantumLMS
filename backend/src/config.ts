@@ -46,6 +46,7 @@ const schema = z.object({
   DEMO_MODE: bool.default(true),
   DEMO_STUDENT_EMAIL: z.string().email().default("aarav.mehta@learner.ai"),
   DEMO_EVALUATOR_EMAIL: z.string().email().default("evaluator@quantumschool.ai"),
+  DEMO_SUPPORT_EMAIL: z.string().email().default("support@quantumschool.ai"),
   /** Grade quiz attempts that ran out of time while the student was away (seconds between runs, 0 = off). */
   QUIZ_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
 })
