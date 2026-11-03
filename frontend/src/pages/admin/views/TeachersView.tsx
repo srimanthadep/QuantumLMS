@@ -184,3 +184,4 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
     </div>
   )
 }
+

@@ -7,7 +7,7 @@ import { ROLE_HOME, useSession, type LoginInput } from "./session"
 import RequireRole from "./RequireRole"
 import RouteFallback from "./RouteFallback"
 import CognitoGate from "./CognitoGate"
-import { api, DEMO_SUPPORT } from "@/lib/api"
+import { api, DEMO_SUPPORT, DEMO_ADMIN, DEMO_SUPER_ADMIN } from "@/lib/api"
 import { LEGACY_BG, noopHexChange } from "./legacy"
 
 const AuthPage = lazy(() => import("@/pages/auth/AuthPage"))
@@ -16,6 +16,7 @@ const TeacherPortal = lazy(() => import("@/pages/teacher/TeacherPortal"))
 const EvaluatorPortal = lazy(() => import("@/pages/evaluator/EvaluatorPortal"))
 const SupportPortal = lazy(() => import("@/pages/support"))
 const AdminPortal = lazy(() => import("@/pages/admin/AdminPortal"))
+const SuperAdminPortal = lazy(() => import("@/pages/super-admin/SuperAdminPortal"))
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"))
 const VerifyCertificatePage = lazy(() => import("@/pages/VerifyCertificatePage"))
 const DesignSystemPage: ComponentType | null = import.meta.env.DEV ? lazy(() => import("@/pages/dev/DesignSystemPage")) : null
@@ -101,7 +102,16 @@ function SupportRoute() {
 
 function AdminRoute({ role }: { role: "Admin" | "Super Admin" }) {
   const p = usePortalProps()
-  return <AdminPortal role={role} currentUser={p.currentUser} onToast={p.onToast} />
+  const demoAccount = role === "Super Admin" ? DEMO_SUPER_ADMIN : DEMO_ADMIN
+  return (
+    <CognitoGate
+      demo={demoAccount}
+      load={() => api.get<{ stats: any }>("/admin/stats").then(() => ({ id: "admin" }))}
+      errorTitle={`The ${role.toLowerCase()} portal can't connect`}
+    >
+      {() => <AdminPortal role={role} currentUser={p.currentUser} onToast={p.onToast} />}
+    </CognitoGate>
+  )
 }
 
 /** The whole route table. Every page is lazy-loaded into its own chunk. */

@@ -135,3 +135,4 @@ export default function SuperAdminSettingsView({ store, onToast }: SuperAdminSet
     </form>
   )
 }
+

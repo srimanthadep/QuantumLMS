@@ -143,3 +143,4 @@ export default function TenantsView({ store }: TenantsViewProps) {
     </div>
   )
 }
+

@@ -179,3 +179,4 @@ export default function BatchesView({ store, onOpenCreateBatch }: BatchesViewPro
     </div>
   )
 }
+

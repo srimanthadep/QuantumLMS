@@ -205,3 +205,4 @@ export default function SettingsView({ store, onToast }: SettingsViewProps) {
     </form>
   )
 }
+

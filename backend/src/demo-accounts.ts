@@ -8,4 +8,6 @@ export const DEMO_ACCOUNTS: { email: string; password: string; name: string; rol
   { email: process.env.DEMO_STUDENT_EMAIL || "aarav.mehta@learner.ai", password: "DemoStudent2026", name: "Aarav Mehta", role: "Student", group: "students" },
   { email: process.env.DEMO_EVALUATOR_EMAIL || "evaluator@quantumschool.ai", password: "DemoEvaluator2026", name: "Meera Nair", role: "Evaluator", group: "evaluators" },
   { email: process.env.DEMO_SUPPORT_EMAIL || "support@quantumschool.ai", password: "DemoSupport2026", name: "Neha Kapoor", role: "Support", group: "support" },
+  { email: process.env.DEMO_ADMIN_EMAIL || "admin@quantumschool.ai", password: "DemoAdmin2026", name: "Rohan Iyer", role: "Admin", group: "admins" },
+  { email: process.env.DEMO_SUPER_ADMIN_EMAIL || "superadmin@quantumschool.ai", password: "DemoSuperAdmin2026", name: "Dr. Vikram Seth", role: "Super Admin", group: "super-admins" },
 ]

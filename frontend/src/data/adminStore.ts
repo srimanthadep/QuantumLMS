@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
+import { api } from "@/lib/api"
 
 export interface AdminCourse {
   id: string
   title: string
   slug: string
-  category: "LLM Engineering" | "Agentic Systems" | "Computer Vision" | "MLOps" | "AI Foundations"
+  category: "LLM Engineering" | "Agentic Systems" | "Computer Vision" | "MLOps" | "AI Foundations" | string
   instructor: string
   instructorAvatar: string
   enrolledStudents: number
@@ -969,18 +970,89 @@ export function useAdminStore() {
   useEffect(() => saveStorage(KEYS.orders, orders), [orders])
   useEffect(() => saveStorage(KEYS.settings, settings), [settings])
 
+  // Sync courses with Backend API
+  useEffect(() => {
+    let cancelled = false
+    async function fetchBackendCourses() {
+      try {
+        const res = await api.get<{ courses: any[] }>("/admin/courses")
+        if (!cancelled && res?.courses && Array.isArray(res.courses) && res.courses.length > 0) {
+          const apiCourses: AdminCourse[] = res.courses.map((c) => ({
+            id: c.id,
+            title: c.title,
+            slug: c.code ? c.code.toLowerCase().replace(/[^a-z0-9]/g, "-") : c.title.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+            category: c.category || "LLM Engineering",
+            instructor: c.instructor || "Srimanth",
+            instructorAvatar: "/assets/srimanth.png",
+            enrolledStudents: c.enrolled_students ?? 0,
+            capacity: 250,
+            price: 39999,
+            revenue: (c.enrolled_students ?? 0) * 39999,
+            rating: parseFloat(c.rating || "5.0") || 5.0,
+            completionRate: 88,
+            status: (c.status as any) || "Published",
+            cohortCount: Math.max(1, c.modules_count ?? 1),
+            updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          }))
+
+          setCourses((prev) => {
+            const apiMap = new Map(apiCourses.map((c) => [c.id, c]))
+            const merged = [...apiCourses]
+            for (const p of prev) {
+              if (!apiMap.has(p.id)) {
+                merged.push(p)
+              }
+            }
+            return merged
+          })
+        }
+      } catch {
+        // Fallback to offline / mock storage smoothly
+      }
+    }
+    fetchBackendCourses()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const addCourse = useCallback((newCourse: Omit<AdminCourse, "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "cohortCount" | "updatedAt">) => {
+    const localId = `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
     const course: AdminCourse = {
       ...newCourse,
-      id: `course-${Date.now()}`,
+      id: localId,
       enrolledStudents: 0,
       revenue: 0,
       rating: 5.0,
       completionRate: 0,
-      cohortCount: 0,
+      cohortCount: 1,
       updatedAt: new Date().toISOString().split("T")[0],
     }
     setCourses((prev) => [course, ...prev])
+
+    // Asynchronously persist to backend PostgreSQL
+    api
+      .post<{ ok: boolean; course: any }>("/admin/courses", {
+        title: newCourse.title,
+        category: newCourse.category,
+        instructor: newCourse.instructor,
+        instructor_role: "Lead Instructor",
+        description: `Comprehensive track in ${newCourse.title} covering architecture, practical applications and production deployment.`,
+        level: "Beginner",
+        credits: 4,
+        duration: "12 Weeks",
+      })
+      .then((res) => {
+        if (res?.course?.id) {
+          setCourses((prev) =>
+            prev.map((c) => (c.id === localId ? { ...c, id: res.course.id } : c))
+          )
+        }
+      })
+      .catch(() => {
+        // Safe offline fallback
+      })
+
     return course
   }, [])
 
@@ -992,6 +1064,12 @@ export function useAdminStore() {
         return { ...c, status: nextStatus, updatedAt: new Date().toISOString().split("T")[0] }
       })
     )
+    api.patch(`/admin/courses/${courseId}`, {}).catch(() => {})
+  }, [])
+
+  const deleteCourse = useCallback((courseId: string) => {
+    setCourses((prev) => prev.filter((c) => c.id !== courseId))
+    api.delete(`/admin/courses/${courseId}`).catch(() => {})
   }, [])
 
   const addBatch = useCallback((batchData: Omit<AdminBatch, "id" | "enrolledSeats">) => {
@@ -1070,6 +1148,7 @@ export function useAdminStore() {
     settings,
     addCourse,
     toggleCourseStatus,
+    deleteCourse,
     addBatch,
     addTeacher,
     enrolStudent,
@@ -1181,3 +1260,4 @@ export function useSuperAdminStore() {
     updateAiModelSettings,
   }
 }
+

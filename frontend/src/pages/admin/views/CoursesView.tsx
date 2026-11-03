@@ -329,7 +329,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
                 <Input
                   type="number"
                   min={1000}
-                  step={500}
+                  step={1}
                   value={newPrice}
                   onChange={(e) => setNewPrice(Number(e.target.value))}
                 />
