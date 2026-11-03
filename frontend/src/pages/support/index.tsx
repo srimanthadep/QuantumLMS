@@ -20,7 +20,7 @@ import { KnowledgeBasePage } from "./KnowledgeBasePage"
 import { SupportAgentsPage } from "./SupportAgentsPage"
 import { SupportAnalyticsPage } from "./SupportAnalyticsPage"
 import { SupportSettingsPage } from "./SupportSettingsPage"
-import { getAllSupportTickets, SupportTicket } from "./supportTicketsData"
+import { getAllTickets, subscribeToTickets, type SupportTicket } from "@/services/ticketService"
 
 const LEARNERS_SEARCH_INDEX = [
   { id: "usr-student-1", name: "Arjun Mehta", email: "arjun.m@learner.ai", avatar: "AM", batch: "Cohort 7 (Live + Replay)", course: "Full-Stack AI & LLM Systems Engineering" },
@@ -44,7 +44,13 @@ function SupportLayout({ children, currentUser }: SupportPortalProps & { childre
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const location = useLocation()
-  const allTickets = useRef<SupportTicket[]>(getAllSupportTickets()).current
+  const [allTickets, setAllTickets] = useState<SupportTicket[]>([])
+  useEffect(() => {
+    getAllTickets().then(setAllTickets).catch(console.error)
+    return subscribeToTickets(() => {
+      getAllTickets().then(setAllTickets).catch(console.error)
+    })
+  }, [])
   const cleanSearchQuery = headerSearchQuery.trim().toLowerCase()
 
   const matchingTickets = cleanSearchQuery
@@ -145,8 +151,55 @@ function SupportLayout({ children, currentUser }: SupportPortalProps & { childre
     : (["live-chat", "knowledge-base", "agents", "analytics", "settings"].find((id) => path.startsWith(`/support/${id}`)) ?? "dashboard")
 
   return (
-    <AppShell role="Support" activeId={activeNav} onNavigate={(id) => navigate(id === "dashboard" ? "/support" : `/support/${id}`)}>
-      <div className="dashboard-content support-portal-root min-w-0">
+    <AppShell
+      role="Support"
+      activeId={activeNav}
+      onNavigate={(id) => navigate(id === "dashboard" ? "/support" : `/support/${id}`)}
+      contentClassName="h-full flex flex-col px-3 py-2 sm:px-4 sm:py-2.5 lg:px-6 lg:py-3 min-h-0 overflow-hidden box-border"
+    >
+      <div className="dashboard-content support-portal-root min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden h-full box-border">
+        <style>{`
+          #main:has(.support-portal-root),
+          #main.support-portal-active {
+            overflow: hidden !important;
+            height: 100% !important;
+            max-height: 100vh !important;
+            box-sizing: border-box !important;
+          }
+          .support-portal-root {
+            height: 100% !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+          .support-view-container {
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+          .support-queue-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(147, 51, 234, 0.6) rgba(0, 0, 0, 0.04);
+            -webkit-overflow-scrolling: touch;
+          }
+          .support-queue-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+          }
+          .support-queue-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 9999px;
+          }
+          .support-queue-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(147, 51, 234, 0.55);
+            border-radius: 9999px;
+          }
+          .support-queue-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(147, 51, 234, 0.85);
+          }
+        `}</style>
+
         {/* Canonical Dashboard Header - perfectly aligned with Teacher & Admin */}
         <header className="dashboard-header">
           <div className="min-w-fit flex-shrink-0">
@@ -157,7 +210,7 @@ function SupportLayout({ children, currentUser }: SupportPortalProps & { childre
               </span>
             </div>
             <div className="subtitle whitespace-nowrap">
-              24 active student tickets · 3 live chats waiting · 98.7% SLA resolution
+              {allTickets.length} active student tickets · 3 live chats waiting · 98.7% SLA resolution
             </div>
           </div>
 
@@ -248,7 +301,7 @@ function SupportLayout({ children, currentUser }: SupportPortalProps & { childre
                                 <div className="flex items-center gap-1">
                                   <span
                                     className={`text-[9px] font-bold px-1.5 py-0 rounded-full ${
-                                      tkt.priority === "high"
+                                      tkt.priority === "High" || tkt.priority === "Urgent"
                                         ? "bg-amber-100 text-amber-800"
                                         : "bg-blue-100 text-blue-800"
                                     }`}
@@ -257,9 +310,9 @@ function SupportLayout({ children, currentUser }: SupportPortalProps & { childre
                                   </span>
                                   <span
                                     className={`text-[9px] font-bold px-1.5 py-0 rounded-full ${
-                                      tkt.status === "open"
+                                      tkt.status === "Open"
                                         ? "bg-rose-100 text-rose-800"
-                                        : tkt.status === "pending"
+                                        : tkt.status === "In Progress"
                                         ? "bg-amber-100 text-amber-800"
                                         : "bg-emerald-100 text-emerald-800"
                                     }`}
@@ -383,4 +436,6 @@ export function SupportPortal(props: SupportPortalProps) {
       </Routes>
     </SupportLayout>
   )
-}export default SupportPortal
+}
+
+export default SupportPortal
