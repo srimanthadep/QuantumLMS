@@ -21,7 +21,7 @@ import {
  * lands in follows their Cognito group, whichever role tab they signed in from. The other portals still run on demo
  * data and keep the demo sign-in.
  */
-export const usesAccounts = (role: UserRole) => role === "Student" || role === "Evaluator"
+export const usesAccounts = (role: UserRole) => role === "Student" || role === "Evaluator" || role === "Support"
 
 export type AccountStep = LoginInput | "mfa" | "confirm"
 
