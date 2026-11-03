@@ -149,8 +149,8 @@ export default function StudentsPage() {
 
   const exportCsv = () => {
     const rows = [
-      ["Name", "Roll", "Course", "Completion", "Average", "Attendance", "Status", "Parent", "Parent email"],
-      ...visible.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", `${s.completion}%`, `${s.average}%`, `${s.attendance}%`, s.status, s.parentName, s.parentEmail]),
+      ["Name", "Roll", "Course", "Completion", "Average", "Attendance", "Status", "Email"],
+      ...visible.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", `${s.completion}%`, `${s.average}%`, `${s.attendance}%`, s.status, s.email || ""]),
     ]
     downloadTextFile(rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n"), "class-roster.csv", "text/csv;charset=utf-8")
     notify(`Exported ${visible.length} learners`)
@@ -160,7 +160,7 @@ export default function StudentsPage() {
     <div className="flex w-full min-w-0 flex-col">
       <PageHeader
         title="Students"
-        description={`${students.length} learners across ${courses.length} courses. Open anyone to see their progress, activity and family contact.`}
+        description={`${students.length} learners across ${courses.length} courses. Open anyone to see their progress, submissions and attendance.`}
         actions={
           <>
             <Button variant="outline" leftIcon={<Send aria-hidden="true" />} onClick={() => setReportOpen(true)}>

@@ -131,3 +131,4 @@ describe("admin course management and stats workflow", () => {
     assert.equal(checkRes.status, 404)
   })
 })
+

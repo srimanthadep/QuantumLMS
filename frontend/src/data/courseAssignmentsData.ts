@@ -8,7 +8,7 @@ function generateSubmissionsForAssignment(
   submissionsCount: number,
   maxMarks: number
 ): StudentModuleSubmission[] {
-  const students = initialStudents.slice(0, 12)
+  const students = initialStudents.slice(0, 6)
   const submissions: StudentModuleSubmission[] = []
 
   students.forEach((st, idx) => {
@@ -16,7 +16,7 @@ function generateSubmissionsForAssignment(
     if (isSubmitted) {
       const isGraded = idx < Math.floor(submissionsCount * 0.7)
       const score = isGraded
-        ? Math.round(maxMarks * (0.75 + (st.average / 100) * 0.25))
+        ? Math.round(maxMarks * (0.8 + (st.average / 100) * 0.2))
         : undefined
 
       submissions.push({
@@ -24,13 +24,13 @@ function generateSubmissionsForAssignment(
         studentName: st.name,
         studentRoll: st.rollNumber,
         studentAvatar: st.image,
-        submittedAt: `Oct ${12 + (idx % 8)}, 2026 at 0${9 + (idx % 8)}:30 AM`,
+        submittedAt: `Nov ${1 + (idx % 3)}, 2026 at 0${9 + (idx % 3)}:30 AM`,
         status: isGraded ? "Graded" : "Submitted",
         score,
         maxMarks,
-        submittedFile: `${st.name.replace(/\s+/g, "_")}_${moduleId}_Submission.pdf`,
+        submittedFile: `${st.name.replace(/\s+/g, "_")}_${moduleId}_Assignment.pdf`,
         teacherFeedback: isGraded
-          ? `Solid demonstration of core concepts. Great attention to detail in step 3.`
+          ? "Solid architecture implementation. Tensor dimensionality and loss convergence match standards."
           : undefined,
       })
     } else {
@@ -50,204 +50,157 @@ function generateSubmissionsForAssignment(
 }
 
 export const MODULE_ASSIGNMENTS: Record<string, ModuleAssignmentItem> = {
-  // Course 1 (c1) Modules
+  // Course 1 (c1) Generative AI Masterclass Modules
   m1: {
     id: "asg_m1",
     moduleId: "m1",
-    moduleTitle: "Introduction to Artificial Intelligence & Pattern Recognition",
+    moduleTitle: "Module 1: Introduction to LLMs & Transformer Architectures",
     courseId: "c1",
-    title: "Module 1 Assignment: AI Pattern Classifier & Decision Trees",
+    title: "Module 1 Project: PyTorch Scaled Dot-Product Attention & RoPE",
     type: "Coding Lab",
     description:
-      "Design and document a 3-layer decision tree classifier that sorts everyday classroom objects into human vs machine recognizable categories.",
+      "Implement multi-head self-attention from scratch in PyTorch, apply Rotary Position Embeddings (RoPE), and benchmark against torch.nn.MultiheadAttention.",
     instructions:
-      "1. Open the Admin-provided starter sheet.\n2. Formulate 3 distinct classification questions (e.g. 'Does it emit light?', 'Does it have moving parts?').\n3. Test the classifier with at least 8 sample classroom objects.\n4. Document observed edge cases and calculate classification accuracy.",
-    dueDate: "Nov 04, 2026",
+      "1. Implement scaled dot-product attention function.\n2. Add multi-head projection layers and causal attention mask.\n3. Integrate RoPE rotational frequency embeddings.\n4. Validate output tensor dimensions and compare forward pass latency.",
+    dueDate: "Nov 06, 2026",
     maxMarks: 100,
-    status: "In Review",
-    submissionsCount: 22,
-    totalEnrolled: 24,
-    averageScore: 92,
-    isDemoData: true,
+    status: "Graded",
+    submissionsCount: 6,
+    totalEnrolled: 6,
+    averageScore: 94,
+    isDemoData: false,
     attachments: [
       {
-        name: "Pattern_Classifier_Starter_Sheet.pdf",
-        size: "1.2 MB",
-        type: "PDF Worksheet",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      },
-      {
-        name: "Decision_Tree_Rubric_Standards.pdf",
-        size: "480 KB",
-        type: "Evaluation Rubric",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        name: "Transformer_Attention_Starter.ipynb",
+        size: "1.4 MB",
+        type: "Jupyter Notebook",
+        url: "/assets/course_genai.jpg",
       },
     ],
-    submissions: generateSubmissionsForAssignment("m1", 22, 100),
+    submissions: generateSubmissionsForAssignment("m1", 6, 100),
   },
 
   m2: {
     id: "asg_m2",
     moduleId: "m2",
-    moduleTitle: "Fractions & Mathematical Problem Solving",
+    moduleTitle: "Module 2: Prompt Engineering & Schema Conditioning",
     courseId: "c1",
-    title: "Module 2 Assignment: Fraction Partitioning & Mixed Numbers Problem Set",
-    type: "Written Assignment",
+    title: "Module 2 Lab: Structured Output Generation & JSON Schema Constraints",
+    type: "Coding Lab",
     description:
-      "Complete the 10-problem fractions mastery set including geometric bar partitioning, common denominators, and decimal conversion proofs.",
+      "Construct a resilient tool-calling pipeline that validates complex nested JSON outputs against Pydantic schemas with automatic self-repair retry loops.",
     instructions:
-      "1. Show all intermediate calculations step-by-step.\n2. Draw geometric bar models for problems #4 and #8.\n3. Convert resulting improper fractions into simplified mixed numbers.\n4. Double-check decimal placement along the calibrated number line.",
-    dueDate: "Nov 08, 2026",
-    maxMarks: 50,
-    status: "Graded",
-    submissionsCount: 24,
-    totalEnrolled: 24,
-    averageScore: 46,
-    isDemoData: true,
+      "1. Define the Pydantic data contract for multi-entity extraction.\n2. Configure temperature and JSON mode.\n3. Implement a fallback repair loop when schema validation fails.\n4. Evaluate 100 edge cases with malformed payloads.",
+    dueDate: "Nov 12, 2026",
+    maxMarks: 100,
+    status: "In Review",
+    submissionsCount: 5,
+    totalEnrolled: 6,
+    averageScore: 92,
+    isDemoData: false,
     attachments: [
       {
-        name: "Fractions_Problem_Set_10.pdf",
-        size: "850 KB",
-        type: "Problem Set",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      },
-      {
-        name: "Geometric_Bar_Grid_Templates.pdf",
-        size: "320 KB",
-        type: "Template",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        name: "Structured_Generation_Rubric.pdf",
+        size: "420 KB",
+        type: "Evaluation Rubric",
+        url: "/assets/course_genai.jpg",
       },
     ],
-    submissions: generateSubmissionsForAssignment("m2", 24, 50),
+    submissions: generateSubmissionsForAssignment("m2", 5, 100),
   },
 
   m3: {
     id: "asg_m3",
     moduleId: "m3",
-    moduleTitle: "Physical & Biological Science Experiments",
+    moduleTitle: "Module 3: Vector Embeddings & Similarity Search",
     courseId: "c1",
-    title: "Module 3 Assignment: Plant Phototropism & Thermal Insulation Lab Report",
-    type: "Written Assignment",
+    title: "Module 3 Assignment: Vector Indexing & HNSW Benchmark",
+    type: "Coding Lab",
     description:
-      "Submit a formal scientific lab report summarizing the two-week plant phototropism growth experiment and thermal conductor test results.",
+      "Build a ChromaDB vector index over 50,000 document chunks and evaluate recall@k across varying ef_search and M hyperparameter values.",
     instructions:
-      "1. Formulate a testable hypothesis based on light spectrum variations.\n2. Include your group's daily millimeter growth measurement table.\n3. Plot time vs temperature cooling curves for the 4 tested insulator materials.\n4. State your scientific conclusion in accordance with the Scientific Method.",
-    dueDate: "Nov 14, 2026",
+      "1. Generate 768-dim embeddings using BGE-small.\n2. Configure HNSW index with M=16, 32, 64.\n3. Measure query throughput (QPS) and recall accuracy.\n4. Plot latency vs recall Pareto frontier curves.",
+    dueDate: "Nov 18, 2026",
     maxMarks: 100,
     status: "Assigned",
-    submissionsCount: 18,
-    totalEnrolled: 24,
+    submissionsCount: 4,
+    totalEnrolled: 6,
     averageScore: 88,
-    isDemoData: true,
+    isDemoData: false,
     attachments: [
       {
-        name: "Science_Lab_Report_Template_Year4.pdf",
+        name: "HNSW_Benchmarking_Guide.pdf",
         size: "620 KB",
-        type: "Report Template",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        type: "Lab Guide",
+        url: "/assets/course_genai.jpg",
       },
     ],
-    submissions: generateSubmissionsForAssignment("m3", 18, 100),
+    submissions: generateSubmissionsForAssignment("m3", 4, 100),
   },
 
   m4: {
     id: "asg_m4",
     moduleId: "m4",
-    moduleTitle: "Reading Comprehension & Technical Vocabulary",
+    moduleTitle: "Module 4: Retrieval-Augmented Generation (RAG)",
     courseId: "c1",
-    title: "Module 4 Assessment: Mars Mission Comprehension & Etymology Diagnostic",
-    type: "Quiz Assessment",
+    title: "Module 4 Project: Production RAG Pipeline with Ragas Faithfulness Evals",
+    type: "Project Milestone",
     description:
-      "Interactive technical reading comprehension check and Latin/Greek etymological root matching assessment based on NASA rover dispatches.",
+      "Deploy an end-to-end RAG system with hybrid lexical-dense search, cross-encoder reranking, and automated Ragas hallucination evaluation.",
     instructions:
-      "1. Read the provided Mars Perseverance Rover excerpt carefully.\n2. Complete all 15 reading comprehension questions.\n3. Match 10 technical prefixes and suffixes with their modern computing definitions.\n4. Time limit: 45 minutes (Single attempt permitted).",
-    dueDate: "Nov 18, 2026",
-    maxMarks: 40,
+      "1. Implement semantic chunking on enterprise technical documentation.\n2. Configure Reciprocal Rank Fusion between BM25 and vector retrieval.\n3. Integrate FlashRank cross-encoder reranking.\n4. Score Ragas faithfulness, answer relevancy, and context recall.",
+    dueDate: "Nov 24, 2026",
+    maxMarks: 100,
     status: "Assigned",
-    submissionsCount: 12,
-    totalEnrolled: 24,
-    averageScore: 36,
-    isDemoData: true,
+    submissionsCount: 2,
+    totalEnrolled: 6,
+    averageScore: 95,
+    isDemoData: false,
     attachments: [
       {
-        name: "Mars_Mission_Reading_Text.pdf",
-        size: "1.4 MB",
-        type: "Reading Passage",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        name: "RAG_Evaluation_Harness.ipynb",
+        size: "1.8 MB",
+        type: "Jupyter Notebook",
+        url: "/assets/course_genai.jpg",
       },
     ],
-    submissions: generateSubmissionsForAssignment("m4", 12, 40),
+    submissions: generateSubmissionsForAssignment("m4", 2, 100),
   },
 
   m5: {
     id: "asg_m5",
     moduleId: "m5",
-    moduleTitle: "Decimals, Percentages & Logic Puzzles",
+    moduleTitle: "Module 5: Autonomous Multi-Agent Workflows",
     courseId: "c1",
-    title: "Module 5 Assignment: Classroom STEM Budgeting & Deduction Ledger",
+    title: "Module 5 Capstone: Autonomous Multi-Agent Swarm with LangGraph",
     type: "Project Milestone",
     description:
-      "Prepare a balanced group budget ledger for the mock STEM field trip using percentage allocations and solve the 4x4 deductive logic grid.",
+      "Design a cyclical multi-agent graph with supervisor routing, isolated sandboxed tool executors, and durable checkpoint state persistence.",
     instructions:
-      "1. Calculate exact 10%, 25%, and 50% category shares for the $500 mock allocation.\n2. Complete the attached deduction matrix with 100% logical consistency.\n3. Submit final group balance sheet signed by both peer partners.",
-    dueDate: "Nov 24, 2026",
-    maxMarks: 50,
-    status: "Assigned",
-    submissionsCount: 6,
-    totalEnrolled: 24,
-    averageScore: 48,
-    isDemoData: true,
-    attachments: [
-      {
-        name: "Budgeting_Ledger_Workbook.pdf",
-        size: "710 KB",
-        type: "Project Sheet",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      },
-    ],
-    submissions: generateSubmissionsForAssignment("m5", 6, 50),
-  },
-
-  m6: {
-    id: "asg_m6",
-    moduleId: "m6",
-    moduleTitle: "Introductory Robotics & Visual Programming",
-    courseId: "c1",
-    title: "Module 6 Capstone: Autonomous Maze Runner Algorithm & Video Demo",
-    type: "Coding Lab",
-    description:
-      "Upload the final ultrasonic obstacle avoidance algorithm block file and a 60-second video demonstrating an unassisted maze traversal.",
-    instructions:
-      "1. Program the rover loop to check ultrasonic sensor distance every 50ms.\n2. Execute an 85-degree avoidance turn when obstacle is detected within 15cm.\n3. Complete 3 consecutive clean maze runs.\n4. Submit block code export (.xml / .sb3) and verified demonstration video link.",
+      "1. Construct supervisor agent node that routes user intents to specialist workers.\n2. Implement coding agent, web research agent, and test verification agent.\n3. Add SQLite / Redis checkpoint memory to survive process restarts.\n4. Include human-in-the-loop authorization on file write and shell commands.",
     dueDate: "Dec 02, 2026",
     maxMarks: 100,
     status: "Assigned",
-    submissionsCount: 2,
-    totalEnrolled: 24,
-    averageScore: 94,
-    isDemoData: true,
+    submissionsCount: 1,
+    totalEnrolled: 6,
+    averageScore: 98,
+    isDemoData: false,
     attachments: [
       {
-        name: "Capstone_Maze_Runner_Rubric.pdf",
-        size: "950 KB",
-        type: "Evaluation Rubric",
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        name: "LangGraph_MultiAgent_Capstone.zip",
+        size: "2.4 MB",
+        type: "Project Starter",
+        url: "/assets/course_genai.jpg",
       },
     ],
-    submissions: generateSubmissionsForAssignment("m6", 2, 100),
+    submissions: generateSubmissionsForAssignment("m5", 1, 100),
   },
 }
 
-/**
- * Retrieves the admin-created assignment for a specific course module.
- * If no assignment exists for the module in the database, returns null
- * to display the clear 'No assignment available for this module' state.
- */
 export function getModuleAssignment(
   courseId: string,
   moduleId: string
 ): ModuleAssignmentItem | null {
-  // Check predefined assignments for module
   if (MODULE_ASSIGNMENTS[moduleId]) {
     return {
       ...MODULE_ASSIGNMENTS[moduleId],
@@ -255,28 +208,26 @@ export function getModuleAssignment(
     }
   }
 
-  // If Course 2, 3, 4 etc., provide realistic admin assignments for first 2 modules, and null for others to showcase empty state!
   if (courseId === "c2" && (moduleId === "c2_m1" || moduleId === "m1")) {
     return {
       id: `asg_${courseId}_${moduleId}`,
       moduleId,
-      moduleTitle: "Computational Logic & Python Data Structures",
+      moduleTitle: "Module 1: Vector Math & PyTorch Tensors",
       courseId,
-      title: "Python Lab 1: Sequence Processing & List Methods",
+      title: "Python Lab 1: PyTorch Autograd & CUDA Tensor Operations",
       type: "Coding Lab",
-      description: "Write and execute 5 Python script routines testing list comprehension and dictionary indexing.",
-      instructions: "Follow PEP 8 guidelines. Test all edge cases including empty sequences.",
+      description: "Implement forward and backward propagation routines testing computational graphs and memory allocation.",
+      instructions: "Profile GPU tensor allocation. Ensure zero gradient memory leaks.",
       dueDate: "Nov 12, 2026",
       maxMarks: 50,
       status: "Assigned",
-      submissionsCount: 16,
-      totalEnrolled: 20,
-      averageScore: 44,
-      isDemoData: true,
-      submissions: generateSubmissionsForAssignment(moduleId, 16, 50),
+      submissionsCount: 5,
+      totalEnrolled: 6,
+      averageScore: 48,
+      isDemoData: false,
+      submissions: generateSubmissionsForAssignment(moduleId, 5, 50),
     }
   }
 
-  // Return null for modules without an assignment to test the empty state requirement
   return null
 }

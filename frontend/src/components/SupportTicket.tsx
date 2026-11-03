@@ -214,7 +214,7 @@ const SupportTicket: React.FC = () => {
             disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
           >
-            {loading ? "Submitting to Supabase..." : "Submit Ticket"}
+            {loading ? "Submitting Ticket..." : "Submit Ticket"}
           </button>
         </form>
       </div>

@@ -33,7 +33,7 @@ interface SendReportDialogProps {
 const TYPES = ["Weekly Digest", "Individual Alert", "Subject Focus", "Term Summary"] as const
 const SECTIONS = ["Attendance", "Scores", "Course progress", "Teacher notes"] as const
 
-/** Compose a progress report for one family or the whole cohort, now or on Monday. */
+/** Compose a progress report for one learner or the whole cohort, now or on Monday. */
 export default function SendReportDialog({ open, onOpenChange, studentId }: SendReportDialogProps) {
   const { students, addReport, notify } = useTeacherData()
   const [target, setTarget] = useState("all")
@@ -75,7 +75,7 @@ export default function SendReportDialog({ open, onOpenChange, studentId }: Send
       meta: when === "now" ? "Sent just now" : "Scheduled Mon 26 Oct",
       date: when === "now" ? "Oct 22, 2026" : "Oct 26, 2026",
       type,
-      recipients: student ? `${student.parentName || "Parent"} (${student.name})` : `All parents (${students.length})`,
+      recipients: student ? student.name : `All learners (${students.length})`,
       readRate: 0,
       status: when === "now" ? "Sent" : "Scheduled",
       tone: when === "now" ? "green" : "yellow",

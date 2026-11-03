@@ -138,7 +138,7 @@ function NewEventDialog({ open, onOpenChange, date }: { open: boolean; onOpenCha
             <DialogDescription>Office hours, meetings, quizzes, deadlines or a reminder for yourself.</DialogDescription>
           </DialogHeader>
           <Field label="Title" required error={errors.title}>
-            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Fractions drop-in" />
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. LangGraph drop-in office hours" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Type">

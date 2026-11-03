@@ -95,12 +95,12 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
       location: "Bengaluru, India",
       bio: "AI engineering student building retrieval-augmented and multi-agent systems.",
       program: "Bachelor of Science in Artificial Intelligence",
-      batch: "Class of 2027 · Year 4",
+      batch: "Class of 2027 · AI Engineering Cohort",
       department: "School of Computing & Machine Intelligence",
       gpa: "3.88 / 4.00",
       credits_completed: 42,
       total_credits: 60,
-      campus_address: "402 Quantum Hall, Maple Avenue Campus",
+      campus_address: "402 Quantum Hall, AI Innovation Campus",
       emergency_contact: "Ananya Sharma (+1 555-902-1144)",
       mentor_id: "mentor-1",
       notification_prefs: {},
@@ -206,7 +206,7 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
   await tx.execute(sql`
     insert into lms.mentor_meetings (student_id, mentor_id, meeting_date, slot, ends_slot, topic, agenda, zoom_url, status, created_at)
     values (${studentId}::uuid, 'mentor-1', (${d}::date + 2) + ((5 - extract(isodow from ${d}::date + 2)::int + 7) % 7), '05:00 PM', '05:45 PM',
-      'Senior Thesis Advising & RAG Architecture Review', 'Review Year 4 capstone evaluation milestones, multi-agent cognitive graph benchmarks, and conference submission draft.',
+      'Senior Thesis Advising & RAG Architecture Review', 'Review capstone evaluation milestones, multi-agent cognitive graph benchmarks, and conference submission draft.',
       'https://zoom.us/j/98421038592?pwd=QAI-QuantumMentor-2026', 'Scheduled', ${time.ago({ days: 2 })})`)
 
   await tx.insert(t.post_likes).values({ student_id: studentId, post_id: "cp-2" })

@@ -13,3 +13,4 @@ export async function adminModule(app: FastifyInstance, ctx: AppContext) {
     { prefix: "/api/admin" }
   )
 }
+

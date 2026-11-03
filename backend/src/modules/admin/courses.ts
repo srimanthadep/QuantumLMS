@@ -264,3 +264,4 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     }
   })
 }
+

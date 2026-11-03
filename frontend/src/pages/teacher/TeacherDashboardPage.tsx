@@ -543,7 +543,7 @@ export default function TeacherDashboardPage() {
                       disabled={nudged.has(s.id)}
                       onClick={() => {
                         setNudged((cur) => new Set(cur).add(s.id))
-                        notify(`Nudge sent to ${firstName(s.name)} and ${s.parentName}`)
+                        notify(`Study nudge sent to ${firstName(s.name)}`)
                       }}
                     >
                       {nudged.has(s.id) ? <Check className="text-success" aria-hidden="true" /> : <BellRing aria-hidden="true" />}

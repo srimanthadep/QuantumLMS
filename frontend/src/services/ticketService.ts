@@ -179,7 +179,7 @@ export function mapDbTicketToSupportTicket(
     studentId: row.student_id,
     studentName: profile?.full_name || row.student_name || "Aarav Mehta",
     studentEmail: profile?.email || row.student_email || "aarav.mehta@learner.ai",
-    studentBatch: profile?.batch || row.student_batch || "Class of 2027 · Year 4",
+    studentBatch: profile?.batch || row.student_batch || "Class of 2027 · AI Engineering Cohort",
     assignedAgent: row.last_update_by || "Support Team",
     messages,
   }

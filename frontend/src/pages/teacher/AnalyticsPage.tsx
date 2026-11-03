@@ -89,7 +89,12 @@ const METRIC_SPARK = [
 
 const REPORT_TONE: Record<ReportItem["status"], BadgeTone> = { Sent: "success", "In Progress": "info", Scheduled: "warning" }
 
-const SUBJECT_KEY: Record<string, keyof StudentItem["subjects"]> = { Maths: "math", Science: "science", English: "english", Art: "art" }
+const SUBJECT_KEY: Record<string, keyof StudentItem["subjects"]> = {
+  "GenAI & LLMs": "english",
+  "Deep Learning": "math",
+  "MLOps & Infra": "science",
+  "Agentic Systems": "art",
+}
 
 function risk(s: StudentItem): string[] {
   const out: string[] = []
@@ -159,7 +164,7 @@ export default function AnalyticsPage() {
   const subjects = useMemo(
     () =>
       (["math", "science", "english", "art"] as const).map((k) => ({
-        label: { math: "Maths", science: "Science", english: "English", art: "Art" }[k],
+        label: { math: "Deep Learning", science: "MLOps & Infra", english: "GenAI & LLMs", art: "Agentic Systems" }[k],
         value: Math.round(average(cohort.map((s) => s.subjects[k]))),
       })),
     [cohort],
@@ -217,7 +222,7 @@ export default function AnalyticsPage() {
 
   const exportCsv = () => {
     const lines = [
-      ["Learner", "Roll", "Course", "Completion", "Average", "Attendance", "Maths", "Science", "English", "Art", "Status"],
+      ["Learner", "Roll", "Course", "Completion", "Average", "Attendance", "GenAI & LLMs", "Deep Learning", "MLOps & Infra", "Agentic Systems", "Status"],
       ...cohort.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", s.completion, s.average, s.attendance, s.subjects.math, s.subjects.science, s.subjects.english, s.subjects.art, s.status]),
     ]
     downloadTextFile(lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n"), `${course?.code ?? "all-courses"}-analytics.csv`, "text/csv;charset=utf-8")

@@ -66,7 +66,7 @@ function NewCourseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const { addCourse, notify } = useTeacherData()
   const [name, setName] = useState("")
   const [code, setCode] = useState("")
-  const [klass, setKlass] = useState("Year 4 – Maple Class")
+  const [klass, setKlass] = useState("Cohort 14 · GenAI & Agentic Systems")
   const [term, setTerm] = useState(TERMS[0])
   const [description, setDescription] = useState("")
   const [errors, setErrors] = useState<{ name?: string; code?: string }>({})
@@ -77,7 +77,7 @@ function NewCourseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
     if (open) {
       setName("")
       setCode("")
-      setKlass("Year 4 – Maple Class")
+      setKlass("Cohort 14 · GenAI & Agentic Systems")
       setTerm(TERMS[0])
       setDescription("")
       setErrors({})
@@ -92,7 +92,7 @@ function NewCourseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
     }
     setErrors(next)
     if (next.name || next.code) return
-    const course = addCourse({ name: name.trim(), code: code.trim(), assignedClass: klass.trim() || "Year 4", term, description: description.trim() })
+    const course = addCourse({ name: name.trim(), code: code.trim(), assignedClass: klass.trim() || "Cohort 14", term, description: description.trim() })
     notify(`Created “${course.name}”. Add your first module next.`)
     onOpenChange(false)
     navigate(`/teacher/courses/${course.id}`)

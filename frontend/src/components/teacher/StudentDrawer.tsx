@@ -32,10 +32,10 @@ interface StudentDrawerProps {
 }
 
 const SUBJECTS = [
-  { key: "math", label: "Maths" },
-  { key: "science", label: "Science" },
-  { key: "english", label: "English" },
-  { key: "art", label: "Art & design" },
+  { key: "math", label: "Math & Deep Learning" },
+  { key: "science", label: "Agentic Systems" },
+  { key: "english", label: "LLMs & Prompt Eng" },
+  { key: "art", label: "System Design & Labs" },
 ] as const
 
 const LEVEL = ["bg-surface-2 ring-1 ring-inset ring-border", "bg-primary/25", "bg-primary/45", "bg-primary/70", "bg-primary"]
@@ -176,7 +176,7 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
                   <div className="min-w-0">
                     <SheetTitle className="truncate">{student.name}</SheetTitle>
                     <SheetDescription className="truncate">
-                      {student.rollNumber} · {student.assignedClass ?? "Year 4"}
+                      {student.rollNumber} · {student.assignedClass ?? "Cohort 14"}
                     </SheetDescription>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <Badge tone={STUDENT_STATUS_TONE[student.status]} dot>
@@ -322,14 +322,14 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
               </section>
 
               <section className="space-y-2">
-                <SectionLabel>Family contact</SectionLabel>
+                <SectionLabel>Cohort & Sponsor Contact</SectionLabel>
                 <div className="flex items-center gap-3 rounded-lg border border-border p-3">
-                  <Avatar name={student.parentName || "Parent"} size="md" />
+                  <Avatar name={student.parentName || "Academic Sponsor"} size="md" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{student.parentName || "Not added yet"}</p>
-                    <p className="truncate text-caption text-muted-foreground">{student.parentEmail || "Ask the family to add an email"}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{student.parentName || "Self-Sponsored"}</p>
+                    <p className="truncate text-caption text-muted-foreground">{student.parentEmail || student.email || "No secondary contact"}</p>
                   </div>
-                  {student.parentEmail && <CopyButton text={student.parentEmail} size="icon-sm" aria-label={`Copy ${student.parentName}'s email`} />}
+                  {student.parentEmail && <CopyButton text={student.parentEmail} size="icon-sm" aria-label="Copy contact email" />}
                 </div>
               </section>
 
@@ -350,7 +350,7 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
                   leftIcon={nudged ? <Check aria-hidden="true" /> : <BellRing aria-hidden="true" />}
                   onClick={() => {
                     setNudged(true)
-                    notify(`Nudge sent to ${name}${student.parentName ? ` and ${student.parentName}` : ""}`)
+                    notify(`Nudge sent to ${name}`)
                   }}
                 >
                   {nudged ? "Nudged" : "Nudge"}

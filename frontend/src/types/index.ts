@@ -160,8 +160,8 @@ export interface StudentItem {
     art: number
   }
   tags: string[]
-  parentName: string
-  parentEmail: string
+  parentName?: string
+  parentEmail?: string
   assignedClass?: string
   assignedCourse?: string
   batch?: string

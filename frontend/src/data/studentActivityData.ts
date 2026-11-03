@@ -15,50 +15,51 @@ function pseudoRandom(seed: string): () => number {
   return function () {
     hash = Math.imul(hash ^ (hash >>> 15), 1 | hash)
     hash = (hash + Math.imul(hash ^ (hash >>> 7), 61 | hash)) ^ hash
-    return ((hash >>> 0) / 4294967296)
+    return (hash >>> 0) / 4294967296
   }
 }
 
 const SAMPLE_LESSONS = [
-  "What is AI? Human vs Machine Intelligence",
-  "Sensors & Pattern Sorting Algorithms",
-  "Introductory Machine Learning Paradigms",
-  "Fractions & Geometric Decomposition",
-  "STEM Inquiry: Plant Cellular Structures",
-  "Logic Gates & Decision Trees Lab",
-  "Python Variables & String Sequences",
-  "Visual Coding with Turtle Graphics",
-  "Robotics Perception & Obstacle Avoidance",
+  "Multi-Head Attention & Scaled Dot-Product Math",
+  "Rotary Position Embeddings (RoPE) Deep Dive",
+  "Structured JSON Outputs with Pydantic & Instructor",
+  "Vector Indexing with Hierarchical Navigable Small World (HNSW)",
+  "Reciprocal Rank Fusion (RRF) & Cross-Encoder Reranking",
+  "Evaluation of RAG Faithfulness with Ragas",
+  "Cyclic Multi-Agent State Graphs with LangGraph",
+  "Human-in-the-Loop Interrupts & Authorization Gates",
+  "Parameter-Efficient Fine-Tuning with QLoRA & 4-bit NF4",
 ]
 
 const SAMPLE_VIDEOS = [
-  "Video: How Neural Networks Classify Images (14m)",
-  "Video: Biology in Action - Chloroplasts (18m)",
-  "Video: Visualizing Fraction Equivalencies (10m)",
-  "Video: Quantum Computing Explained for Beginners (12m)",
-  "Video: Robotics Actuators & Motor Control (16m)",
+  "Video: Attention Heads & KV Cache Optimization (32m)",
+  "Video: Building Production Agents with LangGraph (45m)",
+  "Video: Vector Search with ChromaDB & pgvector (28m)",
+  "Video: Quantization & Low-Rank Adaptation (35m)",
+  "Video: Distributed Training with PyTorch FSDP (40m)",
 ]
 
 const SAMPLE_MATERIALS = [
-  "PDF: Module 1 Slide Deck - The Story of AI",
-  "Document: Lab Worksheet - Human vs Robot Perception",
-  "PDF: STEM Investigation Guide - Photosynthesis",
-  "Document: Python Syntax Quick Reference Card",
-  "PDF: Fractions Word Problems Companion",
+  "PDF: Module 1 Architecture Guide - Attention Mechanisms",
+  "Document: Lab Notebook - Implementing RoPE from Scratch",
+  "PDF: Production RAG Blueprint - Hybrid Dense & BM25",
+  "Document: Agentic Workflow Best Practices & Checkpointing",
+  "PDF: QLoRA Fine-Tuning Hyperparameter Cheat Sheet",
 ]
 
 const SAMPLE_ASSIGNMENTS = [
-  "Submitted: Logic Gates Lab Report",
-  "Submitted: Reading Comprehension Reflection",
-  "Submitted: Fractions Practice Problem Set",
-  "Submitted: AI Pattern Classifier Project Milestone",
+  "Submitted: Multi-Head Attention Mechanism from Scratch",
+  "Submitted: Structured Pydantic LLM Output Generator",
+  "Submitted: Dense Vector Indexing & Benchmark Evaluation",
+  "Submitted: End-to-End RAG Pipeline with Faithfulness Score",
+  "Submitted: LangGraph Multi-Agent Customer Support Swarm",
 ]
 
 const SAMPLE_QUIZZES = [
-  "Quiz Attempt: Module 1 Checkpoint (Score: 10/10)",
-  "Quiz Attempt: Fractions Mastery Diagnostic (Score: 9/10)",
-  "Quiz Attempt: Python Syntax Micro-Assessment (Score: 8/10)",
-  "Quiz Attempt: STEM Unit 2 Review Test (Score: 10/10)",
+  "Quiz Attempt: Transformer Math & Attention Checkpoint (Score: 10/10)",
+  "Quiz Attempt: Vector Embeddings & Distance Metrics (Score: 9/10)",
+  "Quiz Attempt: Prompt Engineering & Tool Calling Diagnostic (Score: 10/10)",
+  "Quiz Attempt: Fine-Tuning & Quantization Assessment (Score: 9/10)",
 ]
 
 /**
@@ -70,8 +71,8 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
   const seedString = `${student.id}_${student.rollNumber}_${student.completion}_${student.attendance}`
   const rand = pseudoRandom(seedString)
 
-  // Reference anchor: 2026-10-22 (current date)
-  const baseDate = new Date(2026, 9, 22) // month is 0-indexed: 9 = October
+  // Reference anchor: 2026-11-03 (current date)
+  const baseDate = new Date(2026, 10, 3) // month is 0-indexed: 10 = November
 
   // 12 weeks = 84 days
   const totalDays = 84
@@ -136,8 +137,8 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
             type: "lesson_completed",
             title: SAMPLE_LESSONS[Math.floor(rand() * SAMPLE_LESSONS.length)],
             timestamp: timeStr,
-            detail: "Lesson marked completed · 100% video & reading finished",
-            courseName: student.assignedCourse || "Year 4 Elementary STEM & AI",
+            detail: "Lesson marked completed · 100% video & lab finished",
+            courseName: student.assignedCourse || "Cohort 14 · GenAI & Agentic Systems",
           })
         } else if (rollType > 0.5) {
           events.push({
@@ -146,7 +147,7 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
             title: SAMPLE_VIDEOS[Math.floor(rand() * SAMPLE_VIDEOS.length)],
             timestamp: timeStr,
             detail: "Watched high-definition lecture streaming playback",
-            courseName: student.assignedCourse || "Year 4 Elementary STEM & AI",
+            courseName: student.assignedCourse || "Cohort 14 · GenAI & Agentic Systems",
           })
         } else if (rollType > 0.3) {
           events.push({
@@ -154,8 +155,8 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
             type: "material_opened",
             title: SAMPLE_MATERIALS[Math.floor(rand() * SAMPLE_MATERIALS.length)],
             timestamp: timeStr,
-            detail: "Opened verified classroom digital asset",
-            courseName: student.assignedCourse || "Year 4 Elementary STEM & AI",
+            detail: "Opened verified cohort reference asset",
+            courseName: student.assignedCourse || "Cohort 14 · GenAI & Agentic Systems",
           })
         } else if (rollType > 0.15) {
           events.push({
@@ -163,8 +164,8 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
             type: "assignment_submitted",
             title: SAMPLE_ASSIGNMENTS[Math.floor(rand() * SAMPLE_ASSIGNMENTS.length)],
             timestamp: timeStr,
-            detail: "Submitted assignment attachment for teacher evaluation",
-            courseName: student.assignedCourse || "Year 4 Elementary STEM & AI",
+            detail: "Submitted project code repository for faculty evaluation",
+            courseName: student.assignedCourse || "Cohort 14 · GenAI & Agentic Systems",
           })
         } else {
           events.push({
@@ -173,7 +174,7 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
             title: SAMPLE_QUIZZES[Math.floor(rand() * SAMPLE_QUIZZES.length)],
             timestamp: timeStr,
             detail: "Completed automated interactive check-in assessment",
-            courseName: student.assignedCourse || "Year 4 Elementary STEM & AI",
+            courseName: student.assignedCourse || "Cohort 14 · GenAI & Agentic Systems",
           })
         }
       }
@@ -238,7 +239,7 @@ export function getStudentActivityHeatmap(student: StudentItem): StudentActivity
     studentId: student.id,
     totalActiveDays,
     totalActivities,
-    mostRecentDate: mostRecentDate || "2026-10-22",
+    mostRecentDate: mostRecentDate || "2026-11-03",
     currentStreakDays: currentStreak,
     longestStreakDays: Math.max(maxStreak, currentStreak),
     isDemoData: true,

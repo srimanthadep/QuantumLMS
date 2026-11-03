@@ -56,7 +56,7 @@ export const profiles = lms.table("profiles", {
   location: text().default("").notNull(),
   bio: text().default("").notNull(),
   program: text().default('Bachelor of Science in Artificial Intelligence').notNull(),
-  batch: text().default('Class of 2027 · Year 4').notNull(),
+  batch: text().default('Class of 2027 · AI Engineering Cohort').notNull(),
   department: text().default('School of Computing & Machine Intelligence').notNull(),
   gpa: text().default('–').notNull(),
   credits_completed: integer().default(0).notNull(),
