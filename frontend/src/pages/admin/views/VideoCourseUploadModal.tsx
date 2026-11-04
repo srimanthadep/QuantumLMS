@@ -361,9 +361,9 @@ export default function VideoCourseUploadModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isProcessing && onOpenChange(v)}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0 border border-border bg-surface text-foreground shadow-2xl">
+      <DialogContent className="max-w-3xl h-[90vh] max-h-[850px] flex flex-col p-0 overflow-hidden border border-border bg-surface text-foreground shadow-2xl gap-0">
         {/* Header */}
-        <div className="border-b border-border bg-surface-2 p-6">
+        <div className="shrink-0 border-b border-border bg-surface-2 p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
@@ -390,7 +390,15 @@ export default function VideoCourseUploadModal({
               { num: 2, label: "Live Extraction & Upload" },
               { num: 3, label: "Ready & Segregated" },
             ].map((s) => (
-              <div key={s.num} className="flex items-center gap-2 flex-1">
+              <div
+                key={s.num}
+                onClick={() => {
+                  if (s.num === 2 && file && title.trim() && step === 1) {
+                    startPipeline()
+                  }
+                }}
+                className={`flex items-center gap-2 flex-1 ${s.num === 2 && file && title.trim() && step === 1 ? "cursor-pointer" : ""}`}
+              >
                 <div
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                     step === s.num
@@ -412,7 +420,7 @@ export default function VideoCourseUploadModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6">
           {/* STEP 1: FORM & MODEL SELECTION */}
           {step === 1 && (
             <div className="space-y-6">
@@ -577,6 +585,36 @@ export default function VideoCourseUploadModal({
                   </div>
                 </div>
               </div>
+
+              {/* Step 1 Quick Action Bar */}
+              <div className="rounded-xl border border-border/80 bg-surface-2 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                <div className="text-xs">
+                  {!file ? (
+                    <span className="text-warning font-medium flex items-center gap-1.5">
+                      ⚠️ Please select a video file above to proceed.
+                    </span>
+                  ) : !title.trim() ? (
+                    <span className="text-warning font-medium flex items-center gap-1.5">
+                      ⚠️ Please enter a course title above to proceed.
+                    </span>
+                  ) : (
+                    <span className="text-success font-medium flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Ready to upload & extract audio with {modelChoice === "parakeet" ? "NVIDIA Parakeet-TDT 0.6B" : "Faster-Whisper int8"}.
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="primary"
+                  size="default"
+                  disabled={!file || !title.trim()}
+                  onClick={startPipeline}
+                  leftIcon={<Upload className="h-4 w-4" />}
+                  className="w-full sm:w-auto font-semibold shadow-sm"
+                >
+                  Proceed to Extraction & Upload →
+                </Button>
+              </div>
             </div>
           )}
 
@@ -734,8 +772,8 @@ export default function VideoCourseUploadModal({
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="border-t border-border bg-surface-2 p-4 flex items-center justify-between">
+        {/* Modal Footer - Always Sticky at Bottom */}
+        <div className="shrink-0 border-t border-border bg-surface-2 p-4 flex items-center justify-between z-10">
           {step === 1 && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -743,11 +781,13 @@ export default function VideoCourseUploadModal({
               </Button>
               <Button
                 variant="primary"
+                size="default"
                 disabled={!file || !title.trim()}
                 onClick={startPipeline}
                 leftIcon={<Upload className="h-4 w-4" />}
+                className="font-semibold"
               >
-                Upload to R2 & Extract Audio
+                Upload to R2 & Extract Audio →
               </Button>
             </>
           )}
