@@ -32,7 +32,7 @@ class WebSocketClient {
   private getUrl(): string {
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
     const host = window.location.host
-    return `${proto}//${host}/ws`
+    return `${proto}//${host}/api/ws`
   }
 
   private setStatus(newStatus: "connected" | "connecting" | "disconnected") {

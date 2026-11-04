@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { extractAndChunkAudio, type AudioChunk, type ExtractionResult } from "@/lib/audioExtractor"
 import { api } from "@/lib/api"
+import { accessToken } from "@/lib/auth"
 import type { AdminCourse } from "@/data/adminStore"
 
 interface VideoCourseUploadModalProps {
@@ -143,12 +144,17 @@ export default function VideoCourseUploadModal({
     const key = `videos/${courseId}/video/${Date.now()}-${fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
     setR2Key(key)
 
+    const token = await accessToken().catch(() => null)
+
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const uploadUrl = `/api/admin/courses/video-upload?courseId=${encodeURIComponent(courseId)}&key=${encodeURIComponent(key)}&filename=${encodeURIComponent(fileToUpload.name)}`
       xhr.open("POST", uploadUrl, true)
       xhr.setRequestHeader("Content-Type", fileToUpload.type || "video/mp4")
       xhr.setRequestHeader("x-filename", fileToUpload.name)
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`)
+      }
 
       xhr.upload.onprogress = (evt) => {
         if (evt.lengthComputable) {
