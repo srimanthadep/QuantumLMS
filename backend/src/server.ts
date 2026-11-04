@@ -20,5 +20,11 @@ async function shutdown(signal: string) {
 }
 process.on("SIGTERM", () => void shutdown("SIGTERM"))
 process.on("SIGINT", () => void shutdown("SIGINT"))
+process.on("unhandledRejection", (err) => {
+  console.error("[unhandledRejection]", err)
+})
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err)
+})
 
 await app.listen({ port: config.PORT, host: config.HOST })

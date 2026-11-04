@@ -12,7 +12,7 @@ export type Db = NodePgDatabase<typeof schema>
 export type Tx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0]
 
 export function createPool(config: Pick<Config, "DATABASE_URL" | "DATABASE_SSL" | "databaseCa" | "DATABASE_POOL_MAX">): pg.Pool {
-  return new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: withoutSslMode(config.DATABASE_URL),
     ssl: sslOptions(config.DATABASE_SSL, config.databaseCa),
     max: config.DATABASE_POOL_MAX,
@@ -20,6 +20,13 @@ export function createPool(config: Pick<Config, "DATABASE_URL" | "DATABASE_SSL" 
     connectionTimeoutMillis: 10_000,
     application_name: "quantum-lms-api",
   })
+
+  // Prevent idle connection drops or pool resets from crashing the Node.js process
+  pool.on("error", (err) => {
+    console.warn("[pg:pool] Unexpected error on idle client (auto-reconnecting):", err?.message || err)
+  })
+
+  return pool
 }
 
 export function createDb(pool: pg.Pool): Db {
