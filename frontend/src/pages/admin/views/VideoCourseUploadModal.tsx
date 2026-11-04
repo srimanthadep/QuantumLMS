@@ -135,32 +135,20 @@ export default function VideoCourseUploadModal({
     setR2Key("")
   }
 
-  // Upload Video directly to Cloudflare R2 bucket quantumlms
+  // Upload Video directly to Cloudflare R2 bucket quantumlms via backend streaming (bypasses browser CORS)
   const uploadVideoToR2 = async (fileToUpload: File, courseId: string): Promise<string> => {
     setVideoUploadStatus("uploading")
     setVideoUploadPct(5)
 
-    // 1. Get presigned target from backend
-    const presign = await api.post<{
-      courseId: string
-      key: string
-      uploadUrl: string
-      headers: Record<string, string>
-    }>("/admin/courses/video-presign", {
-      filename: fileToUpload.name,
-      contentType: fileToUpload.type || "video/mp4",
-      courseId,
-      isAudio: false,
-    })
-
-    const { key, uploadUrl } = presign
+    const key = `videos/${courseId}/video/${Date.now()}-${fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
     setR2Key(key)
 
-    // 2. Direct PUT upload to Cloudflare R2
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
-      xhr.open("PUT", uploadUrl, true)
+      const uploadUrl = `/api/admin/courses/video-upload?courseId=${encodeURIComponent(courseId)}&key=${encodeURIComponent(key)}&filename=${encodeURIComponent(fileToUpload.name)}`
+      xhr.open("POST", uploadUrl, true)
       xhr.setRequestHeader("Content-Type", fileToUpload.type || "video/mp4")
+      xhr.setRequestHeader("x-filename", fileToUpload.name)
 
       xhr.upload.onprogress = (evt) => {
         if (evt.lengthComputable) {
@@ -176,15 +164,13 @@ export default function VideoCourseUploadModal({
           resolve()
         } else {
           setVideoUploadStatus("error")
-          reject(new Error(`R2 Upload failed with HTTP ${xhr.status}`))
+          reject(new Error(`Video upload failed with HTTP ${xhr.status}`))
         }
       }
 
       xhr.onerror = () => {
-        // Fallback for CORS on presigned URLs during dev
-        setVideoUploadPct(100)
-        setVideoUploadStatus("done")
-        resolve()
+        setVideoUploadStatus("error")
+        reject(new Error("Network error during video upload"))
       }
 
       xhr.send(fileToUpload)

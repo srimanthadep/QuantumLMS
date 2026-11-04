@@ -1,3 +1,7 @@
+import { execFile } from "node:child_process"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -297,6 +301,30 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     }
   })
 
+  // Direct Server-Side Video Upload to Cloudflare R2 (Bypasses Browser CORS)
+  app.post("/courses/video-upload", async (req, reply) => {
+    const query = req.query as { courseId?: string; filename?: string; key?: string }
+    const courseId = query.courseId || `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
+    const rawFilename = query.filename || (req.headers["x-filename"] as string) || "video.mp4"
+    const safeName = rawFilename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100)
+    const key = query.key || `videos/${courseId}/video/${Date.now()}-${safeName}`
+    const contentType = (req.headers["content-type"] as string) || "video/mp4"
+
+    const data = req.body as Buffer
+    if (!data || !Buffer.isBuffer(data) || data.length === 0) {
+      return reply.code(400).send({ error: "Missing or empty video payload." })
+    }
+
+    await ctx.storage.put(key, data, contentType)
+    return {
+      ok: true,
+      courseId,
+      key,
+      size: data.length,
+      contentType,
+    }
+  })
+
   // 8. Streamed Audio Chunk Ingestion & Transcription (VAD-aware)
   const chunkSchema = z.object({
     courseId: z.string(),
@@ -342,40 +370,81 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       }
     }
 
-    // 2. Perform speech transcription with selected model
-    // NVIDIA Parakeet TDT 0.6B (English 50x real-time) or Faster-Whisper int8 (Multilingual / Telugu / Hindi)
-    const modelUsed = input.modelChoice === "parakeet"
-      ? "NVIDIA Parakeet-TDT-0.6B (ONNX / NeMo)"
-      : "Faster-Whisper int8 (Multilingual / Indic)"
-
-    // Contextual transcript generation based on course context and timestamps
-    const topic = input.title || "AI Systems Architecture"
+    // 2. Perform speech transcription with real neural ASR model
+    // NVIDIA Parakeet TDT 0.6B / OpenAI Whisper neural engine
     const startM = Math.floor(input.startTime / 60)
     const startS = Math.floor(input.startTime % 60).toString().padStart(2, "0")
     const endM = Math.floor(input.endTime / 60)
     const endS = Math.floor(input.endTime % 60).toString().padStart(2, "0")
+    const timestampLabel = `[${startM}:${startS} - ${endM}:${endS}]`
 
-    const sampleSnippets = [
-      `Let's begin by analyzing the core pipeline components of our ${topic} module.`,
-      `Notice how the attention weights and tensor embeddings are transformed during the forward pass.`,
-      `When scaling distributed inference across cluster nodes, memory bandwidth and latency become the primary constraints.`,
-      `Here we configure the retrieval augmented generation index with high-dimensional vector search.`,
-      `In this architecture, autonomous agents coordinate their sub-goals through structured message-passing state graphs.`,
-      `Make sure your evaluation metrics track token throughput, accuracy benchmarks, and hallucination bounds.`,
-      `Now we deploy this optimized workflow directly to our production GPU cluster.`,
-    ]
-    const generatedText = sampleSnippets[input.chunkIndex % sampleSnippets.length]
+    let extractedText = ""
+    let confidence = 0.95
+    let engineLabel = input.modelChoice === "parakeet" ? "OpenAI Whisper / Parakeet" : "Faster-Whisper Indic"
+
+    if (input.audioData) {
+      try {
+        const audioBuffer = Buffer.from(input.audioData, "base64")
+        const tempWav = path.join(os.tmpdir(), `chunk_${Date.now()}_${input.chunkIndex}.wav`)
+        await fs.promises.writeFile(tempWav, audioBuffer)
+
+        const pythonBin = fs.existsSync("C:\\Python314\\python.exe")
+          ? "C:\\Python314\\python.exe"
+          : fs.existsSync("C:\\Users\\srima\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
+          ? "C:\\Users\\srima\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
+          : "python"
+
+        const scriptPath = path.resolve(process.cwd(), "scripts/transcribe_chunk.py")
+
+        const asrResult = await new Promise<{ text: string; confidence: number; engine?: string; model?: string }>((resolve) => {
+          execFile(
+            pythonBin,
+            [scriptPath, "--audio", tempWav, "--model", input.modelChoice, "--language", input.language || "en"],
+            { timeout: 45000 },
+            (err, stdout, stderr) => {
+              fs.unlink(tempWav, () => {})
+              if (err || !stdout.trim()) {
+                req.log.warn({ err, stderr }, "Neural transcription execution error")
+                resolve({ text: "", confidence: 0.85 })
+                return
+              }
+              try {
+                const lines = stdout.trim().split("\n")
+                const lastLine = lines.filter((l) => l.trim().startsWith("{")).pop() || "{}"
+                const parsed = JSON.parse(lastLine)
+                resolve({
+                  text: parsed.text || "",
+                  confidence: parsed.confidence || 0.95,
+                  engine: parsed.engine,
+                  model: parsed.model,
+                })
+              } catch {
+                resolve({ text: "", confidence: 0.85 })
+              }
+            }
+          )
+        })
+
+        extractedText = asrResult.text
+        confidence = asrResult.confidence
+        if (asrResult.engine) {
+          engineLabel = `${asrResult.engine} (${asrResult.model || input.modelChoice})`
+        }
+      } catch (err) {
+        req.log.error({ err }, "Error processing audio chunk for transcription")
+      }
+    }
 
     return {
       chunkIndex: input.chunkIndex,
       startTime: input.startTime,
       endTime: input.endTime,
-      timestampLabel: `[${startM}:${startS} - ${endM}:${endS}]`,
-      text: generatedText,
-      confidence: 0.96,
+      timestampLabel,
+      text: extractedText,
+      confidence,
       isSilent: false,
       skipped: false,
-      modelUsed,
+      modelUsed: engineLabel,
       audioKey: savedKey,
     }
   })

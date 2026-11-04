@@ -22,14 +22,32 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
   const app = Fastify({
     logger: opts.logger === false ? false : { level: ctx.config.LOG_LEVEL, redact: ["req.headers.authorization"] },
     trustProxy: true,
-    bodyLimit: 1024 * 1024,
+    bodyLimit: 500 * 1024 * 1024,
     // Signed local upload links carry their token in the path.
     routerOptions: { maxParamLength: 2048 },
   })
 
+  // Accept raw binary video and audio streams up to 500 MB
+  app.addContentTypeParser(
+    [
+      "application/octet-stream",
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
+      "video/x-matroska",
+      "audio/wav",
+      "audio/webm",
+      "audio/mpeg",
+    ],
+    { parseAs: "buffer", bodyLimit: 500 * 1024 * 1024 },
+    (_req, body, done) => {
+      done(null, body)
+    }
+  )
+
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "cross-origin" } })
   await app.register(cors, { origin: ctx.config.corsOrigins, methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], maxAge: 600 })
-  await app.register(websocket, { options: { maxPayload: 1024 * 1024 } })
+  await app.register(websocket, { options: { maxPayload: 10 * 1024 * 1024 } })
   await app.register(rateLimit, {
     max: ctx.config.NODE_ENV === "test" ? 10_000 : 600,
     timeWindow: "1 minute",
