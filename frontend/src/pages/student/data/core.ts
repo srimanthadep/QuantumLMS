@@ -12,7 +12,7 @@ export type AttemptRow = Pick<
   Tables<"quiz_attempts">,
   "id" | "quiz_id" | "attempt_number" | "started_at" | "deadline_at" | "submitted_at" | "time_taken_seconds" | "score" | "max_score" | "pct" | "passed" | "feedback" | "answers"
 >
-type LessonRow = Pick<Tables<"lessons">, "id" | "module_id" | "course_id" | "position" | "title" | "duration" | "minutes" | "type" | "summary">
+type LessonRow = Pick<Tables<"lessons">, "id" | "module_id" | "course_id" | "position" | "title" | "duration" | "minutes" | "type" | "summary" | "video_url">
 
 export interface CoreRaw {
   uid: string
@@ -235,6 +235,8 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
         minutes: l.minutes,
         type: l.type as LessonItem["type"],
         summary: l.summary,
+        videoUrl: l.video_url || undefined,
+        video_url: l.video_url || undefined,
         status: completed.has(l.id) ? "Completed" : l.id === current?.id ? "In Progress" : "Locked",
       }))
       const done = lessons.filter((l) => l.status === "Completed").length

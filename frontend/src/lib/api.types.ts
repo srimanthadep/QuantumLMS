@@ -271,6 +271,7 @@ export interface Rows {
     minutes: number
     type: string
     summary: string
+    video_url: string | null
   }
   notes: {
     id: string

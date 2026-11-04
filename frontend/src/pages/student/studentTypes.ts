@@ -105,6 +105,8 @@ export interface LessonItem {
   type: "video" | "reading" | "lab"
   status: "Completed" | "In Progress" | "Locked"
   summary: string
+  videoUrl?: string
+  video_url?: string
 }
 
 export interface ModuleItem {

@@ -21,6 +21,31 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
     return reply.redirect(url, 302)
   })
 
+  // Video streaming with partial byte-range support (HTML5 video scrubbing/seeking)
+  app.get<{ Params: { "*": string } }>("/api/files/videos/*", async (req, reply) => {
+    const rawKey = req.params["*"]
+    const key = rawKey.startsWith("videos/") ? rawKey : `videos/${rawKey}`
+    if (key.includes("..")) throw notFound("Video not found.")
+
+    const range = req.headers.range
+    if (ctx.storage.stream) {
+      const res = await ctx.storage.stream(key, range)
+      if (res) {
+        reply.header("Content-Type", res.contentType || "video/mp4")
+        reply.header("Accept-Ranges", res.acceptRanges || "bytes")
+        if (res.contentRange) reply.header("Content-Range", res.contentRange)
+        if (res.contentLength !== undefined) reply.header("Content-Length", String(res.contentLength))
+        reply.code(res.statusCode || (range ? 206 : 200))
+        return reply.send(res.stream)
+      }
+    }
+
+    const head = await ctx.storage.head(key)
+    if (!head) throw notFound("Video not found.")
+    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 86400 })
+    return reply.redirect(url, 302)
+  })
+
   const local = ctx.localStorage
   if (!local) return
 

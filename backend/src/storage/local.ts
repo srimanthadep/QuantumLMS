@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
+import { createReadStream } from "node:fs"
 import { mkdir, open, readdir, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { Storage } from "./storage.js"
@@ -93,6 +94,43 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
       const p = fileFor(key)
       await mkdir(path.dirname(p), { recursive: true })
       await writeFile(p, data)
+    },
+    async stream(key, range) {
+      const p = fileFor(key)
+      let s
+      try {
+        s = await stat(p)
+        if (!s.isFile()) return null
+      } catch {
+        return null
+      }
+      const totalSize = s.size
+      let start = 0
+      let end = totalSize - 1
+      let statusCode = 200
+      let contentRange: string | undefined = undefined
+
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-")
+        const partialStart = parts[0]
+        const partialEnd = parts[1]
+        start = parseInt(partialStart, 10)
+        end = partialEnd ? parseInt(partialEnd, 10) : totalSize - 1
+        if (!isNaN(start) && !isNaN(end)) {
+          statusCode = 206
+          contentRange = `bytes ${start}-${end}/${totalSize}`
+        }
+      }
+
+      const stream = createReadStream(p, { start, end })
+      return {
+        stream,
+        contentLength: end - start + 1,
+        contentRange,
+        contentType: "video/mp4",
+        acceptRanges: "bytes",
+        statusCode,
+      }
     },
     verify(token) {
       const [body, mac] = token.split(".")

@@ -48,7 +48,18 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       db.select().from(courses).orderBy(asc(courses.position)),
       db.select().from(course_modules).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
       db
-        .select({ id: lessons.id, module_id: lessons.module_id, course_id: lessons.course_id, position: lessons.position, title: lessons.title, duration: lessons.duration, minutes: lessons.minutes, type: lessons.type, summary: lessons.summary })
+        .select({
+          id: lessons.id,
+          module_id: lessons.module_id,
+          course_id: lessons.course_id,
+          position: lessons.position,
+          title: lessons.title,
+          duration: lessons.duration,
+          minutes: lessons.minutes,
+          type: lessons.type,
+          summary: lessons.summary,
+          video_url: lessons.video_url,
+        })
         .from(lessons)
         .orderBy(asc(lessons.course_id), asc(lessons.position)),
       db.select({ course_id: enrollments.course_id, enrolled_at: enrollments.enrolled_at }).from(enrollments).where(eq(enrollments.student_id, s.id)),

@@ -133,6 +133,7 @@ export const lessons = lms.table("lessons", {
   minutes: integer().default(0).notNull(),
   type: text().notNull(),
   summary: text().default("").notNull(),
+  video_url: text(),
 }, (table) => [
   index("lessons_module_idx").using("btree", table.module_id),
   foreignKey({

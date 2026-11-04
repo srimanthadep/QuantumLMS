@@ -536,8 +536,9 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       duration: formattedDuration,
     })
 
-    // Create Video Lesson with the transcribed summary and videoKey
+    // Create Video Lesson with the transcribed summary and video_url
     const lessonId = `l-${courseId}-1`
+    const videoStreamUrl = `/api/files/videos/${input.videoKey}`
     await db.insert(lessons).values({
       id: lessonId,
       module_id: moduleId,
@@ -548,14 +549,15 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       minutes: mins,
       type: "video",
       summary: input.fullTranscript || `Complete transcription generated via ${input.modelUsed} with Voice Activity Detection (VAD).`,
+      video_url: videoStreamUrl,
     })
 
-    // Create download/stream URL for the uploaded video from R2
-    let videoStreamUrl: string = input.videoKey
+    // Create download/stream URL for the uploaded video
+    let r2PresignedUrl: string = input.videoKey
     try {
-      videoStreamUrl = await ctx.storage.createDownloadUrl(input.videoKey, { expiresInSeconds: 86400 * 7 })
+      r2PresignedUrl = await ctx.storage.createDownloadUrl(input.videoKey, { expiresInSeconds: 86400 * 7 })
     } catch {
-      videoStreamUrl = `https://94f886a9b3a51271b0b96a8794bffdcb.r2.cloudflarestorage.com/quantumlms/${input.videoKey}`
+      r2PresignedUrl = `https://94f886a9b3a51271b0b96a8794bffdcb.r2.cloudflarestorage.com/quantumlms/${input.videoKey}`
     }
 
     return {
@@ -563,6 +565,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       course: created,
       videoKey: input.videoKey,
       videoStreamUrl,
+      r2PresignedUrl,
       audioKey: input.audioKey,
       moduleId,
       lessonId,
