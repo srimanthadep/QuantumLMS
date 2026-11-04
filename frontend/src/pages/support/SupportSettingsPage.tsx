@@ -67,10 +67,10 @@ export default function SupportSettingsPage({ onToast }: SupportSettingsPageProp
 
   // Form states - Auto Responder
   const [welcomeMessage, setWelcomeMessage] = useState(
-    "Hello {student_name}! Thank you for reaching out to the Quantum LMS Support Desk. Our academic mentors are reviewing your inquiry. We typically reply within 15 minutes.",
+    "Hello {student_name}! Thank you for reaching out to the Quantum LMS Support Desk. Our academic support specialists are reviewing your inquiry. We typically reply within 15 minutes.",
   )
   const [awayMessage, setAwayMessage] = useState(
-    "Hello! Our desk is currently offline for the night. Your inquiry has been queued for our morning shift mentors (08:00 AM IST).",
+    "Hello! Our desk is currently offline for the night. Your inquiry has been queued for our morning shift specialists (08:00 AM IST).",
   )
 
   // Form states - Webhooks
@@ -142,7 +142,7 @@ export default function SupportSettingsPage({ onToast }: SupportSettingsPageProp
                   <div>
                     <p className="text-xs font-semibold text-foreground">Live Chat Inquiries</p>
                     <p className="text-xs text-muted-foreground">
-                      Allow learners to initiate real-time chat sessions with on-duty mentors
+                      Allow learners to initiate real-time chat sessions with on-duty specialists
                     </p>
                   </div>
                   <Switch checked={liveChatEnabled} onCheckedChange={setLiveChatEnabled} />
@@ -180,7 +180,7 @@ export default function SupportSettingsPage({ onToast }: SupportSettingsPageProp
                   <div>
                     <p className="text-xs font-semibold text-foreground">Automatic Supervisor Escalation</p>
                     <p className="text-xs text-muted-foreground">
-                      Escalate tickets to Lead Mentors if unanswered within 80% of SLA deadline
+                      Escalate tickets to Lead Specialists if unanswered within 80% of SLA deadline
                     </p>
                   </div>
                   <Switch checked={autoEscalate} onCheckedChange={setAutoEscalate} />
@@ -193,7 +193,7 @@ export default function SupportSettingsPage({ onToast }: SupportSettingsPageProp
           <TabsContent value="auto-responder" className="space-y-6">
             <Card>
               <CardHeader className="border-b border-border pb-3">
-                <CardTitle className="text-base">Automated Mentor Messages</CardTitle>
+                <CardTitle className="text-base">Automated Support Messages</CardTitle>
                 <CardDescription>Instant receipts and offline notification messages</CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4 max-w-xl">

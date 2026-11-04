@@ -311,7 +311,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
       <Stagger className="flex flex-col gap-5" stagger={0.055}>
         {/* The dashboard's one focal surface: the active learning command center. */}
         <StaggerItem>
-          <section className="relative isolate overflow-hidden rounded-xl border border-white/10 bg-ink-950 shadow-[var(--glow-primary)]" aria-label="Learning command center">
+          <section className="relative isolate overflow-hidden rounded-xl border border-white/10 bg-ink-950 shadow-[var(--glow-primary)] [contain:paint] transform-gpu" aria-label="Learning command center">
             {activeCourse && (
               <img
                 src={activeCourse.image}
@@ -367,22 +367,27 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
                 <div className="mt-6 flex flex-wrap gap-2.5">
                   <Button
-                    variant="glass"
+                    variant="primary"
                     size="lg"
                     leftIcon={<Play className="fill-current" aria-hidden="true" />}
                     onClick={() => activeCourse && openCourse(activeCourse)}
-                    className="border-white/20 bg-white text-ink-950 hover:bg-white/90 dark:bg-white dark:text-ink-950 dark:hover:bg-white/90"
                   >
                     Resume learning
                   </Button>
-                  <Button variant="glass" size="lg" leftIcon={<Sparkles aria-hidden="true" />} onClick={() => onNavigate("My Notes")}>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    leftIcon={<Sparkles aria-hidden="true" />}
+                    onClick={() => onNavigate("My Notes")}
+                    className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98]"
+                  >
                     Open study notes
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <div className="rounded-xl border border-white/12 bg-black/20 p-4 backdrop-blur-sm">
+                <div className="rounded-xl border border-white/12 bg-black/40 p-4">
                   <div className="flex items-center gap-4">
                     <ProgressRing
                       value={focusScore}
@@ -408,7 +413,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/12 bg-black/20 p-3 backdrop-blur-sm">
+                <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/12 bg-black/40 p-3">
                   {[
                     { label: "Streak", value: String(streak), suffix: streak === 1 ? "day" : "days", icon: Flame, tone: "text-warning" },
                     { label: "This week", value: String(week.total), suffix: "hours", icon: Clock, tone: "text-secondary" },

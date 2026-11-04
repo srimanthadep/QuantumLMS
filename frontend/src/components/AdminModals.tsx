@@ -57,7 +57,7 @@ export function AddTeacherModal({
 }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [title, setTitle] = useState("AI Instructor & Research Mentor")
+  const [title, setTitle] = useState("AI Instructor & Faculty Researcher")
   const [specialization, setSpecialization] = useState("LLM Architectures & Multi-Agent Systems")
   const [role, setRole] = useState<"Lead Instructor" | "Teaching Assistant" | "Evaluator">("Lead Instructor")
   const [selectedCourse, setSelectedCourse] = useState(courses[0]?.title || "Generative AI Engineering")
@@ -91,7 +91,7 @@ export function AddTeacherModal({
             </div>
             <div>
               <DialogTitle>Add Instructor or TA</DialogTitle>
-              <DialogDescription>Register a new AI instructor or mentor to the academy</DialogDescription>
+              <DialogDescription>Register a new AI instructor or faculty member to the academy</DialogDescription>
             </div>
           </div>
         </DialogHeader>

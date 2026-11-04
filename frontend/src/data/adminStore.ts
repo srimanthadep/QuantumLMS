@@ -17,6 +17,9 @@ export interface AdminCourse {
   status: "Published" | "Draft" | "Archived"
   cohortCount: number
   updatedAt: string
+  videoUrl?: string
+  videoKey?: string
+  audioKey?: string
 }
 
 export interface AdminBatch {

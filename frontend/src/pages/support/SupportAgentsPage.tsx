@@ -71,7 +71,7 @@ const AGENTS: SupportAgent[] = [
     name: "Nikhil Joshi",
     email: "nikhil.j@quantum.ai",
     avatar: "NJ",
-    roleTier: "Lead Student Mentor",
+    roleTier: "Lead Support Specialist",
     status: "online",
     activeTickets: 4,
     maxCapacity: 8,
@@ -86,7 +86,7 @@ const AGENTS: SupportAgent[] = [
     name: "Aakash Varma",
     email: "aakash.v@quantum.ai",
     avatar: "AV",
-    roleTier: "Senior Technical Mentor",
+    roleTier: "Senior Technical Specialist",
     status: "in_chat",
     activeTickets: 6,
     maxCapacity: 8,
@@ -116,7 +116,7 @@ const AGENTS: SupportAgent[] = [
     name: "Rhea Pillai",
     email: "rhea.p@quantum.ai",
     avatar: "RP",
-    roleTier: "Junior Academic Mentor",
+    roleTier: "Support Specialist",
     status: "online",
     activeTickets: 3,
     maxCapacity: 8,
@@ -144,7 +144,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
   const kpis: MetricItem[] = [
     {
       icon: "users",
-      label: "Active Mentors Online",
+      label: "Active Agents Online",
       value: `${onlineCount} / ${agents.length}`,
       trend: "Current shift coverage",
       tone: "lavender",
@@ -158,7 +158,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
     },
     {
       icon: "star",
-      label: "Mentor CSAT Average",
+      label: "Agent CSAT Average",
       value: `${avgCsat} ★`,
       trend: "Based on 142 ratings",
       tone: "yellow",
@@ -177,7 +177,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
     const target = agents.find((a) => a.id === targetAgentId)
     setReassignAgent(null)
     setTargetAgentId("")
-    onToast?.(`Queue from ${reassignAgent.name} successfully redistributed to ${target?.name || "selected mentor"}.`)
+    onToast?.(`Queue from ${reassignAgent.name} successfully redistributed to ${target?.name || "selected agent"}.`)
   }
 
   const filteredAgents = agents.filter((a) => {
@@ -197,8 +197,8 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="Support Roster & Mentors"
-        description="Active mentors on duty, shift capacity, queue load balancing, and CSAT scores."
+        title="Support Roster & Team"
+        description="Active support specialists on duty, shift capacity, queue load balancing, and CSAT scores."
         breadcrumb={[{ label: "Support", href: "/support" }, { label: "Agents" }]}
       />
 
@@ -216,7 +216,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
         <div className="relative flex-1 max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search mentors by name, tier, or skill..."
+            placeholder="Search agents by name, tier, or skill..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9 text-xs sm:text-sm"
@@ -236,7 +236,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
                   : "bg-surface border border-border text-muted-foreground hover:text-foreground",
               )}
             >
-              {st === "all" ? "All Mentors" : st.replace("_", " ")}
+              {st === "all" ? "All Agents" : st.replace("_", " ")}
             </button>
           ))}
         </div>
@@ -246,7 +246,7 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
       {filteredAgents.length === 0 ? (
         <EmptyState
           icon={<Users className="h-5 w-5" />}
-          title="No mentors found"
+          title="No agents found"
           description="Try adjusting your filter or search query."
         />
       ) : (
@@ -356,15 +356,15 @@ export default function SupportAgentsPage({ onToast }: SupportAgentsPageProps) {
             <DialogHeader>
               <DialogTitle>Reassign {reassignAgent.name}&apos;s Queue</DialogTitle>
               <DialogDescription>
-                Redistribute {reassignAgent.activeTickets} active tickets to another on-duty mentor.
+                Redistribute {reassignAgent.activeTickets} active tickets to another on-duty agent.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2">
-              <Field label="Transfer to Mentor">
+              <Field label="Transfer to Agent">
                 <Select value={targetAgentId} onValueChange={setTargetAgentId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select target mentor" />
+                    <SelectValue placeholder="Select target agent" />
                   </SelectTrigger>
                   <SelectContent>
                     {agents

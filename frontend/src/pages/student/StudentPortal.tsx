@@ -26,7 +26,6 @@ const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
   support: "Support & Help",
   assessments: "Assessments",
   quizzes: "Quizzes",
-  mentorship: "Mentor Details",
   certificates: "Certificates",
   grades: "Grades",
   courses: "My Courses",
@@ -72,7 +71,6 @@ function navIdFor(page: StudentNavPage): string {
     case "Career Hub":
     case "Mock Interview":
     case "Resume Building":
-    case "Mentor Details":
       return "career"
     case "Support & Help":
     case "Support":
@@ -169,9 +167,7 @@ function parseInitialTab(): StudentNavPage {
       target === "mock-interview" ||
       target === "mock interview" ||
       target === "resume-building" ||
-      target === "resume" ||
-      target === "mentor-details" ||
-      target === "mentor"
+      target === "resume"
     )
       return "Career Hub"
     if (target === "my-notes" || target === "notes") return "My Notes"
@@ -335,13 +331,12 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
       case "Career Hub":
       case "Mock Interview":
       case "Resume Building":
-      case "Mentor Details":
         return (
           <CareerHubPage
             onToast={onToast}
             onNavigate={navigateTo}
             onOpenAiModal={onOpenAiModal}
-            initialTab={activeTab === "Resume Building" ? "resume" : activeTab === "Mentor Details" ? "mentorship" : "interviews"}
+            initialTab={activeTab === "Resume Building" ? "resume" : "interviews"}
           />
         )
       case "Settings":

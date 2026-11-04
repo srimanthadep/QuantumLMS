@@ -555,7 +555,7 @@ export async function seedEvaluatorDemo(tx: Tx, o: EvaluatorSeedOptions) {
   }
   await tx
     .insert(t.profiles)
-    .values(LEARNERS.map((l) => ({ id: ids[l.key], roll_number: l.roll, headline: "Learner · AI Engineering", mentor_id: null })))
+    .values(LEARNERS.map((l) => ({ id: ids[l.key], roll_number: l.roll, headline: "Learner · AI Engineering" })))
     .onConflictDoUpdate({ target: t.profiles.id, set: { roll_number: sql.raw(`excluded.roll_number`), headline: sql.raw(`excluded.headline`), updated_at: new Date() } })
   await tx
     .insert(t.enrollments)

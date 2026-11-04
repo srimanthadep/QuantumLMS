@@ -73,11 +73,11 @@ export function ThemeControls({ className, idPrefix = "theme" }: { className?: s
                 onClick={() => setAccent(a.id)}
                 className={cn(
                   "relative flex h-8 w-8 items-center justify-center rounded-full border transition-transform duration-150 hover:scale-105 active:scale-95",
-                  active ? "border-foreground/40" : "border-transparent",
+                  active ? "border-foreground/50 ring-2 ring-primary/40 ring-offset-2 ring-offset-surface" : "border-transparent",
                 )}
               >
-                <span className="h-6 w-6 rounded-full" style={{ backgroundColor: a.colorHex }} />
-                {active && <Check className="absolute h-3.5 w-3.5 text-white" aria-hidden="true" />}
+                <span className="h-6 w-6 rounded-full shadow-inner" style={{ backgroundColor: a.colorHex }} />
+                {active && <Check className="absolute h-3.5 w-3.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" aria-hidden="true" />}
               </button>
             )
           })}

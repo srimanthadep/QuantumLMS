@@ -22,8 +22,10 @@ import {
   Sparkles,
   Edit2,
   Trash2,
+  Video,
 } from "lucide-react"
 import type { useAdminStore, AdminCourse } from "@/data/adminStore"
+import VideoCourseUploadModal from "./VideoCourseUploadModal"
 
 interface CoursesViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -37,6 +39,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [selectedStatus, setSelectedStatus] = useState<string>("All")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false)
 
   // Edit course state
   const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
@@ -144,10 +147,18 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
           </p>
         </div>
 
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Add AI Course
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={() => setIsVideoUploadOpen(true)}
+            leftIcon={<Video className="h-4 w-4 text-primary" />}
+          >
+            Upload Video Course
+          </Button>
+          <Button onClick={() => setIsAddModalOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
+            Add AI Course
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -559,6 +570,16 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Video Course Upload & Audio Extraction Modal */}
+      <VideoCourseUploadModal
+        open={isVideoUploadOpen}
+        onOpenChange={setIsVideoUploadOpen}
+        onCourseCreated={(newCourse) => {
+          addCourse(newCourse)
+        }}
+        onToast={onToast}
+      />
     </div>
   )
 }

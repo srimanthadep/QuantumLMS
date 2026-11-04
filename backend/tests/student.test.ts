@@ -37,7 +37,6 @@ describe("first sign-in", () => {
     assert.equal(p.full_name, "Test Student A")
     assert.match(p.roll_number, /^QAI-\d{4}-\d{3,}$/)
     assert.equal(p.is_demo, false)
-    assert.equal(p.mentor_id, "mentor-1")
     assert.deepEqual(core.body.enrollments.map((e: { course_id: string }) => e.course_id).sort(), ["c-1", "c-2", "c-3", "c-4"])
     const grades = await a.call("GET", "/api/student/grades")
     assert.equal(grades.body.certificates.length, 4)
@@ -212,29 +211,6 @@ describe("support", () => {
     const r = await a.call("POST", "/api/student/support/chat", { body: "My GPU quota ran out" })
     assert.deepEqual(r.body.map((m: { sender: string }) => m.sender), ["student", "agent"])
     assert.match(r.body[1].body, /GPU quota/)
-  })
-})
-
-describe("mentorship", () => {
-  // A weekday at least two days out, in campus time.
-  function nextWeekday() {
-    let day = addDays(localDay(new Date(), "Asia/Kolkata"), 2)
-    while (isoDow(day) > 5) day = addDays(day, 1)
-    return day
-  }
-  test("booking checks the day and slot, and a slot can't be double-booked", async () => {
-    const day = nextWeekday()
-    const ok = await a.call("POST", "/api/student/mentors/mentor-2/meeting", { date: day, slot: "04:30 PM", topic: "Career guidance" })
-    assert.equal(ok.status, 200, JSON.stringify(ok.body))
-    assert.equal(ok.body.ends_slot, "05:15 PM")
-    const clash = await b.call("POST", "/api/student/mentors/mentor-2/meeting", { date: day, slot: "04:30 PM", topic: "Project review" })
-    assert.equal(clash.status, 409)
-    assert.match(clash.body.error.message, /just booked/)
-    let saturday = day
-    while (isoDow(saturday) !== 6) saturday = addDays(saturday, 1)
-    assert.match((await b.call("POST", "/api/student/mentors/mentor-2/meeting", { date: saturday, slot: "04:30 PM", topic: "Project review" })).body.error.message, /weekdays/)
-    assert.equal((await a.call("DELETE", "/api/student/mentors/mentor-2/meeting")).status, 204)
-    assert.equal((await b.call("POST", "/api/student/mentors/mentor-2/meeting", { date: day, slot: "04:30 PM", topic: "Project review" })).status, 200)
   })
 })
 

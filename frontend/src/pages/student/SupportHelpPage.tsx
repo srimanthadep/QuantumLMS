@@ -60,6 +60,7 @@ import {
 import CopyButton from "@/components/student/CopyButton"
 import type { FaqItem, StudentNavPage, SupportTicket, TicketCategory, TicketPriority, TicketReply, TicketStatus } from "./studentTypes"
 import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
+import { useChannel, ws } from "@/lib/ws"
 import {
   attachmentUrl,
   createTicket,
@@ -96,7 +97,7 @@ const TICKET_CATEGORIES: TicketCategory[] = [
 const PRIORITIES: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
 const STATUS_TONE: Record<TicketStatus, "warning" | "info" | "success" | "neutral"> = { Open: "warning", "In Progress": "info", Resolved: "success", Closed: "neutral" }
 const PRIORITY_TONE: Record<TicketPriority, "neutral" | "info" | "warning" | "danger"> = { Low: "neutral", Medium: "info", High: "warning", Urgent: "danger" }
-const POPULAR = ["Submit assignment", "Attendance", "GPU cluster", "Transcript", "Mentor"]
+const POPULAR = ["Submit assignment", "Attendance", "GPU cluster", "Transcript", "Schedule"]
 
 function Highlight({ text, query }: { text: string; query: string }) {
   const q = query.trim()
@@ -753,6 +754,7 @@ const toMessage = (r: ChatRow): ChatMessage => ({ id: String(r.id), from: r.send
 
 /** Learner Success chat. The conversation is stored with the student; replies come from the backend. */
 function LiveChat({ open, onClose, userName, userAvatar }: { open: boolean; onClose: () => void; userName: string; userAvatar?: string }) {
+  const { uid } = useStudentData()
   const chat = useStudentResource<ChatRow[]>(open ? "chat" : null, loadChat, 30_000)
   const greeting: ChatMessage = { id: "greeting", from: "agent", text: `Hi ${userName.split(" ")[0]}! I'm Neha from Learner Success. What can I help you with today?` }
   const [pending, setPending] = useState<ChatMessage[]>([])
@@ -761,6 +763,25 @@ function LiveChat({ open, onClose, userName, userAvatar }: { open: boolean; onCl
   const end = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const messages = [greeting, ...(chat.data ?? []).map(toMessage), ...pending]
+
+  // Real-time bi-directional messaging with support staff over WebSockets
+  useChannel(open && uid ? `chat:${uid}` : null, (event, payload) => {
+    if (event === "message" && payload) {
+      chat.mutate((list) => {
+        if (list.some((m) => String(m.id) === String(payload.id))) return list
+        return [
+          ...list,
+          {
+            id: payload.id,
+            student_id: uid,
+            sender: "agent",
+            body: payload.text,
+            created_at: new Date().toISOString(),
+          } as ChatRow,
+        ]
+      })
+    }
+  })
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })

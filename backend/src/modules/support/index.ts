@@ -7,6 +7,7 @@ import { profiles, support_tickets, ticket_number_seq, ticket_replies, users } f
 import { notFound } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { notify } from "../student/notify.js"
+import { broadcastToChannel } from "../../ws.js"
 
 export interface TicketStudentInfo {
   id: string
@@ -214,6 +215,16 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
             `Status was updated to ${b.status} by ${nextUpdater}.`,
             "support",
           )
+          broadcastToChannel("notifications", "ticket-status", {
+            ticketId: t.id,
+            status: b.status,
+            updatedBy: nextUpdater,
+          })
+          broadcastToChannel(`chat:${t.id}`, "status-update", {
+            ticketId: t.id,
+            status: b.status,
+            updatedBy: nextUpdater,
+          })
         }
 
         return loadTicketWithDetails(tx, t.id)
@@ -270,6 +281,18 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
           `${u.full_name}: ${b.content.slice(0, 100)}`,
           "support",
         )
+
+        broadcastToChannel(`chat:${t.id}`, "message", {
+          id: String(reply.id),
+          text: reply.content,
+          sender: "agent",
+          senderName: u.full_name,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        }, {
+          id: u.id,
+          name: u.full_name,
+          role: "Support",
+        })
 
         return reply
       })

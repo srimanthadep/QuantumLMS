@@ -34,7 +34,6 @@ src/
 │   │   ├── CourseDetailsPage.tsx     # Interactive video player & syllabus
 │   │   ├── EventsPage.tsx            # Hackathons, seminars & webinars
 │   │   ├── GradesPage.tsx            # GPA & transcript breakdowns
-│   │   ├── MentorDetailsPage.tsx     # Assigned mentor & 1:1 scheduling
 │   │   ├── MyCoursesPage.tsx         # Enrolled & catalog exploration
 │   │   ├── MyNotesPage.tsx           # Timestamped lesson notes
 │   │   ├── QuizzesPage.tsx           # Interactive tests & assessments

@@ -5,6 +5,7 @@ import RouteFallback from "@/app/RouteFallback"
 import { useToast } from "@/components/ui/toast"
 import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError, type StudentProfile } from "@/lib/api"
 import { mutate, peek, refresh, useResource, type Resource } from "@/lib/resource"
+import { useChannel } from "@/lib/ws"
 import type { CourseItem } from "../studentTypes"
 import * as actions from "./actions"
 import { deriveCore, loadAttempts, loadCore, type CoreRaw, type CoreView, type Profile } from "./core"
@@ -82,6 +83,16 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
       window.removeEventListener("focus", onFocus)
     }
   }, [notesKey])
+
+  // Instant real-time notifications pushed via WebSockets
+  useChannel(`user:${uid}`, (event, payload) => {
+    if (event === "notification") {
+      refresh(notesKey)
+      if (payload?.title) {
+        toast.show(`${payload.title}: ${payload.message}`)
+      }
+    }
+  })
 
   // Keep the shell's name, avatar and email in step with the backend profile.
   const raw = core.data

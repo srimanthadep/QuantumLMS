@@ -2,9 +2,18 @@ import { DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import type { Storage } from "./storage.js"
 
-/** S3 (or S3-compatible) storage. Credentials come from the default chain: the ECS task role in AWS. */
-export function createS3Storage(opts: { bucket: string; region?: string; endpoint?: string }): Storage {
-  const client = new S3Client({ region: opts.region, ...(opts.endpoint ? { endpoint: opts.endpoint, forcePathStyle: true } : {}) })
+/** S3 (or S3-compatible) storage. Credentials come from the default chain (the ECS task role in AWS) or explicit access keys (Cloudflare R2). */
+export function createS3Storage(opts: {
+  bucket: string
+  region?: string
+  endpoint?: string
+  credentials?: { accessKeyId: string; secretAccessKey: string }
+}): Storage {
+  const client = new S3Client({
+    region: opts.region ?? "auto",
+    ...(opts.endpoint ? { endpoint: opts.endpoint, forcePathStyle: true } : {}),
+    ...(opts.credentials ? { credentials: opts.credentials } : {}),
+  })
   const Bucket = opts.bucket
   return {
     async createUpload({ key, contentType }) {

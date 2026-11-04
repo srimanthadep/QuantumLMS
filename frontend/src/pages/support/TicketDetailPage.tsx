@@ -58,7 +58,7 @@ interface TicketDetailPageProps {
 const CANNED_MACROS = [
   {
     label: "Acknowledge",
-    text: "Hello! We have received your query and are investigating. A mentor will follow up shortly.",
+    text: "Hello! We have received your query and are investigating. A specialist will follow up shortly.",
   },
   {
     label: "Request Logs",
@@ -568,7 +568,7 @@ export default function TicketDetailPage({ onToast }: TicketDetailPageProps) {
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">Assigned Mentor</span>
+                <span className="text-muted-foreground">Assigned Specialist</span>
                 <span className="font-medium text-foreground">{ticket.assignedAgent}</span>
               </div>
             </CardContent>

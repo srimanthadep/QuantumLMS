@@ -12,6 +12,7 @@ import CommandPalette from "./CommandPalette"
 import MobileNav from "./MobileNav"
 import Sidebar from "./Sidebar"
 import TopBar from "./TopBar"
+import { useChannel } from "@/lib/ws"
 import { NAV } from "./navConfig"
 import type { NotificationSource } from "./NotificationsMenu"
 
@@ -66,6 +67,17 @@ export default function AppShell({
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   const items = useMemo(() => NAV[role].filter((i) => !availableIds || availableIds.includes(i.id)), [role, availableIds])
+
+  // Listen to system-wide real-time notification broadcasts over WebSockets
+  useChannel("notifications", (event, payload) => {
+    if (event === "ticket-status" && payload?.ticketId) {
+      toast.show(`Ticket ${payload.ticketId} status updated to ${payload.status}`)
+    } else if (event === "class-scheduled" && payload?.title) {
+      toast.show(`New Live Class scheduled: ${payload.title}`)
+    } else if (event === "alert" && payload?.message) {
+      toast.show(payload.message)
+    }
+  })
 
   const toggleCollapsed = () =>
     setCollapsed((c) => {

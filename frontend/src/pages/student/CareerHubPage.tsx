@@ -8,11 +8,10 @@ import type { StudentNavPage } from "./studentTypes"
 import { atsScore, type ResumeState } from "./career/careerData"
 import InterviewStudio from "./career/InterviewStudio"
 import ResumeStudio from "./career/ResumeStudio"
-import MentorshipPanel, { upcomingMeeting } from "./career/MentorshipPanel"
 import { useStudentData, useStudentResource } from "./data/StudentDataProvider"
 import { loadCareer, saveInterview, saveResume, starterResume, type CareerData } from "./data/career"
 
-type CareerTab = "interviews" | "resume" | "mentorship"
+type CareerTab = "interviews" | "resume"
 
 interface CareerHubPageProps {
   onToast: (msg: string) => void
@@ -22,7 +21,7 @@ interface CareerHubPageProps {
 }
 
 export default function CareerHubPage({ onToast, initialTab = "interviews" }: CareerHubPageProps) {
-  const { profile, isDemo, now } = useStudentData()
+  const { profile, isDemo } = useStudentData()
   const res = useStudentResource<CareerData>("career", loadCareer, 120_000)
   const [tab, setTab] = useState<CareerTab>(initialTab)
   const patternId = `career-grid-${useId().replace(/:/g, "")}`
@@ -60,26 +59,23 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
   useEffect(() => () => void flush(), [flush])
 
   const history = useMemo(() => res.data?.sessions ?? [], [res.data])
-  const meeting = useMemo(() => (res.data ? upcomingMeeting(res.data, profile.mentor_id, now) : undefined), [res.data, profile.mentor_id, now])
 
   const metrics = useMemo(() => {
     const recent = history.slice(0, 3)
     const interview = recent.length ? Math.round(recent.reduce((s, h) => s + h.score, 0) / recent.length) : 0
     const ats = atsScore(resume)
-    const mentorship = meeting ? 100 : 40
     return [
       { id: "interviews" as const, label: "Interview practice", value: interview, icon: Mic, action: "Practise an interview" },
       { id: "resume" as const, label: "Resume strength", value: ats, icon: FileText, action: "Improve your resume" },
-      { id: "mentorship" as const, label: "Mentorship", value: mentorship, icon: Users, action: "Book a mentor session" },
     ]
-  }, [history, resume, meeting])
-  const readiness = Math.round(metrics[0].value * 0.4 + metrics[1].value * 0.4 + metrics[2].value * 0.2)
+  }, [history, resume])
+  const readiness = Math.round(metrics[0].value * 0.5 + metrics[1].value * 0.5)
   const weakest = [...metrics].sort((a, b) => a.value - b.value)[0]
 
   if (res.error && !res.data) {
     return (
       <div className="flex flex-col">
-        <PageHeader eyebrow="Career" title="Career Hub" description="Practise interviews, polish your resume and meet your mentor." />
+        <PageHeader eyebrow="Career" title="Career Hub" description="Practise interviews and polish your resume." />
         <EmptyState
           icon={<Users aria-hidden="true" />}
           title="The Career Hub didn't load"
@@ -102,11 +98,10 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
       </div>
     )
   }
-  const data = res.data
 
   return (
     <div className="flex flex-col">
-      <PageHeader eyebrow="Career" title="Career Hub" description="Practise interviews, polish your resume and meet your mentor." />
+      <PageHeader eyebrow="Career" title="Career Hub" description="Practise interviews and polish your resume." />
 
       <motion.section
         initial={{ opacity: 0, y: 8 }}
@@ -142,9 +137,9 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
           <div className="grid gap-4">
             <div className="hidden lg:block">
               <p className="text-lg font-semibold text-white">{readiness >= 75 ? "You're nearly placement-ready" : "Let's build your readiness"}</p>
-              <p className="text-sm text-white/80">Based on your last 3 interviews, your resume's ATS checks and mentor contact.</p>
+              <p className="text-sm text-white/80">Based on your last 3 interviews and your resume's ATS checks.</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {metrics.map((m) => (
                 <button
                   key={m.id}
@@ -180,10 +175,6 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
             <FileText className="h-4 w-4" aria-hidden="true" />
             Resume
           </TabsTrigger>
-          <TabsTrigger value="mentorship">
-            <Users className="h-4 w-4" aria-hidden="true" />
-            Mentorship
-          </TabsTrigger>
         </TabsList>
         <TabsContent value="interviews" className="mt-5">
           <InterviewStudio
@@ -201,9 +192,6 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
             {resumeState === "saving" ? "Saving…" : resumeState === "error" ? "Not saved yet. We'll retry when you make the next change." : "All changes saved to your account."}
           </p>
           <ResumeStudio resume={resume} onChange={changeResume} onToast={onToast} />
-        </TabsContent>
-        <TabsContent value="mentorship" className="mt-5">
-          <MentorshipPanel data={data} mentorId={profile.mentor_id} onChange={mutate} onToast={onToast} />
         </TabsContent>
       </Tabs>
     </div>

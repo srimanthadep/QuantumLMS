@@ -119,10 +119,10 @@ export default function SupportAnalyticsPage() {
     }))
   }, [tickets])
 
-  const TOP_MENTORS = [
+  const TOP_SPECIALISTS = [
     {
       name: "Nikhil Joshi",
-      role: "Lead Student Mentor",
+      role: "Lead Support Specialist",
       resolved: 78,
       rating: 4.96,
       avatar: "NJ",
@@ -130,11 +130,11 @@ export default function SupportAnalyticsPage() {
     },
     {
       name: "Aakash Varma",
-      role: "Senior Technical Mentor",
+      role: "Senior Technical Specialist",
       resolved: 65,
       rating: 4.94,
       avatar: "AV",
-      tier: "Technical Mentor",
+      tier: "Technical Specialist",
     },
     {
       name: "Meera Sen",
@@ -198,7 +198,7 @@ export default function SupportAnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Top Mentors Leaderboard */}
+          {/* Top Support Specialists Leaderboard */}
           <Card>
             <CardHeader className="pb-3 border-b border-border">
               <CardTitle className="text-base">Support Staff Performance</CardTitle>
@@ -206,7 +206,7 @@ export default function SupportAnalyticsPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {TOP_MENTORS.map((m) => (
+                {TOP_SPECIALISTS.map((m) => (
                   <div key={m.name} className="flex items-center justify-between p-4 text-xs sm:text-sm">
                     <div className="flex items-center gap-3">
                       <Avatar name={m.name} className="h-9 w-9 border border-border" />

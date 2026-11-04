@@ -4,7 +4,7 @@ import { z } from "zod"
 import type { AuthUser } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
-import { courses, enrollments, mentors, profiles, roll_number_seq } from "../../db/schema.js"
+import { courses, enrollments, profiles, roll_number_seq } from "../../db/schema.js"
 import { openCertificates, seedContent, seedStudentDemo } from "../../db/seed/index.js"
 import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
 import { badRequest, forbidden } from "../../errors.js"
@@ -20,17 +20,16 @@ import { supportRoutes } from "./support.js"
 
 const isDemoStudent = (ctx: AppContext, u: AuthUser) => ctx.config.DEMO_MODE && u.is_demo && u.email.toLowerCase() === ctx.config.DEMO_STUDENT_EMAIL.toLowerCase()
 
-/** A new student: profile with a roll number and the first mentor, the starter courses and a welcome note. */
+/** A new student: profile with a roll number, the starter courses and a welcome note. */
 export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContext, "config">) {
   if (isDemoStudent(ctx as AppContext, user)) {
     await seedStudentDemo(tx, user.id, new Date(), ctx.config.CAMPUS_TZ)
     return
   }
   const [{ n }] = (await tx.execute(sql`select nextval(${sql.raw(`'lms.${roll_number_seq.seqName}'`)}) as n`)).rows as { n: string }[]
-  const [mentor] = await tx.select({ id: mentors.id }).from(mentors).orderBy(asc(mentors.position)).limit(1)
   const [created] = await tx
     .insert(profiles)
-    .values({ id: user.id, roll_number: `QAI-${new Date().getFullYear()}-${String(n).padStart(3, "0")}`, mentor_id: mentor?.id ?? null })
+    .values({ id: user.id, roll_number: `QAI-${new Date().getFullYear()}-${String(n).padStart(3, "0")}` })
     .onConflictDoNothing()
     .returning()
   if (!created) return

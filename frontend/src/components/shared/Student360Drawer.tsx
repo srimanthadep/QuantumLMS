@@ -70,7 +70,7 @@ const STUDENT_PROFILES: Record<string, StudentProfile> = {
       lecture: "Lecture 8 @ 00:24:18",
       topic: "HNSW efSearch parameter nuance in production vector search.",
       status: "Resolved",
-      resolutionNote: "Mentor verified efSearch >= 64 for 99% recall parity.",
+      resolutionNote: "Faculty verified efSearch >= 64 for 99% recall parity.",
     },
   },
   "usr-student-5": {
@@ -422,10 +422,10 @@ export const Student360Drawer: React.FC<Student360DrawerProps> = ({
             </div>
           </div>
 
-          {/* SECTION 4: PRIVILEGED MENTOR ACTIONS matching Figma Buttons */}
+          {/* SECTION 4: Privileged Faculty Actions matching Figma Buttons */}
           <div className="pt-2 border-t border-primary-soft space-y-2.5">
             <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-              Privileged Mentor Actions
+              Privileged Faculty Actions
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button

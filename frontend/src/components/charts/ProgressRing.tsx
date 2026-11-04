@@ -40,8 +40,7 @@ export default function ProgressRing({ value, size = 64, thickness = 6, tone = "
         <motion.g
           style={{ originX: "50%", originY: "50%" }}
           initial={{ rotate: -120, opacity: 0 }}
-          whileInView={{ rotate: 0, opacity: 1 }}
-          viewport={{ once: true }}
+          animate={{ rotate: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: ease.out }}
         >
           <circle

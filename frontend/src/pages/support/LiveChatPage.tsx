@@ -29,6 +29,7 @@ import {
   Textarea,
 } from "@/components/ui"
 import { Student360Drawer } from "@/components/shared/Student360Drawer"
+import { useChannel, useWsStatus, ws } from "@/lib/ws"
 import { cn } from "@/lib/utils"
 
 interface LiveChatPageProps {
@@ -144,10 +145,35 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
   const [inputText, setInputText] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [isStudent360Open, setIsStudent360Open] = useState(false)
+  const wsStatus = useWsStatus()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const currentSession = sessions.find((s) => s.id === selectedSessionId) || sessions[0]
+
+  // Real-time WebSocket channel subscription for current chat session
+  useChannel(currentSession ? `chat:${currentSession.id}` : null, (event, payload) => {
+    if (event === "message" && payload && payload.id) {
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === currentSession.id) {
+            if (s.messages.some((m) => m.id === payload.id)) return s
+            return {
+              ...s,
+              lastMessage: payload.text,
+              lastTime: "Just now",
+              messages: [...s.messages, payload],
+            }
+          }
+          return s
+        }),
+      )
+    } else if (event === "resolved") {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === currentSession.id ? { ...s, status: "closed" } : s)),
+      )
+    }
+  })
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -179,6 +205,13 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
       }),
     )
 
+    // Publish to WebSocket room for instant delivery
+    ws.publish(`chat:${currentSession.id}`, "message", newMsg, {
+      id: "agent-support",
+      name: "Support Desk",
+      role: "Support",
+    })
+
     setInputText("")
   }
 
@@ -187,6 +220,7 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
     setSessions((prev) =>
       prev.map((s) => (s.id === currentSession.id ? { ...s, status: "closed" } : s)),
     )
+    ws.publish(`chat:${currentSession.id}`, "resolved", { sessionId: currentSession.id })
     onToast?.(`Chat session with ${currentSession.studentName} marked as resolved.`)
   }
 
@@ -214,8 +248,8 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
         breadcrumb={[{ label: "Support", href: "/support" }, { label: "Live Chat" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Badge tone="live" dot>
-              Live Chat Gateway Active
+            <Badge tone={wsStatus === "connected" ? "live" : "warning"} dot>
+              {wsStatus === "connected" ? "Live Gateway Active" : "Connecting..."}
             </Badge>
           </div>
         }

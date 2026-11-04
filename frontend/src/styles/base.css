@@ -199,3 +199,98 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   Kumo Tactile Buttons (tactile buttons with outer ring, top highlight line,
+   downward gradient, and optical centering)
+   ========================================================================== */
+
+.kumo-btn {
+  --ring: var(--btn-ring);
+  --bg: var(--btn-bg);
+  --grad-start: var(--btn-grad-start);
+  --grad-end: var(--btn-grad-end);
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  font-weight: 500;
+  color: #ffffff !important;
+  background-color: var(--bg);
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.06);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+  transition: box-shadow 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+/* Gradient + top highlight layer */
+.kumo-btn::before,
+.kumo-btn__bg {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, var(--grad-start), var(--grad-end));
+  box-shadow: inset 0 1px 0 0 var(--bg);
+  pointer-events: none;
+  z-index: -1;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+/* If explicit .kumo-btn__bg element is in DOM, hide the pseudo ::before */
+.kumo-btn:has(.kumo-btn__bg)::before {
+  display: none;
+}
+
+.kumo-btn:hover::before,
+.kumo-btn:hover .kumo-btn__bg {
+  background: linear-gradient(to bottom, var(--bg), var(--grad-end));
+}
+
+.kumo-btn:active::before,
+.kumo-btn:active .kumo-btn__bg {
+  background: linear-gradient(to bottom, var(--grad-end), var(--grad-end));
+}
+
+.kumo-btn:focus {
+  outline: none;
+}
+
+.kumo-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.kumo-btn:disabled,
+.kumo-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+.kumo-btn__content {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+  z-index: 1;
+}
+
+/* Danger variant */
+.kumo-btn--danger {
+  --ring: var(--btn-danger-ring);
+  --bg: var(--btn-danger-bg);
+  --grad-start: var(--btn-danger-grad-start);
+  --grad-end: var(--btn-danger-grad-end);
+}
+

@@ -70,7 +70,7 @@ export const initialStudents: StudentItem[] = [
     status: "Excelling",
     tone: "lime",
     subjects: { english: 94, math: 92, science: 90, art: 96 },
-    tags: ["RAG Specialist", "Peer Mentor"],
+    tags: ["RAG Specialist", "AI Systems Lead"],
     assignedClass: "Cohort 14 · GenAI & Agentic Systems",
     assignedCourse: "Generative AI Masterclass",
     batch: "Cohort 14 (Live + Interactive Lab)",

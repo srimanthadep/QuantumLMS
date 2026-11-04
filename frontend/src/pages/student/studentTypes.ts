@@ -1,6 +1,6 @@
 import type { IconName } from "../../types"
 
-export type StudentNavPage = "Dashboard" | "My Courses" | "Course Details" | "Schedule" | "Timetable" | "Attendance" | "Assessments" | "Assignments" | "Quizzes" | "Grades & Certificates" | "Grades" | "Community" | "Communication" | "Discussions" | "Career Hub" | "Mentor Details" | "My Notes" | "Certificates" | "Resume Building" | "Mock Interview" | "Events & Notices" | "Announcements" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
+export type StudentNavPage = "Dashboard" | "My Courses" | "Course Details" | "Schedule" | "Timetable" | "Attendance" | "Assessments" | "Assignments" | "Quizzes" | "Grades & Certificates" | "Grades" | "Community" | "Communication" | "Discussions" | "Career Hub" | "My Notes" | "Certificates" | "Resume Building" | "Mock Interview" | "Events & Notices" | "Announcements" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
 
 export interface EducationEntry {
   id: string
@@ -356,7 +356,6 @@ export type TicketCategory =
   | "Assignment"
   | "Timetable"
   | "Account/Profile"
-  | "Mentor"
   | "Other"
 
 export type TicketPriority = "Low" | "Medium" | "High" | "Urgent"
@@ -392,40 +391,7 @@ export interface SupportTicket {
   resolutionNotes?: string
 }
 
-export interface MentorAssignedStudent {
-  id: string
-  name: string
-  rollNumber: string
-  avatar: string
-  status: string
-  program: string
-}
 
-export interface MentorMeetingInfo {
-  status: "Scheduled" | "Not Scheduled"
-  scheduledDate?: string
-  scheduledTime?: string
-  topic?: string
-  zoomUrl?: string
-  agenda?: string
-}
-
-export interface MentorProfile {
-  id: string
-  name: string
-  avatar: string
-  title: string
-  department: string
-  email: string
-  phone: string
-  office: string
-  bio: string
-  specializations: string[]
-  officeHours: string
-  availabilityStatus: "Available Now" | "In Lecture" | "Away"
-  assignedStudents: MentorAssignedStudent[]
-  meeting?: MentorMeetingInfo
-}
 
 // Mock Interview System Data Models
 export type InterviewType =

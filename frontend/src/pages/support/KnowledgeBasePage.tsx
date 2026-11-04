@@ -99,7 +99,7 @@ const ARTICLES: KbArticle[] = [
       "Ensure the evaluation queue reflects the adjusted due date",
     ],
     content: [
-      "Extensions may be approved directly by Tier 1 mentors for up to 3 days when accompanied by prior notice.",
+      "Extensions may be approved directly by Tier 1 support specialists for up to 3 days when accompanied by prior notice.",
       "Requests exceeding 5 days require escalations lead sign-off in coordination with the lead instructor.",
     ],
   },
@@ -213,7 +213,7 @@ export default function KnowledgeBasePage({ onToast }: KnowledgeBasePageProps) {
       {/* Page Header */}
       <PageHeader
         title="Knowledge Base & SOPs"
-        description="Standard operating procedures, macro responses, and cohort policies for academic support mentors."
+        description="Standard operating procedures, macro responses, and cohort policies for academic support specialists."
         breadcrumb={[{ label: "Support", href: "/support" }, { label: "Knowledge Base" }]}
         actions={
           <Button size="sm" onClick={() => setIsNewOpen(true)}>

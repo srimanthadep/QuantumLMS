@@ -15,6 +15,7 @@ import {
 } from "../../db/schema.js"
 import { notFound } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
+import { broadcastToChannel } from "../../ws.js"
 
 export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
@@ -91,6 +92,14 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
             is_online: b.is_online,
           })
           .returning()
+
+        broadcastToChannel("notifications", "class-scheduled", {
+          id: slot.id,
+          title: slot.title,
+          instructor: slot.instructor,
+          starts: slot.starts,
+        })
+        broadcastToChannel("live:classroom", "class-scheduled", slot)
 
         return { classSession: slot }
       })

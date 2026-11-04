@@ -48,6 +48,20 @@
   --ring: #6d4aff;
   --overlay: rgb(9 9 11 / 0.45);
 
+  /* Kumo Tactile Buttons (driven dynamically by primary/brand) */
+  --color-kumo-brand: var(--primary);
+  --btn-ring: color-mix(in oklch, var(--color-kumo-brand), black 10%);
+  --btn-bg: color-mix(in oklch, var(--color-kumo-brand), white 30%);
+  --btn-grad-start: color-mix(in oklch, var(--color-kumo-brand), white 15%);
+  --btn-grad-end: var(--color-kumo-brand);
+
+  /* Danger tactile buttons */
+  --color-kumo-danger: var(--danger);
+  --btn-danger-ring: color-mix(in oklch, var(--color-kumo-danger), black 10%);
+  --btn-danger-bg: color-mix(in oklch, var(--color-kumo-danger), white 30%);
+  --btn-danger-grad-start: color-mix(in oklch, var(--color-kumo-danger), white 15%);
+  --btn-danger-grad-end: var(--color-kumo-danger);
+
   /* Radii (override Tailwind's rounded-* scale) */
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -111,6 +125,19 @@
   --ring: #8b7cff;
   --overlay: rgb(0 0 0 / 0.6);
 
+  /* Kumo Tactile Buttons */
+  --color-kumo-brand: var(--primary);
+  --btn-ring: color-mix(in oklch, var(--color-kumo-brand), black 12%);
+  --btn-bg: color-mix(in oklch, var(--color-kumo-brand), white 28%);
+  --btn-grad-start: color-mix(in oklch, var(--color-kumo-brand), white 14%);
+  --btn-grad-end: var(--color-kumo-brand);
+
+  --color-kumo-danger: var(--danger);
+  --btn-danger-ring: color-mix(in oklch, var(--color-kumo-danger), black 12%);
+  --btn-danger-bg: color-mix(in oklch, var(--color-kumo-danger), white 28%);
+  --btn-danger-grad-start: color-mix(in oklch, var(--color-kumo-danger), white 14%);
+  --btn-danger-grad-end: var(--color-kumo-danger);
+
   --elev-xs: 0 1px 2px rgb(0 0 0 / 0.4);
   --elev-sm: 0 1px 3px rgb(0 0 0 / 0.45);
   --elev-md: 0 6px 16px -4px rgb(0 0 0 / 0.55);
@@ -119,16 +146,28 @@
 
 /* Accent overrides. Violet is the default above. */
 [data-accent="blue"] {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-text: #1d4ed8;
-  --ring: #2563eb;
+  --primary: #1a6dff;
+  --primary-hover: #155ede;
+  --primary-text: #1a6dff;
+  --ring: #1a6dff;
 }
 /* Dark hovers are the lightest shade that keeps white text at AA. */
 .dark[data-accent="blue"] {
-  --primary-hover: #2c6eef;
+  --primary-hover: #3582ff;
   --primary-text: #60a5fa;
   --ring: #60a5fa;
+}
+
+[data-accent="orange"] {
+  --primary: #ff6900;
+  --primary-hover: #e25a00;
+  --primary-text: #d45000;
+  --ring: #ff6900;
+}
+.dark[data-accent="orange"] {
+  --primary-hover: #ff7f2a;
+  --primary-text: #ff9b6b;
+  --ring: #ff9b6b;
 }
 
 [data-accent="emerald"] {

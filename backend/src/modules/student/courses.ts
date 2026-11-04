@@ -14,6 +14,7 @@ import { localDay } from "../../lib/time.js"
 import { notify } from "./notify.js"
 import { finalizeExpired } from "./quizzes.js"
 import { ownObject, studentProfile, trimmed } from "./shared.js"
+import { broadcastToChannel } from "../../ws.js"
 
 /** Issues the course certificate once every lesson is complete. Returns it when newly earned. */
 async function issueCertificate(tx: Tx, studentId: string, courseId: string) {
@@ -194,6 +195,16 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         })
         .returning()
       await notify(tx, s.id, "assessment", "Submission received", `${a.title} was submitted for evaluation.`, "assessments")
+      broadcastToChannel("evaluators", "new-submission", {
+        assignmentId: a.id,
+        assignmentTitle: a.title,
+        studentId: s.id,
+        submittedAt: now,
+      })
+      broadcastToChannel("notifications", "submission", {
+        title: "Assignment Submitted",
+        message: `${s.full_name} submitted ${a.title}`,
+      })
       return row
     })
   })

@@ -11,7 +11,10 @@ export default defineConfig(({ mode }) => {
   const emitSourcemaps = mode === "development"
   // The browser calls /api on its own origin: here Vite forwards it to the API server (`npm run dev` in backend/);
   // in AWS, CloudFront routes /api/* to the API service.
-  const apiProxy = { "/api": { target: process.env.API_PROXY_TARGET || "http://localhost:4000", xfwd: true } }
+  const apiProxy = {
+    "/api": { target: process.env.API_PROXY_TARGET || "http://localhost:4000", xfwd: true },
+    "/ws": { target: process.env.API_PROXY_TARGET || "http://localhost:4000", ws: true, xfwd: true },
+  }
 
   return {
     base: process.env.FIGMA_PUBLIC_URL

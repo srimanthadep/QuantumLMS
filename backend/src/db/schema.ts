@@ -63,7 +63,6 @@ export const profiles = lms.table("profiles", {
   total_credits: integer().default(60).notNull(),
   campus_address: text().default("").notNull(),
   emergency_contact: text().default("").notNull(),
-  mentor_id: text(),
   notification_prefs: jsonb().default({}).notNull(),
   quiet_hours: text().default('22-07').notNull(),
   ui_state: jsonb().default({}).notNull(),
@@ -75,11 +74,6 @@ export const profiles = lms.table("profiles", {
       foreignColumns: [users.id],
       name: "profiles_id_fkey"
     }).onDelete("cascade"),
-  foreignKey({
-      columns: [table.mentor_id],
-      foreignColumns: [mentors.id],
-      name: "profiles_mentor_id_fkey"
-    }).onDelete("set null"),
   unique("profiles_roll_number_key").on(table.roll_number),
   check("profiles_bio_check", sql`char_length(bio) <= 200`),
   check("profiles_location_check", sql`char_length(location) <= 120`),
@@ -283,25 +277,6 @@ export const faqs = lms.table("faqs", {
   link_label: text(),
   position: integer().default(0).notNull(),
 }, (table) => [
-]);
-
-export const mentors = lms.table("mentors", {
-  id: text().primaryKey().notNull(),
-  name: text().notNull(),
-  avatar: text().default("").notNull(),
-  title: text().notNull(),
-  department: text().default("").notNull(),
-  email: text().notNull(),
-  phone: text().default("").notNull(),
-  office: text().default("").notNull(),
-  bio: text().default("").notNull(),
-  specializations: text().array().default(sql`'{}'::text[]`).notNull(),
-  office_hours: text().default("").notNull(),
-  availability: text().default('Available Now').notNull(),
-  zoom_url: text(),
-  position: integer().default(0).notNull(),
-}, (table) => [
-  check("mentors_availability_check", sql`availability = ANY (ARRAY['Available Now'::text, 'In Lecture'::text, 'Away'::text])`),
 ]);
 
 export const study_squads = lms.table("study_squads", {
@@ -615,36 +590,6 @@ export const resumes = lms.table("resumes", {
       name: "resumes_student_id_fkey"
     }).onDelete("cascade"),
   check("resumes_data_check", sql`(jsonb_typeof(data) = 'object'::text) AND (pg_column_size(data) < 65536)`),
-]);
-
-export const mentor_meetings = lms.table("mentor_meetings", {
-  id: uuid().defaultRandom().primaryKey().notNull(),
-  student_id: uuid().notNull(),
-  mentor_id: text().notNull(),
-  meeting_date: date().notNull(),
-  slot: text().notNull(),
-  ends_slot: text().notNull(),
-  topic: text().notNull(),
-  agenda: text(),
-  zoom_url: text(),
-  status: text().default('Scheduled').notNull(),
-  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
-  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
-}, (table) => [
-  uniqueIndex("mentor_meetings_slot_idx").using("btree", table.mentor_id, table.meeting_date, table.slot).where(sql`(status = 'Scheduled'::text)`),
-  foreignKey({
-      columns: [table.mentor_id],
-      foreignColumns: [mentors.id],
-      name: "mentor_meetings_mentor_id_fkey"
-    }).onDelete("cascade"),
-  foreignKey({
-      columns: [table.student_id],
-      foreignColumns: [profiles.id],
-      name: "mentor_meetings_student_id_fkey"
-    }).onDelete("cascade"),
-  unique("mentor_meetings_student_id_mentor_id_key").on(table.student_id, table.mentor_id),
-  check("mentor_meetings_agenda_check", sql`char_length(agenda) <= 2000`),
-  check("mentor_meetings_status_check", sql`status = ANY (ARRAY['Scheduled'::text, 'Cancelled'::text])`),
 ]);
 
 export const notifications = lms.table("notifications", {
@@ -964,26 +909,6 @@ export const faq_votes = lms.table("faq_votes", {
     }).onDelete("cascade"),
   primaryKey({ columns: [table.student_id, table.faq_id], name: "faq_votes_pkey"}),
   check("faq_votes_vote_check", sql`vote = ANY (ARRAY['up'::text, 'down'::text])`),
-]);
-
-export const mentor_requests = lms.table("mentor_requests", {
-  student_id: uuid().notNull(),
-  mentor_id: text().notNull(),
-  status: text().default('Pending').notNull(),
-  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
-}, (table) => [
-  foreignKey({
-      columns: [table.mentor_id],
-      foreignColumns: [mentors.id],
-      name: "mentor_requests_mentor_id_fkey"
-    }).onDelete("cascade"),
-  foreignKey({
-      columns: [table.student_id],
-      foreignColumns: [profiles.id],
-      name: "mentor_requests_student_id_fkey"
-    }).onDelete("cascade"),
-  primaryKey({ columns: [table.student_id, table.mentor_id], name: "mentor_requests_pkey"}),
-  check("mentor_requests_status_check", sql`status = ANY (ARRAY['Pending'::text, 'Accepted'::text, 'Declined'::text])`),
 ]);
 
 export const quiz_questions = lms.table("quiz_questions", {

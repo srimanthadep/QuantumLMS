@@ -35,8 +35,10 @@ const schema = z.object({
   STORAGE_DRIVER: z.enum(["s3", "local"]).default("local"),
   S3_BUCKET: z.string().optional(),
   S3_REGION: z.string().optional(),
-  /** Override for S3-compatible storage (MinIO, LocalStack). */
+  /** Override for S3-compatible storage (MinIO, LocalStack, Cloudflare R2). */
   S3_ENDPOINT: z.string().url().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
   LOCAL_STORAGE_DIR: z.string().default(".data/uploads"),
   /** Signs local upload and download links. Required with STORAGE_DRIVER=local outside tests. */
   UPLOAD_SIGNING_SECRET: z.string().min(16).optional(),

@@ -7,7 +7,7 @@
  */
 
 export type ThemeMode = "dark" | "light" | "system"
-export type ThemeAccentId = "violet" | "blue" | "emerald" | "amber"
+export type ThemeAccentId = "violet" | "blue" | "orange" | "emerald" | "amber"
 
 export interface ThemeAccent {
   id: ThemeAccentId
@@ -18,7 +18,8 @@ export interface ThemeAccent {
 
 export const THEME_ACCENTS: ThemeAccent[] = [
   { id: "violet", name: "Violet", colorHex: "#6d4aff" },
-  { id: "blue", name: "Blue", colorHex: "#2563eb" },
+  { id: "blue", name: "Kumo Blue", colorHex: "#1a6dff" },
+  { id: "orange", name: "Kumo Orange", colorHex: "#ff6900" },
   { id: "emerald", name: "Emerald", colorHex: "#047857" },
   { id: "amber", name: "Amber", colorHex: "#b45309" },
 ]

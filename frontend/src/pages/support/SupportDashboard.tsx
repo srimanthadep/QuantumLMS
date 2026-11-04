@@ -515,19 +515,19 @@ export default function SupportDashboard({ onOpenAiModal }: SupportDashboardProp
             </CardContent>
           </Card>
 
-          {/* On-Duty Mentor Roster */}
+          {/* On-Duty Support Roster */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary-text" />
                 Active Shift Roster
               </CardTitle>
-              <CardDescription>Mentors active on the support desk</CardDescription>
+              <CardDescription>Specialists active on the support desk</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { name: "Nikhil Joshi", role: "Lead Student Mentor", status: "online", csat: 4.9 },
-                { name: "Aakash Varma", role: "Senior Technical Mentor", status: "online", csat: 5.0 },
+                { name: "Nikhil Joshi", role: "Lead Support Specialist", status: "online", csat: 4.9 },
+                { name: "Aakash Varma", role: "Senior Technical Specialist", status: "online", csat: 5.0 },
                 { name: "Meera Sen", role: "Escalations Lead", status: "busy", csat: 4.8 },
               ].map((agent) => (
                 <div key={agent.name} className="flex items-center justify-between text-xs">

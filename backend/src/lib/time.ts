@@ -1,5 +1,5 @@
 /**
- * Campus-local dates and times (timetables, mentor slots and seeded history are campus-local). Pure Intl, no
+ * Campus-local dates and times (timetables, class slots and seeded history are campus-local). Pure Intl, no
  * dependencies; correct across DST for zones that have it.
  */
 export interface LocalParts {

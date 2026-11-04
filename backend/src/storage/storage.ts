@@ -7,6 +7,7 @@ export const BUCKETS = {
   submissions: { maxBytes: 50 * 1024 * 1024, types: null },
   "ticket-attachments": { maxBytes: 10 * 1024 * 1024, types: null },
   avatars: { maxBytes: 2 * 1024 * 1024, types: ["image/png", "image/jpeg", "image/webp", "image/gif"] },
+  videos: { maxBytes: 5 * 1024 * 1024 * 1024, types: null },
 } as const
 export type Bucket = keyof typeof BUCKETS
 

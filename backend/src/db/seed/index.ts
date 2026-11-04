@@ -28,7 +28,6 @@ export async function recountCounters(tx: Tx) {
 /** Shared course content with dates relative to the anchor. Safe to re-run: rows are upserted by id. */
 export async function seedContent(tx: Tx, anchor: Date, tz: string) {
   const r = contentRows(seedTime(anchor, tz))
-  await upsert(tx, t.mentors, r.mentors, t.mentors.id)
   await upsert(tx, t.courses, r.courses, t.courses.id)
   await upsert(tx, t.course_modules, r.course_modules, t.course_modules.id)
   await upsert(tx, t.lessons, r.lessons, t.lessons.id)
@@ -52,7 +51,7 @@ export async function seedContent(tx: Tx, anchor: Date, tz: string) {
 /** Every row a student owns (used before re-seeding the demo student). Profile and account stay. */
 export async function clearStudent(tx: Tx, id: string) {
   const owned = [
-    t.notifications, t.mentor_requests, t.mentor_meetings, t.resumes, t.interview_sessions, t.support_chat_messages,
+    t.notifications, t.resumes, t.interview_sessions, t.support_chat_messages,
     t.support_tickets, t.faq_votes, t.notes, t.announcement_reads, t.event_registrations, t.reminders, t.leave_requests,
     t.attendance_records, t.certificates, t.gpa_history, t.grades, t.quiz_attempts, t.assignment_submissions,
     t.study_activity, t.lesson_progress, t.post_likes, t.post_saves, t.squad_members, t.course_question_votes, t.enrollments,
@@ -102,7 +101,6 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
       total_credits: 60,
       campus_address: "402 Quantum Hall, AI Innovation Campus",
       emergency_contact: "Ananya Sharma (+1 555-902-1144)",
-      mentor_id: "mentor-1",
       notification_prefs: {},
       quiet_hours: "22-07",
       ui_state: {},
@@ -201,13 +199,6 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
   await tx.insert(t.support_tickets).values(r.support_tickets)
   await tx.insert(t.ticket_replies).values(r.ticket_replies)
   await tx.insert(t.interview_sessions).values(r.interview_sessions)
-
-  // The scheduled mentor meeting falls on the first Friday after tomorrow.
-  await tx.execute(sql`
-    insert into lms.mentor_meetings (student_id, mentor_id, meeting_date, slot, ends_slot, topic, agenda, zoom_url, status, created_at)
-    values (${studentId}::uuid, 'mentor-1', (${d}::date + 2) + ((5 - extract(isodow from ${d}::date + 2)::int + 7) % 7), '05:00 PM', '05:45 PM',
-      'Senior Thesis Advising & RAG Architecture Review', 'Review capstone evaluation milestones, multi-agent cognitive graph benchmarks, and conference submission draft.',
-      'https://zoom.us/j/98421038592?pwd=QAI-QuantumMentor-2026', 'Scheduled', ${time.ago({ days: 2 })})`)
 
   await tx.insert(t.post_likes).values({ student_id: studentId, post_id: "cp-2" })
   await tx.insert(t.squad_members).values(r.squad_members)

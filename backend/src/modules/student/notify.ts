@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm"
 import type { Tx } from "../../db/client.js"
 import { notifications, profiles } from "../../db/schema.js"
+import { broadcastToChannel } from "../../ws.js"
 
 export type NotificationKind = "class" | "doubt" | "grade" | "system" | "payment" | "assessment"
 
@@ -11,5 +12,7 @@ export async function notify(tx: Tx, studentId: string, kind: NotificationKind, 
     const prefs = (p?.prefs ?? {}) as Record<string, unknown>
     if (prefs[pref] === false || prefs[pref] === "false") return
   }
-  await tx.insert(notifications).values({ student_id: studentId, kind, title, message, link: link ?? null })
+  const [row] = await tx.insert(notifications).values({ student_id: studentId, kind, title, message, link: link ?? null }).returning()
+  broadcastToChannel(`user:${studentId}`, "notification", row)
+  broadcastToChannel("notifications", "notification", row)
 }

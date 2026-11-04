@@ -95,9 +95,9 @@ export const QUESTION_BANK: Record<InterviewType, InterviewQuestion[]> = {
       id: "b3",
       category: "Behavioral",
       question: "Tell me about a time you had to learn a new technology quickly.",
-      expectedConcepts: ["deadline", "plan", "documentation", "prototype", "mentor", "delivered", "result"],
+      expectedConcepts: ["deadline", "plan", "documentation", "prototype", "advisor", "delivered", "result"],
       sampleAnswer:
-        "With two weeks before a hackathon, I had to learn LangGraph. I planned the core concepts, read the documentation, built a small prototype each day and asked a mentor to review my design. We delivered a working multi-agent demo and placed second.",
+        "With two weeks before a hackathon, I had to learn LangGraph. I planned the core concepts, read the documentation, built a small prototype each day and asked an advisor to review my design. We delivered a working multi-agent demo and placed second.",
       tip: "Make the learning process concrete.",
     },
   ],
@@ -115,9 +115,9 @@ export const QUESTION_BANK: Record<InterviewType, InterviewQuestion[]> = {
       id: "h2",
       category: "HR",
       question: "Where do you see yourself in three years?",
-      expectedConcepts: ["ownership", "mentor", "expertise", "lead", "learning", "team"],
+      expectedConcepts: ["ownership", "advisor", "expertise", "lead", "learning", "team"],
       sampleAnswer:
-        "I'd like to own a production ML system end to end, have deep expertise in LLM evaluation, and mentor newer engineers. I want to keep learning while helping the team ship reliable products.",
+        "I'd like to own a production ML system end to end, have deep expertise in LLM evaluation, and guide newer engineers. I want to keep learning while helping the team ship reliable products.",
       tip: "Be ambitious but grounded in the role.",
     },
     {

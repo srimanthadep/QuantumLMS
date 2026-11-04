@@ -84,7 +84,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Instructors & Mentors
+            Instructors & Faculty
           </h1>
           <p className="text-sm text-muted-foreground">
             Faculty roster, domain specializations, teaching loads, and student feedback scores

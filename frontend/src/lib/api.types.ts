@@ -272,42 +272,6 @@ export interface Rows {
     type: string
     summary: string
   }
-  mentor_meetings: {
-    id: string
-    student_id: string
-    mentor_id: string
-    meeting_date: string
-    slot: string
-    ends_slot: string
-    topic: string
-    agenda: string | null
-    zoom_url: string | null
-    status: string
-    created_at: string
-    updated_at: string
-  }
-  mentor_requests: {
-    student_id: string
-    mentor_id: string
-    status: string
-    created_at: string
-  }
-  mentors: {
-    id: string
-    name: string
-    avatar: string
-    title: string
-    department: string
-    email: string
-    phone: string
-    office: string
-    bio: string
-    specializations: string[]
-    office_hours: string
-    availability: string
-    zoom_url: string | null
-    position: number
-  }
   notes: {
     id: string
     student_id: string
@@ -365,7 +329,6 @@ export interface Rows {
     total_credits: number
     campus_address: string
     emergency_contact: string
-    mentor_id: string | null
     notification_prefs: Json
     quiet_hours: string
     ui_state: Json

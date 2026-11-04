@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils"
 import { ease, spring, transition } from "@/lib/motion"
 import type { AIMonitoringSuggestion, AttendanceStatus, StudentItem } from "@/types"
 import { useTeacherData } from "../teacherStore"
+import { useChannel, ws } from "@/lib/ws"
 import { ATTENDANCE_TONE, buildRoster, DEMO_DATE, firstName, formatClock, formatTimeRange, sessionElapsed, type RosterEntry } from "../teacherUtils"
 
 interface LiveQuestion {
@@ -234,6 +235,13 @@ export default function LiveStudioPage() {
   const [endOpen, setEndOpen] = useState(false)
   const [publishWhenReady, setPublishWhenReady] = useState(true)
   const [sendSummary, setSendSummary] = useState(true)
+
+  // Real-time classroom WebSocket channel for questions and student interactions
+  useChannel(session ? `live:${session.id}` : null, (event, payload) => {
+    if (event === "question" && payload?.id && payload?.text) {
+      setQuestions((prev) => [payload, ...prev])
+    }
+  })
 
   const present = roster.filter((r) => r.status === "Present" || r.status === "Late").length
   const voteTarget = Math.max(1, present)

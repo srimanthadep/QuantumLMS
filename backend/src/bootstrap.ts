@@ -25,7 +25,18 @@ export function createStorage(config: Config): { storage: Storage; localStorage?
     const local = createLocalStorage({ dir: config.LOCAL_STORAGE_DIR, secret: config.UPLOAD_SIGNING_SECRET ?? "test-only-upload-secret" })
     return { storage: local, localStorage: local }
   }
-  return { storage: createS3Storage({ bucket: config.S3_BUCKET!, region: config.S3_REGION ?? config.COGNITO_REGION, endpoint: config.S3_ENDPOINT }) }
+  const credentials =
+    config.S3_ACCESS_KEY_ID && config.S3_SECRET_ACCESS_KEY
+      ? { accessKeyId: config.S3_ACCESS_KEY_ID, secretAccessKey: config.S3_SECRET_ACCESS_KEY }
+      : undefined
+  return {
+    storage: createS3Storage({
+      bucket: config.S3_BUCKET!,
+      region: config.S3_REGION ?? config.COGNITO_REGION ?? "auto",
+      endpoint: config.S3_ENDPOINT,
+      credentials,
+    }),
+  }
 }
 
 /** Wires the real dependencies. Tests pass overrides for Cognito, token verification and storage. */

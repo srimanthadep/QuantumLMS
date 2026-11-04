@@ -8,6 +8,7 @@ import { badRequest, notFound } from "../../errors.js"
 import { me, parse } from "../../http.js"
 import { notify } from "./notify.js"
 import { ownObject } from "./shared.js"
+import { broadcastToChannel } from "../../ws.js"
 
 /** Live-chat replies from Learner Success (keyword routing, as before). */
 export function agentReply(text: string): string {
@@ -124,12 +125,27 @@ export async function supportRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post("/api/student/support/chat", async (req) => {
     const s = me(req)
     const { body } = parse(z.object({ body: z.string().trim().min(1, "Write a message of up to 2,000 characters.").max(2000, "Write a message of up to 2,000 characters.") }), req.body)
-    return db
+    const rows = await db
       .insert(support_chat_messages)
       .values([
         { student_id: s.id, sender: "student", body },
         { student_id: s.id, sender: "agent", body: agentReply(body) },
       ])
       .returning()
+
+    broadcastToChannel(`chat:${s.id}`, "message", {
+      id: String(rows[0].id),
+      text: rows[0].body,
+      sender: "student",
+      senderName: s.full_name,
+    })
+    broadcastToChannel(`chat:${s.id}`, "message", {
+      id: String(rows[1].id),
+      text: rows[1].body,
+      sender: "agent",
+      senderName: "Learner Success",
+    })
+
+    return rows
   })
 }

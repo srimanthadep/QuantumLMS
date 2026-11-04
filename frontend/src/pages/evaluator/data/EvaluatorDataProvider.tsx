@@ -4,6 +4,7 @@ import RouteFallback from "@/app/RouteFallback"
 import { useSession } from "@/app/session"
 import { DEMO_EVALUATOR } from "@/lib/api"
 import { mutate, prime, refresh, useResource } from "@/lib/resource"
+import { useChannel } from "@/lib/ws"
 import * as api from "./api"
 import { isToMark, sortItems } from "./derive"
 import type { EvaluatorProfile, ProfilePatch, QueueData, QueueItem, ReevaluationItem } from "./types"
@@ -72,6 +73,14 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
       window.removeEventListener("focus", onFocus)
     }
   }, [queueKey, requestsKey])
+
+  // Instant real-time queue refresh when students submit assignments
+  useChannel("evaluators", (event) => {
+    if (event === "new-submission" || event === "reevaluation-request") {
+      refresh(queueKey)
+      refresh(requestsKey)
+    }
+  })
 
   const p = profile.data
   useEffect(() => {
