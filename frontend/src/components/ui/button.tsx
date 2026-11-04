@@ -25,12 +25,12 @@ const buttonVariants = cva(
         destructive: "kumo-btn kumo-btn--danger",
       },
       size: {
-        sm: "h-8 px-3 pb-0.5 text-xs gap-1.5 [&_svg]:size-3.5",
-        md: "h-9 px-3.5 pb-0.5 text-sm gap-1.5 [&_svg]:size-4",
-        lg: "h-11 px-5 pb-0.5 text-[15px] gap-2 [&_svg]:size-4",
-        icon: "h-9 w-9 p-0 [&_svg]:size-4",
-        "icon-sm": "h-8 w-8 p-0 [&_svg]:size-3.5",
-        default: "h-9 px-3.5 pb-0.5 text-sm gap-1.5 [&_svg]:size-4",
+        sm: "h-8 px-3 text-xs gap-1.5 leading-none text-center [&_svg]:size-3.5",
+        md: "h-9 px-3.5 text-sm gap-1.5 leading-none text-center [&_svg]:size-4",
+        lg: "h-11 px-5 text-[15px] gap-2 leading-none text-center [&_svg]:size-4",
+        icon: "h-9 w-9 p-0 leading-none text-center [&_svg]:size-4",
+        "icon-sm": "h-8 w-8 p-0 leading-none text-center [&_svg]:size-3.5",
+        default: "h-9 px-3.5 text-sm gap-1.5 leading-none text-center [&_svg]:size-4",
       },
       block: {
         true: "w-full",
@@ -87,7 +87,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...(props as HTMLMotionProps<"button">)}
       >
         {isKumo && <span className="kumo-btn__bg" aria-hidden="true" />}
-        <span className="kumo-btn__content">
+        <span className="kumo-btn__content w-full h-full flex items-center justify-center text-center leading-none">
           {loading ? <Loader2 className="animate-spin" aria-hidden="true" /> : leftIcon}
           {children}
           {!loading && rightIcon}
