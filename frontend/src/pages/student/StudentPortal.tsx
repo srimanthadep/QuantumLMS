@@ -19,6 +19,7 @@ const CareerHubPage = lazy(() => import("./CareerHubPage"))
 const StudentSettingsPage = lazy(() => import("./StudentSettingsPage"))
 const SupportHelpPage = lazy(() => import("./SupportHelpPage"))
 const MyNotesPage = lazy(() => import("./MyNotesPage"))
+const LiveClassPage = lazy(() => import("./LiveClassPage"))
 
 /** Notification links (set by the backend) -> student pages. */
 const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
@@ -50,6 +51,8 @@ function navIdFor(page: StudentNavPage): string {
     case "My Courses":
     case "Course Details":
       return "courses"
+    case "Live Class":
+    case "Live Classes":
     case "Schedule":
     case "Timetable":
     case "Attendance":
@@ -113,10 +116,16 @@ function parseInitialTab(): StudentNavPage {
     const target = (pageParam || hash || "").toLowerCase().trim()
 
     if (
+      target === "live-class" ||
+      target === "live-classes" ||
+      target === "live class" ||
+      target === "live classes" ||
+      target === "live"
+    )
+      return "Live Class"
+    if (
       target === "timetable" ||
       target === "schedule" ||
-      target === "live-classes" ||
-      target === "live classes" ||
       target === "events" ||
       target === "announcements"
     )
@@ -295,6 +304,15 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
             quizzes={quizzes}
           />
         )
+      case "Live Class":
+      case "Live Classes":
+        return (
+          <LiveClassPage
+            onNavigate={navigateTo}
+            onToast={onToast}
+            onSubmitAssignment={handleSubmitAssignment}
+          />
+        )
       case "Schedule":
       case "Timetable":
       case "Attendance":
@@ -303,6 +321,7 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
         return (
           <SchedulePage
             onToast={onToast}
+            onNavigate={navigateTo}
             initialTab={
               activeTab === "Attendance" ? "attendance" : activeTab === "Events & Notices" ? "events" : activeTab === "Announcements" ? "announcements" : "timetable"
             }

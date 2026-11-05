@@ -1,6 +1,6 @@
 import type { IconName } from "../../types"
 
-export type StudentNavPage = "Dashboard" | "My Courses" | "Course Details" | "Schedule" | "Timetable" | "Attendance" | "Assessments" | "Assignments" | "Quizzes" | "Grades & Certificates" | "Grades" | "Community" | "Communication" | "Discussions" | "Career Hub" | "My Notes" | "Certificates" | "Resume Building" | "Mock Interview" | "Events & Notices" | "Announcements" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
+export type StudentNavPage = "Dashboard" | "Live Class" | "Live Classes" | "My Courses" | "Course Details" | "Schedule" | "Timetable" | "Attendance" | "Assessments" | "Assignments" | "Quizzes" | "Grades & Certificates" | "Grades" | "Community" | "Communication" | "Discussions" | "Career Hub" | "My Notes" | "Certificates" | "Resume Building" | "Mock Interview" | "Events & Notices" | "Announcements" | "Profile" | "Settings" | "Support & Help" | "Support" | "Help Center"
 
 export interface EducationEntry {
   id: string

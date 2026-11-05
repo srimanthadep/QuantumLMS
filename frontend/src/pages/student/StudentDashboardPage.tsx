@@ -789,7 +789,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                           <p className="truncate text-caption text-muted-foreground">{slot.time} · {slot.room}</p>
                         </div>
                         {live ? (
-                          <Button size="sm" leftIcon={<Radio aria-hidden="true" />} onClick={() => onToast(`Joining ${slot.courseName}…`)}>
+                          <Button size="sm" leftIcon={<Radio aria-hidden="true" />} onClick={() => onNavigate("Live Class")}>
                             Join
                           </Button>
                         ) : (

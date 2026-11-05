@@ -73,6 +73,7 @@ export type ScheduleTab = "timetable" | "attendance" | "events" | "announcements
 interface SchedulePageProps {
   onToast: (msg: string) => void
   initialTab?: ScheduleTab
+  onNavigate?: (page: StudentNavPage, courseId?: string) => void
 }
 
 const DAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -124,7 +125,7 @@ function useCampusFeed() {
   return useStudentResource<CampusFeed>("campus", () => loadCampusFeed(), 120_000)
 }
 
-export default function SchedulePage({ onToast, initialTab = "timetable" }: SchedulePageProps) {
+export default function SchedulePage({ onToast, initialTab = "timetable", onNavigate }: SchedulePageProps) {
   const [tab, setTab] = useState<ScheduleTab>(initialTab)
   const timetable = useTimetable()
   const feed = useCampusFeed()
@@ -137,18 +138,30 @@ export default function SchedulePage({ onToast, initialTab = "timetable" }: Sche
         title="Schedule"
         description="Classes, attendance, campus events and announcements in one place."
         actions={
-          <Button
-            variant="outline"
-            leftIcon={<Download aria-hidden="true" />}
-            disabled={!timetable.week}
-            onClick={() => {
-              if (!timetable.week) return
-              downloadTextFile(toIcs(timetable.week.slots, timetable.week.weekStart), `Quantum_Timetable_${isoDay(timetable.week.weekStart)}.ics`, "text/calendar;charset=utf-8")
-              onToast("Timetable exported. Import the .ics file into your calendar.")
-            }}
-          >
-            Export to calendar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              leftIcon={<Radio className="h-4 w-4 text-danger animate-pulse" />}
+              onClick={() => {
+                if (onNavigate) onNavigate("Live Class")
+                else onToast("Opening Live Class…")
+              }}
+            >
+              Enter Live Class
+            </Button>
+            <Button
+              variant="outline"
+              leftIcon={<Download aria-hidden="true" />}
+              disabled={!timetable.week}
+              onClick={() => {
+                if (!timetable.week) return
+                downloadTextFile(toIcs(timetable.week.slots, timetable.week.weekStart), `Quantum_Timetable_${isoDay(timetable.week.weekStart)}.ics`, "text/calendar;charset=utf-8")
+                onToast("Timetable exported. Import the .ics file into your calendar.")
+              }}
+            >
+              Export to calendar
+            </Button>
+          </div>
         }
       />
       <Tabs value={tab} onValueChange={(v) => setTab(v as ScheduleTab)}>
@@ -176,7 +189,7 @@ export default function SchedulePage({ onToast, initialTab = "timetable" }: Sche
           </TabsTrigger>
         </TabsList>
         <TabsContent value="timetable" className="mt-5">
-          <Timetable onToast={onToast} />
+          <Timetable onToast={onToast} onNavigate={onNavigate} />
         </TabsContent>
         <TabsContent value="attendance" className="mt-5">
           <Attendance onToast={onToast} />
@@ -210,7 +223,7 @@ function SectionSkeleton() {
 
 /* ------------------------------- Timetable ------------------------------- */
 
-function Timetable({ onToast }: { onToast: (m: string) => void }) {
+function Timetable({ onToast, onNavigate }: { onToast: (m: string) => void; onNavigate?: (page: StudentNavPage) => void }) {
   const timetable = useTimetable()
   const all = useMemo(() => timetable.week?.slots ?? [], [timetable.week])
   const today = timetable.week?.today ?? null
@@ -359,7 +372,13 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
                       </p>
                     </div>
                     {isLive ? (
-                      <Button leftIcon={<Radio aria-hidden="true" />} onClick={() => onToast(`Joining ${s.courseName}…`)}>
+                      <Button
+                        leftIcon={<Radio aria-hidden="true" />}
+                        onClick={() => {
+                          if (onNavigate) onNavigate("Live Class")
+                          else onToast(`Joining ${s.courseName}…`)
+                        }}
+                      >
                         Join now
                       </Button>
                     ) : isDone ? (
@@ -561,7 +580,14 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
                 <Users className="h-4 w-4" aria-hidden="true" /> {upNext.instructor}
               </div>
               {upNext.status === "Live Now" && (
-                <Button block leftIcon={<Radio aria-hidden="true" />} onClick={() => onToast(`Joining ${upNext.courseName}…`)}>
+                <Button
+                  block
+                  leftIcon={<Radio aria-hidden="true" />}
+                  onClick={() => {
+                    if (onNavigate) onNavigate("Live Class")
+                    else onToast(`Joining ${upNext.courseName}…`)
+                  }}
+                >
                   Join live class
                 </Button>
               )}
