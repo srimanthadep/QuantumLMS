@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CalendarPlus, Video } from "lucide-react"
+import { CalendarPlus, Sparkles, Video } from "lucide-react"
 import {
   Button,
   Dialog,
@@ -31,7 +31,39 @@ interface ScheduleSessionDialogProps {
   session?: LiveSessionItem | null
 }
 
-const PLATFORMS: LiveSessionItem["platform"][] = ["Quantum Classroom", "Zoom", "Google Meet"]
+const PLATFORM_OPTIONS: { value: LiveSessionItem["platform"]; label: string; icon: React.ReactNode }[] = [
+  {
+    value: "Quantum Classroom",
+    label: "Quantum Classroom",
+    icon: (
+      <span className="relative flex items-center justify-center shrink-0">
+        <Video className="h-4 w-4 text-primary" aria-hidden="true" />
+        <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-danger" />
+        </span>
+      </span>
+    ),
+  },
+  {
+    value: "Zoom",
+    label: "Zoom",
+    icon: (
+      <svg className="h-4 w-4 text-[#2D8CFF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h7a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H7a2.5 2.5 0 0 1-2.5-2.5v-9zm12.75 2.41 3.42-2.28A1 1 0 0 1 22 8.46v7.08a1 1 0 0 1-1.33.83l-3.42-2.28V9.91z" />
+      </svg>
+    ),
+  },
+  {
+    value: "Google Meet",
+    label: "Google Meet",
+    icon: (
+      <svg className="h-4 w-4 text-[#00AC47] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
+      </svg>
+    ),
+  },
+]
 
 /** Create or reschedule a live class. New classes show up in Live classes and on the calendar. */
 export default function ScheduleSessionDialog({ open, onOpenChange, defaultCourseId, session }: ScheduleSessionDialogProps) {
@@ -42,6 +74,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
   const [start, setStart] = useState("16:00")
   const [end, setEnd] = useState("17:00")
   const [platform, setPlatform] = useState<LiveSessionItem["platform"]>("Quantum Classroom")
+  const [meetingUrl, setMeetingUrl] = useState("")
   const [notes, setNotes] = useState("")
   const [errors, setErrors] = useState<{ title?: string; time?: string }>({})
 
@@ -53,6 +86,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
     setStart(session?.startTime ?? "16:00")
     setEnd(session?.endTime ?? "17:00")
     setPlatform(session?.platform ?? "Quantum Classroom")
+    setMeetingUrl(session?.meetingUrl ?? "")
     setNotes(session?.classNotes ?? "")
     setErrors({})
   }, [open, session, defaultCourseId, courses])
@@ -74,11 +108,27 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
         endTime: end,
         durationMinutes: minutesOf(end) - minutesOf(start),
         platform,
+        meetingUrl:
+          platform === "Quantum Classroom"
+            ? session.meetingUrl || `https://classroom.quantumschool.ai/live/${session.id}`
+            : meetingUrl.trim() || session.meetingUrl,
         classNotes: notes.trim() || undefined,
       })
       notify(`Rescheduled “${title.trim()}” to ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
     } else {
-      const s = scheduleSession({ title: title.trim(), courseId, scheduledDate: date, startTime: start, endTime: end, platform, classNotes: notes.trim() || undefined })
+      const s = scheduleSession({
+        title: title.trim(),
+        courseId,
+        scheduledDate: date,
+        startTime: start,
+        endTime: end,
+        platform,
+        meetingUrl:
+          platform === "Quantum Classroom"
+            ? `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}`
+            : meetingUrl.trim() || undefined,
+        classNotes: notes.trim() || undefined,
+      })
       notify(`Scheduled “${s.title}” for ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
     }
     onOpenChange(false)
@@ -120,10 +170,42 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
               <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
             </Field>
           </div>
-          <div className="grid gap-1.5">
-            <span className="text-sm font-medium text-foreground">Platform</span>
-            <SegmentedControl aria-label="Platform" options={PLATFORMS.map((p) => ({ value: p, label: p, icon: p === "Quantum Classroom" ? <Video className="h-3.5 w-3.5" aria-hidden="true" /> : undefined }))} value={platform} onChange={setPlatform} block />
+
+          {/* Platform Selector ("quantumschool bar") */}
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Platform</span>
+              {platform === "Quantum Classroom" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary-text">
+                  <Sparkles className="h-3 w-3" /> Built-in Live Studio
+                </span>
+              )}
+            </div>
+            <SegmentedControl
+              aria-label="Platform"
+              size="lg"
+              options={PLATFORM_OPTIONS}
+              value={platform}
+              onChange={setPlatform}
+              block
+            />
+            {platform === "Quantum Classroom" ? (
+              <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-primary-soft/40 px-3 py-2 text-xs text-primary-text">
+                <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                <span>Integrated Quantum School classroom with attendance tracking, live transcript, and in-class milestones.</span>
+              </div>
+            ) : (
+              <Field label={platform === "Zoom" ? "Zoom Meeting Link" : "Google Meet Link"} hint="Learners will receive this invite link in their timetable">
+                <Input
+                  type="url"
+                  value={meetingUrl}
+                  onChange={(e) => setMeetingUrl(e.target.value)}
+                  placeholder={platform === "Zoom" ? "https://zoom.us/j/1234567890" : "https://meet.google.com/abc-defg-hij"}
+                />
+              </Field>
+            )}
           </div>
+
           <Field label="Notes for learners" hint="Optional. Shown on the class card and in the invite.">
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What to prepare, links to open before class…" />
           </Field>

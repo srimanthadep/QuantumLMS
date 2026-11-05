@@ -118,7 +118,7 @@ interface SegmentedControlProps<T extends string> {
   value: T
   onChange: (value: T) => void
   "aria-label": string
-  size?: "sm" | "md"
+  size?: "sm" | "md" | "lg"
   className?: string
   block?: boolean
 }
@@ -156,7 +156,7 @@ export function SegmentedControl<T extends string>({
       onKeyDown={onKey}
       className={cn(
         "relative inline-flex items-center gap-0.5 rounded-md border border-border bg-surface-2 p-0.5",
-        size === "sm" ? "h-8" : "h-9",
+        size === "sm" ? "h-8" : size === "lg" ? "h-11" : "h-9.5",
         block && "flex w-full",
         className,
       )}
@@ -176,10 +176,10 @@ export function SegmentedControl<T extends string>({
             disabled={o.disabled}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative inline-flex h-full items-center justify-center gap-1.5 rounded-[7px] px-3 font-medium transition-colors disabled:opacity-50",
-              size === "sm" ? "text-xs" : "text-sm",
-              block && "flex-1",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              "relative inline-flex h-full items-center justify-center gap-1.5 rounded-[7px] px-1.5 sm:px-2 font-medium whitespace-nowrap transition-colors disabled:opacity-50",
+              size === "sm" ? "text-xs" : size === "lg" ? "text-xs sm:text-sm" : "text-xs sm:text-sm",
+              block && "flex-1 min-w-0",
+              active ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {active && (
@@ -190,9 +190,9 @@ export function SegmentedControl<T extends string>({
                 className="absolute inset-0 rounded-[7px] border border-border bg-surface-3 shadow-[var(--elev-xs)]"
               />
             )}
-            <span className="relative inline-flex items-center gap-1.5">
+            <span className="relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
               {o.icon}
-              {o.label}
+              <span>{o.label}</span>
             </span>
           </button>
         )

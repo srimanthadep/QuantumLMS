@@ -88,6 +88,7 @@ export interface NewSessionInput {
   startTime: string
   endTime: string
   platform: LiveSessionItem["platform"]
+  meetingUrl?: string
   classNotes?: string
 }
 
@@ -404,7 +405,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         status: "Upcoming",
         approvalStatus: "Pending Approval",
         platform: input.platform,
-        meetingUrl: `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}`,
+        meetingUrl: input.meetingUrl?.trim() || (input.platform === "Quantum Classroom" ? `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}` : undefined),
         classNotes: input.classNotes,
         instructorName: user.name,
         instructorAvatar: user.avatar,
