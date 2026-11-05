@@ -78,7 +78,8 @@ interface TranscriptLine {
 
 export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment }: LiveClassPageProps) {
   const data = useStudentData()
-  const { user, assignments } = data
+  const user = data.profile ?? {}
+  const assignments = data.view?.assignments ?? []
 
   // Active Live Session details
   const session = {
@@ -211,9 +212,9 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
   }
 
   // Assessment Upload State
-  const activeAssignment: AssignmentData | undefined =
-    assignments.find((a) => a.courseCode === session.courseCode || a.course.includes("Generative")) ||
-    assignments[0] || {
+  const activeAssignment: AssignmentData =
+    assignments?.find((a) => a.courseCode === session.courseCode || a.course?.includes("Generative")) ||
+    assignments?.[0] || {
       id: "as-live-1",
       title: "In-Class Milestone: Cyclical Graph Checkpoint Reducer",
       course: session.courseName,
@@ -696,3 +697,4 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
     </div>
   )
 }
+
