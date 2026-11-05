@@ -14,7 +14,6 @@ import {
 
 // Super Admin platform console views
 import PlatformHealthView from "./views/PlatformHealthView"
-import TenantsView from "./views/TenantsView"
 import RbacView from "./views/RbacView"
 import AuditLogsView from "./views/AuditLogsView"
 import AiUsageView from "./views/AiUsageView"
@@ -46,7 +45,6 @@ const NAV_PATHS: Record<string, string> = {
   reports: "/super-admin/reports",
   // Super Admin platform console scope
   health: "/super-admin/health",
-  tenants: "/super-admin/tenants",
   access: "/super-admin/access",
   audit: "/super-admin/audit",
   ai: "/super-admin/ai",
@@ -202,10 +200,6 @@ export default function SuperAdminPortal({
             <Route
               path="/health"
               element={<PlatformHealthView store={superAdminStore} onToast={onToast} />}
-            />
-            <Route
-              path="/tenants"
-              element={<TenantsView store={superAdminStore} />}
             />
             <Route
               path="/access"

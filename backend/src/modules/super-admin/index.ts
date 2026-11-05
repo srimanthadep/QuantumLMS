@@ -9,7 +9,8 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
 
   await app.register(
     async (scope) => {
-      scope.addHook("preHandler", authenticate(ctx, ["Super Admin"]))
+      // Allow Admin and Super Admin in single-tenant architecture
+      scope.addHook("preHandler", authenticate(ctx, ["Admin", "Super Admin"]))
 
       // 1. Platform Health & Telemetry
       scope.get("/health", async () => {
@@ -88,116 +89,26 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
         }
       })
 
-      // 4. Enterprise Tenants & Hubs
+      // 4. Single-tenant platform tenancy info
       scope.get("/tenants", async () => {
         return {
-          tenants: [
-            {
-              id: "hub-1",
-              name: "IIT Madras Research Park",
-              type: "University Partner",
-              location: "Chennai, TN",
-              cloudRegion: "ap-south-1 (Mumbai)",
-              learnersCount: 420,
-              coursesSubscribed: 6,
-              aiTokensUsedMonthly: 4_200_000,
-              aiTokenLimitMonthly: 8_000_000,
-              status: "Active",
-              contactPerson: "Dr. K. Ramanathan",
-              contactEmail: "k.ramanathan@iitm.ac.in",
-            },
-            {
-              id: "hub-2",
-              name: "BITS Pilani Innovation Hub",
-              type: "Enterprise Lab",
-              location: "Hyderabad, TS",
-              cloudRegion: "ap-south-1 (Mumbai)",
-              learnersCount: 380,
-              coursesSubscribed: 5,
-              aiTokensUsedMonthly: 3_800_000,
-              aiTokenLimitMonthly: 6_000_000,
-              status: "Active",
-              contactPerson: "Prof. S. V. Rao",
-              contactEmail: "svrao@pilani.bits-pilani.ac.in",
-            },
-            {
-              id: "hub-3",
-              name: "IIIT Hyderabad Foundation",
-              type: "Research Guild",
-              location: "Gachibowli, TS",
-              cloudRegion: "ap-south-1 (Mumbai)",
-              learnersCount: 290,
-              coursesSubscribed: 4,
-              aiTokensUsedMonthly: 2_900_000,
-              aiTokenLimitMonthly: 5_000_000,
-              status: "Active",
-              contactPerson: "Dr. Anupama Verma",
-              contactEmail: "anupama.v@iiit.ac.in",
-            },
-            {
-              id: "hub-4",
-              name: "PES University AI Lab",
-              type: "University Partner",
-              location: "Bengaluru, KA",
-              cloudRegion: "ap-south-1 (Mumbai)",
-              learnersCount: 150,
-              coursesSubscribed: 3,
-              aiTokensUsedMonthly: 1_200_000,
-              aiTokenLimitMonthly: 4_000_000,
-              status: "Active",
-              contactPerson: "Dr. Sandeep Hegde",
-              contactEmail: "sandeep@pes.edu",
-            },
-          ],
+          singleTenant: true,
+          organization: "Quantum AI Academy",
+          tenants: [],
         }
       })
 
-      // 4b. Create enterprise tenant hub
-      scope.post("/tenants", async (req) => {
-        const b = parse(
-          z.object({
-            name: z.string().min(3).max(150),
-            type: z.enum(["University Partner", "Enterprise Lab", "Research Guild", "Corporate Center"]).default("University Partner"),
-            location: z.string().default("Bengaluru, KA"),
-            cloudRegion: z.string().default("ap-south-1 (Mumbai)"),
-            learnersCount: z.number().int().min(0).default(100),
-            coursesSubscribed: z.number().int().min(1).default(3),
-            aiTokenLimitMonthly: z.number().int().min(1000000).default(5000000),
-            status: z.enum(["Active", "Provisioning", "Suspended"]).default("Active"),
-            contactPerson: z.string().default("Partner Lead"),
-            contactEmail: z.string().email().default("lead@partner.edu"),
-          }),
-          req.body,
-        )
-        const newTenant = {
-          id: `hub-${Date.now()}`,
-          ...b,
-          aiTokensUsedMonthly: 0,
-        }
-        return { tenant: newTenant }
+      // 4b. Legacy compatibility
+      scope.post("/tenants", async () => {
+        return { singleTenant: true, ok: true }
       })
 
-      // 4c. Edit enterprise tenant hub
       scope.patch<{ Params: { id: string } }>("/tenants/:id", async (req) => {
-        const b = parse(
-          z.object({
-            name: z.string().min(3).max(150).optional(),
-            type: z.enum(["University Partner", "Enterprise Lab", "Research Guild", "Corporate Center"]).optional(),
-            location: z.string().optional(),
-            learnersCount: z.number().int().optional(),
-            aiTokenLimitMonthly: z.number().int().optional(),
-            status: z.enum(["Active", "Provisioning", "Suspended"]).optional(),
-            contactPerson: z.string().optional(),
-            contactEmail: z.string().email().optional(),
-          }),
-          req.body,
-        )
-        return { ok: true, id: req.params.id, tenant: b }
+        return { singleTenant: true, ok: true, id: req.params.id }
       })
 
-      // 4d. Delete enterprise tenant hub
       scope.delete<{ Params: { id: string } }>("/tenants/:id", async (req) => {
-        return { ok: true, deleted: req.params.id }
+        return { singleTenant: true, ok: true, deleted: req.params.id }
       })
 
       // 5. RBAC Permission Matrix

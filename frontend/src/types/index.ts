@@ -100,6 +100,7 @@ export interface AuditLogItem {
   category: "Auth" | "Permission" | "AI Engine" | "Database" | "Academic"
 }
 
+/** @deprecated Single-tenant architecture: QuantumLMS runs as a dedicated single tenant */
 export interface CampusTenant {
   id: string
   name: string

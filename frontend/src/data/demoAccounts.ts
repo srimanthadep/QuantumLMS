@@ -23,7 +23,7 @@ export const demoAccounts: DemoAccount[] = [
     title: "Platform Owner",
     badge: "SUPER ADMIN",
     avatar: "/assets/teacher-female.png",
-    tagline: "Platform health, tenants, access control, audit logs, AI usage and revenue",
+    tagline: "Platform health, access control, audit logs, AI engine and revenue",
     accentColor: "#6d4aff",
   },
   {

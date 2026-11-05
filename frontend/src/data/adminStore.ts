@@ -124,21 +124,6 @@ export interface PlatformServiceHealth {
   sparkline: number[]
 }
 
-export interface TenantHub {
-  id: string
-  name: string
-  type: "Enterprise Lab" | "Regional Hub" | "Research Guild" | "University Partner"
-  location: string
-  cloudRegion: string
-  learnersCount: number
-  coursesSubscribed: number
-  aiTokensUsedMonthly: number
-  aiTokenLimitMonthly: number
-  status: "Active" | "Provisioning" | "Maintenance"
-  contactPerson: string
-  contactEmail: string
-}
-
 export interface RbacPermissionRow {
   id: string
   permission: string
@@ -682,65 +667,6 @@ export const INITIAL_SERVICES_HEALTH: PlatformServiceHealth[] = [
   },
 ]
 
-export const INITIAL_TENANTS: TenantHub[] = [
-  {
-    id: "tenant-1",
-    name: "Bengaluru Tech Hub · AI Cohort Alpha",
-    type: "Regional Hub",
-    location: "Bengaluru, India",
-    cloudRegion: "ap-south-1 (Mumbai)",
-    learnersCount: 640,
-    coursesSubscribed: 6,
-    aiTokensUsedMonthly: 18400000,
-    aiTokenLimitMonthly: 25000000,
-    status: "Active",
-    contactPerson: "Rajesh Kumar",
-    contactEmail: "rajesh.k@bengaluru-hub.ai",
-  },
-  {
-    id: "tenant-2",
-    name: "NeoCorp Enterprise AI Lab",
-    type: "Enterprise Lab",
-    location: "Hyderabad, India",
-    cloudRegion: "ap-south-1 (Mumbai)",
-    learnersCount: 420,
-    coursesSubscribed: 4,
-    aiTokensUsedMonthly: 14200000,
-    aiTokenLimitMonthly: 20000000,
-    status: "Active",
-    contactPerson: "Dr. Shalini Gupta",
-    contactEmail: "shalini.g@neocorp.com",
-  },
-  {
-    id: "tenant-3",
-    name: "Singularity AI Research Guild",
-    type: "Research Guild",
-    location: "Stockholm, Sweden",
-    cloudRegion: "eu-north-1 (Stockholm)",
-    learnersCount: 280,
-    coursesSubscribed: 5,
-    aiTokensUsedMonthly: 9600000,
-    aiTokenLimitMonthly: 15000000,
-    status: "Active",
-    contactPerson: "Erik Lindqvist",
-    contactEmail: "erik@singularity-guild.se",
-  },
-  {
-    id: "tenant-4",
-    name: "National Institute of AI Innovation",
-    type: "University Partner",
-    location: "New Delhi, India",
-    cloudRegion: "ap-south-1 (Mumbai)",
-    learnersCount: 140,
-    coursesSubscribed: 2,
-    aiTokensUsedMonthly: 3100000,
-    aiTokenLimitMonthly: 10000000,
-    status: "Provisioning",
-    contactPerson: "Prof. K. Sundaram",
-    contactEmail: "sundaram@niai.ac.in",
-  },
-]
-
 export const INITIAL_RBAC: RbacPermissionRow[] = [
   {
     id: "p-1",
@@ -804,11 +730,11 @@ export const INITIAL_RBAC: RbacPermissionRow[] = [
   },
   {
     id: "p-6",
-    permission: "Manage Enterprise Tenants",
-    description: "Provision enterprise cohort nodes, assign token quotas and configure SSO",
+    permission: "Manage Platform Infrastructure",
+    description: "Configure system branding, database connection poolers, cloud storage, and AI models",
     category: "Administration",
     superAdmin: true,
-    admin: false,
+    admin: true,
     teacher: false,
     evaluator: false,
     support: false,
@@ -933,7 +859,6 @@ const KEYS = {
   orders: "quantum_admin_orders_v2",
   settings: "quantum_admin_settings_v2",
   services: "quantum_superadmin_services_v2",
-  tenants: "quantum_superadmin_tenants_v2",
   rbac: "quantum_superadmin_rbac_v2",
   audit: "quantum_superadmin_audit_v2",
   aiUsage: "quantum_superadmin_ai_usage_v2",
@@ -1350,28 +1275,25 @@ export function useAdminStore() {
   }
 }
 
-// Custom Hook for Super Admin Data
+// Custom Hook for Platform & Infrastructure Data in single-tenant architecture
 export function useSuperAdminStore() {
   const [services, setServices] = useState<PlatformServiceHealth[]>(() => loadStorage(KEYS.services, INITIAL_SERVICES_HEALTH))
-  const [tenants, setTenants] = useState<TenantHub[]>(() => loadStorage(KEYS.tenants, INITIAL_TENANTS))
   const [rbac, setRbac] = useState<RbacPermissionRow[]>(() => loadStorage(KEYS.rbac, INITIAL_RBAC))
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(() => loadStorage(KEYS.audit, INITIAL_AUDIT_LOGS))
   const [aiUsage, setAiUsage] = useState<AiUsageMetrics>(() => loadStorage(KEYS.aiUsage, INITIAL_AI_USAGE))
 
   useEffect(() => saveStorage(KEYS.services, services), [services])
-  useEffect(() => saveStorage(KEYS.tenants, tenants), [tenants])
   useEffect(() => saveStorage(KEYS.rbac, rbac), [rbac])
   useEffect(() => saveStorage(KEYS.audit, auditLogs), [auditLogs])
   useEffect(() => saveStorage(KEYS.aiUsage, aiUsage), [aiUsage])
 
-  // Sync with Backend Super Admin endpoints
+  // Sync with Backend Platform endpoints
   useEffect(() => {
     let cancelled = false
     async function fetchSuperAdminData() {
       try {
-        const [hRes, tRes, rRes, aRes, aiRes] = await Promise.allSettled([
+        const [hRes, rRes, aRes, aiRes] = await Promise.allSettled([
           api.get<{ services: PlatformServiceHealth[] }>("/super-admin/health"),
-          api.get<{ tenants: TenantHub[] }>("/super-admin/tenants"),
           api.get<{ matrix: RbacPermissionRow[] }>("/super-admin/rbac"),
           api.get<{ logs: SecurityAuditLog[] }>("/super-admin/audit"),
           api.get<AiUsageMetrics>("/super-admin/ai"),
@@ -1380,9 +1302,6 @@ export function useSuperAdminStore() {
 
         if (hRes.status === "fulfilled" && hRes.value?.services?.length) {
           setServices(hRes.value.services)
-        }
-        if (tRes.status === "fulfilled" && tRes.value?.tenants?.length) {
-          setTenants(tRes.value.tenants)
         }
         if (rRes.status === "fulfilled" && rRes.value?.matrix?.length) {
           setRbac(rRes.value.matrix)
@@ -1484,37 +1403,11 @@ export function useSuperAdminStore() {
     setAuditLogs((prev) => [log, ...prev])
   }, [])
 
-  const addTenant = useCallback((tenantData: Omit<TenantHub, "id">) => {
-    const tenant: TenantHub = {
-      ...tenantData,
-      id: `hub-${Date.now()}`,
-    }
-    setTenants((prev) => [tenant, ...prev])
-    api.post("/super-admin/tenants", tenantData).catch(() => {})
-    return tenant
-  }, [])
-
-  const updateTenant = useCallback((tenantId: string, patch: Partial<TenantHub>) => {
-    setTenants((prev) =>
-      prev.map((t) => (t.id === tenantId ? { ...t, ...patch } : t))
-    )
-    api.patch(`/super-admin/tenants/${tenantId}`, patch).catch(() => {})
-  }, [])
-
-  const deleteTenant = useCallback((tenantId: string) => {
-    setTenants((prev) => prev.filter((t) => t.id !== tenantId))
-    api.delete(`/super-admin/tenants/${tenantId}`).catch(() => {})
-  }, [])
-
   return {
     services,
-    tenants,
     rbac,
     auditLogs,
     aiUsage,
-    addTenant,
-    updateTenant,
-    deleteTenant,
     toggleRbacPermission,
     flushCache,
     triggerSnapshot,

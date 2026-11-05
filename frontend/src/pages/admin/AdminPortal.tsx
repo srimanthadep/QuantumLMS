@@ -5,7 +5,7 @@ import PageTransition from "@/components/motion/PageTransition"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import type { CurrentUser } from "@/types"
 import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
-import { useAdminStore } from "@/data/adminStore"
+import { useAdminStore, useSuperAdminStore } from "@/data/adminStore"
 import {
   AddTeacherModal,
   CreateBatchModal,
@@ -20,6 +20,13 @@ import StudentsView from "./views/StudentsView"
 import OrdersView from "./views/OrdersView"
 import ReportsView from "./views/ReportsView"
 import SettingsView from "./views/SettingsView"
+
+// Single-tenant platform operations views
+import PlatformHealthView from "../super-admin/views/PlatformHealthView"
+import RbacView from "../super-admin/views/RbacView"
+import AuditLogsView from "../super-admin/views/AuditLogsView"
+import AiUsageView from "../super-admin/views/AiUsageView"
+import RevenueView from "../super-admin/views/RevenueView"
 
 // Lazy load Super Admin in case role="Super Admin" is passed to AdminPortal
 const SuperAdminPortal = lazy(() => import("../super-admin/SuperAdminPortal"))
@@ -43,6 +50,11 @@ const NAV_PATHS: Record<string, string> = {
   students: "/admin/students",
   orders: "/admin/orders",
   reports: "/admin/reports",
+  health: "/admin/health",
+  access: "/admin/access",
+  audit: "/admin/audit",
+  ai: "/admin/ai",
+  revenue: "/admin/revenue",
   settings: "/admin/settings",
 }
 
@@ -129,6 +141,7 @@ export default function AdminPortal({
   const activeId = navIdFor(location.pathname)
 
   const store = useAdminStore()
+  const superAdminStore = useSuperAdminStore()
   const notifications = useAdminNotifications(store.batches, store.orders)
 
   // Global modals state
@@ -225,6 +238,26 @@ export default function AdminPortal({
             <Route
               path="/reports"
               element={<ReportsView store={store} onToast={onToast} />}
+            />
+            <Route
+              path="/health"
+              element={<PlatformHealthView store={superAdminStore} onToast={onToast} />}
+            />
+            <Route
+              path="/access"
+              element={<RbacView store={superAdminStore} onToast={onToast} />}
+            />
+            <Route
+              path="/audit"
+              element={<AuditLogsView store={superAdminStore} />}
+            />
+            <Route
+              path="/ai"
+              element={<AiUsageView store={superAdminStore} onToast={onToast} />}
+            />
+            <Route
+              path="/revenue"
+              element={<RevenueView store={superAdminStore} />}
             />
             <Route
               path="/settings"

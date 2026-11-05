@@ -59,9 +59,9 @@ export default function RevenueView({ store }: RevenueViewProps) {
     },
     {
       icon: "fire",
-      label: "Institutional Contracts",
+      label: "Enterprise Cohort Tuitions",
       value: "₹84,50,000",
-      trend: "4 enterprise campuses",
+      trend: "4 active corporate cohorts",
       tone: "lavender",
     },
     {
@@ -81,10 +81,10 @@ export default function RevenueView({ store }: RevenueViewProps) {
   ]
 
   const CONTRACTS = [
-    { campus: "IIT Madras Research Park", plan: "Enterprise Sovereign Tier", value: "₹32,00,000", status: "Active", renewal: "Oct 2027" },
-    { campus: "BITS Pilani Innovation Hub", plan: "Pro Academy Campus", value: "₹24,50,000", status: "Active", renewal: "Jan 2027" },
-    { campus: "IIIT Hyderabad Foundation", plan: "Pro Academy Campus", value: "₹18,00,000", status: "Active", renewal: "Aug 2027" },
-    { campus: "PES University AI Lab", plan: "Growth Tier", value: "₹10,00,000", status: "In Renewal", renewal: "Dec 2026" },
+    { campus: "GenAI Engineering Cohort · Enterprise", plan: "Corporate Upskilling Tier", value: "₹32,00,000", status: "Active", renewal: "Oct 2027" },
+    { campus: "LLM Production Fellowship · Alpha", plan: "Executive AI Cohort", value: "₹24,50,000", status: "Active", renewal: "Jan 2027" },
+    { campus: "Agentic Systems Bootcamp · Beta", plan: "Advanced Cohort Track", value: "₹18,00,000", status: "Active", renewal: "Aug 2027" },
+    { campus: "AI Systems Engineering · Winter '26", plan: "Institutional Cohort", value: "₹10,00,000", status: "In Renewal", renewal: "Dec 2026" },
   ]
 
   return (
@@ -129,15 +129,15 @@ export default function RevenueView({ store }: RevenueViewProps) {
       {/* Institutional Contracts Breakdown */}
       <Card>
         <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="text-base">Institutional Enterprise Contracts</CardTitle>
-          <CardDescription>Multi-cohort billing agreements and scheduled renewal cycles</CardDescription>
+          <CardTitle className="text-base">Enterprise Cohorts & Institutional Batches</CardTitle>
+          <CardDescription>Corporate cohort agreements and scheduled batch billing cycles</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-border bg-surface-2 font-semibold text-muted-foreground uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">Campus / Institution</th>
+                  <th className="px-4 py-3">Cohort / Corporate Program</th>
                   <th className="px-4 py-3">Tier Plan</th>
                   <th className="px-4 py-3">Contract Value</th>
                   <th className="px-4 py-3">Renewal Date</th>

@@ -20,7 +20,7 @@ const SUGGESTIONS: Record<UserRole, string[]> = {
   Evaluator: ["Summarise this week's grading queue", "Flag submissions near the deadline", "Draft feedback for a weak RAG eval"],
   Support: ["Draft a reply for a batch transfer", "What is the refund policy?", "Summarise open escalations"],
   Admin: ["Which batches are close to capacity?", "Summarise October revenue", "List instructors with pending reviews"],
-  "Super Admin": ["Summarise AI token spend this week", "Any unusual audit events today?", "Which tenant grew fastest?"],
+  "Super Admin": ["Summarise AI token spend this week", "Any unusual audit events today?", "Which cohort grew fastest?"],
 }
 
 function cannedReply(role: UserRole, prompt: string): string {
@@ -35,7 +35,7 @@ function cannedReply(role: UserRole, prompt: string): string {
     return "4 learners have not watched the last two replays and have an assessment due in 3 days: Diya S., Kabir R., Ishita V. and Rahul P. A short nudge with the chapter links usually brings them back."
   if (p.includes("refund") || p.includes("transfer") || p.includes("reply"))
     return "Draft: “Hi! I've moved you to the Weekend cohort starting 9 Nov. Your replays, notes and progress carry over, and live classes now appear in your schedule. Reply here if anything looks off.”"
-  if (p.includes("revenue") || p.includes("token") || p.includes("tenant") || p.includes("capacity"))
+  if (p.includes("revenue") || p.includes("token") || p.includes("cohort") || p.includes("capacity"))
     return "This week: ₹4.82L revenue (+18%), 1.42M AI tokens (62% chapter generation, 28% tutor, 10% grading assist). The October Generative AI cohort is at 92% capacity; consider opening a second batch."
   return role === "Student"
     ? "Good question. Here's a short answer, with a pointer to the replay chapter that covers it in depth. Ask a follow-up if you want an example in Python."

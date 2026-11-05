@@ -49,7 +49,7 @@ src/
 │   │   └── index.ts                  # Student barrel export
 │   │
 │   ├── admin/                # 🏛️ Institution & Super Admin Portal
-│   │   ├── AdminPortal.tsx           # Multi-tenant campuses, faculty, audit logs
+│   │   ├── AdminPortal.tsx           # Single-tenant academy operations, courses, faculty, platform health, audit logs
 │   │   └── index.ts                  # Admin barrel export
 │   │
 │   ├── support/              # 🎧 Support & Help Desk Portal

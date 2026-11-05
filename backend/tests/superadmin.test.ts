@@ -29,9 +29,10 @@ describe("super admin API access control", () => {
     assert.equal(res.status, 403)
   })
 
-  test("regular admins cannot access super admin endpoints (403)", async () => {
+  test("admins can access platform health endpoints in single-tenant architecture", async () => {
     const res = await admin.call("GET", "/api/super-admin/health")
-    assert.equal(res.status, 403)
+    assert.equal(res.status, 200)
+    assert.ok(res.body.services)
   })
 })
 
@@ -50,11 +51,10 @@ describe("super admin telemetry and governance workflow", () => {
     assert.ok(res.body.clearedAt)
   })
 
-  test("super admin can list enterprise tenants", async () => {
+  test("single-tenant platform returns tenancy status", async () => {
     const res = await superAdmin.call("GET", "/api/super-admin/tenants")
     assert.equal(res.status, 200)
-    assert.ok(Array.isArray(res.body.tenants))
-    assert.equal(res.body.tenants.length > 0, true)
+    assert.ok(res.body.singleTenant)
   })
 
   test("super admin can inspect RBAC matrix", async () => {
