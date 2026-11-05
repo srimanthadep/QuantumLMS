@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CalendarPlus, Sparkles, Video } from "lucide-react"
+import { CalendarPlus, Video } from "lucide-react"
 import {
   Button,
   Dialog,
@@ -35,15 +35,7 @@ const PLATFORM_OPTIONS: { value: LiveSessionItem["platform"]; label: string; ico
   {
     value: "Quantum Classroom",
     label: "Quantum Classroom",
-    icon: (
-      <span className="relative flex items-center justify-center shrink-0">
-        <Video className="h-4 w-4 text-primary" aria-hidden="true" />
-        <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-danger" />
-        </span>
-      </span>
-    ),
+    icon: <Video className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />,
   },
   {
     value: "Zoom",
@@ -171,16 +163,9 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
             </Field>
           </div>
 
-          {/* Platform Selector ("quantumschool bar") */}
+          {/* Platform Selector */}
           <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Platform</span>
-              {platform === "Quantum Classroom" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary-text">
-                  <Sparkles className="h-3 w-3" /> Built-in Live Studio
-                </span>
-              )}
-            </div>
+            <span className="text-sm font-medium text-foreground">Platform</span>
             <SegmentedControl
               aria-label="Platform"
               size="lg"
@@ -189,12 +174,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
               onChange={setPlatform}
               block
             />
-            {platform === "Quantum Classroom" ? (
-              <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-primary-soft/40 px-3 py-2 text-xs text-primary-text">
-                <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                <span>Integrated Quantum School classroom with attendance tracking, live transcript, and in-class milestones.</span>
-              </div>
-            ) : (
+            {platform !== "Quantum Classroom" && (
               <Field label={platform === "Zoom" ? "Zoom Meeting Link" : "Google Meet Link"} hint="Learners will receive this invite link in their timetable">
                 <Input
                   type="url"
