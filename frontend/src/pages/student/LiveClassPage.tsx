@@ -266,70 +266,79 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
     }
   }
 
-  return (
-    <div className="flex w-full min-w-0 flex-col gap-4 pb-12">
-      {/* Top Navigation Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            leftIcon={<ArrowLeft className="h-4 w-4" />}
-            onClick={() => onNavigate("Schedule")}
-          >
-            Leave Class
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <Badge tone="live" dot className="animate-pulse">
-                LIVE
-              </Badge>
-              <Badge tone="neutral" className="font-mono text-xs">
-                {session.courseCode}
-              </Badge>
-              <span className="text-xs font-semibold text-foreground truncate">{session.courseName}</span>
-            </div>
-            <h1 className="text-lg font-bold text-foreground mt-0.5">{session.title}</h1>
-          </div>
-        </div>
+  const crumbs = [
+    { label: "Schedule", onClick: () => onNavigate("Schedule") },
+    { label: "Live Classroom" },
+  ]
 
-        {/* Real-Time Attendance Column / Badge */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-soft px-3 py-1.5 text-xs text-success-text">
-            <UserCheck className="h-4 w-4 text-success" />
-            <span className="font-semibold">Attendance: Marked Present</span>
-            <span className="text-muted-foreground font-mono">({formatClock(elapsedSeconds)})</span>
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-5 pb-6">
+      {/* Top Navigation Header */}
+      <PageHeader
+        breadcrumb={crumbs}
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="live" dot className="animate-pulse">
+              LIVE
+            </Badge>
+            <Badge tone="neutral" className="font-mono text-xs">
+              {session.courseCode}
+            </Badge>
+            <span className="text-xs font-semibold text-muted-foreground">{session.courseName}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-foreground">
-            <Users className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold tabular-nums">{session.enrolledCount}</span> learners in room
+        }
+        title={session.title}
+        description={`Instructor: ${session.instructor} · Started at ${session.startTime} · Attendance tracked`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success-soft px-3 py-1.5 text-xs font-medium text-success-text shadow-xs">
+              <UserCheck className="h-4 w-4 text-success" />
+              <span>Attendance: Marked Present</span>
+              <span className="rounded bg-success/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success-text">
+                {formatClock(elapsedSeconds)}
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground shadow-xs">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>
+                <strong className="font-semibold tabular-nums">{session.enrolledCount}</strong> learners in room
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<ArrowLeft className="h-4 w-4" />}
+              onClick={() => onNavigate("Schedule")}
+            >
+              Leave Class
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Grid: Live Stage (Left) & Interactive Hub (Right) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Left: Video Broadcast Stage (8 Cols) */}
         <div className="flex flex-col gap-4 lg:col-span-8">
           {/* Main Visual Stage */}
-          <div className="relative isolate aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl flex flex-col justify-between p-4 sm:p-6 text-white">
+          <div className="relative isolate aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl flex flex-col justify-between p-4 sm:p-5 text-white">
             {/* Ambient Backlight Glow */}
             <div className="pointer-events-none absolute -left-20 -top-20 -z-10 h-64 w-64 rounded-full bg-primary/30 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 right-0 -z-10 h-64 w-64 rounded-full bg-secondary/20 blur-3xl" />
 
             {/* Simulated Live Instructor Screen / Code Slides */}
-            <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-6 bg-radial from-slate-900/90 to-black">
-              <div className="max-w-xl text-center space-y-3">
+            <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-6 bg-radial from-slate-900/90 to-black pointer-events-none">
+              <div className="max-w-xl text-center space-y-2 sm:space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-mono text-primary-text">
                   <FileCode className="h-3.5 w-3.5" /> LangGraph StateGraph Architecture
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-white">
                   Cyclical Checkpoint Reducers & Supervisor Routing
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300">
                   Sharing screen: <span className="font-mono text-white">graph_orchestration_demo.ipynb</span>
                 </p>
-                <div className="mx-auto flex items-center justify-center gap-3 pt-2">
+                <div className="mx-auto flex items-center justify-center gap-3 pt-1">
                   <div className="flex items-center gap-2 rounded-lg bg-black/60 border border-white/10 px-3 py-1.5 text-xs">
                     <Avatar src={session.instructorAvatar} name={session.instructor} size="xs" />
                     <span>{session.instructor} (Presenting)</span>
@@ -359,13 +368,22 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
               </div>
             </div>
 
-            {/* Live Subtitle Overlay */}
-            {captionsOn && (
-              <div className="relative z-10 mx-auto max-w-lg rounded-lg bg-black/85 px-4 py-2 text-center text-xs sm:text-sm text-white/95 backdrop-blur-md border border-white/10 shadow-lg">
-                <span className="font-semibold text-primary-text">{session.instructor}: </span>
-                "When you initialize the Checkpointer, ensure the thread ID is persisted across cycles."
-              </div>
-            )}
+            {/* Live Subtitle Overlay - placed cleanly in lower-third */}
+            <div className="relative z-10 flex flex-col items-center gap-2 mt-auto mb-2">
+              <AnimatePresence>
+                {captionsOn && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    className="max-w-lg rounded-lg bg-black/85 px-4 py-2 text-center text-xs sm:text-sm text-white/95 backdrop-blur-md border border-white/10 shadow-lg"
+                  >
+                    <span className="font-semibold text-primary-text">{session.instructor}: </span>
+                    &ldquo;When you initialize the Checkpointer, ensure the thread ID is persisted across cycles.&rdquo;
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Stage Controls Bottom Bar */}
             <div className="relative z-10 flex items-center justify-between rounded-xl bg-black/70 px-4 py-2.5 backdrop-blur-md border border-white/10">
@@ -443,7 +461,7 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
 
         {/* Right: Interactive Sidebar (Chat, Transcript, Assessment Upload) (4 Cols) */}
         <div className="flex flex-col lg:col-span-4">
-          <Card className="flex flex-col h-[650px] overflow-hidden border border-border bg-surface shadow-sm gap-0">
+          <Card className="flex flex-col h-[580px] lg:h-full lg:min-h-[560px] overflow-hidden border border-border bg-surface shadow-sm gap-0">
             {/* Tabs Header */}
             <div className="shrink-0 border-b border-border bg-surface-2 p-2">
               <div className="grid grid-cols-3 gap-1">
