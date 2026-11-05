@@ -8,6 +8,70 @@ import type { LessonItem } from "../studentTypes"
 import { formatClock } from "../studentUtils"
 import { parseMinutes } from "./courseData"
 
+interface SubtitleCue {
+  start: number
+  end: number
+  text: string
+}
+
+/** Slices long transcript segments into natural, 1-2 line subtitle cues (YouTube/Netflix style). */
+function sliceIntoSubtitles(rawSegments: { start: number; end: number; text: string }[]): SubtitleCue[] {
+  const cues: SubtitleCue[] = []
+
+  for (const seg of rawSegments) {
+    const rawText = seg.text.replace(/\(Silence skipped[^)]*\)/gi, "").trim()
+    if (!rawText) continue
+
+    // Split text by sentence boundaries (., !, ?) or semicolons/newlines
+    const sentences = rawText
+      .split(/(?<=[.!?]["']?)\s+|(?<=[;\n])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    // Further split sentences if they are long (> 12 words) into natural phrase units
+    const chunks: string[] = []
+    for (const sent of sentences) {
+      const words = sent.split(/\s+/)
+      if (words.length <= 12) {
+        chunks.push(sent)
+      } else {
+        // Try splitting by comma
+        const commaParts = sent.split(/(?<=[,])\s+/).map((p) => p.trim()).filter(Boolean)
+        if (commaParts.length > 1 && commaParts.every((p) => p.split(/\s+/).length <= 14)) {
+          chunks.push(...commaParts)
+        } else {
+          // Chunk words into groups of ~9-11 words
+          for (let i = 0; i < words.length; i += 10) {
+            chunks.push(words.slice(i, i + 10).join(" "))
+          }
+        }
+      }
+    }
+
+    if (chunks.length === 0) continue
+
+    const segDuration = Math.max(1, seg.end - seg.start)
+    const totalChars = chunks.reduce((acc, c) => acc + c.length, 0)
+    let currentStart = seg.start
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      const fraction = totalChars > 0 ? chunk.length / totalChars : 1 / chunks.length
+      const cueDuration = Math.max(1.2, fraction * segDuration)
+      const cueEnd = i === chunks.length - 1 ? seg.end : Math.min(seg.end, currentStart + cueDuration)
+
+      cues.push({
+        start: currentStart,
+        end: cueEnd,
+        text: chunk,
+      })
+      currentStart = cueEnd
+    }
+  }
+
+  return cues
+}
+
 interface LessonPlayerProps {
   lesson: LessonItem
   moduleTitle: string
@@ -63,23 +127,30 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const transcriptSegments = useMemo(() => {
     if (!lesson.summary) return []
     const regex = /\[(\d+):(\d+)\s*-\s*(\d+):(\d+)\]\s*([^[]+)/g
-    const segments: { start: number; end: number; text: string }[] = []
+    const rawSegments: { start: number; end: number; text: string }[] = []
     let match
     while ((match = regex.exec(lesson.summary)) !== null) {
       const start = parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
       const end = parseInt(match[3], 10) * 60 + parseInt(match[4], 10)
-      segments.push({ start, end, text: match[5].trim() })
+      rawSegments.push({ start, end, text: match[5].trim() })
     }
-    return segments
-  }, [lesson.summary])
+
+    if (rawSegments.length > 0) {
+      return sliceIntoSubtitles(rawSegments)
+    }
+
+    // Fallback if summary has no timestamps: pace sentences across video duration
+    const rawText = lesson.summary.replace(/\[\d+:\d+[^\]]*\]/g, "").trim()
+    if (!rawText) return []
+    const fallbackDuration = duration > 0 ? duration : 300
+    return sliceIntoSubtitles([{ start: 0, end: Math.min(fallbackDuration, 180), text: rawText }])
+  }, [lesson.summary, duration])
 
   const activeCaption = useMemo(() => {
-    if (transcriptSegments.length > 0) {
-      const current = transcriptSegments.find((s) => position >= s.start && position <= s.end)
-      return current ? current.text : ""
-    }
-    return lesson.summary
-  }, [transcriptSegments, position, lesson.summary])
+    if (transcriptSegments.length === 0) return ""
+    const current = transcriptSegments.find((s) => position >= s.start && position < s.end)
+    return current ? current.text : ""
+  }, [transcriptSegments, position])
 
   useEffect(() => {
     setPlaying(false)
@@ -295,19 +366,21 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
         )}
       </AnimatePresence>
 
-      {/* Live Captions / Transcript Subtitles */}
-      <AnimatePresence>
-        {playing && captions && activeCaption && (
-          <motion.p
-            key="captions"
-            initial={{ opacity: 0, y: 6 }}
+      {/* Live Captions / Transcript Subtitles (YouTube/Netflix Style) */}
+      <AnimatePresence mode="wait">
+        {captions && activeCaption && (
+          <motion.div
+            key={activeCaption}
+            initial={{ opacity: 0, y: 3 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={transition.base}
-            className="pointer-events-none absolute inset-x-6 bottom-20 mx-auto w-fit max-w-[90%] rounded-md bg-black/85 px-3 py-1.5 text-center text-sm font-medium text-white backdrop-blur-sm shadow-lg z-10"
+            exit={{ opacity: 0, y: -2 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-x-4 bottom-16 sm:bottom-20 z-10 mx-auto flex justify-center px-4"
           >
-            {activeCaption}
-          </motion.p>
+            <span className="inline-block max-w-xl sm:max-w-2xl rounded-md bg-black/80 px-3.5 py-1.5 text-center text-xs sm:text-sm md:text-base font-medium leading-relaxed tracking-wide text-white shadow-2xl backdrop-blur-md border border-white/10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+              {activeCaption}
+            </span>
+          </motion.div>
         )}
       </AnimatePresence>
 
