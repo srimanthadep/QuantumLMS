@@ -120,6 +120,8 @@ function MetricTile({
   label,
   value,
   detail,
+  badgeText,
+  badgeTone = "neutral",
   icon: Icon,
   tone,
   sparkline,
@@ -128,6 +130,8 @@ function MetricTile({
   label: string
   value: string
   detail: string
+  badgeText?: string
+  badgeTone?: "success" | "warning" | "info" | "neutral"
   icon: LucideIcon
   tone: MetricTone
   sparkline?: number[]
@@ -141,20 +145,37 @@ function MetricTile({
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.985 }}
       transition={spring.snappy}
-      className="group relative flex min-h-[132px] w-full flex-col justify-between overflow-hidden rounded-lg border border-border bg-surface p-4 text-left shadow-[var(--elev-xs)] transition-[border-color,box-shadow] duration-200 hover:border-border-strong/70 hover:shadow-[var(--elev-md)]"
+      className="group relative flex min-h-[142px] w-full flex-col justify-between overflow-hidden rounded-[14px] border border-border/80 bg-surface p-4 sm:p-5 text-left shadow-[var(--elev-xs)] transition-[border-color,box-shadow] duration-200 hover:border-border-strong/70 hover:shadow-[var(--elev-md)]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-[13px] font-medium text-muted-foreground">{label}</span>
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-md ring-1 ring-inset", style.tile)}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-muted-foreground">{label}</span>
+        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset", style.tile)}>
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
       </div>
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-[28px] font-semibold leading-8 tracking-tight text-foreground">{value}</p>
-          <p className={cn("mt-1 truncate text-caption font-medium", style.text)}>{detail}</p>
-        </div>
-        {sparkline && <Sparkline data={sparkline} stroke={style.line} className="h-9 w-20 shrink-0 opacity-90 transition-transform duration-300 group-hover:scale-105" />}
+
+      <div className="my-1">
+        <p className="truncate text-[30px] font-bold leading-none tracking-tight text-foreground">{value}</p>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+        <p className={cn("truncate text-xs font-medium", style.text)}>{detail}</p>
+        {badgeText && (
+          <Badge
+            size="sm"
+            tone={badgeTone}
+            className="text-[10px] px-1.5 py-0 h-4.5 shrink-0 font-medium"
+          >
+            {badgeText}
+          </Badge>
+        )}
+        {sparkline && (
+          <Sparkline
+            data={sparkline}
+            stroke={style.line}
+            className="h-6 w-16 shrink-0 opacity-80 transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
       </div>
     </motion.button>
   )
@@ -262,8 +283,8 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
   const activeModules = inProgress.length
   const remainingModules = Math.max(0, metrics.modulesTotal - completedModules - activeModules)
   const activitySeries: AreaSeries[] = [
-    { name: "Focused study", values: chart.focus, color: "var(--primary-text)" },
-    { name: "Daily goal", values: chart.goal, color: "var(--secondary-text)" },
+    { name: "Focused study", values: chart.focus, color: "#F97316" },
+    { name: "Daily goal", values: chart.goal, color: "#0EA5E9", dashed: true },
   ]
 
   const openCourse = (course: CourseItem) => {
@@ -311,143 +332,184 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
       <Stagger className="flex flex-col gap-5" stagger={0.055}>
         {/* The dashboard's one focal surface: the active learning command center. */}
         <StaggerItem>
-          <section className="relative isolate overflow-hidden rounded-xl border border-white/10 bg-ink-950 shadow-[var(--glow-primary)] [contain:paint] transform-gpu" aria-label="Learning command center">
+          <section
+            className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F17] shadow-xl [contain:paint] transform-gpu"
+            aria-label="Learning command center"
+          >
             {activeCourse && (
               <img
                 src={activeCourse.image}
                 alt=""
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[0.16] [mask-image:linear-gradient(90deg,transparent_10%,black_64%)] lg:w-2/3"
+                className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[0.14] [mask-image:linear-gradient(90deg,transparent_10%,black_65%)] lg:w-2/3"
               />
             )}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/35 via-ink-950/80 to-ink-950" />
-            <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-80 w-80 rounded-full bg-secondary/25 blur-3xl" />
-            <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 left-1/3 -z-10 h-64 w-64 rounded-full bg-primary/30 blur-3xl" />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-[#0B0F17]/90 to-[#0B0F17]" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
 
-            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)] lg:items-center">
-              <div className="min-w-0">
-                <Badge tone="live" dot className="border-white/10 bg-white/10 text-white shadow-none dark:text-white">
-                  Learning live
-                </Badge>
-                <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">Your next lesson</p>
-                <h2 className="mt-1 max-w-2xl text-[30px] font-semibold leading-tight tracking-tight text-white sm:text-h2">
-                  {activeCourse ? activeCourse.lastWatched : "Choose a course to begin"}
-                </h2>
-                {activeCourse && (
-                  <p className="mt-2 text-sm text-white/90">
-                    {activeCourse.title} · {activeCourse.completedModules} of {activeCourse.totalModules} modules complete
-                  </p>
-                )}
-
-                <div className="mt-6 max-w-xl">
-                  <div className="mb-2 flex items-center justify-between text-caption font-medium text-white">
-                    <span>Mastery path</span>
-                    <span className="tabular-nums">{activeCourse?.progress ?? 0}%</span>
-                  </div>
-                  <div
-                    role="progressbar"
-                    aria-label="Active course progress"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={activeCourse?.progress ?? 0}
-                    className="h-2 overflow-hidden rounded-full bg-white/20"
-                  >
-                    <motion.div
-                      className="h-full w-full origin-left rounded-full bg-white"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
-                      transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
-                    />
-                  </div>
-                  <p className="mt-2 flex items-center gap-1.5 text-caption text-white/80">
-                    <Target className="h-3.5 w-3.5" aria-hidden="true" />
-                    {activeCourse?.nextMilestone ?? "Set a learning goal"}
-                  </p>
+            <div className="p-5 sm:p-6 lg:p-7">
+              {/* Top Tagline */}
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <Badge tone="live" dot className="border-white/15 bg-white/10 text-white text-[11px] px-2.5 py-0.5">
+                    Learning Live
+                  </Badge>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
+                    Your Next Lesson
+                  </span>
+                  <span className="hidden sm:inline text-xs text-white/40">· Continue where you left off</span>
                 </div>
-
-                <div className="mt-6 flex flex-wrap gap-2.5">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    leftIcon={<Play className="fill-current" aria-hidden="true" />}
-                    onClick={() => activeCourse && openCourse(activeCourse)}
-                  >
-                    Resume learning
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    leftIcon={<Sparkles aria-hidden="true" />}
-                    onClick={() => onNavigate("My Notes")}
-                    className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98]"
-                  >
-                    Open study notes
-                  </Button>
+                <div className="text-xs text-white/60 font-mono">
+                  {today}
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <div className="rounded-xl border border-white/12 bg-black/40 p-4">
-                  <div className="flex items-center gap-4">
-                    <ProgressRing
-                      value={focusScore}
-                      size={88}
-                      thickness={8}
-                      tone="success"
-                      label="Today's focus score"
-                      className="[&_svg>circle:first-child]:stroke-white/15"
-                    >
-                      <div className="text-center">
-                        <AnimatedNumber value={focusScore} className="block text-xl font-semibold text-white" />
-                        <span className="text-[10px] uppercase tracking-wider text-white/80">Focus</span>
-                      </div>
-                    </ProgressRing>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">Focus score</p>
-                      <p className="mt-0.5 text-caption leading-5 text-white/80">
-                        {pace ? "You are on pace for your weekly learning goal." : "A short session today keeps you on pace for the week."}
-                      </p>
-                      <span className="mt-2 inline-flex items-center gap-1 text-caption font-medium text-success">
-                        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> {week.change}
+              {/* Main Command Center Grid */}
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)] lg:items-center">
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                    {activeCourse ? (activeCourse.lastWatched || activeCourse.title) : "Choose a course to begin"}
+                  </h2>
+                  {activeCourse && (
+                    <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-1">
+                      {activeCourse.title} · Module {activeCourse.completedModules + 1 || 1} · {activeCourse.completedModules} of {activeCourse.totalModules} modules completed
+                    </p>
+                  )}
+
+                  {/* Connected Course Progress Bar */}
+                  <div className="mt-4 max-w-lg">
+                    <div className="flex items-center justify-between text-xs font-medium text-white/90 mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5 text-primary" />
+                        {activeCourse?.nextMilestone ?? "Course progress"}
                       </span>
+                      <span className="font-mono font-semibold text-white">{activeCourse?.progress ?? 0}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+                      <motion.div
+                        className="h-full rounded-full bg-primary"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
+                        style={{ originX: 0 }}
+                        transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
+                      />
                     </div>
                   </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <Button
+                      variant="primary"
+                      size="default"
+                      leftIcon={<Play className="fill-current h-4 w-4" aria-hidden="true" />}
+                      onClick={() => activeCourse && openCourse(activeCourse)}
+                      className="font-semibold px-4 shadow-sm"
+                    >
+                      Resume learning
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="default"
+                      leftIcon={<Sparkles className="h-4 w-4 text-warning" aria-hidden="true" />}
+                      onClick={() => onNavigate("My Notes")}
+                      className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] text-xs font-medium"
+                    >
+                      Open study notes
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/12 bg-black/40 p-3">
-                  {[
-                    { label: "Streak", value: String(streak), suffix: streak === 1 ? "day" : "days", icon: Flame, tone: "text-warning" },
-                    { label: "This week", value: String(week.total), suffix: "hours", icon: Clock, tone: "text-secondary" },
-                    { label: "Done", value: `${completedItems}/${priorityItems.length || 0}`, suffix: "priorities", icon: CheckCircle2, tone: "text-success" },
-                  ].map((stat) => (
-                    <div key={stat.label} className="min-w-0 border-r border-white/10 px-2 last:border-r-0">
-                      <stat.icon className={cn("h-4 w-4", stat.tone)} aria-hidden="true" />
-                      <p className="mt-2 truncate text-base font-semibold tabular-nums text-white">{stat.value}</p>
-                      <p className="truncate text-[10px] text-white/75">{stat.label}</p>
-                      <p className="truncate text-[10px] text-white/55">{stat.suffix}</p>
+
+                {/* Integrated Compact 4-Stat Strip */}
+                <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-3.5">
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white text-lg font-bold tabular-nums">{focusScore}</span>
+                      <span className="text-[10px] font-bold text-success uppercase">Focus</span>
                     </div>
-                  ))}
+                    <p className="text-[11px] text-white/70 mt-1 font-medium">Focus score</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white text-lg font-bold tabular-nums">{streak} {streak === 1 ? "day" : "days"}</span>
+                      <Flame className="h-4 w-4 text-warning fill-current" />
+                    </div>
+                    <p className="text-[11px] text-white/70 mt-1 font-medium">Learning streak</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white text-lg font-bold tabular-nums">{week.total}h</span>
+                      <Clock className="h-4 w-4 text-sky-400" />
+                    </div>
+                    <p className="text-[11px] text-white/70 mt-1 font-medium">This week</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white text-lg font-bold tabular-nums">{priorityItems.length - completedItems}</span>
+                      <ListTodo className="h-4 w-4 text-amber-400" />
+                    </div>
+                    <p className="text-[11px] text-white/70 mt-1 font-medium">Priority tasks</p>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
         </StaggerItem>
 
-        {/* Signals are bespoke dashboard cards, not the old generic KPI row. */}
+        {/* AI Learning Companion Card (Linear / Enterprise SaaS Styled) */}
+        <StaggerItem>
+          <div className="relative overflow-hidden rounded-[14px] border border-primary/25 bg-gradient-to-r from-primary/10 via-surface to-surface p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/30">
+                <Sparkles className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">AI Learning Companion</span>
+                  <Badge variant="outline" className="text-[10px] py-0 h-4 border-primary/30 text-primary bg-primary/5">
+                    Personalized Insight
+                  </Badge>
+                </div>
+                <p className="text-xs text-foreground mt-0.5 font-medium leading-relaxed">
+                  {chart.total < chart.previous
+                    ? `You're spending slightly less time studying this week. Complete the pending module in "${activeCourse?.title ?? "your course"}" today to get back on track for your weekly goal.`
+                    : `Great learning momentum! You've logged ${chart.total}h this week. Keep going with "${activeCourse?.title ?? "your course"}" to stay ahead of your cohort.`}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-primary/30 text-primary hover:bg-primary-soft shrink-0 text-xs font-semibold"
+              onClick={() => activeCourse && openCourse(activeCourse)}
+            >
+              Resume {activeCourse ? activeCourse.title.split(" ")[0] : "Course"} →
+            </Button>
+          </div>
+        </StaggerItem>
+
+        {/* Signals: Standardized KPI Cards */}
         <StaggerItem>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Learning signals">
             <MetricTile
               label="Learning momentum"
               value={`${chart.total}h`}
               detail={chart.change}
+              badgeText={chart.total >= chart.previous ? "On track" : "Needs attention"}
+              badgeTone={chart.total >= chart.previous ? "success" : "warning"}
               icon={Activity}
-              tone="primary"
+              tone={chart.total >= chart.previous ? "primary" : "warning"}
               sparkline={chart.focus}
               onClick={() => document.getElementById("learning-analytics")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             />
             <MetricTile
               label="Course mastery"
               value={`${metrics.averageProgress}%`}
-              detail={`${metrics.modulesComplete}/${metrics.modulesTotal} modules complete`}
+              detail={`${metrics.modulesComplete}/${metrics.modulesTotal} modules completed`}
+              badgeText="On track"
+              badgeTone="success"
               icon={GraduationCap}
               tone="success"
               sparkline={enrolled.map((course) => course.progress)}
@@ -457,6 +519,8 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
               label="Attendance pulse"
               value={attendance ? `${attendance.overallPercentage}%` : "–"}
               detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} classes attended` : "No classes recorded yet") : "Loading…"}
+              badgeText={attendance && attendance.overallPercentage >= 85 ? "Excellent" : "Regular"}
+              badgeTone={attendance && attendance.overallPercentage >= 85 ? "info" : "neutral"}
               icon={CheckCircle2}
               tone="info"
               sparkline={attendance && attendance.subjects.length > 1 ? attendance.subjects.map((s) => s.percentage) : undefined}
@@ -464,10 +528,12 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
             />
             <MetricTile
               label="Priority queue"
-              value={`${priorityItems.length - completedItems}`}
+              value={`${priorityItems.length - completedItems} ${priorityItems.length - completedItems === 1 ? "task" : "tasks"}`}
               detail={nextPriority ? (nextPriority.kind === "lesson" ? nextPriority.due : dueLabel(nextPriority.due)) : "All clear"}
+              badgeText={priorityItems.length - completedItems > 0 ? "Pending" : "Cleared"}
+              badgeTone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
               icon={ListTodo}
-              tone="warning"
+              tone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
               onClick={() => document.getElementById("priority-queue")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             />
           </div>
@@ -475,16 +541,16 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
         <StaggerItem>
           <div id="learning-analytics" className="grid scroll-mt-5 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.8fr)]">
-            <Card className="min-w-0 overflow-hidden">
-              <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <Card className="min-w-0 overflow-hidden rounded-[14px] border border-border">
+              <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
                       <LineChart className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <CardTitle>Learning momentum</CardTitle>
+                    <CardTitle className="text-base font-bold">Learning momentum</CardTitle>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">Focused study time compared with your daily target.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Focused study time compared with your daily target.</p>
                 </div>
                 <SegmentedControl
                   size="sm"
@@ -506,7 +572,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                     exit={{ opacity: 0, y: -6, transition: transition.fast }}
                     transition={transition.base}
                   >
-                    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                       <ChartLabel icon={Clock} label="Focused study" value={`${chart.total}h`} detail={range === "Week" ? "last 7 days" : "last 4 weeks"} tone="primary" />
                       <ChartLabel icon={Target} label="Goal completion" value={`${Math.round((chart.total / chart.target) * 100)}%`} detail={`of ${chart.target}h target`} tone="success" />
                       <ChartLabel icon={Zap} label="Best session" value={`${chart.best.hours}h`} detail={chart.best.hours ? chart.best.label : "none yet"} tone="info" />
@@ -514,7 +580,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                     <AreaChart
                       labels={chart.labels}
                       series={activitySeries}
-                      height={238}
+                      height={220}
                       yMin={0}
                       yMax={chart.yMax}
                       formatValue={(value) => `${value}h`}
@@ -522,32 +588,34 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                     />
                   </motion.div>
                 </AnimatePresence>
-                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-3 text-caption text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-primary-text" aria-hidden="true" /> Focused study
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" /> Focused study
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-secondary-text" aria-hidden="true" /> Daily goal
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="h-2 w-2 rounded-full bg-[#0EA5E9]" aria-hidden="true" /> Daily goal
                   </span>
-                  <span className={cn("ml-auto font-medium", chart.total >= chart.previous ? "text-success" : "text-warning")}>{chart.change}</span>
+                  <span className={cn("ml-auto font-semibold text-xs", chart.total >= chart.previous ? "text-success" : "text-amber-500")}>
+                    {chart.change}
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-[14px] border border-border">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <CardTitle>Mastery map</CardTitle>
-                    <p className="mt-1 text-caption text-muted-foreground">Your course portfolio at a glance.</p>
+                    <CardTitle className="text-base font-bold">Mastery map</CardTitle>
+                    <p className="mt-1 text-xs text-muted-foreground">Your course portfolio at a glance.</p>
                   </div>
                   <Badge tone={overdue ? "warning" : "success"}>{overdue ? `${overdue} overdue` : "On track"}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <DonutChart
-                  size={138}
-                  thickness={15}
+                  size={128}
+                  thickness={14}
                   data={[
                     { label: "Complete", value: completedModules, color: "var(--success)" },
                     { label: "In progress", value: activeModules, color: "var(--primary)" },
@@ -555,31 +623,45 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                   ].filter((segment) => segment.value > 0)}
                   center={
                     <>
-                      <span className="text-2xl font-semibold tabular-nums text-foreground">{metrics.averageProgress}%</span>
-                      <span className="text-[10px] uppercase tracking-wider text-subtle-foreground">mastery</span>
+                      <span className="text-2xl font-bold tabular-nums text-foreground">{metrics.averageProgress}%</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">mastery</span>
                     </>
                   }
                   formatValue={(value) => `${value} modules`}
                 />
-                <div className="mt-5 grid gap-2 border-t border-border pt-4">
+                <div className="mt-4 grid gap-2 border-t border-border/60 pt-3">
                   {enrolled.slice(0, 3).map((course) => (
                     <button
                       key={course.id}
                       type="button"
                       onClick={() => openCourse(course)}
-                      className="group flex items-center gap-3 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface-2"
+                      className="group flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-surface-2/40 px-3 py-2 text-left transition-all hover:bg-surface-2 hover:border-border"
                     >
-                      <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md bg-ink-950">
-                        <img src={course.image} alt="" aria-hidden="true" className="h-full w-full object-cover opacity-80" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-caption font-medium text-foreground">{course.title}</span>
-                        <span className="block h-1 overflow-hidden rounded-full bg-surface-2 ring-1 ring-inset ring-border">
-                          <span className="block h-full rounded-full bg-primary" style={{ width: `${course.progress}%` }} />
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary font-bold text-xs">
+                          <BookOpen className="h-3.5 w-3.5" />
                         </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="block truncate text-xs font-semibold text-foreground">{course.title}</span>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] px-1.5 py-0 h-4 shrink-0",
+                                course.progress >= 100 ? "text-success border-success/30 bg-success-soft" : "text-primary border-primary/30 bg-primary-soft"
+                              )}
+                            >
+                              {course.progress >= 100 ? "100%" : `${course.progress}%`}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 h-1.5 w-full max-w-[140px] overflow-hidden rounded-full bg-border">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${course.progress}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5 shrink-0">
+                        {course.progress >= 100 ? "Certificate" : "Resume"} <ChevronRight className="h-3 w-3" />
                       </span>
-                      <span className="text-caption font-semibold tabular-nums text-primary-text">{course.progress}%</span>
-                      <ChevronRight className="h-3.5 w-3.5 text-subtle-foreground transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
                     </button>
                   ))}
                 </div>
@@ -590,85 +672,134 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
         <StaggerItem>
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.8fr)]">
-            <Card className="overflow-hidden">
-              <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Course Trajectory (Responsive Smart Grid) */}
+            <Card className="overflow-hidden rounded-[14px] border border-border">
+              <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
                 <div>
-                  <CardTitle>Course trajectory</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">Move through your active courses without losing momentum.</p>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-bold">Continue learning</CardTitle>
+                    <Badge variant="outline" className="text-[10px]">
+                      {inProgress.length} Active
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Pick up right where you left off in your cohort curriculum.</p>
                 </div>
                 <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("My Courses")}>
-                  All courses
+                  View all courses
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {inProgress.length ? (
-                    inProgress.slice(0, 3).map((course, index) => (
+                {inProgress.length === 1 ? (
+                  /* Single Course Smart Horizontal Card - Eliminates Empty Space */
+                  <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/5 via-surface-2/40 to-surface-2/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                      <div className="relative h-18 w-28 shrink-0 overflow-hidden rounded-lg bg-ink-950 border border-border shadow-xs">
+                        <img src={inProgress[0].image} alt="" className="h-full w-full object-cover opacity-85" />
+                        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          {inProgress[0].category}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge tone="primary" size="sm">Active Cohort</Badge>
+                          <span className="text-xs font-semibold text-primary">{inProgress[0].progress}% completed</span>
+                        </div>
+                        <h3 className="text-base font-bold text-foreground mt-1 truncate">{inProgress[0].title}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          Next lesson: <span className="font-semibold text-foreground">{inProgress[0].lastWatched}</span>
+                        </p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <div className="h-2 flex-1 max-w-xs overflow-hidden rounded-full bg-border">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${inProgress[0].progress}%` }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {inProgress[0].completedModules} / {inProgress[0].totalModules} modules
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="default"
+                      rightIcon={<ArrowRight className="h-4 w-4" />}
+                      onClick={() => openCourse(inProgress[0])}
+                      className="shrink-0 font-semibold shadow-sm"
+                    >
+                      Resume course
+                    </Button>
+                  </div>
+                ) : inProgress.length > 1 ? (
+                  /* Multi-Course Balanced Grid */
+                  <div className={cn("grid grid-cols-1 gap-3", inProgress.length === 2 ? "sm:grid-cols-2" : "md:grid-cols-3")}>
+                    {inProgress.slice(0, 3).map((course, index) => (
                       <motion.button
                         key={course.id}
                         type="button"
                         onClick={() => openCourse(course)}
-                        whileHover={{ y: -4 }}
+                        whileHover={{ y: -3 }}
                         whileTap={{ scale: 0.985 }}
                         transition={spring.snappy}
                         className={cn(
-                          "group relative isolate overflow-hidden rounded-lg border p-4 text-left",
-                          course.id === activeCourse?.id ? "border-primary-border bg-primary-soft" : "border-border bg-surface-2 hover:border-border-strong/60",
+                          "group relative isolate overflow-hidden rounded-xl border p-4 text-left transition-all",
+                          course.id === activeCourse?.id
+                            ? "border-primary/40 bg-primary-soft/50 ring-1 ring-primary/20"
+                            : "border-border bg-surface-2/40 hover:border-border-strong/60 hover:bg-surface-2",
                         )}
                       >
-                        <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-10">
-                          <CourseCover title={course.title} category={coverCategory(course.category)} image={course.image} showTitle={false} hoverZoom={false} />
-                        </div>
                         <div className="flex items-center justify-between gap-2">
                           <Badge tone={course.id === activeCourse?.id ? "primary" : "neutral"} size="sm">
                             {index === 0 ? "Now" : "Up next"}
                           </Badge>
                           <span className="text-caption font-semibold tabular-nums text-primary-text">{course.progress}%</span>
                         </div>
-                        <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-foreground">{course.title}</h3>
-                        <p className="mt-1 line-clamp-1 text-caption text-muted-foreground">{course.lastWatched}</p>
-                        <Progress value={course.progress} tone={course.id === activeCourse?.id ? "primary" : "info"} size="xs" className="mt-4" label={`${course.title} progress`} />
-                        <div className="mt-3 flex items-center justify-between text-caption">
+                        <h3 className="mt-2.5 line-clamp-1 text-sm font-bold text-foreground">{course.title}</h3>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{course.lastWatched}</p>
+                        <Progress value={course.progress} tone={course.id === activeCourse?.id ? "primary" : "info"} size="xs" className="mt-3.5" label={`${course.title} progress`} />
+                        <div className="mt-2.5 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">{course.completedModules}/{course.totalModules} modules</span>
-                          <span className="inline-flex items-center gap-1 font-medium text-primary-text">
+                          <span className="inline-flex items-center gap-1 font-semibold text-primary">
                             Resume <Play className="h-3 w-3 fill-current" aria-hidden="true" />
                           </span>
                         </div>
                       </motion.button>
-                    ))
-                  ) : (
-                    <div className="md:col-span-3">
-                      <EmptyState
-                        size="sm"
-                        icon={<BookOpen aria-hidden="true" />}
-                        title="Start your first course"
-                        description="Choose a program from the catalog to build your learning plan."
-                        action={<Button size="sm" onClick={() => onNavigate("My Courses")}>Explore programs</Button>}
-                      />
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    size="sm"
+                    icon={<BookOpen aria-hidden="true" />}
+                    title="Start your first course"
+                    description="Choose a program from the catalog to build your learning plan."
+                    action={<Button size="sm" onClick={() => onNavigate("My Courses")}>Explore programs</Button>}
+                  />
+                )}
               </CardContent>
             </Card>
 
-            <Card id="priority-queue" className="scroll-mt-5">
+            {/* Action Center (Upgraded Priority Queue) */}
+            <Card id="priority-queue" className="scroll-mt-5 rounded-[14px] border border-border">
               <CardHeader className="flex-row items-start justify-between gap-3 pb-3">
                 <div>
-                  <CardTitle>Priority queue</CardTitle>
-                  <p className="mt-1 text-caption text-muted-foreground">Finish these to protect your learning streak.</p>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-bold">Your action center</CardTitle>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning">
+                      {priorityItems.length - completedItems}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Immediate milestones, live sessions, and submissions.</p>
                 </div>
-                <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-warning-soft px-2 text-xs font-semibold tabular-nums text-warning">
-                  {priorityItems.length - completedItems}
-                </span>
               </CardHeader>
-              <CardContent className="flex flex-col gap-1 px-3">
+              <CardContent className="flex flex-col gap-2 px-3">
                 {priorityItems.length ? (
                   priorityItems.map((item) => {
                     const done = completed.has(item.id)
                     const details = item.due.includes("Continue") ? item.due : dueLabel(item.due)
                     const ItemIcon = item.kind === "quiz" ? Trophy : item.kind === "lesson" ? Play : ListTodo
                     return (
-                      <div key={item.id} className="group flex items-center gap-2 rounded-md px-2 py-2 transition-colors hover:bg-surface-2">
+                      <div
+                        key={item.id}
+                        className="group flex items-center gap-2.5 rounded-lg border border-border/40 bg-surface px-3 py-2.5 transition-colors hover:bg-surface-2"
+                      >
                         <motion.button
                           type="button"
                           role="checkbox"
@@ -678,14 +809,14 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                           whileTap={{ scale: 0.82 }}
                           transition={spring.snappy}
                           className={cn(
-                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors",
-                            done ? "border-success bg-success text-white dark:text-ink-950" : "border-border-strong bg-surface text-subtle-foreground hover:border-primary",
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                            done ? "border-success bg-success text-white" : "border-border-strong bg-surface text-subtle-foreground hover:border-primary",
                           )}
                         >
                           <AnimatePresence initial={false}>
                             {done && (
                               <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.4, opacity: 0 }} transition={spring.snappy} className="flex">
-                                <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                                <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
                               </motion.span>
                             )}
                           </AnimatePresence>
@@ -695,22 +826,22 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                           onClick={() => onNavigate(item.route, item.kind === "lesson" ? activeCourse?.id : undefined)}
                           className="min-w-0 flex-1 text-left"
                         >
-                          <span className={cn("block truncate text-sm font-medium transition-colors", done ? "text-muted-foreground line-through" : "text-foreground group-hover:text-primary-text")}>{item.title}</span>
-                          <span className="flex items-center gap-1 truncate text-caption text-muted-foreground">
+                          <span className={cn("block truncate text-xs font-semibold transition-colors", done ? "text-muted-foreground line-through" : "text-foreground group-hover:text-primary")}>{item.title}</span>
+                          <span className="flex items-center gap-1.5 truncate text-[11px] text-muted-foreground mt-0.5">
                             <ItemIcon className={cn("h-3 w-3 shrink-0", METRIC_TONE[item.tone].text)} aria-hidden="true" />
                             {item.detail}
                           </span>
                         </button>
-                        <Badge tone={done ? "success" : item.tone === "warning" ? "warning" : "neutral"} size="sm" className="shrink-0">
+                        <Badge tone={done ? "success" : item.tone === "warning" ? "warning" : "neutral"} size="sm" className="shrink-0 text-[10px]">
                           {done ? "Done" : details.replace(/^Due /, "")}
                         </Badge>
                       </div>
                     )
                   })
                 ) : (
-                  <EmptyState size="sm" icon={<CheckCircle2 aria-hidden="true" />} title="You're all clear" description="No pending work right now." />
+                  <EmptyState size="sm" icon={<CheckCircle2 aria-hidden="true" />} title="You're all clear" description="No pending actions right now." />
                 )}
-                <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Assessments")} className="mt-2 self-start">
+                <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Assessments")} className="mt-1 self-start text-xs">
                   Review all assessments
                 </Button>
               </CardContent>

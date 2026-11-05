@@ -8,6 +8,7 @@ export interface AreaSeries {
   name: string
   values: number[]
   color?: string
+  dashed?: boolean
 }
 
 interface AreaChartProps {
@@ -33,25 +34,36 @@ export default function AreaChart({ labels, series, height = 220, className, for
   const ref = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<number | null>(null)
   const H = height
-  const padTop = 12
-  const padBottom = 24
+  const padTop = 14
+  const padBottom = 26
+  const padLeft = 32
+  const plotW = W - padLeft
   const plotH = H - padTop - padBottom
   const max = useMemo(() => yMax ?? niceMax(Math.max(1, ...series.flatMap((s) => s.values))), [series, yMax])
-  const colors = ["var(--primary-text)", "var(--secondary-text)", "var(--success)", "var(--warning)"]
+  const colors = ["#F97316", "#0EA5E9", "var(--success)", "var(--warning)"]
 
   const paths = series.map((s, si) => {
-    const pts = scalePoints(s.values, W, plotH, 0, yMin, max).map((p) => ({ x: p.x, y: p.y + padTop }))
+    const pts = scalePoints(s.values, plotW, plotH, 0, yMin, max).map((p) => ({ x: p.x + padLeft, y: p.y + padTop }))
     const line = buildPath(pts)
-    return { pts, line, area: `${line} L ${W} ${padTop + plotH} L 0 ${padTop + plotH} Z`, color: s.color ?? colors[si % colors.length] }
+    const isDashed = s.dashed ?? s.name.toLowerCase().includes("goal")
+    return {
+      pts,
+      line,
+      area: `${line} L ${W} ${padTop + plotH} L ${padLeft} ${padTop + plotH} Z`,
+      color: s.color ?? colors[si % colors.length],
+      dashed: isDashed,
+    }
   })
-  const step = labels.length > 1 ? W / (labels.length - 1) : W
+  const step = labels.length > 1 ? plotW / (labels.length - 1) : plotW
 
   const onMove = (e: React.PointerEvent) => {
     const rect = ref.current?.getBoundingClientRect()
     if (!rect) return
-    const x = ((e.clientX - rect.left) / rect.width) * W
+    const x = ((e.clientX - rect.left) / rect.width) * W - padLeft
     setHover(Math.max(0, Math.min(labels.length - 1, Math.round(x / step))))
   }
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1]
 
   return (
     <div ref={ref} className={cn("relative w-full select-none", className)} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
@@ -59,15 +71,15 @@ export default function AreaChart({ labels, series, height = 220, className, for
         <defs>
           {paths.map((p, i) => (
             <linearGradient key={i} id={`ag-${id}-${i}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={p.color} stopOpacity={0.22} />
+              <stop offset="0%" stopColor={p.color} stopOpacity={p.dashed ? 0.04 : 0.14} />
               <stop offset="100%" stopColor={p.color} stopOpacity={0} />
             </linearGradient>
           ))}
           <clipPath id={`ac-${id}`}>
             <motion.rect
-              x={0}
+              x={padLeft}
               y={0}
-              width={W}
+              width={plotW}
               height={H}
               style={{ originX: 0 }}
               initial={{ scaleX: 0 }}
@@ -77,43 +89,78 @@ export default function AreaChart({ labels, series, height = 220, className, for
             />
           </clipPath>
         </defs>
-        {[0, 0.5, 1].map((t) => (
-          <line key={t} x1={0} x2={W} y1={padTop + plotH * t} y2={padTop + plotH * t} stroke="var(--border)" strokeDasharray={t === 1 ? undefined : "3 4"} vectorEffect="non-scaling-stroke" />
-        ))}
+
+        {/* Y Gridlines and Y-Axis Ticks */}
+        {yTicks.map((t) => {
+          const y = padTop + plotH * (1 - t)
+          const val = yMin + (max - yMin) * t
+          return (
+            <g key={t}>
+              <line
+                x1={padLeft}
+                x2={W}
+                y1={y}
+                y2={y}
+                stroke="var(--border)"
+                strokeOpacity={0.6}
+                strokeDasharray={t === 0 ? undefined : "3 4"}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x={padLeft - 6}
+                y={y + 3.5}
+                textAnchor="end"
+                className="fill-muted-foreground text-[10px] font-mono tabular-nums"
+              >
+                {formatValue(Math.round(val))}
+              </text>
+            </g>
+          )
+        })}
+
         <g clipPath={`url(#ac-${id})`}>
           {paths.map((p, i) => (
             <g key={i}>
               <path d={p.area} fill={`url(#ag-${id}-${i})`} />
-              <path d={p.line} fill="none" stroke={p.color} strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+              <path
+                d={p.line}
+                fill="none"
+                stroke={p.color}
+                strokeWidth={p.dashed ? 1.75 : 2.25}
+                strokeDasharray={p.dashed ? "4 4" : undefined}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
             </g>
           ))}
         </g>
+
         {hover !== null && (
-          <line x1={hover * step} x2={hover * step} y1={padTop} y2={padTop + plotH} stroke="var(--border-strong)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          <line
+            x1={padLeft + hover * step}
+            x2={padLeft + hover * step}
+            y1={padTop}
+            y2={padTop + plotH}
+            stroke="var(--border-strong)"
+            strokeWidth={1}
+            strokeDasharray="2 2"
+            vectorEffect="non-scaling-stroke"
+          />
         )}
       </svg>
-      {/* y-axis max label */}
-      <span className="pointer-events-none absolute left-0 top-0 text-[10px] tabular-nums text-subtle-foreground">{formatValue(max)}</span>
-      {tickEvery > 1 ? (
-        // Sparse ticks sit under their own points.
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 text-[10px] text-subtle-foreground">
-          {labels.map((l, i) =>
-            i % tickEvery === 0 || i === labels.length - 1 ? (
-              <span key={`${l}-${i}`} className="absolute whitespace-nowrap" style={{ left: `${(i / Math.max(1, labels.length - 1)) * 100}%`, transform: `translateX(${i === 0 ? "0" : i === labels.length - 1 ? "-100%" : "-50%"})` }}>
-                {l}
-              </span>
-            ) : null,
-          )}
-        </div>
-      ) : (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-subtle-foreground">
-          {labels.map((l, i) => (
-            <span key={`${l}-${i}`} className={cn(labels.length > 8 && i % 2 === 1 && "hidden sm:inline")}>
-              {l}
-            </span>
-          ))}
-        </div>
-      )}
+
+      {/* X-Axis Labels */}
+      <div
+        className="pointer-events-none absolute bottom-0 flex justify-between text-[11px] font-medium text-muted-foreground"
+        style={{ left: `${(padLeft / W) * 100}%`, right: 0 }}
+      >
+        {labels.map((l, i) => (
+          <span key={`${l}-${i}`} className={cn("text-center", labels.length > 8 && i % 2 === 1 && "hidden sm:inline")}>
+            {l}
+          </span>
+        ))}
+      </div>
+
       <AnimatePresence>
         {hover !== null && (
           <motion.div
@@ -123,7 +170,7 @@ export default function AreaChart({ labels, series, height = 220, className, for
             exit={{ opacity: 0, x: "-50%" }}
             transition={{ duration: duration.fast }}
             className="pointer-events-none absolute top-2 z-10 min-w-[120px] rounded-md border border-border bg-surface-3 px-2.5 py-1.5 text-xs shadow-[var(--elev-md)]"
-            style={{ left: `${Math.min(88, Math.max(12, (hover / Math.max(1, labels.length - 1)) * 100))}%` }}
+            style={{ left: `${((padLeft + hover * step) / W) * 100}%` }}
           >
             <div className="mb-0.5 font-medium text-foreground">{labels[hover]}</div>
             {series.map((s, i) => (

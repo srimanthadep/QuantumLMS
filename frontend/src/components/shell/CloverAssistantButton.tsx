@@ -12,18 +12,18 @@ interface CloverAssistantButtonProps {
  */
 export default function CloverAssistantButton({ onOpen }: CloverAssistantButtonProps) {
   return (
-    <Tooltip content="Open Clover assistant" side="left">
+    <Tooltip content="Open Clover AI assistant" side="left">
       <button
         type="button"
         onClick={onOpen}
         aria-label="Open Clover assistant"
-        className="fixed bottom-5 right-5 z-40 flex h-16 w-16 items-center justify-center rounded-full transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 active:scale-95 sm:bottom-6 sm:right-6"
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-surface shadow-md border border-border transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 active:scale-95 sm:bottom-6 sm:right-6"
       >
         <BotAvatar
           type="clover"
           face="mouth"
           state="default"
-          size={56}
+          size={40}
           shading="plastic"
           highlight={1.1}
           rim={0.7}
