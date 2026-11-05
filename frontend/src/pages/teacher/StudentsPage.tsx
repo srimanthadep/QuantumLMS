@@ -28,7 +28,6 @@ import {
 } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
-import SendReportDialog from "@/components/teacher/SendReportDialog"
 import StudentDrawer from "@/components/teacher/StudentDrawer"
 import { cn } from "@/lib/utils"
 import { spring } from "@/lib/motion"
@@ -122,7 +121,6 @@ export default function StudentsPage() {
   const [course, setCourse] = useState("all")
   const [view, setView] = useState<View>("table")
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
   const drawerId = params.get("student")
 
   const openDrawer = (id: string | null) => {
@@ -162,14 +160,9 @@ export default function StudentsPage() {
         title="Students"
         description={`${students.length} learners across ${courses.length} courses. Open anyone to see their progress, submissions and attendance.`}
         actions={
-          <>
-            <Button variant="outline" leftIcon={<Send aria-hidden="true" />} onClick={() => setReportOpen(true)}>
-              Send report
-            </Button>
-            <Button leftIcon={<UserPlus aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
-              Invite learner
-            </Button>
-          </>
+          <Button leftIcon={<UserPlus aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
+            Invite learner
+          </Button>
         }
       />
 
@@ -389,7 +382,6 @@ export default function StudentsPage() {
 
       <StudentDrawer studentId={drawerId} open={!!drawerId} onOpenChange={(o) => !o && openDrawer(null)} />
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
-      <SendReportDialog open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   )
 }

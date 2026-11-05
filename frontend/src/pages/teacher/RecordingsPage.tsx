@@ -166,9 +166,26 @@ export default function RecordingsPage() {
                             <Badge tone={s === "published" ? "success" : s === "processing" ? "info" : "neutral"} dot={s === "published"}>
                               {s === "published" ? "Published" : s === "draft" ? "Draft" : s === "processing" ? "Processing" : "No recording"}
                             </Badge>
+                            {r.videoApprovalStatus && (
+                              <Badge tone={r.videoApprovalStatus === "Approved" ? "success" : "warning"}>
+                                Video: {r.videoApprovalStatus}
+                              </Badge>
+                            )}
                             {review && review.chapters.length > 0 && <Badge tone="primary">{review.chapters.length} chapters</Badge>}
                             {review && review.whisperTranscripts.length > 0 && <Badge tone="neutral">Transcript</Badge>}
                           </div>
+                          {course && (
+                            <div className="pt-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full text-xs h-7"
+                                onClick={() => navigate(`/teacher/courses/${course.id}?tab=curriculum`)}
+                              >
+                                View in Module &amp; Lesson
+                              </Button>
+                            </div>
+                          )}
                           <div className={cn("mt-auto flex items-center gap-2 border-t border-border pt-3", !openable && "justify-between")}>
                             {r.status === "Available" ? (
                               <>

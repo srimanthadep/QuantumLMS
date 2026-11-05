@@ -22,6 +22,7 @@ import {
   Plus,
   Presentation,
   Radio,
+  Upload,
   Users,
   Video,
   Wrench,
@@ -59,6 +60,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Textarea,
   type BadgeTone,
 } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
@@ -145,6 +147,255 @@ function AddModuleDialog({ open, onOpenChange, course }: { open: boolean; onOpen
             </Button>
             <Button type="submit" leftIcon={<Plus aria-hidden="true" />}>
               Add module
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AddAssignmentDialog({
+  open,
+  onOpenChange,
+  courseId,
+  moduleId,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  courseId: string
+  moduleId: string
+}) {
+  const { addAssignment } = useTeacherData()
+  const [title, setTitle] = useState("")
+  const [type, setType] = useState<ModuleAssignmentItem["type"]>("Written Assignment")
+  const [description, setDescription] = useState("")
+  const [instructions, setInstructions] = useState("")
+  const [dueDate, setDueDate] = useState("2026-11-20")
+  const [maxMarks, setMaxMarks] = useState("100")
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <form
+          noValidate
+          className="grid gap-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (title.trim().length < 3) return setError("Assignment title must be at least 3 characters.")
+            addAssignment(courseId, moduleId, {
+              title: title.trim(),
+              type,
+              description: description.trim() || "Practical module assignment.",
+              instructions: instructions.trim() || "Complete the problem statement and submit solution before deadline.",
+              dueDate: dueDate.trim() || "2026-11-20",
+              maxMarks: Number(maxMarks) || 100,
+            })
+            onOpenChange(false)
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Add module assignment</DialogTitle>
+            <DialogDescription>
+              New assignments are sent to Admin for curriculum verification.
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="Assignment title" required error={error}>
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Prompt Pipeline Evaluation" />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Type">
+              <Select value={type} onValueChange={(v) => setType(v as ModuleAssignmentItem["type"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Written Assignment">Written Assignment</SelectItem>
+                  <SelectItem value="Coding Lab">Coding Lab</SelectItem>
+                  <SelectItem value="Project Milestone">Project Milestone</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Max marks">
+              <Input type="number" min={10} max={500} value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} />
+            </Field>
+          </div>
+          <Field label="Due date">
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </Field>
+          <Field label="Description">
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short overview" />
+          </Field>
+          <Field label="Instructions & Rubric">
+            <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Task instructions..." rows={3} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" leftIcon={<Plus aria-hidden="true" />}>
+              Submit for Approval
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AddQuizDialog({
+  open,
+  onOpenChange,
+  courseId,
+  moduleId,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  courseId: string
+  moduleId: string
+}) {
+  const { addQuiz } = useTeacherData()
+  const [title, setTitle] = useState("")
+  const [dueDate, setDueDate] = useState("2026-11-25")
+  const [maxMarks, setMaxMarks] = useState("100")
+  const [timeLimitMins, setTimeLimitMins] = useState("30")
+  const [passingMarks, setPassingMarks] = useState("60")
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <form
+          noValidate
+          className="grid gap-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (title.trim().length < 3) return setError("Quiz title must be at least 3 characters.")
+            addQuiz(courseId, moduleId, {
+              title: title.trim(),
+              dueDate: dueDate.trim() || "2026-11-25",
+              maxMarks: Number(maxMarks) || 100,
+              timeLimitMins: Number(timeLimitMins) || 30,
+              passingMarks: Number(passingMarks) || 60,
+            })
+            onOpenChange(false)
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Add module quiz</DialogTitle>
+            <DialogDescription>
+              Quizzes are verified by the Admin before being published to learners.
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="Quiz title" required error={error}>
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Attention & Transformer Checkpoint" />
+          </Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Time limit (mins)">
+              <Input type="number" min={5} max={180} value={timeLimitMins} onChange={(e) => setTimeLimitMins(e.target.value)} />
+            </Field>
+            <Field label="Max marks">
+              <Input type="number" min={10} max={200} value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} />
+            </Field>
+            <Field label="Passing marks">
+              <Input type="number" min={5} max={200} value={passingMarks} onChange={(e) => setPassingMarks(e.target.value)} />
+            </Field>
+          </div>
+          <Field label="Due date">
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" leftIcon={<ListChecks aria-hidden="true" />}>
+              Submit for Approval
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function UploadMaterialDialog({
+  open,
+  onOpenChange,
+  courseId,
+  target,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  courseId: string
+  target: { moduleId: string; lessonId: string } | null
+}) {
+  const { addMaterial } = useTeacherData()
+  const [title, setTitle] = useState("")
+  const [type, setType] = useState<LessonMaterial["type"]>("Document")
+  const [sizeOrDuration, setSizeOrDuration] = useState("PDF · 3.2 MB")
+  const [url, setUrl] = useState("")
+  const [error, setError] = useState<string | null>(null)
+
+  if (!target) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <form
+          noValidate
+          className="grid gap-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (title.trim().length < 3) return setError("Material title must be at least 3 characters.")
+            addMaterial(courseId, target.moduleId, target.lessonId, {
+              title: title.trim(),
+              type,
+              sizeOrDuration: sizeOrDuration.trim() || "PDF · 2.4 MB",
+              url: url.trim() || "#",
+            })
+            onOpenChange(false)
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Upload study material</DialogTitle>
+            <DialogDescription>
+              New material files undergo administrative review prior to learner access.
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="Material title" required error={error}>
+            <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Architecture Reference Sheet" />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Type">
+              <Select value={type} onValueChange={(v) => setType(v as LessonMaterial["type"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Document">Document</SelectItem>
+                  <SelectItem value="PDF">PDF</SelectItem>
+                  <SelectItem value="Video Lecture">Video Lecture</SelectItem>
+                  <SelectItem value="Lab Worksheet">Lab Worksheet</SelectItem>
+                  <SelectItem value="Slide Deck">Slide Deck</SelectItem>
+                  <SelectItem value="Audio">Audio</SelectItem>
+                  <SelectItem value="External">External Resource</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Size / Duration">
+              <Input value={sizeOrDuration} onChange={(e) => setSizeOrDuration(e.target.value)} placeholder="e.g. PDF · 4.1 MB" />
+            </Field>
+          </div>
+          <Field label="Resource Link / CDN URL">
+            <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://cdn.quantumschool.ai/materials/..." />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" leftIcon={<Upload aria-hidden="true" />}>
+              Submit for Approval
             </Button>
           </DialogFooter>
         </form>
@@ -298,20 +549,45 @@ function ModuleCard({
   )
 }
 
-function AssignmentCard({ course, module: m, index, onGrade }: { course: CourseItem; module: CourseModuleItem; index: number; onGrade: (key: string) => void }) {
+function AssignmentCard({
+  course,
+  module: m,
+  index,
+  onGrade,
+  onAddAssignment,
+  onAddQuiz,
+}: {
+  course: CourseItem
+  module: CourseModuleItem
+  index: number
+  onGrade: (key: string) => void
+  onAddAssignment: (moduleId: string) => void
+  onAddQuiz: (moduleId: string) => void
+}) {
   const { assignments } = useTeacherData()
   const [brief, setBrief] = useState(false)
   const key = assignmentKey(course.id, m.id)
   const a = assignments[key]
   if (!a) {
     return (
-      <li className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-2 text-caption font-semibold tabular-nums text-muted-foreground" aria-hidden="true">
-          {index + 1}
-        </span>
-        <p className="min-w-0 truncate text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{m.title}</span> has no assignment.
-        </p>
+      <li className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-dashed border-border p-4 bg-surface-2/40">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-2 text-caption font-semibold tabular-nums text-muted-foreground" aria-hidden="true">
+            {index + 1}
+          </span>
+          <div>
+            <p className="text-sm font-medium text-foreground">{m.title}</p>
+            <p className="text-caption text-muted-foreground">No assignment or assessment created yet.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" leftIcon={<PenLine className="h-3.5 w-3.5" aria-hidden="true" />} onClick={() => onAddAssignment(m.id)}>
+            Add assignment
+          </Button>
+          <Button size="sm" variant="outline" leftIcon={<ListChecks className="h-3.5 w-3.5" aria-hidden="true" />} onClick={() => onAddQuiz(m.id)}>
+            Add quiz
+          </Button>
+        </div>
       </li>
     )
   }
@@ -333,7 +609,19 @@ function AssignmentCard({ course, module: m, index, onGrade }: { course: CourseI
             {a.type} · Due {a.dueDate} · {a.maxMarks} marks
           </p>
         </div>
-        <Badge tone={ASSIGNMENT_TONE[a.status]}>{a.status}</Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {a.approvalStatus && (
+            <Badge tone={a.approvalStatus === "Approved" ? "success" : "warning"} size="sm">
+              {a.approvalStatus}
+            </Badge>
+          )}
+          {a.publishGradeApproval && (
+            <Badge tone={a.publishGradeApproval === "Approved" ? "success" : "warning"} size="sm">
+              Grades: {a.publishGradeApproval}
+            </Badge>
+          )}
+          <Badge tone={ASSIGNMENT_TONE[a.status]}>{a.status}</Badge>
+        </div>
       </div>
       <dl className="mt-4 grid gap-4 sm:grid-cols-3">
         <div>
@@ -422,6 +710,9 @@ export default function CourseWorkspacePage() {
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [gradingKey, setGradingKey] = useState<string | null>(null)
   const [drawerId, setDrawerId] = useState<string | null>(null)
+  const [addAssignmentModuleId, setAddAssignmentModuleId] = useState<string | null>(null)
+  const [addQuizModuleId, setAddQuizModuleId] = useState<string | null>(null)
+  const [uploadMaterialTarget, setUploadMaterialTarget] = useState<{ moduleId: string; lessonId: string } | null>(null)
 
   const learners = useMemo(
     () => (course ? course.enrolledStudentIds.map((id) => students.find((s) => s.id === id)).filter((s): s is StudentItem => Boolean(s)) : []),
@@ -630,7 +921,15 @@ export default function CourseWorkspacePage() {
               ) : (
                 <ul className="flex flex-col gap-3">
                   {course.modules.map((m, i) => (
-                    <AssignmentCard key={m.id} course={course} module={m} index={i} onGrade={setGradingKey} />
+                    <AssignmentCard
+                      key={m.id}
+                      course={course}
+                      module={m}
+                      index={i}
+                      onGrade={setGradingKey}
+                      onAddAssignment={(modId) => setAddAssignmentModuleId(modId)}
+                      onAddQuiz={(modId) => setAddQuizModuleId(modId)}
+                    />
                   ))}
                 </ul>
               )}
@@ -782,7 +1081,17 @@ export default function CourseWorkspacePage() {
                 </section>
               )}
               <section className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Materials</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Materials</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<Upload className="h-3.5 w-3.5" aria-hidden="true" />}
+                    onClick={() => setUploadMaterialTarget({ moduleId: previewModule.id, lessonId: previewLesson.id })}
+                  >
+                    Upload material
+                  </Button>
+                </div>
                 {previewLesson.materials.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No materials attached.</p>
                 ) : (
@@ -790,12 +1099,12 @@ export default function CourseWorkspacePage() {
                     {previewLesson.materials.map((mat) => {
                       const Icon = MATERIAL_ICON[mat.type] ?? FileText
                       return (
-                        <li key={mat.id}>
+                        <li key={mat.id} className="flex items-center justify-between">
                           <a
                             href={mat.url ?? "#"}
                             target="_blank"
                             rel="noreferrer"
-                            className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2"
+                            className="group flex flex-1 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2"
                           >
                             <IconTile icon={Icon} tone="primary" size="sm" />
                             <span className="min-w-0 flex-1">
@@ -807,6 +1116,13 @@ export default function CourseWorkspacePage() {
                             <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                             <span className="sr-only">(opens in a new tab)</span>
                           </a>
+                          {mat.approvalStatus && (
+                            <div className="pr-3">
+                              <Badge tone={mat.approvalStatus === "Approved" ? "success" : "warning"} size="sm">
+                                {mat.approvalStatus}
+                              </Badge>
+                            </div>
+                          )}
                         </li>
                       )
                     })}
@@ -823,6 +1139,24 @@ export default function CourseWorkspacePage() {
       <ScheduleSessionDialog open={scheduleOpen} onOpenChange={setScheduleOpen} defaultCourseId={course.id} />
       <GradingSheet open={gradingKey !== null} onOpenChange={(o) => !o && setGradingKey(null)} assignmentId={gradingKey} />
       <StudentDrawer studentId={drawerId} open={drawerId !== null} onOpenChange={(o) => !o && setDrawerId(null)} />
+      <AddAssignmentDialog
+        open={addAssignmentModuleId !== null}
+        onOpenChange={(o) => !o && setAddAssignmentModuleId(null)}
+        courseId={course.id}
+        moduleId={addAssignmentModuleId ?? ""}
+      />
+      <AddQuizDialog
+        open={addQuizModuleId !== null}
+        onOpenChange={(o) => !o && setAddQuizModuleId(null)}
+        courseId={course.id}
+        moduleId={addQuizModuleId ?? ""}
+      />
+      <UploadMaterialDialog
+        open={uploadMaterialTarget !== null}
+        onOpenChange={(o) => !o && setUploadMaterialTarget(null)}
+        courseId={course.id}
+        target={uploadMaterialTarget}
+      />
     </div>
   )
 }

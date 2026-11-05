@@ -297,164 +297,169 @@ export default function TicketDetailPage({ onToast }: TicketDetailPageProps) {
 
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: Conversation & Reply (8 cols) */}
-        <div className="space-y-6 lg:col-span-8">
-          {/* Initial Inquiry Card */}
-          <Card>
-            <CardHeader className="border-b border-border pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar name={ticket.studentName} className="h-9 w-9" />
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{ticket.studentName}</CardTitle>
-                    <CardDescription className="text-xs">
-                      {ticket.studentEmail} · {new Date(ticket.created_at).toLocaleString()}
-                    </CardDescription>
+        {/* Left Column: Interactive Chat & Resolution Stream (8 cols) */}
+        <div className="space-y-4 lg:col-span-8">
+          <Card className="flex flex-col overflow-hidden border border-border shadow-[var(--elev-sm)]">
+            {/* Chat Header */}
+            <div className="flex flex-wrap items-center justify-between border-b border-border bg-surface-2/60 px-5 py-3.5">
+              <div className="flex items-center gap-3">
+                <Avatar name={ticket.studentName} className="h-9 w-9 ring-1 ring-border" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{ticket.studentName}</span>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-success">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                      Active Ticket Chat
+                    </span>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Badge
-                    tone={
-                      ticket.priority === "Urgent"
-                        ? "danger"
-                        : ticket.priority === "High"
-                          ? "warning"
-                          : ticket.priority === "Medium"
-                            ? "info"
-                            : "neutral"
-                    }
-                  >
-                    {ticket.priority}
-                  </Badge>
-                  <Badge
-                    tone={
-                      ticket.status === "Open"
-                        ? "danger"
-                        : ticket.status === "In Progress"
-                          ? "warning"
-                          : ticket.status === "Resolved"
-                            ? "success"
-                            : "neutral"
-                    }
-                  >
-                    {ticket.status}
-                  </Badge>
+                  <p className="text-caption text-muted-foreground">
+                    {ticket.studentEmail} · {ticket.category}
+                  </p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                {ticket.description}
+              <div className="flex items-center gap-2">
+                <Badge
+                  tone={
+                    ticket.priority === "Urgent"
+                      ? "danger"
+                      : ticket.priority === "High"
+                        ? "warning"
+                        : ticket.priority === "Medium"
+                          ? "info"
+                          : "neutral"
+                  }
+                >
+                  {ticket.priority} Priority
+                </Badge>
+                <Badge
+                  tone={
+                    ticket.status === "Open"
+                      ? "danger"
+                      : ticket.status === "In Progress"
+                        ? "warning"
+                        : ticket.status === "Resolved"
+                          ? "success"
+                          : "neutral"
+                  }
+                >
+                  {ticket.status}
+                </Badge>
               </div>
+            </div>
 
-              {ticket.attachment_name && (
-                <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-xs text-foreground">
-                  <Paperclip className="h-3.5 w-3.5 text-primary-text" />
-                  <span>{ticket.attachment_name}</span>
-                  {ticket.attachment_size && (
-                    <span className="text-muted-foreground">({ticket.attachment_size})</span>
+            {/* Chat Messages Feed */}
+            <div className="h-[460px] overflow-y-auto p-4 sm:p-5 space-y-4 bg-surface-3/30">
+              {/* Initial ticket request rendered as student's first message */}
+              <div className="flex items-start gap-3">
+                <Avatar name={ticket.studentName} className="h-8 w-8 mt-1 shrink-0" />
+                <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tl-sm border border-border bg-surface p-3.5 text-xs sm:text-sm shadow-xs space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-caption">
+                    <span className="font-semibold text-foreground">{ticket.studentName}</span>
+                    <span className="text-muted-foreground text-[10px] tabular-nums">
+                      {new Date(ticket.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p className="font-medium text-foreground">{ticket.subject}</p>
+                  <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
+                  {ticket.attachment_name && (
+                    <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-2 px-2.5 py-1 text-caption text-foreground">
+                      <Paperclip className="h-3.5 w-3.5 text-primary-text" />
+                      <span>{ticket.attachment_name}</span>
+                      {ticket.attachment_size && (
+                        <span className="text-muted-foreground">({ticket.attachment_size})</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
 
-          {/* Conversation Thread */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Conversation Timeline ({ticket.messages.length} messages)
-            </h4>
-
-            {ticket.messages.length <= 1 ? (
-              <p className="text-xs text-muted-foreground italic">
-                No subsequent replies yet. Post a response below to notify the learner.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {ticket.messages.slice(1).map((msg) => {
-                  const isAgent = msg.role === "agent" || msg.sender.includes("Support")
-                  return (
+              {/* Thread messages */}
+              {ticket.messages.slice(1).map((msg) => {
+                const isAgent = msg.role === "agent" || msg.sender.includes("Support")
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex items-start gap-3",
+                      isAgent ? "flex-row-reverse" : "flex-row",
+                    )}
+                  >
+                    <Avatar
+                      name={isAgent ? "Support Agent" : msg.sender}
+                      className="h-8 w-8 mt-1 shrink-0"
+                    />
                     <div
-                      key={msg.id}
                       className={cn(
-                        "rounded-lg border p-4 text-xs sm:text-sm space-y-2",
+                        "max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 text-xs sm:text-sm shadow-xs space-y-1.5",
                         isAgent
-                          ? "bg-primary-soft/30 border-primary-border/40 ml-4 sm:ml-8"
-                          : "bg-surface-2 border-border mr-4 sm:mr-8",
+                          ? "rounded-tr-sm bg-primary-soft/50 border border-primary-border/60 text-foreground"
+                          : "rounded-tl-sm bg-surface border border-border text-foreground",
                       )}
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{msg.sender}</span>
-                          <Badge tone={isAgent ? "primary" : "neutral"} className="text-[10px]">
-                            {isAgent ? "Support Team" : "Student"}
+                      <div className="flex items-center justify-between gap-3 text-caption">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          {msg.sender}
+                          <Badge tone={isAgent ? "primary" : "neutral"} size="sm" className="text-[10px]">
+                            {isAgent ? "Support" : "Student"}
                           </Badge>
-                        </div>
-                        <span className="text-muted-foreground text-[11px]">{msg.timestamp}</span>
+                        </span>
+                        <span className="text-muted-foreground text-[10px] tabular-nums">{msg.timestamp}</span>
                       </div>
-                      <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-                        {msg.message}
-                      </p>
+                      <p className="leading-relaxed whitespace-pre-wrap">{msg.message}</p>
                     </div>
-                  )
-                })}
+                  </div>
+                )
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Chat Composer Footer */}
+            <div className="border-t border-border bg-surface p-4 space-y-3">
+              {/* Macro chips */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground font-medium mr-1">
+                  Quick Macro:
+                </span>
+                {CANNED_MACROS.map((macro) => (
+                  <button
+                    key={macro.label}
+                    type="button"
+                    onClick={() => setReplyText((prev) => (prev ? `${prev} ${macro.text}` : macro.text))}
+                    className="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-foreground hover:bg-surface-3 transition-colors cursor-pointer"
+                  >
+                    {macro.label}
+                  </button>
+                ))}
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          {/* Reply Composer Card */}
-          <Card>
-            <form onSubmit={handleSendReply}>
-              <CardHeader className="pb-3 border-b border-border">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Send className="h-4 w-4 text-primary-text" />
-                  Compose Reply
-                </CardTitle>
-                <CardDescription>
-                  Replies are instantly routed to the student&apos;s notification inbox.
-                </CardDescription>
-
-                {/* Canned Macro Quick Buttons */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-2">
-                  <span className="text-[11px] text-muted-foreground font-medium mr-1">
-                    Insert Macro:
-                  </span>
-                  {CANNED_MACROS.map((macro) => (
-                    <button
-                      key={macro.label}
-                      type="button"
-                      onClick={() => setReplyText((prev) => (prev ? `${prev}\n\n${macro.text}` : macro.text))}
-                      className="rounded-md border border-border bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-surface-3 transition-colors cursor-pointer"
-                    >
-                      {macro.label}
-                    </button>
-                  ))}
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-4 space-y-3">
+              <form onSubmit={handleSendReply} className="flex gap-2">
                 <Textarea
                   required
-                  rows={5}
-                  placeholder="Write your message to the student..."
+                  rows={2}
+                  placeholder={`Reply to ${ticket.studentName}… (Press Enter to send)`}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      if (replyText.trim() && !isSendingReply) {
+                        handleSendReply(e)
+                      }
+                    }
+                  }}
+                  className="resize-none text-xs sm:text-sm"
                 />
-
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-                  <p className="text-xs text-muted-foreground">
-                    Pressing Send Reply will notify {ticket.studentName} via email and student portal.
-                  </p>
-
-                  <Button type="submit" loading={isSendingReply} disabled={!replyText.trim()}>
-                    <Send className="mr-1.5 h-4 w-4" />
-                    Send Reply
-                  </Button>
-                </div>
-              </CardContent>
-            </form>
+                <Button
+                  type="submit"
+                  loading={isSendingReply}
+                  disabled={!replyText.trim()}
+                  className="self-end h-10 px-4"
+                >
+                  <Send className="h-4 w-4" />
+                  <span className="sr-only sm:not-sr-only sm:ml-1.5">Send</span>
+                </Button>
+              </form>
+            </div>
           </Card>
         </div>
 

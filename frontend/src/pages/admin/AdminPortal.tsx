@@ -20,6 +20,7 @@ import StudentsView from "./views/StudentsView"
 import OrdersView from "./views/OrdersView"
 import ReportsView from "./views/ReportsView"
 import SettingsView from "./views/SettingsView"
+import TeacherApprovalsView from "./views/TeacherApprovalsView"
 
 // Single-tenant platform operations views
 import PlatformHealthView from "../super-admin/views/PlatformHealthView"
@@ -44,6 +45,7 @@ interface AdminPortalProps {
 
 const NAV_PATHS: Record<string, string> = {
   overview: "/admin/overview",
+  approvals: "/admin/approvals",
   courses: "/admin/courses",
   batches: "/admin/batches",
   teachers: "/admin/teachers",
@@ -203,6 +205,10 @@ export default function AdminPortal({
             <Route
               path="/courses"
               element={<CoursesView store={store} onToast={onToast} />}
+            />
+            <Route
+              path="/approvals"
+              element={<TeacherApprovalsView onToast={onToast} />}
             />
             <Route
               path="/batches"

@@ -80,7 +80,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
 export default function RecordingReviewPage() {
   const { recordingId = "" } = useParams()
   const navigate = useNavigate()
-  const { recordings, reviews, courses, published, togglePublished, updateSummary, notify } = useTeacherData()
+  const { recordings, reviews, courses, published, togglePublished, requestRecordingPublish, updateSummary, notify } = useTeacherData()
   const recording = recordings.find((r) => r.id === recordingId)
   const review = reviews[recordingId]
   const course = recording ? courseByCode(courses, recording.courseCode) : undefined
@@ -234,6 +234,14 @@ export default function RecordingReviewPage() {
     <div className="flex w-full min-w-0 flex-col">
       {header(
         <>
+          {course && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/teacher/courses/${course.id}?tab=curriculum`)}
+            >
+              View in Module &amp; Lesson
+            </Button>
+          )}
           <Button
             variant="outline"
             leftIcon={<Download aria-hidden="true" />}
@@ -248,16 +256,35 @@ export default function RecordingReviewPage() {
           >
             Transcript
           </Button>
-          <Button
-            variant={isPublished ? "outline" : "primary"}
-            leftIcon={isPublished ? <EyeOff aria-hidden="true" /> : <Upload aria-hidden="true" />}
-            onClick={() => {
-              togglePublished(recording.id)
-              notify(isPublished ? "Recording hidden from learners" : "Recording published to learners")
-            }}
-          >
-            {isPublished ? "Unpublish" : "Publish to learners"}
-          </Button>
+          {recording.videoApprovalStatus === "Pending Approval" ? (
+            <Badge tone="warning" className="px-3 py-1.5 text-xs">
+              Pending Admin Video Approval
+            </Badge>
+          ) : recording.videoApprovalStatus === "Approved" ? (
+            <div className="flex items-center gap-2">
+              <Badge tone="success" className="px-3 py-1.5 text-xs">
+                Video Approved
+              </Badge>
+              <Button
+                variant={isPublished ? "outline" : "primary"}
+                leftIcon={isPublished ? <EyeOff aria-hidden="true" /> : <Upload aria-hidden="true" />}
+                onClick={() => {
+                  togglePublished(recording.id)
+                  notify(isPublished ? "Recording hidden from learners" : "Recording published to learners")
+                }}
+              >
+                {isPublished ? "Unpublish" : "Publish to learners"}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              leftIcon={<Upload aria-hidden="true" />}
+              onClick={() => requestRecordingPublish(recording.id)}
+            >
+              Submit for Admin Video Approval
+            </Button>
+          )}
         </>,
       )}
 

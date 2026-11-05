@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { BellRing, Check, CheckCheck, Download, FileText, Inbox, Sparkles } from "lucide-react"
+import { BellRing, Check, CheckCheck, Code2, Download, Eye, FileText, Inbox, Sparkles } from "lucide-react"
 import {
   Avatar,
   Badge,
@@ -58,7 +58,7 @@ function suggestFeedback(name: string, pct: number): string {
 
 /** Grade an assignment's submissions one after another: score, feedback, save and move to the next. */
 export default function GradingSheet({ open, onOpenChange, assignmentId }: GradingSheetProps) {
-  const { assignments, gradeSubmission, notify } = useTeacherData()
+  const { assignments, gradeSubmission, submitGradesForApproval, notify } = useTeacherData()
   const assignment = assignmentId ? assignments[assignmentId] : undefined
   const submissions = useMemo(() => assignment?.submissions ?? [], [assignment])
   const max = assignment?.maxMarks ?? 100
@@ -70,6 +70,7 @@ export default function GradingSheet({ open, onOpenChange, assignmentId }: Gradi
   const [error, setError] = useState<string | null>(null)
   const [drafting, setDrafting] = useState(false)
   const [nudged, setNudged] = useState<Set<string>>(new Set())
+  const [showSubmissionPreview, setShowSubmissionPreview] = useState(true)
 
   // Pick a starting filter and submission each time the sheet opens.
   const openKey = open && assignmentId ? assignmentId : null
@@ -151,7 +152,14 @@ export default function GradingSheet({ open, onOpenChange, assignmentId }: Gradi
         {assignment && (
           <>
             <SheetHeader>
-              <p className="text-caption font-medium uppercase tracking-wider text-primary-text">{assignment.moduleTitle}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-caption font-medium uppercase tracking-wider text-primary-text">{assignment.moduleTitle}</p>
+                {assignment.publishGradeApproval && (
+                  <Badge tone={assignment.publishGradeApproval === "Approved" ? "success" : "warning"}>
+                    Grades: {assignment.publishGradeApproval}
+                  </Badge>
+                )}
+              </div>
               <SheetTitle>{assignment.title}</SheetTitle>
               <SheetDescription>
                 {assignment.type} · Due {assignment.dueDate} · {max} marks
@@ -171,6 +179,33 @@ export default function GradingSheet({ open, onOpenChange, assignmentId }: Gradi
                 </div>
               ))}
             </dl>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/60 p-3">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Grade Release Approval</p>
+                <p className="text-caption text-muted-foreground">
+                  {assignment.publishGradeApproval === "Approved"
+                    ? "Grades have been approved by Admin and released to students."
+                    : assignment.publishGradeApproval === "Pending Approval"
+                      ? "Submitted to Admin for publish approval. Pending review."
+                      : "Submit final scores to Admin before publishing to student transcripts."}
+                </p>
+              </div>
+              {assignment.publishGradeApproval === "Pending Approval" ? (
+                <Badge tone="warning">Pending Admin Sign-off</Badge>
+              ) : assignment.publishGradeApproval === "Approved" ? (
+                <Badge tone="success">Grades Published</Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => assignmentId && submitGradesForApproval(assignmentId)}
+                  disabled={counts.graded === 0}
+                >
+                  Submit Grades for Approval
+                </Button>
+              )}
+            </div>
 
             <AnimatePresence mode="wait" initial={false}>
               {selected && (
@@ -209,24 +244,59 @@ export default function GradingSheet({ open, onOpenChange, assignmentId }: Gradi
                     </div>
                   ) : (
                     <div className="mt-4 grid gap-4">
-                      {selected.submittedFile && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const file = selected.submittedFile ?? "submission"
-                            downloadTextFile(
-                              `${assignment.title}\nLearner: ${selected.studentName} (${selected.studentRoll})\nSubmitted: ${selected.submittedAt}\nFile: ${file}\n`,
-                              `${file.replace(/\.[a-z0-9]+$/i, "")}.txt`,
-                            )
-                          }}
-                          className="group flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-border-strong/60"
-                        >
-                          <FileText className="h-4 w-4 shrink-0 text-primary-text" aria-hidden="true" />
-                          <span className="min-w-0 flex-1 truncate text-sm text-foreground">{selected.submittedFile}</span>
-                          <Download className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
-                          <span className="sr-only">Download</span>
-                        </button>
-                      )}
+                      {/* Submission preview section */}
+                      <div className="rounded-lg border border-border bg-surface p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                            <Code2 className="h-4 w-4 text-primary-text" /> Student Work & Solution Preview
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowSubmissionPreview((v) => !v)}
+                            className="text-[11px] font-medium text-primary-text hover:underline flex items-center gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {showSubmissionPreview ? "Collapse" : "Preview"}
+                          </button>
+                        </div>
+                        {showSubmissionPreview && (
+                          <div className="rounded border border-border/80 bg-surface-3 p-3 font-mono text-xs leading-5 text-foreground overflow-x-auto max-h-52">
+                            <p className="text-muted-foreground">// {selected.studentName} ({selected.studentRoll}) — Submission Preview</p>
+                            <p className="text-muted-foreground">// Submitted: {selected.submittedAt} · File: {selected.submittedFile ?? "solution.py"}</p>
+                            <br />
+                            <p className="text-primary-text">import numpy as np</p>
+                            <p className="text-primary-text">import torch</p>
+                            <p className="text-primary-text">from transformers import AutoModelForCausalLM, AutoTokenizer</p>
+                            <br />
+                            <p><span className="text-info font-semibold">def</span> <span className="text-warning">run_evaluation</span>(eval_dataset, model_id, temperature=0.7):</p>
+                            <p className="pl-4">tokenizer = AutoTokenizer.from_pretrained(model_id)</p>
+                            <p className="pl-4">inputs = tokenizer(eval_dataset["prompt"], return_tensors="pt", padding=True)</p>
+                            <p className="pl-4">outputs = model.generate(**inputs, max_new_tokens=256, temperature=temperature)</p>
+                            <p className="pl-4">decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)</p>
+                            <p className="pl-4"><span className="text-info font-semibold">return</span> decoded</p>
+                            <br />
+                            <p className="text-success">// Benchmark score: Accuracy 94.2% · Latency 14.8ms/tok · Memory 4.1GB</p>
+                          </div>
+                        )}
+                        {selected.submittedFile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const file = selected.submittedFile ?? "submission"
+                              downloadTextFile(
+                                `${assignment.title}\nLearner: ${selected.studentName} (${selected.studentRoll})\nSubmitted: ${selected.submittedAt}\nFile: ${file}\n`,
+                                `${file.replace(/\.[a-z0-9]+$/i, "")}.txt`,
+                              )
+                            }}
+                            className="group flex w-full items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-left transition-colors hover:border-border-strong/60"
+                          >
+                            <FileText className="h-4 w-4 shrink-0 text-primary-text" aria-hidden="true" />
+                            <span className="min-w-0 flex-1 truncate text-xs text-foreground">{selected.submittedFile}</span>
+                            <Download className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
+                            <span className="sr-only">Download</span>
+                          </button>
+                        )}
+                      </div>
                       <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-end">
                         <Field label={`Score (out of ${max})`} error={error}>
                           <Input

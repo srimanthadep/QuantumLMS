@@ -23,7 +23,6 @@ import { transition } from "@/lib/motion"
 import type { ActivityEventType, StudentActivitySummary, StudentDayActivity } from "@/types"
 import { useTeacherData } from "@/pages/teacher/teacherStore"
 import { firstName, STUDENT_STATUS_TONE, toDate } from "@/pages/teacher/teacherUtils"
-import SendReportDialog from "./SendReportDialog"
 
 interface StudentDrawerProps {
   studentId: string | null
@@ -129,8 +128,6 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
   const [notes, setNotes] = useState("")
   const [saved, setSaved] = useState(false)
   const [nudged, setNudged] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
-  const [reportFor, setReportFor] = useState<string | undefined>(undefined)
 
   // Reset the form whenever the drawer opens for a learner (state adjusted during render, not in an effect).
   const syncKey = open && student ? student.id : null
@@ -335,16 +332,6 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
 
               <div className="sticky bottom-0 -mx-6 mt-auto flex flex-wrap items-center gap-2 border-t border-border bg-surface/95 px-6 py-3 backdrop-blur">
                 <Button
-                  leftIcon={<Send aria-hidden="true" />}
-                  onClick={() => {
-                    setReportFor(student.id)
-                    onOpenChange(false)
-                    setReportOpen(true)
-                  }}
-                >
-                  Send report
-                </Button>
-                <Button
                   variant="outline"
                   disabled={nudged}
                   leftIcon={nudged ? <Check aria-hidden="true" /> : <BellRing aria-hidden="true" />}
@@ -368,7 +355,6 @@ export default function StudentDrawer({ studentId, open, onOpenChange }: Student
           )}
         </SheetContent>
       </Sheet>
-      <SendReportDialog open={reportOpen} onOpenChange={setReportOpen} studentId={reportFor} />
     </>
   )
 }

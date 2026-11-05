@@ -29,7 +29,6 @@ import GradingSheet from "@/components/teacher/GradingSheet"
 import IconTile, { type IconTone } from "@/components/teacher/IconTile"
 import LiveSessionHero from "@/components/teacher/LiveSessionHero"
 import ScheduleSessionDialog from "@/components/teacher/ScheduleSessionDialog"
-import SendReportDialog from "@/components/teacher/SendReportDialog"
 import StudentDrawer from "@/components/teacher/StudentDrawer"
 import { initialAnalyticsMetrics } from "@/data/mockData"
 import { cn } from "@/lib/utils"
@@ -123,7 +122,6 @@ export default function TeacherDashboardPage() {
   const { teacherName, sessions, events, doubts, students, courses, assignments, suggestions, monitoring, dismissSuggestion, startSession, notify } = useTeacherData()
   const [range, setRange] = useState<Range>("term")
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
   const [gradingKey, setGradingKey] = useState<string | null>(null)
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [nudged, setNudged] = useState<Set<string>>(new Set())
@@ -253,14 +251,9 @@ export default function TeacherDashboardPage() {
         title={`${greeting()}, ${firstName(teacherName)}`}
         description={`${agenda.filter((a) => a.state !== "done").length} things on today's agenda, ${openDoubts.length} open doubts and ${toGrade} submissions to grade.`}
         actions={
-          <>
-            <Button variant="outline" leftIcon={<Send aria-hidden="true" />} onClick={() => setReportOpen(true)}>
-              Send report
-            </Button>
-            <Button variant="outline" leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setScheduleOpen(true)}>
-              Schedule class
-            </Button>
-          </>
+          <Button variant="outline" leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setScheduleOpen(true)}>
+            Schedule class
+          </Button>
         }
       />
 
@@ -671,7 +664,6 @@ export default function TeacherDashboardPage() {
       </Stagger>
 
       <ScheduleSessionDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
-      <SendReportDialog open={reportOpen} onOpenChange={setReportOpen} />
       <GradingSheet open={gradingKey !== null} onOpenChange={(o) => !o && setGradingKey(null)} assignmentId={gradingKey} />
       <StudentDrawer studentId={drawerId} open={drawerId !== null} onOpenChange={(o) => !o && setDrawerId(null)} />
     </div>

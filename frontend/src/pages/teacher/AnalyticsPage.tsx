@@ -529,10 +529,9 @@ export default function AnalyticsPage() {
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            aria-label={`Send ${firstName(s.name)}'s family an alert`}
+                            aria-label={`Send ${firstName(s.name)} a nudge`}
                             onClick={() => {
-                              setReportFor(s.id)
-                              setReportOpen(true)
+                              notify(`Nudge sent to ${firstName(s.name)}`)
                             }}
                           >
                             <BellRing aria-hidden="true" />

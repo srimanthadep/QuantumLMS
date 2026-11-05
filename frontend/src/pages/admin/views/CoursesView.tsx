@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,7 @@ import {
   Edit2,
   Trash2,
   Video,
+  ClipboardCheck,
 } from "lucide-react"
 import type { useAdminStore, AdminCourse } from "@/data/adminStore"
 import VideoCourseUploadModal from "./VideoCourseUploadModal"
@@ -33,6 +35,7 @@ interface CoursesViewProps {
 }
 
 export default function CoursesView({ store, onToast }: CoursesViewProps) {
+  const navigate = useNavigate()
   const { courses, addCourse, updateCourse, toggleCourseStatus, deleteCourse } = store
 
   const [search, setSearch] = useState("")
@@ -148,6 +151,13 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin/approvals")}
+            leftIcon={<ClipboardCheck className="h-4 w-4 text-warning" />}
+          >
+            Teacher Approvals
+          </Button>
           <Button
             variant="outline"
             onClick={() => setIsVideoUploadOpen(true)}

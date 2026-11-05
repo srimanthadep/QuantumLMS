@@ -123,6 +123,11 @@ interface TeacherData {
   moveModule: (courseId: string, moduleId: string, dir: -1 | 1) => void
   addLesson: (courseId: string, moduleId: string, lesson: Pick<LessonItem, "title" | "type" | "duration">) => void
   toggleLessonDelivered: (courseId: string, moduleId: string, lessonId: string) => void
+  addAssignment: (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number }) => void
+  addQuiz: (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number }) => void
+  addMaterial: (courseId: string, moduleId: string, lessonId: string, material: { title: string; type: LessonMaterial["type"]; sizeOrDuration: string; url?: string }) => void
+  submitGradesForApproval: (key: string) => void
+  requestRecordingPublish: (recordingId: string, targetModuleId?: string, targetLessonId?: string) => void
 
   scheduleSession: (input: NewSessionInput) => LiveSessionItem
   updateSession: (id: string, patch: Partial<LiveSessionItem>) => void
@@ -397,6 +402,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         endTime: input.endTime,
         durationMinutes: Math.max(15, minutesOf(input.endTime) - minutesOf(input.startTime)),
         status: "Upcoming",
+        approvalStatus: "Pending Approval",
         platform: input.platform,
         meetingUrl: `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}`,
         classNotes: input.classNotes,
@@ -553,6 +559,133 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
     [],
   )
 
+  const addAssignment = useCallback(
+    (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number }) => {
+      const key = assignmentKey(courseId, moduleId)
+      const course = courses.find((c) => c.id === courseId)
+      const mod = course?.modules.find((m) => m.id === moduleId)
+      const newAssignment: ModuleAssignmentItem = {
+        id: `asg-${Date.now()}`,
+        courseId,
+        moduleId,
+        moduleTitle: mod?.title ?? "Module",
+        title: input.title,
+        type: input.type,
+        description: input.description,
+        instructions: input.instructions,
+        dueDate: input.dueDate,
+        maxMarks: input.maxMarks,
+        status: "Assigned",
+        approvalStatus: "Pending Approval",
+        submissionsCount: 0,
+        totalEnrolled: course?.enrolledStudentsCount ?? 25,
+        submissions: (students || []).slice(0, 5).map((s) => ({
+          studentId: s.id,
+          studentName: s.name,
+          studentRoll: s.rollNumber,
+          studentAvatar: s.image,
+          submittedAt: "Pending",
+          status: "Pending",
+          maxMarks: input.maxMarks,
+        })),
+      }
+      setAssignments((prev) => ({ ...prev, [key]: newAssignment }))
+      onToast(`Assignment “${input.title}” submitted for Admin approval`)
+    },
+    [courses, students, onToast],
+  )
+
+  const addQuiz = useCallback(
+    (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number }) => {
+      const key = assignmentKey(courseId, moduleId)
+      const course = courses.find((c) => c.id === courseId)
+      const mod = course?.modules.find((m) => m.id === moduleId)
+      const newQuiz: ModuleAssignmentItem = {
+        id: `quiz-${Date.now()}`,
+        courseId,
+        moduleId,
+        moduleTitle: mod?.title ?? "Module",
+        title: input.title,
+        type: "Quiz Assessment",
+        description: `Timed Knowledge Assessment (${input.timeLimitMins} mins, pass mark: ${input.passingMarks}/${input.maxMarks}).`,
+        instructions: "Answer all multiple choice and conceptual questions within the allocated time.",
+        dueDate: input.dueDate,
+        maxMarks: input.maxMarks,
+        status: "Assigned",
+        approvalStatus: "Pending Approval",
+        submissionsCount: 0,
+        totalEnrolled: course?.enrolledStudentsCount ?? 25,
+        submissions: (students || []).slice(0, 5).map((s) => ({
+          studentId: s.id,
+          studentName: s.name,
+          studentRoll: s.rollNumber,
+          studentAvatar: s.image,
+          submittedAt: "Pending",
+          status: "Pending",
+          maxMarks: input.maxMarks,
+        })),
+      }
+      setAssignments((prev) => ({ ...prev, [key]: newQuiz }))
+      onToast(`Quiz “${input.title}” submitted for Admin approval`)
+    },
+    [courses, students, onToast],
+  )
+
+  const addMaterial = useCallback(
+    (courseId: string, moduleId: string, lessonId: string, material: { title: string; type: LessonMaterial["type"]; sizeOrDuration: string; url?: string }) => {
+      const newMat: LessonMaterial = {
+        id: `mat-${Date.now()}`,
+        title: material.title,
+        type: material.type,
+        sizeOrDuration: material.sizeOrDuration || "PDF · 2.4 MB",
+        url: material.url || "#",
+        approvalStatus: "Pending Approval",
+      }
+      editCourse(courseId, (c) => ({
+        ...c,
+        modules: c.modules.map((m) =>
+          m.id === moduleId
+            ? {
+                ...m,
+                lessons: m.lessons.map((l) => (l.id === lessonId ? { ...l, materials: [...l.materials, newMat] } : l)),
+              }
+            : m,
+        ),
+      }))
+      onToast(`Study material “${material.title}” submitted for Admin approval`)
+    },
+    [editCourse, onToast],
+  )
+
+  const submitGradesForApproval = useCallback(
+    (key: string) => {
+      setAssignments((prev) => {
+        const a = prev[key]
+        if (!a) return prev
+        return {
+          ...prev,
+          [key]: { ...a, publishGradeApproval: "Pending Approval" },
+        }
+      })
+      onToast("Final grades submitted for Admin publish approval")
+    },
+    [onToast],
+  )
+
+  const requestRecordingPublish = useCallback(
+    (recordingId: string, targetModuleId?: string, targetLessonId?: string) => {
+      setRecordings((prev) =>
+        prev.map((r) =>
+          r.id === recordingId
+            ? { ...r, videoApprovalStatus: "Pending Approval", targetModuleId, targetLessonId }
+            : r,
+        ),
+      )
+      onToast("Live recording submitted for Admin video approval")
+    },
+    [onToast],
+  )
+
   const value = useMemo<TeacherData>(
     () => ({
       teacherName: user.name,
@@ -591,6 +724,11 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       addStudent,
       dismissSuggestion,
       gradeSubmission,
+      addAssignment,
+      addQuiz,
+      addMaterial,
+      submitGradesForApproval,
+      requestRecordingPublish,
     }),
     [
       user.name,
@@ -627,6 +765,11 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       addStudent,
       dismissSuggestion,
       gradeSubmission,
+      addAssignment,
+      addQuiz,
+      addMaterial,
+      submitGradesForApproval,
+      requestRecordingPublish,
     ],
   )
 

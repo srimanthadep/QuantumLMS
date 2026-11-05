@@ -237,12 +237,7 @@ export default function CoursesPage() {
     <div className="flex w-full min-w-0 flex-col">
       <PageHeader
         title="Courses"
-        description="Build curriculum, track delivery and jump into any course workspace."
-        actions={
-          <Button leftIcon={<Plus aria-hidden="true" />} onClick={() => setCreateOpen(true)}>
-            New course
-          </Button>
-        }
+        description="Assigned curriculum workspaces, module delivery, and learner performance tracking."
       />
 
       <Stagger className="flex flex-col gap-5" stagger={0.05}>
@@ -456,7 +451,6 @@ export default function CoursesPage() {
         </StaggerItem>
       </Stagger>
 
-      <NewCourseDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ScheduleSessionDialog open={scheduleFor !== null} onOpenChange={(o) => !o && setScheduleFor(null)} defaultCourseId={scheduleFor ?? undefined} />
     </div>
   )

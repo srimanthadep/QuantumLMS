@@ -217,12 +217,15 @@ export interface StudentActivitySummary {
   }[]
 }
 
+export type ApprovalStatus = "Approved" | "Pending Approval" | "Revision Requested"
+
 export interface LessonMaterial {
   id: string
   title: string
   type: "Document" | "Video Lecture" | "Lab Worksheet" | "Slide Deck" | "PDF" | "Audio" | "External"
   sizeOrDuration: string
   url?: string
+  approvalStatus?: ApprovalStatus
 }
 
 export interface LessonItem {
@@ -273,6 +276,8 @@ export interface ModuleAssignmentItem {
   attachments?: { name: string; size: string; type: string; url?: string }[]
   averageScore?: number
   isDemoData?: boolean
+  approvalStatus?: ApprovalStatus
+  publishGradeApproval?: ApprovalStatus
   submissions?: StudentModuleSubmission[]
 }
 
@@ -390,6 +395,7 @@ export interface LiveSessionItem {
   enrolledCount?: number
   topicsCovered?: string[]
   isReadOnly: boolean
+  approvalStatus?: ApprovalStatus
   date?: string
   time?: string
   duration?: string
@@ -495,6 +501,10 @@ export interface SessionRecordingItem {
   fileSize?: string
   viewsCount?: number
   keyTakeaways?: string[]
+  videoApprovalStatus?: ApprovalStatus
+  targetCourseId?: string
+  targetModuleId?: string
+  targetLessonId?: string
 }
 
 export interface TeachingSuggestionItem {

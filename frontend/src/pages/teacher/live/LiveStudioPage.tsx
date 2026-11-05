@@ -6,11 +6,14 @@ import {
   BarChart3,
   Check,
   Circle,
+  Download,
+  FileSpreadsheet,
   Hand,
   Lightbulb,
   ListChecks,
   Megaphone,
   MessageCircleQuestion,
+  MessageSquare,
   Mic,
   MicOff,
   MonitorUp,
@@ -67,6 +70,7 @@ import type { AIMonitoringSuggestion, AttendanceStatus, StudentItem } from "@/ty
 import { useTeacherData } from "../teacherStore"
 import { useChannel, ws } from "@/lib/ws"
 import { ATTENDANCE_TONE, buildRoster, DEMO_DATE, firstName, formatClock, formatTimeRange, sessionElapsed, type RosterEntry } from "../teacherUtils"
+import { downloadTextFile } from "@/pages/student/studentUtils"
 
 interface LiveQuestion {
   id: string
@@ -76,6 +80,39 @@ interface LiveQuestion {
   answered: boolean
   at: string
 }
+
+interface StudioChatMessage {
+  id: string
+  senderId: string
+  senderName: string
+  isTeacher: boolean
+  text: string
+  time: string
+}
+
+interface StudioTranscriptEntry {
+  id: string
+  time: string
+  speaker: string
+  isTeacher: boolean
+  text: string
+}
+
+const INITIAL_CHAT_MESSAGES: StudioChatMessage[] = [
+  { id: "cm-1", senderId: "s3", senderName: "Aarav Sharma", isTeacher: false, text: "Good morning instructor! Audio and slide deck look clear.", time: "11:30" },
+  { id: "cm-2", senderId: "teacher", senderName: "Srimanth (Lead Instructor)", isTeacher: true, text: "Welcome class! Today we explore Decision Trees and Entropy reduction.", time: "11:32" },
+  { id: "cm-3", senderId: "s6", senderName: "Diya Patel", isTeacher: false, text: "Are we going to code the entropy calculation in Python today?", time: "11:35" },
+  { id: "cm-4", senderId: "teacher", senderName: "Srimanth (Lead Instructor)", isTeacher: true, text: "Yes, hands-on coding starts right after this conceptual walkthrough.", time: "11:36" },
+  { id: "cm-5", senderId: "s12", senderName: "Vikram Malhotra", isTeacher: false, text: "Colab environment is launched and ready on my side 👍", time: "11:40" },
+]
+
+const INITIAL_TRANSCRIPT: StudioTranscriptEntry[] = [
+  { id: "tr-1", time: "11:31", speaker: "Srimanth (Lead Instructor)", isTeacher: true, text: "Alright everyone, welcome to today's live session on decision trees and information theory." },
+  { id: "tr-2", time: "11:34", speaker: "Srimanth (Lead Instructor)", isTeacher: true, text: "Let's first examine why we choose Shannon entropy over Gini impurity when splitting criteria on continuous feature spaces." },
+  { id: "tr-3", time: "11:37", speaker: "Aarav Sharma", isTeacher: false, text: "Does Gini impurity avoid calculating logarithms, making it computationally faster on large datasets?" },
+  { id: "tr-4", time: "11:38", speaker: "Srimanth (Lead Instructor)", isTeacher: true, text: "Spot on, Aarav. Gini calculates sum of squared probabilities, which skips log2 computation and saves CPU/GPU cycles." },
+  { id: "tr-5", time: "11:42", speaker: "Srimanth (Lead Instructor)", isTeacher: true, text: "Now observe the root condition on the screen: petal length < 2.45 cm splits out Setosa with 100% purity." },
+]
 
 /** Questions asked in chat during the demo class (ls-1). */
 const SEED_QUESTIONS: LiveQuestion[] = [
@@ -214,7 +251,11 @@ export default function LiveStudioPage() {
   const [cam, setCam] = useState(true)
   const [sharing, setSharing] = useState(true)
   const [recording, setRecording] = useState(true)
+  const [myHandRaised, setMyHandRaised] = useState(false)
   const [tab, setTab] = useState("people")
+  const [chatMessages, setChatMessages] = useState<StudioChatMessage[]>(INITIAL_CHAT_MESSAGES)
+  const [chatInput, setChatInput] = useState("")
+  const [transcripts, setTranscripts] = useState<StudioTranscriptEntry[]>(INITIAL_TRANSCRIPT)
   const [rosterFilter, setRosterFilter] = useState<RosterFilter>("all")
   const [hands, setHands] = useState<string[]>(() =>
     buildRoster(
@@ -512,6 +553,24 @@ export default function LiveStudioPage() {
               <StageControl label={cam ? "Turn camera off" : "Turn camera on"} icon={Video} offIcon={VideoOff} on={cam} onToggle={() => setCam((v) => !v)} />
               <StageControl label={sharing ? "Stop sharing screen" : "Share screen"} icon={MonitorUp} on={sharing} onToggle={() => setSharing((v) => !v)} />
               <StageControl
+                label={myHandRaised ? "Lower hand" : "Raise hand"}
+                icon={Hand}
+                on={myHandRaised}
+                onToggle={() => {
+                  setMyHandRaised((prev) => {
+                    const next = !prev
+                    if (next) {
+                      setHands((h) => (h.includes("teacher") ? h : ["teacher", ...h]))
+                      notify("You raised your hand")
+                    } else {
+                      setHands((h) => h.filter((id) => id !== "teacher"))
+                      notify("Hand lowered")
+                    }
+                    return next
+                  })
+                }}
+              />
+              <StageControl
                 label={recording ? "Pause recording" : "Resume recording"}
                 icon={Circle}
                 offIcon={Pause}
@@ -655,9 +714,15 @@ export default function LiveStudioPage() {
           <Card className="flex flex-col xl:sticky xl:top-0">
             <Tabs value={tab} onValueChange={setTab} variant="underline" className="flex min-h-0 flex-col">
               <div className="px-4 pt-2">
-                <TabsList aria-label="Studio panels" className="w-full justify-start">
+                <TabsList aria-label="Studio panels" className="w-full justify-start overflow-x-auto no-scrollbar">
                   <TabsTrigger value="people">
-                    People <span className="tabular-nums text-muted-foreground">{present}</span>
+                    Attendance <span className="tabular-nums text-muted-foreground">{present}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="chat">
+                    Chat <span className="tabular-nums text-muted-foreground">{chatMessages.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="transcript">
+                    Transcript <Badge tone="live" size="sm">Live</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="qa">
                     Q&amp;A
@@ -672,6 +737,26 @@ export default function LiveStudioPage() {
               </div>
 
               <TabsContent value="people" className="mt-0 p-4">
+                <div className="mb-3 flex items-center justify-between rounded-lg border border-border bg-surface-2/60 p-2.5 text-xs">
+                  <div>
+                    <span className="font-semibold text-foreground">Attendance: </span>
+                    <span className="font-bold text-success tabular-nums">{Math.round((present / Math.max(1, roster.length)) * 100)}%</span>
+                    <span className="text-muted-foreground"> ({present}/{roster.length} present)</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    leftIcon={<FileSpreadsheet className="h-3.5 w-3.5" />}
+                    onClick={() => {
+                      const csv = ["Student,Roll,Status,Device", ...roster.map((r) => `${r.name},${r.roll},${r.status},${r.device ?? "Web"}`)].join("\n")
+                      downloadTextFile(csv, `attendance-${session.id}.csv`)
+                      notify("Attendance CSV exported")
+                    }}
+                  >
+                    Export CSV
+                  </Button>
+                </div>
                 <AnimatePresence initial={false}>
                   {hands.length > 0 && (
                     <motion.section
@@ -755,6 +840,101 @@ export default function LiveStudioPage() {
                     </li>
                   ))}
                 </ul>
+              </TabsContent>
+
+              <TabsContent value="chat" className="mt-0 p-4 flex flex-col h-[520px]">
+                <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <MessageSquare className="h-4 w-4 text-primary-text" /> Room Live Chat
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">{chatMessages.length} messages</span>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-1">
+                  {chatMessages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={cn(
+                        "flex flex-col rounded-lg p-2.5 text-xs transition-colors",
+                        m.isTeacher ? "bg-primary-soft/40 border border-primary-border/40 ml-4" : "bg-surface-2/70 border border-border mr-4",
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          {m.senderName}
+                          {m.isTeacher && <Badge tone="primary" size="sm">Instructor</Badge>}
+                        </span>
+                        <span className="text-[10px] tabular-nums text-muted-foreground">{m.time}</span>
+                      </div>
+                      <p className="text-foreground leading-relaxed">{m.text}</p>
+                    </div>
+                  ))}
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (!chatInput.trim()) return
+                    setChatMessages((prev) => [
+                      ...prev,
+                      {
+                        id: `cm-${Date.now()}`,
+                        senderId: "teacher",
+                        senderName: `${teacherName} (Instructor)`,
+                        isTeacher: true,
+                        text: chatInput.trim(),
+                        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                      },
+                    ])
+                    setChatInput("")
+                  }}
+                  className="mt-3 flex gap-2 border-t border-border pt-2"
+                >
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type a message to the room…"
+                    className="text-xs"
+                  />
+                  <Button type="submit" size="sm" leftIcon={<Send className="h-3.5 w-3.5" />} disabled={!chatInput.trim()}>
+                    Send
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="transcript" className="mt-0 p-4 flex flex-col h-[520px]">
+                <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-75" />
+                      <span className="relative h-2 w-2 rounded-full bg-success" />
+                    </span>
+                    Live Audio Transcript (Whisper/Parakeet)
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => {
+                      const txt = transcripts.map((t) => `[${t.time}] ${t.speaker}: ${t.text}`).join("\n")
+                      downloadTextFile(txt, `live-transcript-${session.id}.txt`)
+                      notify("Live transcript copied & downloaded")
+                    }}
+                  >
+                    Download
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 py-1">
+                  {transcripts.map((t) => (
+                    <div key={t.id} className="rounded-md border border-border bg-surface p-2.5 text-xs leading-5">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className={cn("font-medium", t.isTeacher ? "text-primary-text font-semibold" : "text-foreground")}>
+                          {t.speaker}
+                        </span>
+                        <span className="tabular-nums text-muted-foreground">{t.time}</span>
+                      </div>
+                      <p className="text-foreground/90">{t.text}</p>
+                    </div>
+                  ))}
+                </div>
               </TabsContent>
 
               <TabsContent value="qa" className="mt-0 p-4">
