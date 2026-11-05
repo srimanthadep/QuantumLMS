@@ -122,7 +122,9 @@ function CatalogView({ course, onBackToCourses, onEnrollCourse }: CourseDetailsP
         <Card className="overflow-hidden">
           <CourseCover title={course.title} category={coverCategory(course.category)} image={course.image} showTitle={false} hoverZoom={false} className="aspect-[21/9]" />
           <CardContent className="grid gap-5 pt-5">
-            <p className="text-sm leading-6 text-muted-foreground">{course.description}</p>
+            {course.description?.trim() ? (
+              <p className="text-sm leading-6 text-muted-foreground">{course.description}</p>
+            ) : null}
             <Facts course={course} />
             <div className="flex flex-wrap items-center gap-3">
               <Button size="lg" loading={enrolling} onClick={() => void enroll()}>
@@ -450,7 +452,9 @@ function Facts({ course }: { course: CourseItem }) {
 function Overview({ course, modules }: { course: CourseItem; modules: { title: string; done: boolean }[] }) {
   return (
     <div className="grid gap-5">
-      <p className="text-sm leading-6 text-muted-foreground">{course.description}</p>
+      {course.description?.trim() ? (
+        <p className="text-sm leading-6 text-muted-foreground">{course.description}</p>
+      ) : null}
       <Facts course={course} />
       <div>
         <h3 className="mb-3 text-sm font-semibold text-foreground">What you'll cover</h3>

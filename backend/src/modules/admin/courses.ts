@@ -576,7 +576,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         image: "/assets/course_genai.jpg",
         instructor: input.instructor,
         instructor_role: "Video Course Instructor",
-        description: input.description || `Complete video masterclass in ${input.title}. Audio extracted and transcribed via ${input.modelUsed}.`,
+        description: input.description || "",
         level: input.level,
         credits: 4,
         duration: formattedDuration,
@@ -618,7 +618,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       duration: formattedDuration,
       minutes: mins,
       type: "video",
-      summary: input.fullTranscript || `Complete transcription generated via ${input.modelUsed} with Voice Activity Detection (VAD).`,
+      summary: input.fullTranscript || "",
       video_url: chosenUrl,
       video_qualities: input.qualities || {},
     })
