@@ -69,6 +69,17 @@ export function createS3Storage(opts: {
     async put(key, data, contentType) {
       await client.send(new PutObjectCommand({ Bucket, Key: key, Body: data, ContentType: contentType }))
     },
+    async getBuffer(key) {
+      try {
+        const r = await client.send(new GetObjectCommand({ Bucket, Key: key }))
+        if (!r.Body) return null
+        return Buffer.from(await r.Body.transformToByteArray())
+      } catch (e) {
+        const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+        if (status === 404 || (e as Error).name === "NoSuchKey") return null
+        throw e
+      }
+    },
     async stream(key, range) {
       try {
         const cmd = new GetObjectCommand({

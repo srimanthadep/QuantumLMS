@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Captions, Check, FileText, FlaskConical, Maximize2, Pause, Play, RotateCcw, RotateCw, Volume2, VolumeX } from "lucide-react"
+import { Captions, Check, FileText, FlaskConical, Maximize2, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui"
@@ -18,7 +18,7 @@ interface LessonPlayerProps {
 
 const SPEEDS = ["0.75", "1", "1.25", "1.5", "2"]
 
-/** Lesson stage: an HTML5 video player with R2 byte-streaming, or a launch panel for readings/labs. */
+/** Lesson stage: an HTML5 video player with YouTube-style multi-quality switching (1080p, 720p, 480p, 144p), or a launch panel for readings/labs. */
 export default function LessonPlayer({ lesson, moduleTitle, poster, completed, onComplete }: LessonPlayerProps) {
   const fallbackDuration = Math.max(60, parseMinutes(lesson.duration) * 60)
   const [duration, setDuration] = useState(fallbackDuration)
@@ -32,7 +32,32 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const track = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const videoUrl = lesson.videoUrl || lesson.video_url
+  // Multi-Quality Profiles (1080p, 720p, 480p, 144p)
+  const qualities = useMemo(() => {
+    const raw = lesson.videoQualities || lesson.video_qualities
+    if (!raw || typeof raw !== "object" || Object.keys(raw).length === 0) return null
+    return raw as Record<string, { label: string; height?: number; url: string; size?: number } | string>
+  }, [lesson.videoQualities, lesson.video_qualities])
+
+  const [quality, setQuality] = useState<string>("auto")
+
+  // Resolve active video source URL based on selected quality
+  const activeVideoSrc = useMemo(() => {
+    if (quality !== "auto" && qualities && qualities[quality]) {
+      const q = qualities[quality]
+      return typeof q === "string" ? q : q.url
+    }
+    // "auto" prioritizes 1080p / 720p, then falls back to default video_url
+    if (qualities?.["720p"]) {
+      const q = qualities["720p"]
+      return typeof q === "string" ? q : q.url
+    }
+    if (qualities?.["1080p"]) {
+      const q = qualities["1080p"]
+      return typeof q === "string" ? q : q.url
+    }
+    return lesson.videoUrl || lesson.video_url || ""
+  }, [quality, qualities, lesson.videoUrl, lesson.video_url])
 
   // Parse [mm:ss - mm:ss] transcript time stamps for live synchronized captions
   const transcriptSegments = useMemo(() => {
@@ -69,10 +94,10 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
 
   // Simulated timer ticker fallback only when there is NO real video element loaded
   useEffect(() => {
-    if (videoUrl || !playing) return
+    if (activeVideoSrc || !playing) return
     const t = setInterval(() => setPosition((p) => Math.min(duration, p + Number(speed))), 1000)
     return () => clearInterval(t)
-  }, [videoUrl, playing, speed, duration])
+  }, [activeVideoSrc, playing, speed, duration])
 
   useEffect(() => {
     if (playing && position >= duration && duration > 0) {
@@ -82,7 +107,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   }, [playing, position, duration, completed, onComplete])
 
   const togglePlay = () => {
-    if (videoUrl && videoRef.current) {
+    if (activeVideoSrc && videoRef.current) {
       if (videoRef.current.paused) {
         if (videoRef.current.currentTime >= duration && duration > 0) {
           videoRef.current.currentTime = 0
@@ -102,7 +127,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     if (!rect) return
     const newPos = Math.round(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration)
     setPosition(newPos)
-    if (videoUrl && videoRef.current) {
+    if (activeVideoSrc && videoRef.current) {
       videoRef.current.currentTime = newPos
     }
   }
@@ -110,15 +135,39 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const skip = (s: number) => {
     const newPos = Math.max(0, Math.min(duration, position + s))
     setPosition(newPos)
-    if (videoUrl && videoRef.current) {
+    if (activeVideoSrc && videoRef.current) {
       videoRef.current.currentTime = newPos
     }
   }
 
   const handleSpeedChange = (newSpeed: string) => {
     setSpeed(newSpeed)
-    if (videoUrl && videoRef.current) {
+    if (activeVideoSrc && videoRef.current) {
       videoRef.current.playbackRate = Number(newSpeed)
+    }
+  }
+
+  const handleQualityChange = (newQuality: string) => {
+    setQuality(newQuality)
+    const video = videoRef.current
+    if (!video) return
+
+    let targetSrc = ""
+    if (newQuality === "auto") {
+      targetSrc = lesson.videoUrl || lesson.video_url || ""
+    } else if (qualities && qualities[newQuality]) {
+      const q = qualities[newQuality]
+      targetSrc = typeof q === "string" ? q : q.url
+    }
+
+    if (targetSrc && targetSrc !== video.src) {
+      const currentTime = video.currentTime
+      const wasPlaying = !video.paused
+      video.src = targetSrc
+      video.currentTime = currentTime
+      if (wasPlaying) {
+        video.play().catch(() => {})
+      }
     }
   }
 
@@ -174,10 +223,10 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
         playing && "shadow-[var(--glow-primary)]",
       )}
     >
-      {videoUrl ? (
+      {activeVideoSrc ? (
         <video
           ref={videoRef}
-          src={videoUrl}
+          src={activeVideoSrc}
           poster={poster}
           playsInline
           preload="metadata"
@@ -303,7 +352,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           <PlayerButton label="Forward 10 seconds" onClick={() => skip(10)}>
             <RotateCw className="h-4 w-4" />
           </PlayerButton>
-          {videoUrl && (
+          {activeVideoSrc && (
             <PlayerButton label={muted ? "Unmute" : "Mute"} onClick={toggleMute}>
               {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </PlayerButton>
@@ -315,6 +364,53 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           <PlayerButton label={captions ? "Turn captions off" : "Turn captions on"} onClick={() => setCaptions((c) => !c)} pressed={captions}>
             <Captions className="h-4 w-4" />
           </PlayerButton>
+
+          {/* YouTube-style Video Quality Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Quality ${quality.toUpperCase()}`}
+                className="flex h-8 items-center gap-1 rounded-md px-2 text-caption font-semibold tabular-nums text-white transition-colors hover:bg-white/15"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                <span>{quality === "auto" ? "AUTO" : quality.toUpperCase()}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[10rem]">
+              <DropdownMenuLabel>Video Quality</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={quality} onValueChange={handleQualityChange}>
+                <DropdownMenuRadioItem value="auto">
+                  Auto (Adaptive)
+                </DropdownMenuRadioItem>
+                {qualities &&
+                  Object.entries(qualities)
+                    .sort((a, b) => {
+                      const hA = typeof a[1] === "object" ? a[1].height || parseInt(a[0]) : parseInt(a[0])
+                      const hB = typeof b[1] === "object" ? b[1].height || parseInt(b[0]) : parseInt(b[0])
+                      return hB - hA
+                    })
+                    .map(([key, val]) => {
+                      const label = typeof val === "object" ? val.label : key.toUpperCase()
+                      return (
+                        <DropdownMenuRadioItem key={key} value={key}>
+                          {label}
+                        </DropdownMenuRadioItem>
+                      )
+                    })}
+                {!qualities && (
+                  <>
+                    <DropdownMenuRadioItem value="1080p">1080p (Full HD)</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="720p">720p (HD)</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="480p">480p (SD)</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="144p">144p (Data Saver)</DropdownMenuRadioItem>
+                  </>
+                )}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Playback Speed */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" aria-label={`Playback speed ${speed}x`} className="h-8 rounded-md px-2 text-caption font-semibold tabular-nums text-white transition-colors hover:bg-white/15">
@@ -332,6 +428,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+
           <PlayerButton label="Full screen" onClick={() => stage.current?.requestFullscreen?.().catch(() => undefined)}>
             <Maximize2 className="h-4 w-4" />
           </PlayerButton>

@@ -59,6 +59,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
           type: lessons.type,
           summary: lessons.summary,
           video_url: lessons.video_url,
+          video_qualities: lessons.video_qualities,
         })
         .from(lessons)
         .orderBy(asc(lessons.course_id), asc(lessons.position)),

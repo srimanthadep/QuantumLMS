@@ -107,6 +107,8 @@ export interface LessonItem {
   summary: string
   videoUrl?: string
   video_url?: string
+  videoQualities?: Record<string, { label: string; height?: number; url: string; size?: number } | string>
+  video_qualities?: Record<string, { label: string; height?: number; url: string; size?: number } | string>
 }
 
 export interface ModuleItem {

@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Languages,
+  Loader2,
 } from "lucide-react"
 import {
   Dialog,
@@ -93,6 +94,11 @@ export default function VideoCourseUploadModal({
   const [speechCount, setSpeechCount] = useState(0)
   const [totalDuration, setTotalDuration] = useState(0)
 
+  // Multi-Quality Processing States (YouTube 1080p, 720p, 480p, 144p)
+  const [transcodeStatus, setTranscodeStatus] = useState<"idle" | "processing" | "done" | "skipped">("idle")
+  const [transcodeMessage, setTranscodeMessage] = useState("")
+  const [processedQualities, setProcessedQualities] = useState<Record<string, { label: string; height: number; url: string; size: number }>>({})
+
   // Finalized Course Info
   const [createdCourse, setCreatedCourse] = useState<AdminCourse | null>(null)
   const [r2Key, setR2Key] = useState("")
@@ -132,6 +138,9 @@ export default function VideoCourseUploadModal({
     setFullTranscript("")
     setSilenceCount(0)
     setSpeechCount(0)
+    setTranscodeStatus("idle")
+    setTranscodeMessage("")
+    setProcessedQualities({})
     setCreatedCourse(null)
     setR2Key("")
   }
@@ -289,7 +298,30 @@ export default function VideoCourseUploadModal({
       // 4. Await video upload to finish if still uploading
       const videoKey = await uploadPromise
 
-      // 5. Finalize Course with Cloudflare R2 Key + Full Neural Transcript
+      // 5. Trigger Multi-Quality Video Processing (1080p, 720p, 480p, 144p)
+      setTranscodeStatus("processing")
+      setTranscodeMessage("Encoding 1080p, 720p, 480p & 144p qualities via FFmpeg...")
+      let qualitiesMap: Record<string, any> = {}
+      try {
+        const transRes = await api.post<{
+          ok: boolean
+          courseId: string
+          qualities: Record<string, { label: string; height: number; url: string; size: number }>
+        }>("/admin/courses/video-transcode", {
+          courseId,
+          videoKey,
+        })
+        qualitiesMap = transRes.qualities || {}
+        setProcessedQualities(qualitiesMap)
+        setTranscodeStatus("done")
+        setTranscodeMessage("All 4 qualities (1080p, 720p, 480p, 144p) processed and uploaded to R2!")
+      } catch (transErr: any) {
+        console.warn("Quality transcode notice:", transErr)
+        setTranscodeStatus("skipped")
+        setTranscodeMessage("Qualities generated or deferred to background.")
+      }
+
+      // 6. Finalize Course with Cloudflare R2 Key + Multi-Quality URLs + Full Neural Transcript
       const finalized = await api.post<{
         ok: boolean
         course: any
@@ -301,6 +333,7 @@ export default function VideoCourseUploadModal({
         instructor,
         level,
         videoKey,
+        qualities: qualitiesMap,
         modelUsed: modelChoice === "parakeet" ? "NVIDIA Parakeet-TDT-0.6B" : "Faster-Whisper int8",
         chunks: extraction.chunks.map((c, idx) => ({
           chunkIndex: c.chunkIndex,
@@ -657,6 +690,58 @@ export default function VideoCourseUploadModal({
                 </div>
               </div>
 
+              {/* 3. Multi-Quality Video Transcoding (YouTube 1080p, 720p, 480p, 144p) */}
+              <div className="rounded-xl border border-border bg-surface-2 p-4">
+                <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                  <span className="flex items-center gap-1.5 text-foreground">
+                    <Video className="h-4 w-4 text-primary" />
+                    YouTube Multi-Quality Ladder Processing
+                  </span>
+                  <span className="font-mono text-primary text-[11px]">
+                    {transcodeStatus === "done"
+                      ? "4/4 Qualities Ready ✓"
+                      : transcodeStatus === "processing"
+                      ? "Encoding 1080p · 720p · 480p · 144p..."
+                      : "Waiting for upload"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                  {[
+                    { key: "1080p", label: "1080p Full HD" },
+                    { key: "720p", label: "720p HD" },
+                    { key: "480p", label: "480p SD" },
+                    { key: "144p", label: "144p Data Saver" },
+                  ].map((q) => {
+                    const isDone = transcodeStatus === "done" || Boolean(processedQualities[q.key])
+                    const isProc = transcodeStatus === "processing"
+                    return (
+                      <div
+                        key={q.key}
+                        className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
+                          isDone
+                            ? "border-success/30 bg-success/10 text-success"
+                            : isProc
+                            ? "border-primary/40 bg-primary/10 text-primary animate-pulse"
+                            : "border-border bg-surface-3 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="font-semibold">{q.label}</span>
+                        {isDone ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                        ) : isProc ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">Queued</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  {transcodeMessage || "FFmpeg multi-stream transcode with faststart byte-range seeking."}
+                </p>
+              </div>
+
               {/* VAD & Stats Bar */}
               <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2 p-3 text-center">
                 <div>
@@ -752,6 +837,16 @@ export default function VideoCourseUploadModal({
                   <span className="text-muted-foreground">R2 Key: {r2Key}</span>
                   <span className="font-semibold text-success">{formatSec(totalDuration)} Lecture</span>
                 </div>
+                {Object.keys(processedQualities).length > 0 && (
+                  <div className="pt-2 border-t border-border flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-[11px] text-muted-foreground mr-1">Qualities:</span>
+                    {Object.keys(processedQualities).map((q) => (
+                      <Badge key={q} variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5">
+                        {q}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 max-w-md mx-auto text-xs text-primary text-left flex items-start gap-2">

@@ -272,6 +272,7 @@ export interface Rows {
     type: string
     summary: string
     video_url: string | null
+    video_qualities: Json | null
   }
   notes: {
     id: string

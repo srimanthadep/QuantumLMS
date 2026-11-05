@@ -15,6 +15,7 @@ import {
 } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
+import { transcodeMultiQuality } from "../../services/video_transcode.js"
 
 export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
@@ -316,12 +317,64 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     }
 
     await ctx.storage.put(key, data, contentType)
+
+    // Cache temporary local copy for immediate fast multi-quality transcoding
+    const tempUploadPath = path.join(os.tmpdir(), `upload_${courseId}.mp4`)
+    await fs.promises.writeFile(tempUploadPath, data).catch(() => {})
+
     return {
       ok: true,
       courseId,
       key,
       size: data.length,
       contentType,
+    }
+  })
+
+  // Multi-Quality Video Processing (1080p, 720p, 480p, 144p)
+  const transcodeSchema = z.object({
+    courseId: z.string().min(1),
+    videoKey: z.string().min(1),
+  })
+
+  app.post("/courses/video-transcode", async (req) => {
+    const input = parse(transcodeSchema, req.body)
+    const tempDir = os.tmpdir()
+    const tempUploadPath = path.join(tempDir, `upload_${input.courseId}.mp4`)
+
+    let sourcePath = tempUploadPath
+    let cleanupSource = false
+
+    if (!fs.existsSync(tempUploadPath)) {
+      const buffer = await ctx.storage.getBuffer?.(input.videoKey)
+      if (!buffer) throw notFound("Source video not found in storage.")
+      sourcePath = path.join(tempDir, `source_${Date.now()}_${input.courseId}.mp4`)
+      await fs.promises.writeFile(sourcePath, buffer)
+      cleanupSource = true
+    }
+
+    try {
+      const qualities = await transcodeMultiQuality(sourcePath, input.courseId, ctx.storage)
+
+      // If a lesson already exists, update its video_qualities and video_url
+      await db
+        .update(lessons)
+        .set({
+          video_qualities: qualities,
+          video_url: qualities["720p"]?.url || qualities["1080p"]?.url || `/api/files/videos/${input.videoKey}`,
+        })
+        .where(eq(lessons.course_id, input.courseId))
+
+      return {
+        ok: true,
+        courseId: input.courseId,
+        qualities,
+      }
+    } finally {
+      if (cleanupSource) {
+        fs.unlink(sourcePath, () => {})
+      }
+      fs.unlink(tempUploadPath, () => {})
     }
   })
 
@@ -473,6 +526,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     ),
     fullTranscript: z.string().default(""),
     totalDurationSeconds: z.number().default(0),
+    qualities: z.record(z.string(), z.any()).optional(),
   })
 
   app.post("/courses/video-finalize", async (req) => {
@@ -536,9 +590,15 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       duration: formattedDuration,
     })
 
-    // Create Video Lesson with the transcribed summary and video_url
+    // Create Video Lesson with the transcribed summary, video_url, and multi-qualities
     const lessonId = `l-${courseId}-1`
-    const videoStreamUrl = `/api/files/videos/${input.videoKey}`
+    const defaultStreamUrl = `/api/files/videos/${input.videoKey}`
+    const chosenUrl =
+      input.qualities?.["720p"]?.url ||
+      input.qualities?.["1080p"]?.url ||
+      input.qualities?.["480p"]?.url ||
+      defaultStreamUrl
+
     await db.insert(lessons).values({
       id: lessonId,
       module_id: moduleId,
@@ -549,7 +609,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       minutes: mins,
       type: "video",
       summary: input.fullTranscript || `Complete transcription generated via ${input.modelUsed} with Voice Activity Detection (VAD).`,
-      video_url: videoStreamUrl,
+      video_url: chosenUrl,
+      video_qualities: input.qualities || {},
     })
 
     // Create download/stream URL for the uploaded video
@@ -564,11 +625,12 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       ok: true,
       course: created,
       videoKey: input.videoKey,
-      videoStreamUrl,
+      videoStreamUrl: chosenUrl,
       r2PresignedUrl,
       audioKey: input.audioKey,
       moduleId,
       lessonId,
+      qualities: input.qualities || {},
       chunksTranscribed: input.chunks.filter((c) => !c.isSilent).length,
       silenceChunksSkipped: input.chunks.filter((c) => c.isSilent).length,
       fullTranscript: input.fullTranscript,
