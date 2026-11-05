@@ -78,7 +78,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
     setStart(session?.startTime ?? "16:00")
     setEnd(session?.endTime ?? "17:00")
     setPlatform(session?.platform ?? "Quantum Classroom")
-    setMeetingUrl(session?.meetingUrl ?? "")
+    setMeetingUrl(session?.platform !== "Quantum Classroom" ? session?.meetingUrl ?? "" : "")
     setNotes(session?.classNotes ?? "")
     setErrors({})
   }, [open, session, defaultCourseId, courses])
@@ -102,8 +102,8 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
         platform,
         meetingUrl:
           platform === "Quantum Classroom"
-            ? session.meetingUrl || `https://classroom.quantumschool.ai/live/${session.id}`
-            : meetingUrl.trim() || session.meetingUrl,
+            ? `https://classroom.quantumschool.ai/live/${session.id}`
+            : meetingUrl.trim() || undefined,
         classNotes: notes.trim() || undefined,
       })
       notify(`Rescheduled “${title.trim()}” to ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
@@ -115,10 +115,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
         startTime: start,
         endTime: end,
         platform,
-        meetingUrl:
-          platform === "Quantum Classroom"
-            ? `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}`
-            : meetingUrl.trim() || undefined,
+        meetingUrl: platform !== "Quantum Classroom" ? meetingUrl.trim() || undefined : undefined,
         classNotes: notes.trim() || undefined,
       })
       notify(`Scheduled “${s.title}” for ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
