@@ -773,14 +773,9 @@ export default function CourseWorkspacePage() {
         title={course.name}
         description={`${course.assignedClass} · taught by ${course.instructor}`}
         actions={
-          <>
-            <Button variant="outline" leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setScheduleOpen(true)}>
-              Schedule class
-            </Button>
-            <Button leftIcon={<Plus aria-hidden="true" />} onClick={() => setAddOpen(true)}>
-              Add module
-            </Button>
-          </>
+          <Button leftIcon={<Plus aria-hidden="true" />} onClick={() => setAddOpen(true)}>
+            Add module
+          </Button>
         }
       />
 
@@ -839,9 +834,6 @@ export default function CourseWorkspacePage() {
                   ) : (
                     <>
                       <p className="flex-1 text-sm text-muted-foreground">No live class scheduled for this course.</p>
-                      <Button size="sm" variant="outline" onClick={() => setScheduleOpen(true)}>
-                        Schedule one
-                      </Button>
                     </>
                   )}
                 </div>

@@ -1,12 +1,28 @@
 import { useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useSearchParams } from "react-router-dom"
-import { AlertTriangle, CalendarCheck2, Download, GraduationCap, LayoutGrid, List, Search, Send, Sparkles, UserPlus, Users } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CalendarCheck2,
+  ChevronRight,
+  Download,
+  GraduationCap,
+  Layers,
+  Search,
+  Send,
+  Sparkles,
+  UserCheck,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react"
 import {
   Avatar,
   Badge,
   Button,
-  DataTable,
+  Card,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,16 +44,16 @@ import {
 } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
+import CourseCover from "@/components/shared/CourseCover"
 import StudentDrawer from "@/components/teacher/StudentDrawer"
 import { cn } from "@/lib/utils"
-import { spring } from "@/lib/motion"
-import type { StudentItem } from "@/types"
-import { downloadTextFile } from "@/pages/student/studentUtils"
+import { spring, transition } from "@/lib/motion"
+import type { CourseItem, StudentItem } from "@/types"
+import { coverCategory, downloadTextFile } from "@/pages/student/studentUtils"
 import { useTeacherData } from "./teacherStore"
-import { average, STUDENT_STATUS_TONE } from "./teacherUtils"
+import { average, courseArt, STUDENT_STATUS_TONE } from "./teacherUtils"
 
 type StatusFilter = "all" | StudentItem["status"]
-type View = "table" | "grid"
 
 function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { courses, addStudent, notify } = useTeacherData()
@@ -112,14 +128,203 @@ function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   )
 }
 
-/** The class roster: filter, sort and open any learner's full profile. */
+/** Modal popup displaying categorized enrolled students for a selected course. */
+function CourseStudentsDialog({
+  course,
+  allStudents,
+  open,
+  onOpenChange,
+  onSelectStudent,
+  notify,
+}: {
+  course: CourseItem | null
+  allStudents: StudentItem[]
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onSelectStudent: (id: string) => void
+  notify: (m: string) => void
+}) {
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [query, setQuery] = useState("")
+
+  if (!course) return null
+
+  const enrolled = allStudents.filter(
+    (s) =>
+      course.enrolledStudentIds?.includes(s.id) ||
+      s.assignedCourse === course.name ||
+      s.assignedCourse === course.code ||
+      s.courses?.some((c) => c.name === course.name || c.code === course.code),
+  )
+
+  const excelling = enrolled.filter((s) => s.status === "Excelling")
+  const onTrack = enrolled.filter((s) => s.status === "On Track")
+  const needsAttention = enrolled.filter((s) => s.status === "Needs Attention")
+
+  const visible = enrolled.filter((s) => {
+    const matchStatus = statusFilter === "all" || s.status === statusFilter
+    const q = query.trim().toLowerCase()
+    const matchQ = !q || `${s.name} ${s.rollNumber} ${s.tags.join(" ")} ${s.email || ""}`.toLowerCase().includes(q)
+    return matchStatus && matchQ
+  })
+
+  const exportCourseCsv = () => {
+    const rows = [
+      ["Name", "Roll", "Course", "Completion", "Average", "Attendance", "Status", "Email"],
+      ...visible.map((s) => [s.name, s.rollNumber, course.name, `${s.completion}%`, `${s.average}%`, `${s.attendance}%`, s.status, s.email || ""]),
+    ]
+    downloadTextFile(
+      rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n"),
+      `${course.code}-students.csv`,
+      "text/csv;charset=utf-8",
+    )
+    notify(`Exported ${visible.length} learners for ${course.code}`)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-border bg-surface text-foreground shadow-2xl gap-0">
+        {/* Header */}
+        <div className="shrink-0 border-b border-border bg-surface-2 p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
+                <Users className="h-6 w-6" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Badge tone="neutral" className="font-mono text-xs">{course.code}</Badge>
+                  <DialogTitle className="text-lg font-bold text-foreground truncate">
+                    {course.name}
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {enrolled.length} enrolled learners · {course.assignedClass || course.term}
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" leftIcon={<Download className="h-3.5 w-3.5" />} onClick={exportCourseCsv}>
+                Export CSV
+              </Button>
+            </div>
+          </div>
+
+          {/* Categorization Tabs */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="no-scrollbar overflow-x-auto">
+              <SegmentedControl
+                size="sm"
+                className="[&_button]:whitespace-nowrap"
+                aria-label="Filter learners by category"
+                options={[
+                  { value: "all" as StatusFilter, label: `All · ${enrolled.length}` },
+                  { value: "Excelling" as StatusFilter, label: `Excelling · ${excelling.length}` },
+                  { value: "On Track" as StatusFilter, label: `On Track · ${onTrack.length}` },
+                  { value: "Needs Attention" as StatusFilter, label: `Needs Attention · ${needsAttention.length}` },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+            </div>
+            <Input
+              size="sm"
+              leading={<Search className="h-3.5 w-3.5" aria-hidden="true" />}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name or roll number..."
+              aria-label="Search course learners"
+              wrapperClassName="sm:w-60"
+            />
+          </div>
+        </div>
+
+        {/* Content list */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+          {visible.length === 0 ? (
+            <EmptyState
+              size="sm"
+              icon={<Search aria-hidden="true" />}
+              title="No learners match this category"
+              description="Try changing the category filter or searching a different name."
+              action={
+                <Button size="sm" variant="outline" onClick={() => { setStatusFilter("all"); setQuery("") }}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <div className="rounded-xl border border-border bg-surface overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border bg-surface-2 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Learner</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Completion</th>
+                    <th className="px-4 py-3 text-right">Average</th>
+                    <th className="px-4 py-3 text-right">Attendance</th>
+                    <th className="px-4 py-3 text-right">Profile</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {visible.map((s) => (
+                    <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar src={s.image} name={s.name} size="sm" status={s.lastActivity === "Just now" ? "online" : undefined} />
+                          <div className="min-w-0">
+                            <span className="block truncate font-semibold text-foreground">{s.name}</span>
+                            <span className="block text-caption text-muted-foreground font-mono">{s.rollNumber}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Progress value={s.completion} size="xs" className="w-16" label={`${s.completion}% complete`} />
+                          <span className="text-xs tabular-nums text-foreground font-medium">{s.completion}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium tabular-nums text-foreground">
+                        {s.average}%
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={cn("text-xs font-medium tabular-nums", s.attendance < 80 ? "text-danger font-semibold" : "text-foreground")}>
+                          {s.attendance}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs px-2.5"
+                          rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
+                          onClick={() => onSelectStudent(s.id)}
+                        >
+                          360 View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Students Page: Displays courses first; clicking any course opens a categorized learners list popup. */
 export default function StudentsPage() {
   const { students, courses, notify } = useTeacherData()
   const [params, setParams] = useSearchParams()
-  const [query, setQuery] = useState("")
-  const [status, setStatus] = useState<StatusFilter>("all")
-  const [course, setCourse] = useState("all")
-  const [view, setView] = useState<View>("table")
+  const [courseQuery, setCourseQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const drawerId = params.get("student")
 
@@ -130,35 +335,44 @@ export default function StudentsPage() {
     setParams(next, { replace: true })
   }
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return students.filter(
-      (s) =>
-        (status === "all" || s.status === status) &&
-        (course === "all" || s.assignedCourse === course || s.courses?.some((c) => c.name === course)) &&
-        (!q || `${s.name} ${s.rollNumber} ${s.tags.join(" ")} ${s.assignedCourse ?? ""}`.toLowerCase().includes(q)),
-    )
-  }, [students, query, status, course])
+  // Course categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>()
+    for (const c of courses) {
+      cats.add(coverCategory(c.name))
+    }
+    return ["all", ...Array.from(cats)]
+  }, [courses])
 
-  const count = (f: StatusFilter) => (f === "all" ? students.length : students.filter((s) => s.status === f).length)
+  const filteredCourses = useMemo(() => {
+    const q = courseQuery.trim().toLowerCase()
+    return courses.filter((c) => {
+      const cat = coverCategory(c.name)
+      const matchCat = selectedCategory === "all" || cat.toLowerCase() === selectedCategory.toLowerCase()
+      const matchQ = !q || `${c.name} ${c.code} ${c.description}`.toLowerCase().includes(q)
+      return matchCat && matchQ
+    })
+  }, [courses, selectedCategory, courseQuery])
+
   const avg = Math.round(average(students.map((s) => s.average)))
   const att = Math.round(average(students.map((s) => s.attendance)))
-  const attention = count("Needs Attention")
+  const attention = students.filter((s) => s.status === "Needs Attention").length
 
-  const exportCsv = () => {
-    const rows = [
-      ["Name", "Roll", "Course", "Completion", "Average", "Attendance", "Status", "Email"],
-      ...visible.map((s) => [s.name, s.rollNumber, s.assignedCourse ?? "", `${s.completion}%`, `${s.average}%`, `${s.attendance}%`, s.status, s.email || ""]),
-    ]
-    downloadTextFile(rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n"), "class-roster.csv", "text/csv;charset=utf-8")
-    notify(`Exported ${visible.length} learners`)
+  const getCourseEnrolled = (c: CourseItem) => {
+    return students.filter(
+      (s) =>
+        c.enrolledStudentIds?.includes(s.id) ||
+        s.assignedCourse === c.name ||
+        s.assignedCourse === c.code ||
+        s.courses?.some((sc) => sc.code === c.code || sc.name === c.name),
+    )
   }
 
   return (
     <div className="flex w-full min-w-0 flex-col">
       <PageHeader
-        title="Students"
-        description={`${students.length} learners across ${courses.length} courses. Open anyone to see their progress, submissions and attendance.`}
+        title="Students by Course"
+        description={`${students.length} learners enrolled across ${courses.length} courses. Select a course to open its categorized student list.`}
         actions={
           <Button leftIcon={<UserPlus aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
             Invite learner
@@ -169,217 +383,180 @@ export default function StudentsPage() {
       <Stagger className="flex flex-col gap-5" stagger={0.05}>
         <StaggerItem>
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <StatCard title="Learners" value={students.length} trend={`${count("Excelling")} excelling`} tone="primary" icon={Users} onClick={() => setStatus("all")} />
-            <StatCard title="Class average" value={`${avg}%`} trend={{ value: "3 pts this month", isPositive: true }} tone="success" icon={GraduationCap} sparkline={[74, 76, 75, 78, 80, 79, 82, avg]} />
-            <StatCard title="Attendance" value={`${att}%`} trend="term to date" tone="info" icon={CalendarCheck2} sparkline={[92, 94, 93, 95, 96, 94, att]} />
+            <StatCard title="Total Courses" value={courses.length} trend="active cohorts" tone="primary" icon={BookOpen} />
+            <StatCard title="Total Learners" value={students.length} trend={`${students.filter((s) => s.status === "Excelling").length} excelling`} tone="success" icon={Users} />
+            <StatCard title="Class Average" value={`${avg}%`} trend={{ value: "3 pts this month", isPositive: true }} tone="info" icon={GraduationCap} sparkline={[74, 76, 75, 78, 80, 79, 82, avg]} />
             <StatCard
-              title="Need attention"
+              title="Need Attention"
               value={attention}
-              trend="below target"
+              trend="across all courses"
               tone="warning"
               icon={AlertTriangle}
-              onClick={() => setStatus(status === "Needs Attention" ? "all" : "Needs Attention")}
-              isActive={status === "Needs Attention"}
             />
           </div>
         </StaggerItem>
 
+        {/* Filter and Search Bar */}
         <StaggerItem>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <Input
               leading={<Search aria-hidden="true" />}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, roll number or tag"
-              aria-label="Search learners"
-              wrapperClassName="lg:max-w-xs"
+              value={courseQuery}
+              onChange={(e) => setCourseQuery(e.target.value)}
+              placeholder="Search courses by title or code..."
+              aria-label="Search courses"
+              wrapperClassName="md:max-w-xs"
             />
-            <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 md:ml-auto">
               <SegmentedControl
                 className="[&_button]:whitespace-nowrap"
-                aria-label="Filter by status"
-                options={[
-                  { value: "all" as StatusFilter, label: `All ${count("all")}` },
-                  { value: "Excelling" as StatusFilter, label: `Excelling ${count("Excelling")}` },
-                  { value: "On Track" as StatusFilter, label: `On track ${count("On Track")}` },
-                  { value: "Needs Attention" as StatusFilter, label: `Needs attention ${count("Needs Attention")}` },
-                ]}
-                value={status}
-                onChange={setStatus}
-              />
-            </div>
-            <div className="flex items-center gap-2 lg:ml-auto">
-              <Select value={course} onValueChange={setCourse}>
-                <SelectTrigger className="w-full sm:w-56" aria-label="Filter by course">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="all">All courses</SelectItem>
-                  {courses.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" aria-label="Export roster as CSV" onClick={exportCsv}>
-                <Download aria-hidden="true" />
-              </Button>
-              <SegmentedControl
-                aria-label="Layout"
-                options={[
-                  { value: "table" as View, label: <span className="sr-only">Table</span>, icon: <List className="h-4 w-4" aria-hidden="true" /> },
-                  { value: "grid" as View, label: <span className="sr-only">Cards</span>, icon: <LayoutGrid className="h-4 w-4" aria-hidden="true" /> },
-                ]}
-                value={view}
-                onChange={setView}
+                aria-label="Filter by category"
+                options={categories.map((cat) => ({
+                  value: cat,
+                  label: cat === "all" ? "All Categories" : cat,
+                }))}
+                value={selectedCategory}
+                onChange={setSelectedCategory}
               />
             </div>
           </div>
         </StaggerItem>
 
+        {/* Course Cards Grid */}
         <StaggerItem>
-          {visible.length === 0 ? (
+          {filteredCourses.length === 0 ? (
             <EmptyState
               icon={<Search aria-hidden="true" />}
-              title="No learners match"
-              description="Try a different name, status or course."
+              title="No courses match"
+              description="Try a different course title or category."
               action={
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setQuery("")
-                    setStatus("all")
-                    setCourse("all")
+                    setCourseQuery("")
+                    setSelectedCategory("all")
                   }}
                 >
                   Clear filters
                 </Button>
               }
             />
-          ) : view === "table" ? (
-            <DataTable
-              caption="Learners"
-              data={visible}
-              rowKey={(s) => s.id}
-              onRowClick={(s) => openDrawer(s.id)}
-              isRowActive={(s) => s.id === drawerId}
-              initialSort={{ id: "name", dir: "asc" }}
-              columns={[
-                {
-                  id: "name",
-                  header: "Learner",
-                  sortValue: (s) => s.name,
-                  cell: (s) => (
-                    <span className="flex items-center gap-3">
-                      <Avatar src={s.image} name={s.name} size="sm" status={s.lastActivity === "Just now" ? "online" : undefined} />
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-foreground">{s.name}</span>
-                        <span className="block text-caption text-muted-foreground">{s.rollNumber}</span>
-                      </span>
-                    </span>
-                  ),
-                },
-                { id: "course", header: "Main course", hideOnMobile: true, sortValue: (s) => s.assignedCourse ?? "", cell: (s) => <span className="line-clamp-1 text-muted-foreground">{s.assignedCourse}</span> },
-                {
-                  id: "completion",
-                  header: "Completion",
-                  sortValue: (s) => s.completion,
-                  cell: (s) => (
-                    <span className="flex items-center gap-2">
-                      <Progress value={s.completion} size="xs" className="w-20" label={`${s.completion}% complete`} />
-                      <span className="tabular-nums">{s.completion}%</span>
-                    </span>
-                  ),
-                },
-                { id: "average", header: "Average", align: "right", sortValue: (s) => s.average, cell: (s) => <span className="font-medium tabular-nums">{s.average}%</span> },
-                {
-                  id: "attendance",
-                  header: "Attendance",
-                  align: "right",
-                  sortValue: (s) => s.attendance,
-                  cell: (s) => <span className={cn("tabular-nums", s.attendance < 80 && "font-medium text-danger")}>{s.attendance}%</span>,
-                },
-                { id: "status", header: "Status", sortValue: (s) => s.status, cell: (s) => <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge> },
-                { id: "active", header: "Last active", hideOnMobile: true, cell: (s) => <span className="whitespace-nowrap text-caption text-muted-foreground">{s.lastActivity}</span> },
-              ]}
-              mobileCard={(s) => (
-                <div className="flex items-center gap-3">
-                  <Avatar src={s.image} name={s.name} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
-                      <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge>
-                    </div>
-                    <p className="truncate text-caption text-muted-foreground">
-                      Avg {s.average}% · Attendance {s.attendance}% · {s.lastActivity}
-                    </p>
-                    <Progress value={s.completion} size="xs" className="mt-2" label={`${s.completion}% complete`} />
-                  </div>
-                </div>
-              )}
-            />
           ) : (
-            <motion.ul layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <motion.ul layout className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               <AnimatePresence initial={false}>
-                {visible.map((s) => (
-                  <motion.li key={s.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={spring.soft} className="min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => openDrawer(s.id)}
-                      className="group flex h-full w-full flex-col gap-4 rounded-lg border border-border bg-surface p-4 text-left shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]"
+                {filteredCourses.map((c) => {
+                  const enrolled = getCourseEnrolled(c)
+                  const courseAvg = enrolled.length ? Math.round(average(enrolled.map((s) => s.average))) : 0
+                  const courseAtt = enrolled.length ? Math.round(average(enrolled.map((s) => s.attendance))) : 0
+                  const excelling = enrolled.filter((s) => s.status === "Excelling").length
+                  const onTrack = enrolled.filter((s) => s.status === "On Track").length
+                  const needsAttn = enrolled.filter((s) => s.status === "Needs Attention").length
+
+                  return (
+                    <motion.li
+                      key={c.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={spring.soft}
+                      className="min-w-0"
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar src={s.image} name={s.name} size="lg" status={s.lastActivity === "Just now" ? "online" : undefined} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary-text">{s.name}</p>
-                          <p className="truncate text-caption text-muted-foreground">
-                            {s.rollNumber} · grade {s.grade ?? "–"}
-                          </p>
+                      <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-[var(--elev-xs)] transition-[transform,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]">
+                        {/* Course Cover */}
+                        <div
+                          className="cursor-pointer relative"
+                          onClick={() => setSelectedCourse(c)}
+                        >
+                          <CourseCover
+                            title={c.name}
+                            category={courseArt(c.id)}
+                            image={c.thumbnail}
+                            showTitle={false}
+                            className="aspect-[16/8]"
+                          >
+                            <span className="absolute left-3 top-3 z-10 rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider text-white backdrop-blur-sm">
+                              {c.code}
+                            </span>
+                            <span className="absolute bottom-3 right-3 z-10 rounded-md bg-ink-950/80 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm flex items-center gap-1">
+                              <Users className="h-3 w-3" /> {enrolled.length} learners
+                            </span>
+                          </CourseCover>
                         </div>
-                        <ProgressRing value={s.completion} size={48} thickness={5} tone={s.status === "Needs Attention" ? "warning" : "primary"} label={`${s.completion}% complete`} />
-                      </div>
-                      <dl className="grid grid-cols-2 gap-2 rounded-md bg-surface-2/70 px-3 py-2">
-                        <div>
-                          <dt className="text-[11px] text-muted-foreground">Average</dt>
-                          <dd className="text-sm font-semibold tabular-nums text-foreground">{s.average}%</dd>
+
+                        {/* Card Content */}
+                        <div className="flex flex-1 flex-col gap-3.5 p-4 sm:p-5">
+                          <div className="min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                {coverCategory(c.name)}
+                              </span>
+                              <span className="text-caption text-muted-foreground">
+                                {c.term}
+                              </span>
+                            </div>
+                            <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground group-hover:text-primary-text transition-colors">
+                              {c.name}
+                            </h3>
+                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              {c.description}
+                            </p>
+                          </div>
+
+                          {/* Quick Stats Grid */}
+                          <div className="grid grid-cols-2 gap-2 rounded-lg bg-surface-2/70 p-2.5 text-xs">
+                            <div>
+                              <span className="text-[11px] text-muted-foreground block">Class Avg</span>
+                              <span className="font-semibold tabular-nums text-foreground">{courseAvg}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-muted-foreground block">Attendance</span>
+                              <span className={cn("font-semibold tabular-nums", courseAtt < 80 ? "text-danger" : "text-foreground")}>
+                                {courseAtt}%
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Category breakdown pills */}
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            {excelling > 0 && <Badge tone="success" size="sm">{excelling} Excelling</Badge>}
+                            {onTrack > 0 && <Badge tone="neutral" size="sm">{onTrack} On Track</Badge>}
+                            {needsAttn > 0 && <Badge tone="warning" size="sm">{needsAttn} Needs Attention</Badge>}
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="mt-auto pt-2">
+                            <Button
+                              className="w-full text-xs"
+                              variant="outline"
+                              leftIcon={<Users className="h-3.5 w-3.5" />}
+                              onClick={() => setSelectedCourse(c)}
+                            >
+                              Open Students List ({enrolled.length})
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <dt className="text-[11px] text-muted-foreground">Attendance</dt>
-                          <dd className={cn("text-sm font-semibold tabular-nums", s.attendance < 80 ? "text-danger" : "text-foreground")}>{s.attendance}%</dd>
-                        </div>
-                      </dl>
-                      <div className="mt-auto flex flex-wrap items-center gap-1.5">
-                        <Badge tone={STUDENT_STATUS_TONE[s.status]}>{s.status}</Badge>
-                        {s.tags.slice(0, 2).map((t) => (
-                          <Badge key={t} tone="neutral">
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    </button>
-                  </motion.li>
-                ))}
+                      </article>
+                    </motion.li>
+                  )
+                })}
               </AnimatePresence>
             </motion.ul>
           )}
         </StaggerItem>
-
-        {attention > 0 && status !== "Needs Attention" && (
-          <StaggerItem>
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/25 bg-warning-soft px-4 py-3">
-              <Sparkles className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-              <p className="min-w-0 flex-1 text-sm text-foreground">
-                {attention} {attention === 1 ? "learner needs" : "learners need"} attention this week. A quick check-in with their family usually helps.
-              </p>
-              <Button size="sm" variant="secondary" onClick={() => setStatus("Needs Attention")}>
-                Show them
-              </Button>
-            </div>
-          </StaggerItem>
-        )}
       </Stagger>
 
+      {/* Pop-up dialog with categorized student list */}
+      <CourseStudentsDialog
+        course={selectedCourse}
+        allStudents={students}
+        open={!!selectedCourse}
+        onOpenChange={(o) => !o && setSelectedCourse(null)}
+        onSelectStudent={(id) => openDrawer(id)}
+        notify={notify}
+      />
+
+      {/* 360 profile drawer */}
       <StudentDrawer studentId={drawerId} open={!!drawerId} onOpenChange={(o) => !o && openDrawer(null)} />
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>

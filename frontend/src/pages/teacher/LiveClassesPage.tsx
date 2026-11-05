@@ -185,12 +185,7 @@ export default function LiveClassesPage() {
     <div className="flex w-full min-w-0 flex-col">
       <PageHeader
         title="Live classes"
-        description="Start, schedule and review your live sessions. Learners get reminders automatically."
-        actions={
-          <Button leftIcon={<CalendarPlus aria-hidden="true" />} onClick={() => setScheduleOpen(true)}>
-            Schedule class
-          </Button>
-        }
+        description="Launch today's class call and host live interactive video sessions with learners."
       />
 
       <Stagger className="flex flex-col gap-5" stagger={0.05}>
@@ -227,10 +222,9 @@ export default function LiveClassesPage() {
 
               {groups.length === 0 ? (
                 <EmptyState
-                  icon={<CalendarPlus aria-hidden="true" />}
-                  title={day ? `No classes on ${dayLabel(day).toLowerCase()}` : "No classes here"}
-                  description="Schedule one and learners get an invite."
-                  action={<Button onClick={() => setScheduleOpen(true)}>Schedule class</Button>}
+                  icon={<Radio aria-hidden="true" />}
+                  title={day ? `No class calls on ${dayLabel(day).toLowerCase()}` : "No live class calls"}
+                  description="Upcoming live calls will appear when scheduled."
                 />
               ) : (
                 <div className="flex flex-col gap-5">

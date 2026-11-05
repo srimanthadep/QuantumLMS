@@ -388,10 +388,10 @@ export default function LiveStudioPage() {
     setAnnouncement("")
   }
   const finish = () => {
-    const recId = endSession(session.id)
+    endSession(session.id)
     setEndOpen(false)
-    notify(`Class ended. The recording is processing${publishWhenReady ? " and will publish when ready" : ""}.`)
-    navigate(`/teacher/recordings/${recId}`)
+    notify("Live class ended.")
+    navigate("/teacher/live-class")
   }
 
   return (
@@ -418,35 +418,13 @@ export default function LiveStudioPage() {
             <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 right-0 -z-10 h-72 w-72 rounded-full bg-secondary/15 blur-3xl" />
 
             <div className="flex flex-wrap items-center gap-2 px-4 pt-4 sm:px-5">
-              <AnimatePresence initial={false} mode="wait">
-                {recording ? (
-                  <motion.span
-                    key="rec"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={transition.fast}
-                    className="inline-flex items-center gap-2 rounded-full bg-danger px-2.5 py-1 text-caption font-semibold text-ink-950"
-                  >
-                    <span className="relative flex h-2 w-2" aria-hidden="true">
-                      <span className="absolute inset-0 animate-[q-pulse-ring_1.4s_ease-out_infinite] rounded-full bg-ink-950" />
-                      <span className="relative h-2 w-2 rounded-full bg-ink-950" />
-                    </span>
-                    REC <LiveClock baseSeconds={elapsed * 60} running={recording} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="paused"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={transition.fast}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-caption font-semibold text-white"
-                  >
-                    <Pause className="h-3 w-3" aria-hidden="true" /> Recording paused
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span className="inline-flex items-center gap-2 rounded-full bg-danger px-2.5 py-1 text-caption font-semibold text-ink-950">
+                <span className="relative flex h-2 w-2" aria-hidden="true">
+                  <span className="absolute inset-0 animate-[q-pulse-ring_1.4s_ease-out_infinite] rounded-full bg-ink-950" />
+                  <span className="relative h-2 w-2 rounded-full bg-ink-950" />
+                </span>
+                LIVE <LiveClock baseSeconds={elapsed * 60} running={!ended} />
+              </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-caption font-medium text-white">
                 <Users className="h-3.5 w-3.5" aria-hidden="true" /> {present} watching
               </span>
@@ -570,17 +548,7 @@ export default function LiveStudioPage() {
                   })
                 }}
               />
-              <StageControl
-                label={recording ? "Pause recording" : "Resume recording"}
-                icon={Circle}
-                offIcon={Pause}
-                on={recording}
-                onToggle={() => {
-                  setRecording((v) => !v)
-                  notify(recording ? "Recording paused" : "Recording resumed")
-                }}
-              />
-              <Tooltip content="End class for everyone">
+              <Tooltip content="End call for everyone">
                 <motion.button
                   type="button"
                   onClick={() => setEndOpen(true)}
@@ -1104,8 +1072,8 @@ export default function LiveStudioPage() {
       <Dialog open={endOpen} onOpenChange={setEndOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>End the class for everyone?</DialogTitle>
-            <DialogDescription>Learners leave the room and the recording starts processing.</DialogDescription>
+            <DialogTitle>End the call for everyone?</DialogTitle>
+            <DialogDescription>Learners leave the room and the live class call ends.</DialogDescription>
           </DialogHeader>
           <dl className="grid grid-cols-3 gap-2">
             {[
@@ -1120,12 +1088,6 @@ export default function LiveStudioPage() {
             ))}
           </dl>
           <div className="grid gap-2.5">
-            <div className="flex items-center gap-2.5">
-              <Checkbox id="end-publish" checked={publishWhenReady} onCheckedChange={setPublishWhenReady} />
-              <Label htmlFor="end-publish" className="cursor-pointer text-sm font-normal">
-                Publish the recording to learners when it's ready
-              </Label>
-            </div>
             <div className="flex items-center gap-2.5">
               <Checkbox id="end-summary" checked={sendSummary} onCheckedChange={setSendSummary} />
               <Label htmlFor="end-summary" className="cursor-pointer text-sm font-normal">
