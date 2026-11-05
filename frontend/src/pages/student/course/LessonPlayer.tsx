@@ -179,6 +179,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   }
 
   const pct = duration > 0 ? position / duration : 0
+  const hasHours = duration >= 3600
 
   if (lesson.type !== "video") {
     const Icon = lesson.type === "lab" ? FlaskConical : FileText
@@ -325,7 +326,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           aria-valuemin={0}
           aria-valuemax={Math.round(duration)}
           aria-valuenow={Math.round(position)}
-          aria-valuetext={`${formatClock(position)} of ${formatClock(duration)}`}
+          aria-valuetext={`${formatClock(position, hasHours)} of ${formatClock(duration, hasHours)}`}
           onPointerDown={seek}
           onKeyDown={(e) => {
             if (e.key === "ArrowRight") skip(10)
@@ -358,7 +359,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
             </PlayerButton>
           )}
           <span className="ml-1 text-caption tabular-nums text-white/90">
-            {formatClock(position)} / {formatClock(duration)}
+            {formatClock(position, hasHours)} / {formatClock(duration, hasHours)}
           </span>
           <span className="flex-1" />
           <PlayerButton label={captions ? "Turn captions off" : "Turn captions on"} onClick={() => setCaptions((c) => !c)} pressed={captions}>

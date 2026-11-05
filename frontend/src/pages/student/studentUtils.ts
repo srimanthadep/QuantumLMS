@@ -38,18 +38,30 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** 1500 -> "25m 00s". */
+/** 1500 -> "25m 00s" or 3720 -> "1h 02m 00s". */
 export function formatDuration(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60)
-  const s = Math.max(0, totalSeconds % 60)
+  const total = Math.floor(Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) {
+    return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
+  }
   return `${m}m ${String(s).padStart(2, "0")}s`
 }
 
-/** 75 -> "01:15". */
-export function formatClock(totalSeconds: number): string {
-  const m = Math.floor(Math.max(0, totalSeconds) / 60)
-  const s = Math.max(0, totalSeconds) % 60
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+/** 75 -> "01:15" or 3675 -> "1:01:15". Floored integer seconds without raw decimals. */
+export function formatClock(totalSeconds: number, forceHours = false): string {
+  const total = Math.floor(Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const sStr = String(s).padStart(2, "0")
+  const mStr = String(m).padStart(2, "0")
+  if (h > 0 || forceHours) {
+    return `${h}:${mStr}:${sStr}`
+  }
+  return `${mStr}:${sStr}`
 }
 
 /** "Oct 22, 2026" -> { month: "Oct", day: "22" }. Falls back to the raw string. */
