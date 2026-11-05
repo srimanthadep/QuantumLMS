@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import type { useAdminStore, AdminCourse } from "@/data/adminStore"
 import VideoCourseUploadModal from "./VideoCourseUploadModal"
+import CourseEditorModal from "./CourseEditorModal"
 
 interface CoursesViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -43,15 +44,10 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>("All")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false)
+  const [videoUploadTarget, setVideoUploadTarget] = useState<{ courseId?: string; moduleId?: string } | null>(null)
 
   // Edit course state
   const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
-  const [editTitle, setEditTitle] = useState("")
-  const [editCategory, setEditCategory] = useState<AdminCourse["category"]>("LLM Engineering")
-  const [editInstructor, setEditInstructor] = useState("Srimanth")
-  const [editPrice, setEditPrice] = useState(39999)
-  const [editCapacity, setEditCapacity] = useState(300)
-  const [editStatus, setEditStatus] = useState<AdminCourse["status"]>("Published")
 
   // Delete confirm state
   const [deletingCourse, setDeletingCourse] = useState<AdminCourse | null>(null)
@@ -99,29 +95,6 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
 
   const handleOpenEdit = (c: AdminCourse) => {
     setEditingCourse(c)
-    setEditTitle(c.title)
-    setEditCategory(c.category)
-    setEditInstructor(c.instructor)
-    setEditPrice(c.price)
-    setEditCapacity(c.capacity)
-    setEditStatus(c.status)
-  }
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingCourse || !editTitle.trim()) return
-
-    updateCourse(editingCourse.id, {
-      title: editTitle,
-      category: editCategory,
-      instructor: editInstructor,
-      price: Number(editPrice),
-      capacity: Number(editCapacity),
-      status: editStatus,
-    })
-
-    setEditingCourse(null)
-    onToast(`Updated course: "${editTitle}"`)
   }
 
   const handleDeleteCourse = () => {
@@ -447,104 +420,21 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Course Modal */}
-      <Dialog open={!!editingCourse} onOpenChange={(open) => !open && setEditingCourse(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
-                <Edit2 className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle>Edit Course Curriculum</DialogTitle>
-                <DialogDescription>Modify syllabus details, tuition fees, and capacity</DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {editingCourse && (
-            <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Course Title</label>
-                <Input
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Domain Category</label>
-                  <select
-                    className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value as any)}
-                  >
-                    <option value="LLM Engineering">LLM Engineering</option>
-                    <option value="Agentic Systems">Agentic Systems</option>
-                    <option value="MLOps">MLOps</option>
-                    <option value="Computer Vision">Computer Vision</option>
-                    <option value="AI Foundations">AI Foundations</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
-                  <Input
-                    required
-                    value={editInstructor}
-                    onChange={(e) => setEditInstructor(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Tuition Fee (₹ INR)</label>
-                  <Input
-                    type="number"
-                    min={1000}
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Max Learner Capacity</label>
-                  <Input
-                    type="number"
-                    min={10}
-                    max={2000}
-                    value={editCapacity}
-                    onChange={(e) => setEditCapacity(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Publication Status</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
-                >
-                  <option value="Published">Published</option>
-                  <option value="Draft">Draft</option>
-                  <option value="Archived">Archived</option>
-                </select>
-              </div>
-
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setEditingCourse(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Save Changes</Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Comprehensive Course Editor Modal: Curriculum, Materials, Assignments & Settings */}
+      <CourseEditorModal
+        course={editingCourse}
+        open={!!editingCourse}
+        onOpenChange={(open) => !open && setEditingCourse(null)}
+        onCourseUpdated={(updated) => {
+          updateCourse(updated.id, updated)
+          setEditingCourse(updated)
+        }}
+        onOpenVideoUpload={(courseId, moduleId) => {
+          setVideoUploadTarget({ courseId, moduleId })
+          setIsVideoUploadOpen(true)
+        }}
+        onToast={onToast}
+      />
 
       {/* Delete Course Confirmation Dialog */}
       <Dialog open={!!deletingCourse} onOpenChange={(open) => !open && setDeletingCourse(null)}>
@@ -584,9 +474,19 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
       {/* Video Course Upload & Audio Extraction Modal */}
       <VideoCourseUploadModal
         open={isVideoUploadOpen}
-        onOpenChange={setIsVideoUploadOpen}
+        onOpenChange={(open) => {
+          setIsVideoUploadOpen(open)
+          if (!open) setVideoUploadTarget(null)
+        }}
+        initialCourseId={videoUploadTarget?.courseId}
+        initialModuleId={videoUploadTarget?.moduleId}
+        existingCourses={courses}
         onCourseCreated={(newCourse) => {
-          addCourse(newCourse)
+          if (courses.some((c) => c.id === newCourse.id)) {
+            updateCourse(newCourse.id, newCourse)
+          } else {
+            addCourse(newCourse)
+          }
         }}
         onToast={onToast}
       />

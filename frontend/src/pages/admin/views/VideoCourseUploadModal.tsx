@@ -38,8 +38,12 @@ import type { AdminCourse } from "@/data/adminStore"
 interface VideoCourseUploadModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCourseCreated: (course: AdminCourse) => void
+  onCourseCreated?: (course: AdminCourse) => void
   onToast: (msg: string) => void
+  initialCourseId?: string
+  initialModuleId?: string
+  existingCourses?: AdminCourse[]
+  onSuccess?: () => void
 }
 
 type ModelChoice = "parakeet" | "whisper-multilingual"
@@ -62,9 +66,21 @@ export default function VideoCourseUploadModal({
   onOpenChange,
   onCourseCreated,
   onToast,
+  initialCourseId,
+  initialModuleId,
+  existingCourses,
+  onSuccess,
 }: VideoCourseUploadModalProps) {
   // Step state: 1 = Form & Model selection, 2 = Live Pipeline, 3 = Completed
   const [step, setStep] = useState<1 | 2 | 3>(1)
+
+  // Target Mode & Course Selection
+  const [uploadMode, setUploadMode] = useState<"new" | "existing">(
+    initialCourseId ? "existing" : "new"
+  )
+  const [targetCourseId, setTargetCourseId] = useState<string>(initialCourseId || "")
+  const [targetModuleId, setTargetModuleId] = useState<string>(initialModuleId || "")
+  const [newChapterTitle, setNewChapterTitle] = useState("")
 
   // Course metadata
   const [title, setTitle] = useState("")
@@ -73,6 +89,26 @@ export default function VideoCourseUploadModal({
   const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Intermediate")
   const [language, setLanguage] = useState<"en" | "te" | "hi" | "multi">("en")
   const [modelChoice, setModelChoice] = useState<ModelChoice>("parakeet")
+
+  useEffect(() => {
+    if (initialCourseId) {
+      setTargetCourseId(initialCourseId)
+      setUploadMode("existing")
+    }
+    if (initialModuleId) {
+      setTargetModuleId(initialModuleId)
+    }
+  }, [initialCourseId, initialModuleId, open])
+
+  useEffect(() => {
+    if (uploadMode === "existing" && targetCourseId && existingCourses) {
+      const selected = existingCourses.find((c) => c.id === targetCourseId)
+      if (selected) {
+        setCategory(selected.category)
+        setInstructor(selected.instructor)
+      }
+    }
+  }, [uploadMode, targetCourseId, existingCourses])
 
   // Selected file
   const [file, setFile] = useState<File | null>(null)
@@ -197,10 +233,15 @@ export default function VideoCourseUploadModal({
   // Main Pipeline Execution: Video Upload + In-Browser Audio Extraction + VAD + Streamed Transcription
   const startPipeline = async () => {
     if (!file || !title.trim()) return
+    if (uploadMode === "existing" && !targetCourseId) {
+      onToast("Please select a target course to upload into")
+      return
+    }
     setIsProcessing(true)
     setStep(2)
 
-    const courseId = `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
+    const isExisting = uploadMode === "existing" && !!targetCourseId
+    const courseId = isExisting ? targetCourseId : `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
 
     try {
       // 1. Start Video Upload to Cloudflare R2 in parallel
@@ -336,13 +377,15 @@ export default function VideoCourseUploadModal({
       }
 
       // 6. Finalize Course with Cloudflare R2 Key + Multi-Quality URLs + Full Neural Transcript
+      const effectiveTitle = newChapterTitle.trim() ? `${newChapterTitle.trim()} - ${title.trim()}` : title.trim()
       const finalized = await api.post<{
         ok: boolean
         course: any
         videoStreamUrl: string
       }>("/admin/courses/video-finalize", {
         courseId,
-        title,
+        moduleId: targetModuleId || undefined,
+        title: effectiveTitle,
         category,
         instructor,
         level,
@@ -360,29 +403,57 @@ export default function VideoCourseUploadModal({
         totalDurationSeconds: extraction.durationSeconds,
       })
 
-      const newAdminCourse: AdminCourse = {
-        id: courseId,
-        title,
-        slug: title.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-        category,
-        instructor,
-        instructorAvatar: "/assets/student-1.png",
-        capacity: 100,
-        price: 9999,
-        status: "Published",
-        enrolledStudents: 0,
-        revenue: 0,
-        rating: 5.0,
-        completionRate: 0,
-        cohortCount: 1,
-        updatedAt: new Date().toISOString().split("T")[0],
-        videoUrl: finalized.videoStreamUrl,
-        videoKey,
+      if (isExisting) {
+        const found = existingCourses?.find((c) => c.id === courseId)
+        const updatedCourse: AdminCourse = found
+          ? { ...found, updatedAt: new Date().toISOString().split("T")[0] }
+          : {
+              id: courseId,
+              title: effectiveTitle,
+              slug: effectiveTitle.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+              category,
+              instructor,
+              instructorAvatar: "/assets/student-1.png",
+              capacity: 100,
+              price: 9999,
+              status: "Published",
+              enrolledStudents: 0,
+              revenue: 0,
+              rating: 5.0,
+              completionRate: 0,
+              cohortCount: 1,
+              updatedAt: new Date().toISOString().split("T")[0],
+              videoUrl: finalized.videoStreamUrl,
+              videoKey,
+            }
+        setCreatedCourse(updatedCourse)
+        onCourseCreated?.(updatedCourse)
+        onToast(`Added video lecture to course "${found?.title || courseId}" successfully!`)
+      } else {
+        const newAdminCourse: AdminCourse = {
+          id: courseId,
+          title,
+          slug: title.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+          category,
+          instructor,
+          instructorAvatar: "/assets/student-1.png",
+          capacity: 100,
+          price: 9999,
+          status: "Published",
+          enrolledStudents: 0,
+          revenue: 0,
+          rating: 5.0,
+          completionRate: 0,
+          cohortCount: 1,
+          updatedAt: new Date().toISOString().split("T")[0],
+          videoUrl: finalized.videoStreamUrl,
+          videoKey,
+        }
+        setCreatedCourse(newAdminCourse)
+        onCourseCreated?.(newAdminCourse)
+        onToast(`Successfully uploaded "${title}" to Cloudflare R2 with neural transcripts!`)
       }
-
-      setCreatedCourse(newAdminCourse)
-      onCourseCreated(newAdminCourse)
-      onToast(`Successfully uploaded "${title}" to Cloudflare R2 with neural transcripts!`)
+      onSuccess?.()
       setStep(3)
     } catch (err: any) {
       console.error(err)
@@ -510,12 +581,79 @@ export default function VideoCourseUploadModal({
                 </div>
               </div>
 
+              {/* Course Mode Selector (New Course vs Add to Existing Course) */}
+              {existingCourses && existingCourses.length > 0 && (
+                <div className="space-y-3 p-3.5 rounded-xl border border-border bg-surface-2/60">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode("new")}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                        uploadMode === "new"
+                          ? "bg-surface text-primary shadow-xs border border-border"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Create Brand-New Course
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode("existing")}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                        uploadMode === "existing"
+                          ? "bg-surface text-primary shadow-xs border border-border"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Add Chapter / Video to Existing Course
+                    </button>
+                  </div>
+
+                  {uploadMode === "existing" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-border/60">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-foreground">Target Course *</label>
+                        <select
+                          value={targetCourseId}
+                          onChange={(e) => setTargetCourseId(e.target.value)}
+                          className="w-full h-9 rounded-md border border-input bg-surface px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          <option value="">-- Choose Existing Course --</option>
+                          {existingCourses.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.title} ({c.category})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-foreground">
+                          New Chapter Name (Optional)
+                        </label>
+                        <Input
+                          placeholder="e.g. Chapter 2: Deep Dive into Attention"
+                          value={newChapterTitle}
+                          onChange={(e) => setNewChapterTitle(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Course Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Course Title</label>
+                  <label className="text-xs font-semibold text-foreground">
+                    {uploadMode === "existing" ? "Lecture / Video Title *" : "Course Title *"}
+                  </label>
                   <Input
-                    placeholder="e.g. Masterclass in Autonomous Agents"
+                    placeholder={
+                      uploadMode === "existing"
+                        ? "e.g. Scaled Dot-Product Attention Implementation"
+                        : "e.g. Masterclass in Autonomous Agents"
+                    }
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
@@ -634,7 +772,11 @@ export default function VideoCourseUploadModal({
                     </span>
                   ) : !title.trim() ? (
                     <span className="text-warning font-medium flex items-center gap-1.5">
-                      ⚠️ Please enter a course title above to proceed.
+                      ⚠️ Please enter a {uploadMode === "existing" ? "lesson/lecture" : "course"} title above to proceed.
+                    </span>
+                  ) : uploadMode === "existing" && !targetCourseId ? (
+                    <span className="text-warning font-medium flex items-center gap-1.5">
+                      ⚠️ Please select a target course to add this video chapter into.
                     </span>
                   ) : (
                     <span className="text-success font-medium flex items-center gap-1.5">
@@ -646,7 +788,7 @@ export default function VideoCourseUploadModal({
                 <Button
                   variant="primary"
                   size="default"
-                  disabled={!file || !title.trim()}
+                  disabled={!file || !title.trim() || (uploadMode === "existing" && !targetCourseId)}
                   onClick={startPipeline}
                   leftIcon={<Upload className="h-4 w-4" />}
                   className="w-full sm:w-auto font-semibold shadow-sm"
@@ -883,7 +1025,7 @@ export default function VideoCourseUploadModal({
               <Button
                 variant="primary"
                 size="default"
-                disabled={!file || !title.trim()}
+                disabled={!file || !title.trim() || (uploadMode === "existing" && !targetCourseId)}
                 onClick={startPipeline}
                 leftIcon={<Upload className="h-4 w-4" />}
                 className="font-semibold"

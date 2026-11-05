@@ -46,6 +46,17 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
     return reply.redirect(url, 302)
   })
 
+  // General material / file downloads (PDFs, slides, notebooks)
+  app.get<{ Params: { "*": string } }>("/api/files/materials/*", async (req, reply) => {
+    const rawKey = req.params["*"]
+    const key = rawKey.startsWith("materials/") ? rawKey : `materials/${rawKey}`
+    if (key.includes("..")) throw notFound("File not found.")
+    const head = await ctx.storage.head(key)
+    if (!head) throw notFound("Material file not found.")
+    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 86400 })
+    return reply.redirect(url, 302)
+  })
+
   const local = ctx.localStorage
   if (!local) return
 
