@@ -38,11 +38,18 @@ def main():
                 dev = "cpu (int8)"
 
         segments, info = model.transcribe(audio_path, language=lang, beam_size=3)
-        texts = [s.text.strip() for s in segments if s.text.strip()]
+        segs_out = []
+        texts = []
+        for s in segments:
+            t = s.text.strip()
+            if t:
+                texts.append(t)
+                segs_out.append({"start": round(float(s.start), 2), "end": round(float(s.end), 2), "text": t})
         full_text = " ".join(texts).strip()
 
         print(json.dumps({
             "text": full_text,
+            "segments": segs_out,
             "language": info.language if hasattr(info, "language") else (lang or "en"),
             "confidence": 0.96,
             "engine": f"faster-whisper ({dev})",
@@ -71,14 +78,26 @@ def main():
             "automatic-speech-recognition",
             model=model_id,
             generate_kwargs=generate_kwargs,
-            chunk_length_s=30,
+            return_timestamps=True,
         )
 
         out = asr(audio_path)
-        text = out.get("text", "").strip() if isinstance(out, dict) else str(out).strip()
+        raw_text = out.get("text", "").strip() if isinstance(out, dict) else str(out).strip()
+        segs_out = []
+        if isinstance(out, dict) and "chunks" in out:
+            for c in out["chunks"]:
+                ts = c.get("timestamp")
+                t = c.get("text", "").strip()
+                if ts and ts[0] is not None and t:
+                    segs_out.append({
+                        "start": round(float(ts[0]), 2),
+                        "end": round(float(ts[1]), 2) if ts[1] is not None else round(float(ts[0]) + 3.0, 2),
+                        "text": t,
+                    })
 
         print(json.dumps({
-            "text": text,
+            "text": raw_text,
+            "segments": segs_out,
             "language": lang or "en",
             "confidence": 0.95,
             "engine": "transformers (OpenAI Whisper)",

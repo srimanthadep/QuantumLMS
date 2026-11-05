@@ -432,6 +432,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const timestampLabel = `[${startM}:${startS} - ${endM}:${endS}]`
 
     let extractedText = ""
+    let extractedSegments: { start: number; end: number; text: string }[] = []
     let confidence = 0.95
     let engineLabel = input.modelChoice === "parakeet" ? "OpenAI Whisper / Parakeet" : "Faster-Whisper Indic"
 
@@ -449,7 +450,13 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
         const scriptPath = path.resolve(process.cwd(), "scripts/transcribe_chunk.py")
 
-        const asrResult = await new Promise<{ text: string; confidence: number; engine?: string; model?: string }>((resolve) => {
+        const asrResult = await new Promise<{
+          text: string
+          confidence: number
+          engine?: string
+          model?: string
+          segments?: { start: number; end: number; text: string }[]
+        }>((resolve) => {
           execFile(
             pythonBin,
             [scriptPath, "--audio", tempWav, "--model", input.modelChoice, "--language", input.language || "en"],
@@ -458,7 +465,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
               fs.unlink(tempWav, () => {})
               if (err || !stdout.trim()) {
                 req.log.warn({ err, stderr }, "Neural transcription execution error")
-                resolve({ text: "", confidence: 0.85 })
+                resolve({ text: "", confidence: 0.85, segments: [] })
                 return
               }
               try {
@@ -470,15 +477,17 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
                   confidence: parsed.confidence || 0.95,
                   engine: parsed.engine,
                   model: parsed.model,
+                  segments: Array.isArray(parsed.segments) ? parsed.segments : [],
                 })
               } catch {
-                resolve({ text: "", confidence: 0.85 })
+                resolve({ text: "", confidence: 0.85, segments: [] })
               }
             }
           )
         })
 
         extractedText = asrResult.text
+        extractedSegments = asrResult.segments || []
         confidence = asrResult.confidence
         if (asrResult.engine) {
           engineLabel = `${asrResult.engine} (${asrResult.model || input.modelChoice})`
@@ -499,6 +508,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       skipped: false,
       modelUsed: engineLabel,
       audioKey: savedKey,
+      segments: extractedSegments,
     }
   })
 

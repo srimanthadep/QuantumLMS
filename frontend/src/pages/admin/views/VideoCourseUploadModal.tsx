@@ -264,6 +264,7 @@ export default function VideoCourseUploadModal({
           confidence: number
           isSilent: boolean
           modelUsed: string
+          segments?: { start: number; end: number; text: string }[]
         }>("/admin/courses/audio-chunk", {
           courseId,
           chunkIndex: chunk.chunkIndex,
@@ -278,7 +279,20 @@ export default function VideoCourseUploadModal({
         })
 
         const chunkText = res.text || ""
-        assembledTranscript += `${res.timestampLabel} ${chunkText}\n\n`
+        if (res.segments && res.segments.length > 0) {
+          for (const s of res.segments) {
+            const absStart = chunk.startTime + s.start
+            const absEnd = chunk.startTime + s.end
+            const sm = Math.floor(absStart / 60)
+            const ss = (absStart % 60).toFixed(1).padStart(4, "0")
+            const em = Math.floor(absEnd / 60)
+            const es = (absEnd % 60).toFixed(1).padStart(4, "0")
+            assembledTranscript += `[${sm}:${ss} - ${em}:${es}] ${s.text}\n`
+          }
+          assembledTranscript += "\n"
+        } else {
+          assembledTranscript += `${res.timestampLabel} ${chunkText}\n\n`
+        }
         setFullTranscript(assembledTranscript)
 
         setChunks((prev) =>

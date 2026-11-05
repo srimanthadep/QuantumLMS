@@ -14,6 +14,48 @@ interface SubtitleCue {
   text: string
 }
 
+function splitSentenceIntoNaturalChunks(sent: string): string[] {
+  const words = sent.split(/\s+/).filter(Boolean)
+  if (words.length <= 13) return [sent]
+
+  // Find a balanced midpoint split near punctuation or coordinating conjunctions
+  const mid = Math.floor(words.length / 2)
+  let bestIdx = mid
+  for (let offset = 0; offset <= 3; offset++) {
+    for (const i of [mid + offset, mid - offset]) {
+      if (i >= 5 && i <= words.length - 5) {
+        const prevWord = words[i - 1]
+        if (
+          prevWord.endsWith(",") ||
+          prevWord.endsWith(";") ||
+          /^(and|but|that|which|including|where|while|because|to|with)$/i.test(words[i])
+        ) {
+          bestIdx = i
+          break
+        }
+      }
+    }
+  }
+
+  const part1 = words.slice(0, bestIdx).join(" ")
+  const part2 = words.slice(bestIdx).join(" ")
+
+  const result: string[] = []
+  if (words.slice(0, bestIdx).length > 14) {
+    result.push(...splitSentenceIntoNaturalChunks(part1))
+  } else {
+    result.push(part1)
+  }
+
+  if (words.slice(bestIdx).length > 14) {
+    result.push(...splitSentenceIntoNaturalChunks(part2))
+  } else {
+    result.push(part2)
+  }
+
+  return result
+}
+
 /** Slices long transcript segments into natural, 1-2 line subtitle cues (YouTube/Netflix style). */
 function sliceIntoSubtitles(rawSegments: { start: number; end: number; text: string }[]): SubtitleCue[] {
   const cues: SubtitleCue[] = []
@@ -22,43 +64,42 @@ function sliceIntoSubtitles(rawSegments: { start: number; end: number; text: str
     const rawText = seg.text.replace(/\(Silence skipped[^)]*\)/gi, "").trim()
     if (!rawText) continue
 
-    // Split text by sentence boundaries (., !, ?) or semicolons/newlines
+    const segDuration = Math.max(1, seg.end - seg.start)
+
+    // If segment is already short (<= 7s) and concise (<= 14 words), keep as-is (e.g. Whisper precise segment)
+    const allWords = rawText.split(/\s+/).filter(Boolean)
+    if (segDuration <= 7 && allWords.length <= 14) {
+      cues.push({
+        start: seg.start,
+        end: seg.end,
+        text: rawText,
+      })
+      continue
+    }
+
+    // Split text by sentence boundaries (., !, ?) or newlines
     const sentences = rawText
       .split(/(?<=[.!?]["']?)\s+|(?<=[;\n])\s+/)
       .map((s) => s.trim())
       .filter(Boolean)
 
-    // Further split sentences if they are long (> 12 words) into natural phrase units
     const chunks: string[] = []
     for (const sent of sentences) {
-      const words = sent.split(/\s+/)
-      if (words.length <= 12) {
-        chunks.push(sent)
-      } else {
-        // Try splitting by comma
-        const commaParts = sent.split(/(?<=[,])\s+/).map((p) => p.trim()).filter(Boolean)
-        if (commaParts.length > 1 && commaParts.every((p) => p.split(/\s+/).length <= 14)) {
-          chunks.push(...commaParts)
-        } else {
-          // Chunk words into groups of ~9-11 words
-          for (let i = 0; i < words.length; i += 10) {
-            chunks.push(words.slice(i, i + 10).join(" "))
-          }
-        }
-      }
+      chunks.push(...splitSentenceIntoNaturalChunks(sent))
     }
 
     if (chunks.length === 0) continue
 
-    const segDuration = Math.max(1, seg.end - seg.start)
-    const totalChars = chunks.reduce((acc, c) => acc + c.length, 0)
+    // Natural spoken word-rate pacing (words take time, not raw character count)
+    const totalWords = chunks.reduce((acc, c) => acc + c.split(/\s+/).filter(Boolean).length, 0)
     let currentStart = seg.start
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
-      const fraction = totalChars > 0 ? chunk.length / totalChars : 1 / chunks.length
-      const cueDuration = Math.max(1.2, fraction * segDuration)
-      const cueEnd = i === chunks.length - 1 ? seg.end : Math.min(seg.end, currentStart + cueDuration)
+      const wCount = chunk.split(/\s+/).filter(Boolean).length
+      const fraction = totalWords > 0 ? wCount / totalWords : 1 / chunks.length
+      const cueDuration = fraction * segDuration
+      const cueEnd = i === chunks.length - 1 ? seg.end : currentStart + cueDuration
 
       cues.push({
         start: currentStart,
@@ -123,16 +164,20 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     return lesson.videoUrl || lesson.video_url || ""
   }, [quality, qualities, lesson.videoUrl, lesson.video_url])
 
-  // Parse [mm:ss - mm:ss] transcript time stamps for live synchronized captions
+  // Parse [mm:ss - mm:ss] or [mm:ss.ms - mm:ss.ms] transcript time stamps for live synchronized captions
   const transcriptSegments = useMemo(() => {
     if (!lesson.summary) return []
-    const regex = /\[(\d+):(\d+)\s*-\s*(\d+):(\d+)\]\s*([^[]+)/g
+    // Supports [0:00 - 0:30], [01:04.2 - 01:06.2], [1:04 - 1:06], etc.
+    const regex = /\[(\d+):(\d+(?:\.\d+)?)\s*-\s*(\d+):(\d+(?:\.\d+)?)\]\s*([^[]+)/g
     const rawSegments: { start: number; end: number; text: string }[] = []
     let match
     while ((match = regex.exec(lesson.summary)) !== null) {
-      const start = parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
-      const end = parseInt(match[3], 10) * 60 + parseInt(match[4], 10)
-      rawSegments.push({ start, end, text: match[5].trim() })
+      const start = parseFloat(match[1]) * 60 + parseFloat(match[2])
+      const end = parseFloat(match[3]) * 60 + parseFloat(match[4])
+      const text = match[5].trim()
+      if (text) {
+        rawSegments.push({ start, end, text })
+      }
     }
 
     if (rawSegments.length > 0) {
@@ -148,8 +193,13 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
 
   const activeCaption = useMemo(() => {
     if (transcriptSegments.length === 0) return ""
-    const current = transcriptSegments.find((s) => position >= s.start && position < s.end)
-    return current ? current.text : ""
+    // Find active cue. If gap between cues is <= 0.8s, hold previous cue to prevent jarring blinks
+    const index = transcriptSegments.findIndex((s, i) => {
+      const next = transcriptSegments[i + 1]
+      const maxEnd = next && next.start > s.end && next.start - s.end <= 0.8 ? next.start : s.end
+      return position >= s.start && position < maxEnd
+    })
+    return index !== -1 ? transcriptSegments[index].text : ""
   }, [transcriptSegments, position])
 
   useEffect(() => {
