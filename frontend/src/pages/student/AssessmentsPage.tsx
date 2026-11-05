@@ -75,6 +75,7 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
   const [evaluationTarget, setEvaluationTarget] = useState<AssignmentData | null>(null)
   const [quizTarget, setQuizTarget] = useState<QuizData | null>(null)
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const stats = useMemo(() => {
     const graded = assignments
@@ -120,8 +121,12 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
   }
   const openDeadline = (d: (typeof deadlines)[number]) => {
     if (d.kind === "assignment") {
-      const a = assignments.find((x) => x.id === d.id)
-      if (a) setSubmitTarget(a)
+      setTab("assignments")
+      setExpandedId(d.id)
+      setTimeout(() => {
+        const el = document.getElementById(`assignment-${d.id}`)
+        el?.scrollIntoView({ behavior: "smooth", block: "center" })
+      }, 60)
     } else {
       const q = quizzes.find((x) => x.id === d.id)
       if (!q) return
@@ -181,7 +186,13 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="assignments" className="mt-5">
-                <Assignments assignments={assignments} onSubmit={setSubmitTarget} onView={setEvaluationTarget} />
+                <Assignments
+                  assignments={assignments}
+                  onSubmit={setSubmitTarget}
+                  onView={setEvaluationTarget}
+                  expandedId={expandedId}
+                  onToggleExpand={setExpandedId}
+                />
               </TabsContent>
               <TabsContent value="quizzes" className="mt-5">
                 <Quizzes quizzes={quizzes} onStart={startQuiz} onReview={reviewQuiz} onToast={onToast} />
@@ -260,10 +271,38 @@ export default function AssessmentsPage({ assignments, onSubmitAssignment, quizz
 
 /* ------------------------------ Assignments ------------------------------ */
 
-function Assignments({ assignments, onSubmit, onView }: { assignments: AssignmentData[]; onSubmit: (a: AssignmentData) => void; onView: (a: AssignmentData) => void }) {
+function Assignments({
+  assignments,
+  onSubmit,
+  onView,
+  expandedId,
+  onToggleExpand,
+}: {
+  assignments: AssignmentData[]
+  onSubmit: (a: AssignmentData) => void
+  onView: (a: AssignmentData) => void
+  expandedId?: string | null
+  onToggleExpand?: (id: string | null) => void
+}) {
   const [filter, setFilter] = useState<AssignmentFilter>("All")
   const [query, setQuery] = useState("")
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [localExpanded, setLocalExpanded] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (expandedId) {
+      const target = assignments.find((a) => a.id === expandedId)
+      if (target && !inFilter(target, filter)) {
+        setFilter("All")
+      }
+    }
+  }, [expandedId, assignments, filter])
+
+  const activeExpanded = expandedId !== undefined ? expandedId : localExpanded
+  const toggleExpanded = (id: string) => {
+    const next = activeExpanded === id ? null : id
+    if (onToggleExpand) onToggleExpand(next)
+    else setLocalExpanded(next)
+  }
 
   const counts = (s: AssignmentFilter) => assignments.filter((a) => inFilter(a, s)).length
   const list = assignments.filter((a) => inFilter(a, filter) && (!query.trim() || `${a.title} ${a.course}`.toLowerCase().includes(query.trim().toLowerCase())))
@@ -306,10 +345,11 @@ function Assignments({ assignments, onSubmit, onView }: { assignments: Assignmen
               const { month, day } = splitDate(a.dueDate)
               const n = daysUntil(a.dueDate)
               const urgent = a.status === "Pending" && n !== null && n <= 2
-              const isOpen = expanded === a.id
+              const isOpen = activeExpanded === a.id
               return (
                 <motion.li
                   key={a.id}
+                  id={`assignment-${a.id}`}
                   layout
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -361,7 +401,7 @@ function Assignments({ assignments, onSubmit, onView }: { assignments: Assignmen
                         size="icon-sm"
                         aria-expanded={isOpen}
                         aria-label={isOpen ? "Hide details" : "Show details"}
-                        onClick={() => setExpanded(isOpen ? null : a.id)}
+                        onClick={() => toggleExpanded(a.id)}
                       >
                         <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={transition.base} className="flex">
                           <ChevronDown aria-hidden="true" />

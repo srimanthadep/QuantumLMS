@@ -8,6 +8,8 @@ import {
   CalendarPlus,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleCheck,
   Clock,
   Download,
@@ -214,10 +216,23 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
   const today = timetable.week?.today ?? null
   const [picked, setDay] = useState<TimetableSlot["day"] | null>(null)
   const day = picked ?? today ?? "Monday"
+  const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly")
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date(2026, 10, 1))
+  const [selectedDayOfMonth, setSelectedDayOfMonth] = useState<number>(5)
   const reminders = useReminders()
   const slots = all.filter((s) => s.day === day)
   const live = all.find((s) => s.status === "Live Now")
   const upNext = live ?? upcomingSlots(all, 1)[0]
+
+  const monthYearStr = currentMonthDate.toLocaleString("default", { month: "long", year: "numeric" })
+  const year = currentMonthDate.getFullYear()
+  const month = currentMonthDate.getMonth()
+  const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate()
+  const selectedDateObj = new Date(year, month, selectedDayOfMonth)
+  const selectedDayOfWeekIndex = (selectedDateObj.getDay() + 6) % 7
+  const selectedDayName = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][selectedDayOfWeekIndex]
+  const selectedDaySlots = all.filter((s) => s.day === selectedDayName)
 
   const week = useMemo(() => {
     const online = all.filter((s) => s.isOnline).length
@@ -237,7 +252,21 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="flex min-w-0 flex-col gap-4">
-        <div role="radiogroup" aria-label="Day" className="grid grid-cols-5 gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <SegmentedControl
+            size="sm"
+            value={viewMode}
+            onChange={(v) => setViewMode(v as "weekly" | "monthly")}
+            options={[
+              { value: "weekly", label: "Weekly View" },
+              { value: "monthly", label: "Monthly Timetable" },
+            ]}
+          />
+        </div>
+
+        {viewMode === "weekly" ? (
+          <>
+            <div role="radiogroup" aria-label="Day" className="grid grid-cols-5 gap-2">
           {DAYS.map((d) => {
             const active = d === day
             const count = all.filter((s) => s.day === d).length
@@ -369,6 +398,149 @@ function Timetable({ onToast }: { onToast: (m: string) => void }) {
             })}
           </motion.ol>
         </AnimatePresence>
+          </>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <Card className="overflow-hidden p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Previous month"
+                  onClick={() => setCurrentMonthDate(new Date(year, month - 1, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-semibold text-foreground">{monthYearStr}</span>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Next month"
+                  onClick={() => setCurrentMonthDate(new Date(year, month + 1, 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 border-b border-border">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                  <div key={d}>{d}</div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5 pt-2">
+                {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                  <div key={`blank-${i}`} className="min-h-16 rounded-md bg-surface-2/20" />
+                ))}
+
+                {Array.from({ length: totalDaysInMonth }).map((_, i) => {
+                  const dNum = i + 1
+                  const dObj = new Date(year, month, dNum)
+                  const dIdx = (dObj.getDay() + 6) % 7
+                  const dName = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][dIdx]
+                  const dSlots = all.filter((s) => s.day === dName)
+                  const isSelected = dNum === selectedDayOfMonth
+                  const isCurrentDay = dNum === 5 && month === 10 && year === 2026
+
+                  return (
+                    <button
+                      key={`day-${dNum}`}
+                      type="button"
+                      onClick={() => setSelectedDayOfMonth(dNum)}
+                      className={cn(
+                        "flex min-h-16 flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors",
+                        isSelected
+                          ? "border-primary bg-primary-soft/50 ring-1 ring-primary"
+                          : "border-border bg-surface hover:bg-surface-2",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-full text-caption font-semibold tabular-nums",
+                          isCurrentDay
+                            ? "bg-primary text-primary-foreground"
+                            : isSelected
+                              ? "text-primary-text"
+                              : "text-foreground",
+                        )}
+                      >
+                        {dNum}
+                      </span>
+                      <div className="flex w-full flex-col gap-0.5 overflow-hidden">
+                        {dSlots.slice(0, 2).map((s) => (
+                          <span
+                            key={s.id}
+                            className="block truncate rounded bg-surface-2 px-1 py-0.5 text-[9px] font-medium text-foreground"
+                          >
+                            {s.courseCode}
+                          </span>
+                        ))}
+                        {dSlots.length > 2 && (
+                          <span className="text-[9px] text-muted-foreground font-medium pl-0.5">
+                            +{dSlots.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </Card>
+
+            <div className="rounded-lg border border-border bg-surface p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <span className="text-sm font-semibold text-foreground">
+                  {selectedDateObj.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} · {selectedDaySlots.length} class{selectedDaySlots.length === 1 ? "" : "es"}
+                </span>
+                {selectedDaySlots.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setDay(selectedDayName as TimetableSlot["day"])
+                      setViewMode("weekly")
+                    }}
+                  >
+                    View in Day Slots
+                  </Button>
+                )}
+              </div>
+
+              {selectedDaySlots.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">No scheduled classes for this date.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {selectedDaySlots.map((s) => {
+                    const r = slotRange(s)
+                    const reminded = reminders.has("slot", s.id)
+                    return (
+                      <li key={s.id} className="flex items-center justify-between py-2 text-xs">
+                        <div>
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <Badge tone="neutral" size="sm" className="font-mono">{s.courseCode}</Badge>
+                            <span>{s.courseName}</span>
+                          </div>
+                          <p className="text-caption text-muted-foreground mt-0.5">
+                            {r.start} – {r.end} · {s.instructor} · {s.room}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={reminded ? "secondary" : "outline"}
+                          className="h-7 px-2"
+                          onClick={() => toggleReminder(s)}
+                        >
+                          {reminded ? "Reminded" : "Remind"}
+                        </Button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">
