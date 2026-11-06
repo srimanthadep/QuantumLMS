@@ -13,7 +13,6 @@ import {
   Clock,
   Flame,
   GraduationCap,
-  LineChart,
   ListTodo,
   Play,
   Radio,
@@ -521,12 +520,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
             <Card className="min-w-0 overflow-hidden rounded-[14px] border border-border">
               <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between pb-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
-                      <LineChart className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <CardTitle className="text-base font-bold">Learning momentum</CardTitle>
-                  </div>
+                  <CardTitle className="text-base font-bold">Learning momentum</CardTitle>
                   <p className="mt-1 text-xs text-muted-foreground">Focused study time compared with your daily target.</p>
                 </div>
                 <SegmentedControl
