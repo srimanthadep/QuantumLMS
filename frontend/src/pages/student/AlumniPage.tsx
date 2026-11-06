@@ -28,6 +28,12 @@ function LinkedInIcon({ className }: { className?: string }) {
   )
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 export interface AlumniProfile {
   id: string
   name: string
@@ -539,15 +545,15 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 interactive
                 className="flex flex-col justify-between overflow-hidden group"
               >
-                {/* Card Top: Photo + Name + Lightning Tag */}
+                {/* Card Top: Initials Avatar + Name + Lightning Tag */}
                 <div className="p-5 pb-3">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={alumni.avatar}
-                      alt={alumni.name}
-                      className="w-11 h-11 rounded-lg object-cover border border-border shadow-2xs flex-none bg-surface-2"
-                      loading="lazy"
-                    />
+                    <div
+                      className="w-10 h-10 rounded-lg bg-surface-2 border border-border flex items-center justify-center font-mono font-semibold text-xs text-foreground shadow-2xs flex-none"
+                      aria-hidden="true"
+                    >
+                      {getInitials(alumni.name)}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[14px] font-semibold text-foreground leading-tight truncate">
                         {alumni.name}
@@ -672,11 +678,12 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
               </Button>
 
               <div className="flex items-start gap-4">
-                <img
-                  src={selectedAlumni.avatar}
-                  alt={selectedAlumni.name}
-                  className="w-16 h-16 rounded-xl object-cover border border-border shadow-xs bg-surface-3 flex-none"
-                />
+                <div
+                  className="w-14 h-14 rounded-xl bg-surface-3 border border-border flex items-center justify-center font-mono font-bold text-base text-primary shadow-xs flex-none"
+                  aria-hidden="true"
+                >
+                  {getInitials(selectedAlumni.name)}
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3
