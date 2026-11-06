@@ -62,7 +62,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/alumni/anuraj.png",
     tag: "Career Gap",
     currentCompany: "meesho",
-    companyLogo: "/logos/meesho.png",
+    companyLogo: "/logos/meesho.svg",
     role: "Data Analyst",
     hike: "100% hike",
     lmsProgram: "Joined Quantum School",
@@ -122,7 +122,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/placements/rhea_portrait.png",
     tag: "Switcher",
     currentCompany: "Byborg",
-    companyLogo: "/logos/byborg.png",
+    companyLogo: "/logos/byborg.svg",
     role: "Cloud Systems Engineer",
     hike: "210% hike",
     lmsProgram: "Joined Quantum School",
@@ -162,6 +162,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/placements/nikita_portrait.png",
     tag: "Upskiller",
     currentCompany: "Zepto",
+    companyLogo: "/logos/zepto.svg",
     role: "Product Analyst",
     hike: "140% hike",
     lmsProgram: "Joined Quantum School",
@@ -181,6 +182,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/placements/yoshita_portrait.png",
     tag: "Fresher",
     currentCompany: "1DS",
+    companyLogo: "/logos/1ds.svg",
     role: "Frontend Engineer",
     hike: "120% hike",
     lmsProgram: "Joined Quantum School",
@@ -200,6 +202,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/placements/anup_portrait.png",
     tag: "Career Gap",
     currentCompany: "Bhanzu",
+    companyLogo: "/logos/bhanzu.svg",
     role: "Full Stack Engineer",
     hike: "160% hike",
     lmsProgram: "Joined Quantum School",
@@ -279,7 +282,7 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
     avatar: "/assets/student-5.png",
     tag: "Non-Tech to Tech",
     currentCompany: "Hexaware",
-    companyLogo: "/logos/hexaware.png",
+    companyLogo: "/logos/hexaware.svg",
     role: "Software Engineer",
     hike: "110% hike",
     lmsProgram: "Joined Quantum School",
@@ -386,7 +389,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
           <span className="text-xs font-medium text-muted-foreground">
             Students placed
           </span>
-          <p className="mt-1.5 text-2xl font-bold tracking-tight text-primary font-mono">
+          <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
             4,500+
           </p>
         </div>
@@ -395,7 +398,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
           <span className="text-xs font-medium text-muted-foreground">
             Highest hike
           </span>
-          <p className="mt-1.5 text-2xl font-bold tracking-tight text-success font-mono">
+          <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
             500%
           </p>
         </div>
@@ -404,7 +407,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
           <span className="text-xs font-medium text-muted-foreground">
             Highest package
           </span>
-          <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground font-mono">
+          <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
             ₹1.5 Cr
           </p>
         </div>
@@ -413,7 +416,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
           <span className="text-xs font-medium text-muted-foreground">
             Hiring partners
           </span>
-          <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground font-mono">
+          <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
             800+
           </p>
         </div>
@@ -584,12 +587,15 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                     <div className="relative flex items-start gap-3 z-10">
                       <span className="w-2.5 h-2.5 rounded-full bg-success ring-3 ring-success/20 flex-none mt-1 shadow-2xs" />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 h-6">
                           {alumni.companyLogo ? (
                             <img
                               src={alumni.companyLogo}
                               alt={alumni.currentCompany}
-                              className="h-4 max-w-[75px] object-contain object-left dark:brightness-110"
+                              className={`h-5 w-auto max-w-[85px] object-contain object-left ${
+                                alumni.currentCompany.toLowerCase() === "uber" ? "dark:invert" : "dark:brightness-110"
+                              }`}
+                              loading="lazy"
                             />
                           ) : (
                             <span className="text-sm font-semibold text-foreground leading-tight">
@@ -732,7 +738,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 <span className="text-[11px] text-muted-foreground font-medium block">
                   Package
                 </span>
-                <span className="text-sm font-bold text-foreground font-mono">
+                <span className="text-sm font-bold text-foreground tabular-nums">
                   {selectedAlumni.package || "Competitive"}
                 </span>
               </div>
