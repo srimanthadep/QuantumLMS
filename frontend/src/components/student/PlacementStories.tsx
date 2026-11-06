@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Play,
   Pause,
-  Sparkles,
   X,
   ArrowUpRight,
   Trophy,
@@ -15,7 +14,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
-import { Badge, Button } from "@/components/ui"
+import { Button } from "@/components/ui"
 import CompanyLogo from "@/components/shared/CompanyLogo"
 import type { StudentNavPage } from "@/pages/student/studentTypes"
 
@@ -282,17 +281,9 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
       {/* Header with Title and Carousel Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft text-primary">
-              <Sparkles className="h-3 w-3" />
-            </span>
-            <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-              Placement stories
-            </h2>
-            <Badge tone="primary" size="sm" className="hidden sm:inline-flex text-[10px]">
-              Alumni journeys
-            </Badge>
-          </div>
+          <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+            Placement stories
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Real experiences from students who transformed their careers. Click any story to view.
           </p>
