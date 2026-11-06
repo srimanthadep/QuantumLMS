@@ -308,8 +308,8 @@ export default function CareerHubPage({ onToast, initialTab = "interviews" }: Ca
                           </div>
                         </div>
 
-                        {/* Official Company Logo Badge */}
-                        <CompanyLogo name={item.company} size="sm" className="h-8 w-8 p-1 shrink-0" />
+                        {/* Official Company Logo (Clean, no badge background) */}
+                        <CompanyLogo name={item.company} size="sm" variant="plain" className="h-6 max-w-[64px] shrink-0" />
                       </div>
 
                       <div className="flex items-center justify-between border-t border-border/60 pt-2.5 mt-1">

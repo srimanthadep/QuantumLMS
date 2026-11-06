@@ -74,11 +74,12 @@ const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProp
         </p>
       </div>
 
-      {/* Official Company Logo Badge */}
+      {/* Official Company Logo (Clean, no badge background) */}
       <CompanyLogo
         name={item.company}
-        size="sm"
-        className="h-8 w-8 rounded-lg p-1 shrink-0 bg-white shadow-2xs hover:scale-105 transition-transform"
+        size="md"
+        variant="plain"
+        className="h-6 max-w-[68px] w-auto shrink-0 hover:scale-105 transition-transform"
       />
     </div>
   )

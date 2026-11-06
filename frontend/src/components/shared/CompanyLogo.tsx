@@ -6,6 +6,7 @@ import { getCompanyBrand, getCompanyLogoUrl } from "@/lib/companyLogos"
 export interface CompanyLogoProps {
   name: string
   size?: "xs" | "sm" | "md" | "lg" | "xl"
+  variant?: "badge" | "plain"
   showName?: boolean
   nameClassName?: string
   className?: string
@@ -13,16 +14,17 @@ export interface CompanyLogoProps {
 }
 
 const SIZE_MAP = {
-  xs: { box: "h-5 w-5", img: "h-3.5 w-3.5", text: "text-[11px]" },
-  sm: { box: "h-6 w-6", img: "h-4 w-4", text: "text-xs" },
-  md: { box: "h-8 w-8", img: "h-5 w-5", text: "text-sm" },
-  lg: { box: "h-10 w-10", img: "h-6 w-6", text: "text-base" },
-  xl: { box: "h-12 w-12", img: "h-8 w-8", text: "text-lg" },
+  xs: { box: "h-5 w-auto max-w-[40px]", img: "h-3.5 w-auto max-w-[40px]", text: "text-[11px]" },
+  sm: { box: "h-6 w-auto max-w-[56px]", img: "h-4.5 w-auto max-w-[56px]", text: "text-xs" },
+  md: { box: "h-7 w-auto max-w-[68px]", img: "h-5.5 w-auto max-w-[68px]", text: "text-sm" },
+  lg: { box: "h-9 w-auto max-w-[80px]", img: "h-7 w-auto max-w-[80px]", text: "text-base" },
+  xl: { box: "h-11 w-auto max-w-[96px]", img: "h-9 w-auto max-w-[96px]", text: "text-lg" },
 } as const
 
 function CompanyLogoComponent({
   name,
   size = "sm",
+  variant = "plain",
   showName = false,
   nameClassName,
   className,
@@ -32,11 +34,16 @@ function CompanyLogoComponent({
   const brand = getCompanyBrand(name)
   const logoUrl = brand?.logo ?? getCompanyLogoUrl(name)
   const dimensions = SIZE_MAP[size]
+  const isDarkMonoBrand = brand?.color === "#111" || brand?.color === "#111111"
+  const isBadge = variant === "badge"
 
   const logoNode = (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-md border border-border/60 bg-white p-1 shadow-2xs transition-colors dark:border-border/80 dark:bg-white/95",
+        "inline-flex shrink-0 items-center justify-center transition-colors",
+        isBadge
+          ? "rounded-md border border-border/60 bg-white p-1 shadow-2xs dark:border-border/80 dark:bg-white/95"
+          : "bg-transparent border-0 shadow-none p-0",
         dimensions.box,
         className
       )}
@@ -49,7 +56,11 @@ function CompanyLogoComponent({
           alt=""
           aria-hidden="true"
           onError={() => setError(true)}
-          className={cn("h-full w-full object-contain select-none", dimensions.img)}
+          className={cn(
+            "h-full w-auto max-w-full object-contain select-none",
+            dimensions.img,
+            isDarkMonoBrand && "dark:brightness-0 dark:invert"
+          )}
           loading="lazy"
         />
       ) : (
@@ -62,9 +73,7 @@ function CompanyLogoComponent({
     return logoNode
   }
 
-  const brandColor = brand?.color && brand.color !== "#111" && brand.color !== "#111111"
-    ? brand.color
-    : undefined
+  const brandColor = brand?.color && !isDarkMonoBrand ? brand.color : undefined
 
   return (
     <div className={cn("inline-flex items-center gap-1.5 min-w-0", containerClassName)}>
@@ -80,4 +89,3 @@ function CompanyLogoComponent({
 }
 
 export default memo(CompanyLogoComponent)
-
