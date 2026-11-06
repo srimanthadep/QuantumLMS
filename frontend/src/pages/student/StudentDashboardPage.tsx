@@ -462,84 +462,51 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
         {/* Signals & Placements Overview Grid */}
         <StaggerItem>
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px] items-start">
-            {/* Left Column: AI Learning Companion + 2x2 Metric Tiles */}
-            <div className="flex flex-col gap-3.5 min-w-0">
-              {/* AI Learning Companion Card (Linear / Enterprise SaaS Styled) */}
-              <div className="relative overflow-hidden rounded-[14px] border border-primary/25 bg-gradient-to-r from-primary/10 via-surface to-surface p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/30">
-                    <Sparkles className="h-4.5 w-4.5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary">AI Learning Companion</span>
-                      <Badge variant="outline" className="text-[10px] py-0 h-4 border-primary/30 text-primary bg-primary/5">
-                        Personalized Insight
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-foreground mt-0.5 font-medium leading-relaxed">
-                      {chart.total < chart.previous
-                        ? `You're spending slightly less time studying this week. Complete the pending module in "${activeCourse?.title ?? "your course"}" today to get back on track for your weekly goal.`
-                        : `Great learning momentum! You've logged ${chart.total}h this week. Keep going with "${activeCourse?.title ?? "your course"}" to stay ahead of your cohort.`}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-primary/30 text-primary hover:bg-primary-soft shrink-0 text-xs font-semibold"
-                  onClick={() => activeCourse && openCourse(activeCourse)}
-                >
-                  Resume {activeCourse ? activeCourse.title.split(" ")[0] : "Course"} →
-                </Button>
-              </div>
-
-              {/* Signals: Standardized KPI Cards in a balanced 2x2 Grid */}
-              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2" aria-label="Learning signals">
-                <MetricTile
-                  label="Learning momentum"
-                  value={`${chart.total}h`}
-                  detail={chart.change}
-                  badgeText={chart.total >= chart.previous ? "On track" : "Needs attention"}
-                  badgeTone={chart.total >= chart.previous ? "success" : "warning"}
-                  icon={Activity}
-                  tone={chart.total >= chart.previous ? "primary" : "warning"}
-                  sparkline={chart.focus}
-                  onClick={() => document.getElementById("learning-analytics")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                />
-                <MetricTile
-                  label="Course mastery"
-                  value={`${metrics.averageProgress}%`}
-                  detail={`${metrics.modulesComplete}/${metrics.modulesTotal} modules completed`}
-                  badgeText="On track"
-                  badgeTone="success"
-                  icon={GraduationCap}
-                  tone="success"
-                  sparkline={enrolled.map((course) => course.progress)}
-                  onClick={() => onNavigate("My Courses")}
-                />
-                <MetricTile
-                  label="Attendance pulse"
-                  value={attendance ? `${attendance.overallPercentage}%` : "–"}
-                  detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} classes attended` : "No classes recorded yet") : "Loading…"}
-                  badgeText={attendance && attendance.overallPercentage >= 85 ? "Excellent" : "Regular"}
-                  badgeTone={attendance && attendance.overallPercentage >= 85 ? "info" : "neutral"}
-                  icon={CheckCircle2}
-                  tone="info"
-                  sparkline={attendance && attendance.subjects.length > 1 ? attendance.subjects.map((s) => s.percentage) : undefined}
-                  onClick={() => onNavigate("Attendance")}
-                />
-                <MetricTile
-                  label="Priority queue"
-                  value={`${priorityItems.length - completedItems} ${priorityItems.length - completedItems === 1 ? "task" : "tasks"}`}
-                  detail={nextPriority ? (nextPriority.kind === "lesson" ? nextPriority.due : dueLabel(nextPriority.due)) : "All clear"}
-                  badgeText={priorityItems.length - completedItems > 0 ? "Pending" : "Cleared"}
-                  badgeTone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
-                  icon={ListTodo}
-                  tone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
-                  onClick={() => document.getElementById("priority-queue")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                />
-              </div>
+            {/* Left Column: Standardized KPI Cards in a balanced 2x2 Grid */}
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 min-w-0" aria-label="Learning signals">
+              <MetricTile
+                label="Learning momentum"
+                value={`${chart.total}h`}
+                detail={chart.change}
+                badgeText={chart.total >= chart.previous ? "On track" : "Needs attention"}
+                badgeTone={chart.total >= chart.previous ? "success" : "warning"}
+                icon={Activity}
+                tone={chart.total >= chart.previous ? "primary" : "warning"}
+                sparkline={chart.focus}
+                onClick={() => document.getElementById("learning-analytics")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              />
+              <MetricTile
+                label="Course mastery"
+                value={`${metrics.averageProgress}%`}
+                detail={`${metrics.modulesComplete}/${metrics.modulesTotal} modules completed`}
+                badgeText="On track"
+                badgeTone="success"
+                icon={GraduationCap}
+                tone="success"
+                sparkline={enrolled.map((course) => course.progress)}
+                onClick={() => onNavigate("My Courses")}
+              />
+              <MetricTile
+                label="Attendance pulse"
+                value={attendance ? `${attendance.overallPercentage}%` : "–"}
+                detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} classes attended` : "No classes recorded yet") : "Loading…"}
+                badgeText={attendance && attendance.overallPercentage >= 85 ? "Excellent" : "Regular"}
+                badgeTone={attendance && attendance.overallPercentage >= 85 ? "info" : "neutral"}
+                icon={CheckCircle2}
+                tone="info"
+                sparkline={attendance && attendance.subjects.length > 1 ? attendance.subjects.map((s) => s.percentage) : undefined}
+                onClick={() => onNavigate("Attendance")}
+              />
+              <MetricTile
+                label="Priority queue"
+                value={`${priorityItems.length - completedItems} ${priorityItems.length - completedItems === 1 ? "task" : "tasks"}`}
+                detail={nextPriority ? (nextPriority.kind === "lesson" ? nextPriority.due : dueLabel(nextPriority.due)) : "All clear"}
+                badgeText={priorityItems.length - completedItems > 0 ? "Pending" : "Cleared"}
+                badgeTone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
+                icon={ListTodo}
+                tone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
+                onClick={() => document.getElementById("priority-queue")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              />
             </div>
 
             {/* Right Column: Recent Placements Marquee Block */}
