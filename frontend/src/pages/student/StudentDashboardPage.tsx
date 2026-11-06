@@ -51,6 +51,7 @@ import Reveal from "@/components/motion/Reveal"
 import CourseCover from "@/components/shared/CourseCover"
 import DateTile from "@/components/student/DateTile"
 import RecentPlacementsCard from "@/components/student/RecentPlacementsCard"
+import PlacementStories from "@/components/student/PlacementStories"
 import type { AssignmentData, CourseItem, QuizData, StudentNavPage, TimetableSlot } from "./studentTypes"
 import { coverCategory, dueLabel } from "./studentUtils"
 import { useStudentData } from "./data/StudentDataProvider"
@@ -812,6 +813,11 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
               </CardContent>
             </Card>
           </div>
+        </StaggerItem>
+
+        {/* Placement Stories Reel */}
+        <StaggerItem>
+          <PlacementStories onNavigate={onNavigate} />
         </StaggerItem>
 
         <StaggerItem>
