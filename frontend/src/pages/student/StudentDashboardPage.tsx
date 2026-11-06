@@ -461,7 +461,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
         {/* Signals & Placements Overview Grid */}
         <StaggerItem>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px] items-start">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_380px] items-start">
             {/* Left Column: Standardized KPI Cards in a balanced 2x2 Grid */}
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 min-w-0" aria-label="Learning signals">
               <MetricTile
@@ -509,9 +509,9 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
               />
             </div>
 
-            {/* Right Column: Recent Placements Marquee Block */}
+            {/* Right Column: Recent Placements Activity Widget */}
             <div className="min-w-0">
-              <RecentPlacementsCard onNavigate={onNavigate} maxItems={5} />
+              <RecentPlacementsCard onNavigate={onNavigate} maxItems={12} />
             </div>
           </div>
         </StaggerItem>

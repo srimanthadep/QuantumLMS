@@ -80,3 +80,4 @@ function CompanyLogoComponent({
 }
 
 export default memo(CompanyLogoComponent)
+

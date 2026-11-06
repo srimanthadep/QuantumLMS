@@ -186,3 +186,4 @@ export function getCompanyLogoUrl(rawName?: string | null): string {
   const query = encodeURIComponent((rawName || "company").trim())
   return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${query}.com&size=128`
 }
+
