@@ -6,6 +6,7 @@ import { spring, transition } from "@/lib/motion"
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Field, Input, Textarea } from "@/components/ui"
 import ProgressRing from "@/components/charts/ProgressRing"
 import CopyButton from "@/components/student/CopyButton"
+import CompanyLogo from "@/components/shared/CompanyLogo"
 import { downloadTextFile } from "../studentUtils"
 import { atsChecks, atsScore, resumeToText, type ResumeEntry, type ResumeState } from "./careerData"
 
@@ -240,9 +241,14 @@ export default function ResumeStudio({ resume, onChange, onToast }: ResumeStudio
                     .map((e) => (
                       <div key={e.id}>
                         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                          <p className="text-sm font-semibold text-foreground">
-                            {e.title}
-                            {e.org && <span className="font-normal text-muted-foreground"> · {e.org}</span>}
+                          <p className="text-sm font-semibold text-foreground flex items-center flex-wrap gap-1.5">
+                            <span>{e.title}</span>
+                            {e.org && (
+                              <span className="inline-flex items-center gap-1 font-normal text-muted-foreground">
+                                · {k === "experience" && <CompanyLogo name={e.org} size="xs" />}
+                                <span>{e.org}</span>
+                              </span>
+                            )}
                           </p>
                           <p className="text-caption tabular-nums text-subtle-foreground">{e.period}</p>
                         </div>

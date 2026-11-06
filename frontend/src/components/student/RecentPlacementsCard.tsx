@@ -2,6 +2,7 @@ import { memo } from "react"
 import { Briefcase, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { StudentNavPage } from "@/pages/student/studentTypes"
+import CompanyLogo from "@/components/shared/CompanyLogo"
 
 export interface PlacementItem {
   name: string
@@ -60,7 +61,7 @@ const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProp
   const isDarkCompanyColor = item.color === "#111" || item.color === "#111111"
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface dark:bg-[#202024] p-2 transition-colors hover:border-border-strong">
+    <div className="group/row flex items-center gap-3 rounded-xl border border-border/70 bg-surface dark:bg-[#202024] p-2 transition-colors hover:border-border-strong">
       <div
         className="h-11 w-11 shrink-0 rounded-[10px] grid place-items-center text-white font-bold text-sm tracking-wide select-none shadow-xs"
         style={{ backgroundColor: tint }}
@@ -72,15 +73,25 @@ const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProp
         <p className="truncate font-semibold text-sm leading-tight text-foreground mb-0.5">
           {item.name}
         </p>
-        <span
-          className="block truncate text-xs font-bold tracking-tight"
-          style={{
-            color: isDarkCompanyColor ? "var(--foreground)" : item.color,
-          }}
-        >
-          {item.company}
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className="truncate text-xs font-bold tracking-tight"
+            style={{
+              color: isDarkCompanyColor ? "var(--foreground)" : item.color,
+            }}
+          >
+            {item.company}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-medium shrink-0">· Placed</span>
+        </div>
       </div>
+
+      {/* Official Company Logo Badge */}
+      <CompanyLogo
+        name={item.company}
+        size="sm"
+        className="h-8 w-8 rounded-lg p-1 shrink-0 bg-white shadow-2xs hover:scale-105 transition-transform"
+      />
     </div>
   )
 })
