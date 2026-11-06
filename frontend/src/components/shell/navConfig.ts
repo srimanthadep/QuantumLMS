@@ -60,6 +60,7 @@ export const NAV: Record<UserRole, ShellNavItem[]> = {
     item("schedule", "Schedule", CalendarDays, "main", ["live", "timetable", "classes"]),
     item("assessments", "Assessments", ClipboardList, "main", ["quiz", "assignment", "tests"]),
     item("grades", "Grades & Certificates", Award, "main", ["certificate", "results"]),
+    item("alumni", "Alumni", GraduationCap, "main", ["placements", "jobs", "network", "stories", "hiring"]),
     item("notes", "Notes", NotebookPen),
     item("community", "Community", MessagesSquare, "main", ["discussions"]),
     item("career", "Career Hub", Briefcase, "main", ["interview", "resume"]),

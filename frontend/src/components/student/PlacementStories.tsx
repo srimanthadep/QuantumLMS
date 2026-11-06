@@ -251,9 +251,21 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
     >
       {/* Clean Header Matching Reference Image 2: Plain title & navigation buttons */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[18px] font-medium text-muted-foreground tracking-tight select-none">
-          Placement stories
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-[18px] font-medium text-muted-foreground tracking-tight select-none">
+            Placement stories
+          </h2>
+          {onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate("Alumni")}
+              className="text-xs font-semibold text-[#0066cc] hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>View all alumni</span>
+              <span aria-hidden="true">↗</span>
+            </button>
+          )}
+        </div>
 
         {/* Minimalist Prev / Next Controls Matching Reference Image 2 */}
         <div className="flex items-center gap-3">

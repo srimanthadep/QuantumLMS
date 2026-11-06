@@ -20,6 +20,7 @@ const StudentSettingsPage = lazy(() => import("./StudentSettingsPage"))
 const SupportHelpPage = lazy(() => import("./SupportHelpPage"))
 const MyNotesPage = lazy(() => import("./MyNotesPage"))
 const LiveClassPage = lazy(() => import("./LiveClassPage"))
+const AlumniPage = lazy(() => import("./AlumniPage"))
 
 /** Notification links (set by the backend) -> student pages. */
 const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
@@ -30,6 +31,7 @@ const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
   certificates: "Certificates",
   grades: "Grades",
   courses: "My Courses",
+  alumni: "Alumni",
 }
 
 /** Shell nav id -> student page. */
@@ -39,6 +41,7 @@ const NAV_TO_PAGE: Record<string, StudentNavPage> = {
   schedule: "Schedule",
   assessments: "Assessments",
   grades: "Grades & Certificates",
+  alumni: "Alumni",
   notes: "My Notes",
   community: "Community",
   career: "Career Hub",
@@ -65,6 +68,9 @@ function navIdFor(page: StudentNavPage): string {
     case "Grades":
     case "Certificates":
       return "grades"
+    case "Alumni":
+    case "Alumni Placements":
+      return "alumni"
     case "My Notes":
       return "notes"
     case "Community":
@@ -179,6 +185,13 @@ function parseInitialTab(): StudentNavPage {
       target === "resume"
     )
       return "Career Hub"
+    if (
+      target === "alumni" ||
+      target === "alumni-placements" ||
+      target === "alumni placements" ||
+      target === "placements"
+    )
+      return "Alumni"
     if (target === "my-notes" || target === "notes") return "My Notes"
     if (target === "profile") return "Profile"
     if (target === "settings") return "Settings"
@@ -367,6 +380,9 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
         return <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} onNavigate={navigateTo} />
       case "My Notes":
         return <MyNotesPage onToast={onToast} />
+      case "Alumni":
+      case "Alumni Placements":
+        return <AlumniPage onNavigate={navigateTo} onToast={onToast} />
       default:
         return <StudentDashboardPage onNavigate={navigateTo} onToast={onToast} courses={courses} assignments={assignments} quizzes={quizzes} />
     }
