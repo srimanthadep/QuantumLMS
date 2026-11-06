@@ -28,7 +28,7 @@ export interface PlacementStory {
   quote: string
   highlight: string
   image: string
-  cardType: "custom-rhea" | "custom-cricket" | "polaroid"
+  cardImage: string
   bg1?: string
   bg2?: string
 }
@@ -45,8 +45,10 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Transitioning from university to a high-scale European tech team in Luxembourg felt like a massive leap. QuantumLMS's distributed systems tracks and live system design labs gave me the exact domain knowledge to clear all technical evaluation rounds.",
     highlight: "Luxembourg International Offer",
-    image: "/assets/student-1.png",
-    cardType: "custom-rhea",
+    image: "/placements/rhea_portrait.png",
+    cardImage: "/placements/rhea_card.png",
+    bg1: "#1e5be0",
+    bg2: "#5aa0ff",
   },
   {
     id: "story-shubhadip",
@@ -59,8 +61,8 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "I spent my college years focused entirely on competitive cricket before discovering data engineering. Building real-time analytics pipelines during the cohort bridged the entire gap and made my transition into Mr. Cooper seamless.",
     highlight: "Cricket to Data Analytics Switch",
-    image: "/assets/student-2.png",
-    cardType: "custom-cricket",
+    image: "/placements/shubhadip_portrait.png",
+    cardImage: "/placements/shubhadip_card.png",
     bg1: "#1547c4",
     bg2: "#3b82f6",
   },
@@ -75,8 +77,8 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Instead of waiting a full year for traditional MBA admissions, I chose to upskill in product analytics and modern tech stacks. Joining Zepto's fast-paced engineering team proved it was the right decision.",
     highlight: "Fast-Track Tech Career",
-    image: "/assets/student-3.png",
-    cardType: "polaroid",
+    image: "/placements/nikita_portrait.png",
+    cardImage: "/placements/nikita_card.png",
     bg1: "#1e5be0",
     bg2: "#5aa0ff",
   },
@@ -91,8 +93,8 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Balancing college coursework and deep-dive coding was tough, but the consistency built resilience. The mentorship and code reviews transformed my code quality to industry standards.",
     highlight: "Consistent Daily Learner",
-    image: "/assets/student-4.png",
-    cardType: "polaroid",
+    image: "/placements/yoshita_portrait.png",
+    cardImage: "/placements/yoshita_card.png",
     bg1: "#1747c4",
     bg2: "#4b8cf5",
   },
@@ -107,42 +109,10 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "After facing initial rejections, I doubled down on my core algorithms and web infrastructure fundamentals. Committing to structured daily problem solving opened the door to Bhanzu.",
     highlight: "Turned Rejections into Offer",
-    image: "/assets/student-6.png",
-    cardType: "polaroid",
+    image: "/placements/anup_portrait.png",
+    cardImage: "/placements/anup_card.png",
     bg1: "#1a4fcf",
     bg2: "#5b9cff",
-  },
-  {
-    id: "story-sandeep",
-    firstName: "Sandeep",
-    fullName: "Sandeep Gowda",
-    company: "Uber",
-    role: "Backend Systems Engineer",
-    package: "₹32 LPA",
-    head: "From Mechanical to Uber Systems",
-    quote:
-      "Coming from a mechanical branch, distributed systems seemed impossible. Building production-grade microservices during the program became my biggest competitive differentiator.",
-    highlight: "Non-CS to Tier-1 Product Firm",
-    image: "/assets/student-7.png",
-    cardType: "polaroid",
-    bg1: "#0e1a38",
-    bg2: "#3b82f6",
-  },
-  {
-    id: "story-diya",
-    firstName: "Diya",
-    fullName: "Diya Sharma",
-    company: "ZS",
-    role: "Decision Analytics Associate",
-    package: "₹16.5 LPA",
-    head: "From campus to a first big offer",
-    quote:
-      "The end-to-end data pipelines and mock client case studies gave me the exact confidence needed to excel in ZS's multi-round interview process.",
-    highlight: "Placed in Final Campus Cohort",
-    image: "/assets/student-8.png",
-    cardType: "polaroid",
-    bg1: "#1d52d6",
-    bg2: "#4f95fa",
   },
 ] as const
 
@@ -326,147 +296,17 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
             type="button"
             onClick={() => openStory(idx)}
             aria-label={`${story.fullName} at ${story.company}`}
-            className="group relative flex-none w-[226px] h-[340px] rounded-[16px] overflow-hidden p-0 text-left cursor-pointer [scroll-snap-align:start] border-0 focus-visible:outline-3 focus-visible:outline-[#6aa7ff] select-none shadow-md transition-transform duration-200 hover:-translate-y-1 active:scale-[0.985]"
+            className="group relative flex-none w-[226px] h-[340px] rounded-[16px] overflow-hidden p-0 text-left cursor-pointer [scroll-snap-align:start] border border-border/40 focus-visible:outline-3 focus-visible:outline-[#6aa7ff] select-none shadow-md transition-transform duration-200 hover:-translate-y-1 active:scale-[0.985]"
             style={{
               backgroundColor: story.bg1 || "#1e5be0",
             }}
           >
-            {/* === CARD VARIANT 1: Rhea (Luxembourg Offer) === */}
-            {story.cardType === "custom-rhea" && (
-              <div className="absolute inset-0 bg-gradient-to-b from-[#ffffff] via-[#ebf4ff] to-[#0a3ec0] flex flex-col justify-between overflow-hidden">
-                {/* Top Text Content */}
-                <div className="p-4 pt-5 z-10">
-                  <p className="text-[13px] font-bold text-slate-800 leading-tight">
-                    From Delhi to{" "}
-                    <span className="bg-[#1e5be0] text-white px-1.5 py-0.5 rounded text-[12px] font-extrabold inline-block">
-                      Luxembourg
-                    </span>
-                  </p>
-                  <p className="text-[15px] font-black tracking-tight text-slate-900 mt-1 leading-tight">
-                    One Code at a Time!
-                  </p>
-
-                  <div className="mt-3 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-600">
-                    <span>RHEA CHAWLA</span>
-                    <span>•</span>
-                    <span className="text-[#1e5be0] font-black">₹50 LAKHS+ PACKAGE</span>
-                  </div>
-                </div>
-
-                {/* Student Photo */}
-                <div className="absolute inset-x-0 bottom-12 flex justify-center pointer-events-none">
-                  <img
-                    src={story.image}
-                    alt={story.fullName}
-                    className="h-[210px] w-auto object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* === CARD VARIANT 2: Shubhadip (Cricket to Analytics) === */}
-            {story.cardType === "custom-cricket" && (
-              <div className="absolute inset-0 bg-[#1547c4] flex flex-col justify-between overflow-hidden">
-                {/* Subtle radial glow */}
-                <div className="absolute inset-0 bg-[radial-gradient(120%_60%_at_50%_0%,#3b82f6,transparent_70%)]" />
-
-                {/* Bold Typography */}
-                <div className="p-4 pt-5 z-10">
-                  <p className="text-[15px] font-black text-white leading-tight uppercase tracking-tight">
-                    FROM CRICKET
-                  </p>
-                  <div className="inline-block bg-[#f59e0b] text-slate-950 px-2 py-0.5 rounded-sm font-black text-[13px] uppercase tracking-wide mt-0.5 shadow-xs">
-                    TO DATA ANALYTICS
-                  </div>
-
-                  <div className="mt-2.5 text-[10px] text-white/90 font-medium">
-                    <p className="font-bold text-white text-xs leading-none">Subhadip Das</p>
-                    <p className="text-white/70 text-[10px] mt-0.5">mr. cooper</p>
-                  </div>
-                </div>
-
-                {/* Student Photo */}
-                <div className="absolute inset-x-0 bottom-12 flex justify-center pointer-events-none">
-                  <img
-                    src={story.image}
-                    alt={story.fullName}
-                    className="h-[215px] w-auto object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* === CARD VARIANT 3: Polaroid Style Matching Reference Image 2 === */}
-            {story.cardType === "polaroid" && (
-              <div
-                className="absolute inset-0 flex flex-col items-center justify-between p-3 pt-3 overflow-hidden"
-                style={{
-                  background: `radial-gradient(120% 60% at 50% 0%, ${story.bg2 || "#5aa0ff"}, transparent 70%), linear-gradient(180deg, ${story.bg1 || "#1e5be0"}, #082d96)`,
-                }}
-              >
-                {/* Subtle "PATH TO PLACEMENTS" Watermark */}
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-x-0 top-1 text-center font-black text-[22px] leading-none tracking-wider text-white/14 uppercase pointer-events-none select-none"
-                >
-                  PATH TO PLACEMENTS
-                </div>
-
-                {/* Central White Polaroid Photo Frame */}
-                <div className="relative w-full rounded-[14px] bg-white p-1.5 pb-2 shadow-lg z-10 mt-1 flex flex-col items-center">
-                  {/* Top Black Oval Badge */}
-                  <div className="absolute -top-2 bg-black/90 text-white rounded-full px-2.5 py-0.5 text-[9px] font-bold flex items-center gap-1 shadow-sm border border-white/20 whitespace-nowrap max-w-[90%] truncate">
-                    <span className="truncate">{story.fullName}</span>
-                    <span className="text-white/60">@{story.company}</span>
-                  </div>
-
-                  {/* Photo with inner rounded borders */}
-                  <div className="w-full h-[155px] rounded-[10px] overflow-hidden bg-slate-100 mt-2">
-                    <img
-                      src={story.image}
-                      alt={story.fullName}
-                      className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  {/* Headline under photo inside Polaroid */}
-                  <div className="w-full text-center px-1 pt-2 pb-0.5">
-                    <p className="text-[12px] font-extrabold text-[#003882] italic leading-[1.2] line-clamp-2">
-                      {story.head}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Bottom Gradient Shade for Clean Text Legibility */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-[#051e6e]/95 via-[#051e6e]/60 to-transparent pointer-events-none z-10"
+            <img
+              src={story.cardImage}
+              alt={`${story.fullName} at ${story.company}`}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
             />
-
-            {/* Bottom Metadata Matching Reference Image 2: Name + @Company (NO Logos) + Play Button */}
-            <div className="absolute inset-x-3.5 bottom-3.5 flex items-end justify-between gap-2 z-20">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-bold text-white leading-tight">
-                  {story.firstName}
-                </p>
-                <span className="block truncate text-[14px] text-white/85 font-normal leading-tight mt-0.5">
-                  @{story.company}
-                </span>
-              </div>
-
-              {/* Minimal Glassmorphic Play Button */}
-              <span
-                aria-hidden="true"
-                className="flex-none w-9 h-9 rounded-full bg-white/20 border border-white/50 backdrop-blur-xs grid place-items-center text-white shadow-sm transition-transform duration-200 group-hover:scale-105 group-hover:bg-white/30"
-              >
-                <Play className="h-3.5 w-3.5 fill-white ml-0.5 text-white" />
-              </span>
-            </div>
           </button>
         ))}
       </div>
