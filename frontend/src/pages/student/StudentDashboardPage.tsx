@@ -615,15 +615,9 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="block truncate text-xs font-semibold text-foreground">{course.title}</span>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[10px] px-1.5 py-0 h-4 shrink-0",
-                                course.progress >= 100 ? "text-success border-success/30 bg-success-soft" : "text-primary border-primary/30 bg-primary-soft"
-                              )}
-                            >
+                            <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
                               {course.progress >= 100 ? "100%" : `${course.progress}%`}
-                            </Badge>
+                            </span>
                           </div>
                           <div className="mt-1 h-1.5 w-full max-w-[140px] overflow-hidden rounded-full bg-border">
                             <div className="h-full rounded-full bg-primary" style={{ width: `${course.progress}%` }} />
