@@ -123,8 +123,8 @@ export default function RecentPlacementsCard({
         </button>
       </div>
 
-      {/* Scrolling Marquee Panel (Fixed compact height so max 3 visible at once) */}
-      <div className="group relative h-[238px] overflow-hidden rounded-[16px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2 motion-reduce:overflow-y-auto">
+      {/* Scrolling Marquee Panel (Height calibrated to exactly match 2x2 KPI grid) */}
+      <div className="group relative h-[228px] overflow-hidden rounded-[16px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2 motion-reduce:overflow-y-auto">
         {/* Soft gradient masks at top and bottom for smooth fade */}
         <div
           aria-hidden="true"
