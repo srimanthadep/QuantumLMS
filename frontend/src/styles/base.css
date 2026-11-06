@@ -188,6 +188,16 @@
   }
 }
 
+/* Vertical marquee scroll for placements ticker */
+@keyframes q-vertical-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
 /* Respect reduced motion globally (framer-motion uses MotionConfig reducedMotion="user"). */
 @media (prefers-reduced-motion: reduce) {
   *,
