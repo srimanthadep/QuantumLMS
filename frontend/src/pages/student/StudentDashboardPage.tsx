@@ -461,9 +461,9 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
         {/* Signals & Placements Overview Grid */}
         <StaggerItem>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px] items-stretch">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px] items-start">
             {/* Left Column: AI Learning Companion + 2x2 Metric Tiles */}
-            <div className="flex flex-col gap-4 min-w-0">
+            <div className="flex flex-col gap-3.5 min-w-0">
               {/* AI Learning Companion Card (Linear / Enterprise SaaS Styled) */}
               <div className="relative overflow-hidden rounded-[14px] border border-primary/25 bg-gradient-to-r from-primary/10 via-surface to-surface p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -495,7 +495,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
               </div>
 
               {/* Signals: Standardized KPI Cards in a balanced 2x2 Grid */}
-              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 flex-1" aria-label="Learning signals">
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2" aria-label="Learning signals">
                 <MetricTile
                   label="Learning momentum"
                   value={`${chart.total}h`}
@@ -543,8 +543,8 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
             </div>
 
             {/* Right Column: Recent Placements Marquee Block */}
-            <div className="min-w-0 flex flex-col">
-              <RecentPlacementsCard onNavigate={onNavigate} />
+            <div className="min-w-0">
+              <RecentPlacementsCard onNavigate={onNavigate} maxItems={5} />
             </div>
           </div>
         </StaggerItem>

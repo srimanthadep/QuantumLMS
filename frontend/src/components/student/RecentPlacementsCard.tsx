@@ -60,20 +60,20 @@ const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProp
   const isDarkCompanyColor = item.color === "#111" || item.color === "#111111"
 
   return (
-    <div className="flex items-center gap-3.5 rounded-xl border border-border/70 bg-surface dark:bg-[#202024] p-2 transition-colors hover:border-border-strong">
+    <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface dark:bg-[#202024] p-2 transition-colors hover:border-border-strong">
       <div
-        className="h-14 w-14 shrink-0 rounded-[10px] grid place-items-center text-white font-semibold text-lg tracking-wide select-none shadow-xs"
+        className="h-11 w-11 shrink-0 rounded-[10px] grid place-items-center text-white font-bold text-sm tracking-wide select-none shadow-xs"
         style={{ backgroundColor: tint }}
         aria-hidden="true"
       >
         {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-[15px] leading-tight text-foreground mb-1">
+        <p className="truncate font-semibold text-sm leading-tight text-foreground mb-0.5">
           {item.name}
         </p>
         <span
-          className="block truncate text-[13px] font-bold tracking-tight"
+          className="block truncate text-xs font-bold tracking-tight"
           style={{
             color: isDarkCompanyColor ? "var(--foreground)" : item.color,
           }}
@@ -97,23 +97,23 @@ export default function RecentPlacementsCard({
   className,
 }: RecentPlacementsCardProps) {
   const displayItems = RECENT_PLACEMENTS.slice(0, maxItems)
-  const durationSeconds = Math.max(12, displayItems.length * 3.6)
+  const durationSeconds = 18
 
   return (
     <section
       aria-label="Recent student placements"
       className={cn(
-        "flex flex-col h-full rounded-[18px] border border-border bg-surface p-4 shadow-[var(--elev-xs)]",
+        "flex flex-col rounded-[18px] border border-border bg-surface p-3.5 sm:p-4 shadow-[var(--elev-xs)]",
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3.5 px-0.5">
+      <div className="flex items-center justify-between mb-3 px-0.5">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-soft text-primary-text ring-1 ring-inset ring-primary-border">
             <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />
           </span>
-          <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+          <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
             Recent placements
           </h2>
         </div>
@@ -121,15 +121,15 @@ export default function RecentPlacementsCard({
         <button
           type="button"
           onClick={() => onNavigate?.("Career Hub")}
-          className="group inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          className="group inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
         >
           View all
           <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </button>
       </div>
 
-      {/* Scrolling Marquee Panel */}
-      <div className="group relative flex-1 h-[400px] overflow-hidden rounded-[18px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2.5 motion-reduce:overflow-y-auto">
+      {/* Scrolling Marquee Panel (Fixed compact height so max 3-4 visible at once) */}
+      <div className="group relative h-[298px] overflow-hidden rounded-[16px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2 motion-reduce:overflow-y-auto">
         {/* Soft gradient masks at top and bottom for smooth fade */}
         <div
           aria-hidden="true"
@@ -148,7 +148,7 @@ export default function RecentPlacementsCard({
           }}
         >
           {/* First sequence of records */}
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             {displayItems.map((item, idx) => (
               <PlacementRow
                 key={`p1-${idx}-${item.name}`}
@@ -159,7 +159,7 @@ export default function RecentPlacementsCard({
           </div>
 
           {/* Duplicate sequence for seamless 50% loop */}
-          <div aria-hidden="true" className="flex flex-col gap-2.5 pt-2.5">
+          <div aria-hidden="true" className="flex flex-col gap-2 pt-2">
             {displayItems.map((item, idx) => (
               <PlacementRow
                 key={`p2-${idx}-${item.name}`}
