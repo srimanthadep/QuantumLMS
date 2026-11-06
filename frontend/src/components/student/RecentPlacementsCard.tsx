@@ -87,10 +87,18 @@ const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProp
 
 export interface RecentPlacementsCardProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
+  maxItems?: number
   className?: string
 }
 
-export default function RecentPlacementsCard({ onNavigate, className }: RecentPlacementsCardProps) {
+export default function RecentPlacementsCard({
+  onNavigate,
+  maxItems = 5,
+  className,
+}: RecentPlacementsCardProps) {
+  const displayItems = RECENT_PLACEMENTS.slice(0, maxItems)
+  const durationSeconds = Math.max(12, displayItems.length * 3.6)
+
   return (
     <section
       aria-label="Recent student placements"
@@ -121,7 +129,7 @@ export default function RecentPlacementsCard({ onNavigate, className }: RecentPl
       </div>
 
       {/* Scrolling Marquee Panel */}
-      <div className="group relative flex-1 h-[420px] overflow-hidden rounded-[18px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2.5 motion-reduce:overflow-y-auto">
+      <div className="group relative flex-1 h-[400px] overflow-hidden rounded-[18px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2.5 motion-reduce:overflow-y-auto">
         {/* Soft gradient masks at top and bottom for smooth fade */}
         <div
           aria-hidden="true"
@@ -134,11 +142,14 @@ export default function RecentPlacementsCard({ onNavigate, className }: RecentPl
 
         {/* Track with infinite vertical translation */}
         <div
-          className="flex flex-col will-change-transform [animation:q-vertical-scroll_62s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:[animation:none]"
+          className="flex flex-col will-change-transform group-hover:[animation-play-state:paused] motion-reduce:[animation:none]"
+          style={{
+            animation: `q-vertical-scroll ${durationSeconds}s linear infinite`,
+          }}
         >
           {/* First sequence of records */}
           <div className="flex flex-col gap-2.5">
-            {RECENT_PLACEMENTS.map((item, idx) => (
+            {displayItems.map((item, idx) => (
               <PlacementRow
                 key={`p1-${idx}-${item.name}`}
                 item={item}
@@ -149,7 +160,7 @@ export default function RecentPlacementsCard({ onNavigate, className }: RecentPl
 
           {/* Duplicate sequence for seamless 50% loop */}
           <div aria-hidden="true" className="flex flex-col gap-2.5 pt-2.5">
-            {RECENT_PLACEMENTS.map((item, idx) => (
+            {displayItems.map((item, idx) => (
               <PlacementRow
                 key={`p2-${idx}-${item.name}`}
                 item={item}
@@ -162,3 +173,4 @@ export default function RecentPlacementsCard({ onNavigate, className }: RecentPl
     </section>
   )
 }
+
