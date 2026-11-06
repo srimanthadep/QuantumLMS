@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CustomSelect } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -358,31 +359,31 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Domain Category</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as any)}
-                >
-                  <option value="LLM Engineering">LLM Engineering</option>
-                  <option value="Agentic Systems">Agentic Systems</option>
-                  <option value="MLOps">MLOps</option>
-                  <option value="Computer Vision">Computer Vision</option>
-                  <option value="AI Foundations">AI Foundations</option>
-                </select>
+                  onChange={(val) => setNewCategory(val as any)}
+                  options={[
+                    "LLM Engineering",
+                    "Agentic Systems",
+                    "MLOps",
+                    "Computer Vision",
+                    "AI Foundations",
+                  ]}
+                />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={newInstructor}
-                  onChange={(e) => setNewInstructor(e.target.value)}
-                >
-                  <option value="Srimanth">Srimanth</option>
-                  <option value="Dr. Vikram Sen">Dr. Vikram Sen</option>
-                  <option value="Meera Nair">Meera Nair</option>
-                  <option value="Ananya Roy">Ananya Roy</option>
-                </select>
+                  onChange={setNewInstructor}
+                  options={[
+                    "Srimanth",
+                    "Dr. Vikram Sen",
+                    "Meera Nair",
+                    "Ananya Roy",
+                  ]}
+                />
               </div>
             </div>
 

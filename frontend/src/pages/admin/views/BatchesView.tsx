@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
+import { CustomSelect } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -297,28 +298,21 @@ export default function BatchesView({ store, onOpenCreateBatch }: BatchesViewPro
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Status</label>
-                  <select
-                    className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  <CustomSelect
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as any)}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Completed">Completed</option>
-                  </select>
+                    onChange={(val) => setEditStatus(val as any)}
+                    options={["Active", "Upcoming", "Completed"]}
+                  />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Delivery Mode</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={editDeliveryMode}
-                  onChange={(e) => setEditDeliveryMode(e.target.value as any)}
-                >
-                  <option value="Live + Replay">Live + Replay</option>
-                  <option value="Replay Only">Replay Only</option>
-                </select>
+                  onChange={(val) => setEditDeliveryMode(val as any)}
+                  options={["Live + Replay", "Replay Only"]}
+                />
               </div>
 
               <DialogFooter className="pt-2">

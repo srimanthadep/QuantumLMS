@@ -42,6 +42,7 @@ import {
   EmptyState,
   Field,
   Input,
+  DatePicker,
   PageHeader,
   Progress,
   SegmentedControl,
@@ -787,7 +788,7 @@ function Attendance({ onToast }: { onToast: (m: string) => void }) {
               </Select>
             </Field>
             <Field label="Date" required>
-              <Input type="date" min={isoDay()} value={date} onChange={(e) => setDate(e.target.value)} />
+              <DatePicker min={isoDay()} value={date} onChange={setDate} placeholder="Select date" />
             </Field>
             <Field label="Reason" required error={error}>
               <Textarea value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} placeholder="Medical appointment, conference travel…" />

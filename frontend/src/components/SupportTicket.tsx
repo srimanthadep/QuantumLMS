@@ -7,6 +7,7 @@ import {
   type SupportTicket as SupportTicketType,
 } from "../services/ticketService";
 import { RefreshCw, Paperclip, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { CustomSelect } from "./ui/select";
 
 const SupportTicket: React.FC = () => {
   const [form, setForm] = useState<CreateTicketInput>({
@@ -155,23 +156,22 @@ const SupportTicket: React.FC = () => {
             <label className="block mb-1.5 text-sm font-semibold text-zinc-800">
               Category
             </label>
-            <select
-              name="category"
+            <CustomSelect
               value={form.category}
-              onChange={handleChange}
-              required
-              className="w-full border border-zinc-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-            >
-              <option value="">Select Category</option>
-              <option value="Login & Account">Login & Account</option>
-              <option value="Live Class">Live Class</option>
-              <option value="Assignments & Exams">Assignments & Exams</option>
-              <option value="Course Content">Course Content</option>
-              <option value="Technical Problem">Technical Problem</option>
-              <option value="Payments & Certificates">Payments & Certificates</option>
-              <option value="Notifications">Notifications</option>
-              <option value="Others">Others</option>
-            </select>
+              onChange={(val) => setForm((prev) => ({ ...prev, category: val }))}
+              placeholder="Select Category"
+              triggerClassName="h-11 rounded-xl text-sm"
+              options={[
+                "Login & Account",
+                "Live Class",
+                "Assignments & Exams",
+                "Course Content",
+                "Technical Problem",
+                "Payments & Certificates",
+                "Notifications",
+                "Others",
+              ]}
+            />
           </div>
 
           <div>

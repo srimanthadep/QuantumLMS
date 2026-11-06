@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CustomSelect } from "@/components/ui"
 import {
   BarChart3,
   Download,
@@ -75,15 +76,12 @@ export default function ReportsView({ store, onToast }: ReportsViewProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <select
-            className="h-9 rounded-md border border-border bg-surface px-3 text-xs text-foreground focus:outline-none"
+          <CustomSelect
+            className="w-48 h-9 text-xs"
             value={reportRange}
-            onChange={(e) => setReportRange(e.target.value)}
-          >
-            <option value="Last 30 Days">Last 30 Days</option>
-            <option value="Last 6 Months">Last 6 Months</option>
-            <option value="Year to Date">Year to Date (2026)</option>
-          </select>
+            onChange={(val) => setReportRange(val)}
+            options={["Last 30 Days", "Last 6 Months", "Year to Date"]}
+          />
 
           <Button onClick={handleExportCsv} className="gap-1.5">
             <Download className="h-4 w-4" />

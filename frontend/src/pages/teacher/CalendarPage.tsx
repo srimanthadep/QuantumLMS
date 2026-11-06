@@ -15,6 +15,7 @@ import {
   EmptyState,
   Field,
   Input,
+  DatePicker,
   PageHeader,
   Popover,
   PopoverContent,
@@ -173,7 +174,7 @@ function NewEventDialog({ open, onOpenChange, date }: { open: boolean; onOpenCha
           </div>
           <div className={cn("grid gap-4", deadline ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
             <Field label="Date">
-              <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} />
+              <DatePicker value={day} onChange={setDay} />
             </Field>
             <Field label={deadline ? "Due at" : "Starts"}>
               <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />

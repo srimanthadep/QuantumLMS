@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CustomSelect } from "@/components/ui/select"
 import { extractAndChunkAudio, type AudioChunk, type ExtractionResult } from "@/lib/audioExtractor"
 import { api } from "@/lib/api"
 import { accessToken } from "@/lib/auth"
@@ -613,18 +614,15 @@ export default function VideoCourseUploadModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-border/60">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-foreground">Target Course *</label>
-                        <select
+                        <CustomSelect
                           value={targetCourseId}
-                          onChange={(e) => setTargetCourseId(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-surface px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          <option value="">-- Choose Existing Course --</option>
-                          {existingCourses.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.title} ({c.category})
-                            </option>
-                          ))}
-                        </select>
+                          onChange={setTargetCourseId}
+                          placeholder="-- Choose Existing Course --"
+                          options={existingCourses.map((c) => ({
+                            value: c.id,
+                            label: `${c.title} (${c.category})`,
+                          }))}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
@@ -660,17 +658,17 @@ export default function VideoCourseUploadModal({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Category</label>
-                  <select
+                  <CustomSelect
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-9 rounded-md border border-input bg-surface px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="LLM Engineering">LLM Engineering</option>
-                    <option value="Agentic Systems">Agentic Systems</option>
-                    <option value="Computer Vision">Computer Vision</option>
-                    <option value="MLOps">MLOps</option>
-                    <option value="AI Foundations">AI Foundations</option>
-                  </select>
+                    onChange={setCategory}
+                    options={[
+                      "LLM Engineering",
+                      "Agentic Systems",
+                      "Computer Vision",
+                      "MLOps",
+                      "AI Foundations",
+                    ]}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
@@ -683,16 +681,16 @@ export default function VideoCourseUploadModal({
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Target Language</label>
                   <div className="flex items-center gap-2">
-                    <select
+                    <CustomSelect
                       value={language}
-                      onChange={(e) => setLanguage(e.target.value as any)}
-                      className="w-full h-9 rounded-md border border-input bg-surface px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="en">English (US / UK / Global)</option>
-                      <option value="te">Telugu (తెలుగు)</option>
-                      <option value="hi">Hindi (हिन्दी)</option>
-                      <option value="multi">Multilingual Mixed / Code-switching</option>
-                    </select>
+                      onChange={(val) => setLanguage(val as any)}
+                      options={[
+                        { value: "en", label: "English (US / UK / Global)" },
+                        { value: "te", label: "Telugu (తెలుగు)" },
+                        { value: "hi", label: "Hindi (हिन्दी)" },
+                        { value: "multi", label: "Multilingual Mixed / Code-switching" },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

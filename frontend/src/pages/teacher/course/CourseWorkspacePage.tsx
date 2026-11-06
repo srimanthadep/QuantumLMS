@@ -44,6 +44,7 @@ import {
   EmptyState,
   Field,
   Input,
+  DatePicker,
   PageHeader,
   Progress,
   Select,
@@ -222,7 +223,7 @@ function AddAssignmentDialog({
             </Field>
           </div>
           <Field label="Due date">
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DatePicker value={dueDate} onChange={setDueDate} placeholder="Select due date" />
           </Field>
           <Field label="Description">
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short overview" />
@@ -303,7 +304,7 @@ function AddQuizDialog({
             </Field>
           </div>
           <Field label="Due date">
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DatePicker value={dueDate} onChange={setDueDate} placeholder="Select due date" />
           </Field>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>

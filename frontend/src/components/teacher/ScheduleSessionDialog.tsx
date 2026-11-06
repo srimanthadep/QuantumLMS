@@ -10,6 +10,7 @@ import {
   DialogTitle,
   Field,
   Input,
+  DatePicker,
   SegmentedControl,
   Select,
   SelectContent,
@@ -150,7 +151,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
           </Field>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Date">
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DatePicker value={date} onChange={setDate} />
             </Field>
             <Field label="Starts">
               <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />

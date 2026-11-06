@@ -12,6 +12,8 @@ import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Switch } from "./ui/switch"
 import { Badge } from "./ui/badge"
+import { CustomSelect } from "./ui/select"
+import { DatePicker } from "./ui/date-picker"
 import {
   GraduationCap,
   Layers,
@@ -120,30 +122,20 @@ export function AddTeacherModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Role</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-              >
-                <option value="Lead Instructor">Lead Instructor</option>
-                <option value="Teaching Assistant">Teaching Assistant</option>
-                <option value="Evaluator">Evaluator</option>
-              </select>
+                onChange={(val) => setRole(val as any)}
+                options={["Lead Instructor", "Teaching Assistant", "Evaluator"]}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Assigned Course</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-              >
-                {courses.map((c) => (
-                  <option key={c.id} value={c.title}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedCourse}
+                options={courses.map((c) => ({ value: c.title, label: c.title }))}
+              />
             </div>
           </div>
 
@@ -256,42 +248,31 @@ export function CreateBatchModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Course</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
-              >
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
+                onChange={setCourseId}
+                options={courses.map((c) => ({ value: c.id, label: c.title }))}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={instructor}
-                onChange={(e) => setInstructor(e.target.value)}
-              >
-                <option value="Srimanth">Srimanth</option>
-                <option value="Dr. Vikram Sen">Dr. Vikram Sen</option>
-                <option value="Meera Nair">Meera Nair</option>
-                <option value="Ananya Roy">Ananya Roy</option>
-              </select>
+                onChange={setInstructor}
+                options={["Srimanth", "Dr. Vikram Sen", "Meera Nair", "Ananya Roy"]}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Start Date</label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">End Date</label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
             </div>
           </div>
 
@@ -308,14 +289,14 @@ export function CreateBatchModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Delivery Mode</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={deliveryMode}
-                onChange={(e) => setDeliveryMode(e.target.value as any)}
-              >
-                <option value="Live + Replay">Live Studio + Replay Access</option>
-                <option value="Replay Only">On-Demand Replay Only</option>
-              </select>
+                onChange={(val) => setDeliveryMode(val as any)}
+                options={[
+                  { value: "Live + Replay", label: "Live Studio + Replay Access" },
+                  { value: "Replay Only", label: "On-Demand Replay Only" },
+                ]}
+              />
             </div>
           </div>
 
@@ -446,40 +427,28 @@ export function ManualEnrolModal({
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Select Course</label>
-            <select
-              className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            <CustomSelect
               value={courseId}
-              onChange={(e) => {
-                setCourseId(e.target.value)
-                const nextBatch = batches.find((b) => b.courseId === e.target.value)
+              onChange={(val) => {
+                setCourseId(val)
+                const nextBatch = batches.find((b) => b.courseId === val)
                 if (nextBatch) setBatchId(nextBatch.id)
               }}
-            >
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
+              options={courses.map((c) => ({ value: c.id, label: c.title }))}
+            />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Assigned Cohort Batch</label>
-            <select
-              className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            <CustomSelect
               value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-            >
-              {relevantBatches.length > 0 ? (
-                relevantBatches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.enrolledSeats}/{b.maxSeats} seats)
-                  </option>
-                ))
-              ) : (
-                <option value="">No active batches for this course</option>
-              )}
-            </select>
+              onChange={setBatchId}
+              placeholder={relevantBatches.length > 0 ? "Select batch" : "No active batches for this course"}
+              options={relevantBatches.map((b) => ({
+                value: b.id,
+                label: `${b.name} (${b.enrolledSeats}/${b.maxSeats} seats)`,
+              }))}
+            />
           </div>
 
           <DialogFooter className="pt-2">

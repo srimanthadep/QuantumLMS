@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { CustomSelect } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -282,15 +283,11 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Role</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={editRole}
-                  onChange={(e) => setEditRole(e.target.value as any)}
-                >
-                  <option value="Lead Instructor">Lead Instructor</option>
-                  <option value="Teaching Assistant">Teaching Assistant</option>
-                  <option value="Evaluator">Evaluator</option>
-                </select>
+                  onChange={(val) => setEditRole(val as any)}
+                  options={["Lead Instructor", "Teaching Assistant", "Evaluator"]}
+                />
               </div>
 
               <DialogFooter className="pt-2">

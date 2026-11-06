@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CustomSelect } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -123,18 +124,16 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
             ))}
           </div>
 
-          <select
-            className="h-8 rounded-md border border-border bg-surface px-2.5 text-xs text-foreground focus:outline-none"
+          <CustomSelect
+            className="w-36"
+            triggerClassName="h-8 text-xs py-1"
             value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
-          >
-            <option value="All">All Cohorts</option>
-            {batches.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedBatch}
+            options={["All", ...batches].map((b) => ({
+              value: b,
+              label: b === "All" ? "All Cohorts" : b,
+            }))}
+          />
         </div>
       </div>
 
@@ -304,16 +303,11 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Status</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
-                  <option value="At Risk">At Risk</option>
-                  <option value="Paused">Paused</option>
-                </select>
+                  onChange={(val) => setEditStatus(val as any)}
+                  options={["Active", "Completed", "At Risk", "Paused"]}
+                />
               </div>
 
               <DialogFooter className="pt-2">

@@ -131,8 +131,97 @@ const SelectSeparator = React.forwardRef<
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
+export interface SelectOption {
+  value: string
+  label: React.ReactNode
+  disabled?: boolean
+}
+
+export interface CustomSelectProps {
+  value?: string
+  defaultValue?: string
+  onChange?: (value: string) => void
+  onValueChange?: (value: string) => void
+  options?: readonly (string | SelectOption)[]
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+  triggerClassName?: string
+  contentClassName?: string
+  id?: string
+  name?: string
+  required?: boolean
+  "aria-label"?: string
+  children?: React.ReactNode
+}
+
+const CustomSelect = React.forwardRef<HTMLButtonElement, CustomSelectProps>(
+  (
+    {
+      value,
+      defaultValue,
+      onChange,
+      onValueChange,
+      options,
+      placeholder = "Select an option...",
+      disabled = false,
+      className,
+      triggerClassName,
+      contentClassName,
+      id,
+      name,
+      required,
+      "aria-label": ariaLabel,
+      children,
+    },
+    ref
+  ) => {
+    const handleChange = (val: string) => {
+      onChange?.(val)
+      onValueChange?.(val)
+    }
+
+    return (
+      <div className={cn("relative inline-block w-full", className)}>
+        {name && <input type="hidden" name={name} value={value || ""} required={required} disabled={disabled} />}
+        <Select
+          value={value}
+          defaultValue={defaultValue}
+          onValueChange={handleChange}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            ref={ref}
+            id={id}
+            aria-label={ariaLabel || placeholder}
+            className={cn("w-full", triggerClassName)}
+          >
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent className={contentClassName}>
+            {children}
+            {options?.map((opt) => {
+              const val = typeof opt === "string" ? opt : opt.value
+              const label = typeof opt === "string" ? opt : opt.label
+              const optDisabled = typeof opt === "string" ? false : opt.disabled
+
+              return (
+                <SelectItem key={val} value={val} disabled={optDisabled}>
+                  {label}
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+    )
+  }
+)
+CustomSelect.displayName = "CustomSelect"
+
 export {
   Select,
+  CustomSelect,
   SelectGroup,
   SelectValue,
   SelectTrigger,

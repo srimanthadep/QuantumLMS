@@ -36,6 +36,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CustomSelect } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
 import { api } from "@/lib/api"
 import type { AdminCourse } from "@/data/adminStore"
 
@@ -1000,17 +1002,17 @@ export default function CourseEditorModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-foreground">Domain Category</label>
-                      <select
-                        className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      <CustomSelect
                         value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value)}
-                      >
-                        <option value="LLM Engineering">LLM Engineering</option>
-                        <option value="Agentic Systems">Agentic Systems</option>
-                        <option value="MLOps">MLOps</option>
-                        <option value="Computer Vision">Computer Vision</option>
-                        <option value="AI Foundations">AI Foundations</option>
-                      </select>
+                        onChange={setEditCategory}
+                        options={[
+                          "LLM Engineering",
+                          "Agentic Systems",
+                          "MLOps",
+                          "Computer Vision",
+                          "AI Foundations",
+                        ]}
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -1022,15 +1024,11 @@ export default function CourseEditorModal({
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-foreground">Difficulty Level</label>
-                      <select
-                        className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      <CustomSelect
                         value={editLevel}
-                        onChange={(e) => setEditLevel(e.target.value as any)}
-                      >
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                      </select>
+                        onChange={(val) => setEditLevel(val as any)}
+                        options={["Beginner", "Intermediate", "Advanced"]}
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -1183,15 +1181,15 @@ export default function CourseEditorModal({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Lesson Type</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={newLessonType}
-                  onChange={(e) => setNewLessonType(e.target.value as any)}
-                >
-                  <option value="video">Video Lecture</option>
-                  <option value="reading">Reading / Article</option>
-                  <option value="lab">Interactive Lab</option>
-                </select>
+                  onChange={(val) => setNewLessonType(val as any)}
+                  options={[
+                    { value: "video", label: "Video Lecture" },
+                    { value: "reading", label: "Reading / Article" },
+                    { value: "lab", label: "Interactive Lab" },
+                  ]}
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -1261,15 +1259,15 @@ export default function CourseEditorModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Lesson Type</label>
-                  <select
-                    className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  <CustomSelect
                     value={editingLesson.type}
-                    onChange={(e) => setEditingLesson({ ...editingLesson, type: e.target.value as any })}
-                  >
-                    <option value="video">Video Lecture</option>
-                    <option value="reading">Reading / Article</option>
-                    <option value="lab">Interactive Lab</option>
-                  </select>
+                    onChange={(val) => setEditingLesson({ ...editingLesson, type: val as any })}
+                    options={[
+                      { value: "video", label: "Video Lecture" },
+                      { value: "reading", label: "Reading / Article" },
+                      { value: "lab", label: "Interactive Lab" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -1331,16 +1329,16 @@ export default function CourseEditorModal({
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Resource Type</label>
-              <select
-                className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
                 value={matType}
-                onChange={(e) => setMatType(e.target.value as any)}
-              >
-                <option value="PDF">PDF Document / Notes</option>
-                <option value="Slides">Presentation Slides</option>
-                <option value="Code Notebook">Code Notebook (IPYNB / ZIP)</option>
-                <option value="Dataset">Dataset (CSV / JSON / H5)</option>
-              </select>
+                onChange={(val) => setMatType(val as any)}
+                options={[
+                  { value: "PDF", label: "PDF Document / Notes" },
+                  { value: "Slides", label: "Presentation Slides" },
+                  { value: "Code Notebook", label: "Code Notebook (IPYNB / ZIP)" },
+                  { value: "Dataset", label: "Dataset (CSV / JSON / H5)" },
+                ]}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -1428,25 +1426,21 @@ export default function CourseEditorModal({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Priority</label>
-                <select
-                  className="w-full h-9 rounded-md border border-border bg-surface px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <CustomSelect
                   value={assignPriority}
-                  onChange={(e) => setAssignPriority(e.target.value as any)}
-                >
-                  <option value="Normal">Normal</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
+                  onChange={(val) => setAssignPriority(val as any)}
+                  options={["Normal", "Medium", "High"]}
+                />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Submission Deadline</label>
-              <Input
-                type="date"
+              <DatePicker
                 required
                 value={assignDueDate}
-                onChange={(e) => setAssignDueDate(e.target.value)}
+                onChange={setAssignDueDate}
+                placeholder="Select submission deadline"
               />
             </div>
 
