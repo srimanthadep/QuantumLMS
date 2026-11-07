@@ -34,6 +34,19 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
+export const TAG_CONFIG: Record<AlumniProfile["tag"], string> = {
+  "Career Gap":
+    "bg-[#EBF3FF] text-[#0066FF] dark:bg-blue-500/20 dark:text-blue-200 dark:border dark:border-blue-500/30",
+  "Fresher":
+    "bg-[#ECFDF5] text-[#059669] dark:bg-emerald-500/20 dark:text-emerald-200 dark:border dark:border-emerald-500/30",
+  "Non-Tech to Tech":
+    "bg-[#F5F3FF] text-[#7C3AED] dark:bg-purple-500/20 dark:text-purple-200 dark:border dark:border-purple-500/30",
+  "Switcher":
+    "bg-[#EFF6FF] text-[#2563EB] dark:bg-sky-500/20 dark:text-sky-200 dark:border dark:border-sky-500/30",
+  "Upskiller":
+    "bg-[#FFF7ED] text-[#EA580C] dark:bg-amber-500/20 dark:text-amber-200 dark:border dark:border-amber-500/30",
+}
+
 export interface AlumniProfile {
   id: string
   name: string
@@ -546,54 +559,94 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
               <Card
                 key={alumni.id}
                 interactive
-                className="flex flex-col justify-between overflow-hidden group"
+                className="flex flex-col justify-between p-5 rounded-2xl border border-border bg-surface shadow-xs transition-all hover:border-border-strong hover:shadow-sm group overflow-hidden"
               >
-                {/* Card Top: Initials Avatar + Name + Lightning Tag */}
-                <div className="p-5 pb-3">
-                  <div className="flex items-center gap-3">
+                <div>
+                  {/* Card Top: Avatar Photo (with initials fallback) + Name + Lightning Tag */}
+                  <div className="flex items-center gap-3.5">
+                    {alumni.avatar ? (
+                      <img
+                        src={alumni.avatar}
+                        alt={alumni.name}
+                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-border/50 shrink-0 shadow-2xs"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement | null
+                          if (fallback) fallback.style.display = "flex"
+                        }}
+                      />
+                    ) : null}
                     <div
-                      className="w-10 h-10 rounded-lg bg-surface-2 border border-border flex items-center justify-center font-mono font-semibold text-xs text-foreground shadow-2xs flex-none"
+                      className={`w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-sm items-center justify-center shadow-2xs shrink-0 ${
+                        alumni.avatar ? "hidden" : "flex"
+                      }`}
                       aria-hidden="true"
                     >
                       {getInitials(alumni.name)}
                     </div>
+
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-[14px] font-semibold text-foreground leading-tight truncate">
+                      <h3 className="text-[15px] font-bold text-foreground leading-snug truncate">
                         {alumni.name}
                       </h3>
                       <div className="mt-1">
-                        <Badge tone="primary" size="sm">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold tracking-tight ${
+                            TAG_CONFIG[alumni.tag] || "bg-[#EBF3FF] text-[#0066FF]"
+                          }`}
+                        >
                           <Zap className="w-2.5 h-2.5 fill-current" />
                           <span>{alumni.tag}</span>
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Subtle Divider */}
-                <div className="border-t border-border mx-5" />
-
-                {/* Card Middle: Vertical Transition Timeline Nodes */}
-                <div className="px-5 py-4 flex-1">
-                  <div className="relative flex flex-col gap-3">
-                    {/* Vertical Line Connector */}
+                  {/* Career Ladder Progression Timeline */}
+                  <div className="mt-5 relative text-xs">
+                    {/* Continuous Spine from Bottom to Top */}
                     <div
                       aria-hidden="true"
-                      className="absolute left-[5px] top-[14px] bottom-[14px] w-[1.5px] bg-border"
+                      className="absolute left-[9.5px] top-[14px] bottom-[26px] w-[1.5px] bg-slate-300 dark:bg-slate-700/80 pointer-events-none"
                     />
 
-                    {/* Node 1 (Green Bullet): Current Company + Role + Hike */}
-                    <div className="relative flex items-start gap-3 z-10">
-                      <span className="w-2.5 h-2.5 rounded-full bg-success ring-3 ring-success/20 flex-none mt-1 shadow-2xs" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 h-6">
+                    {/* NODE 1 (TOP): Placed Company & Role */}
+                    <div className="relative">
+                      {/* Arrowhead pointing UP on spine towards Green Halo */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute left-[4px] top-[14px] text-slate-400 dark:text-slate-500 z-10 pointer-events-none"
+                      >
+                        <svg
+                          className="w-3 h-3"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 10V2.5M2.5 6L6 2.5l3.5 3.5" />
+                        </svg>
+                      </div>
+
+                      <div className="flex items-center gap-3 relative z-10">
+                        {/* Green Halo Dot */}
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 flex items-center justify-center shrink-0 shadow-2xs">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                        </div>
+
+                        {/* Company Logo */}
+                        <div className="h-6 flex items-center shrink-0">
                           {alumni.companyLogo ? (
                             <img
                               src={alumni.companyLogo}
                               alt={alumni.currentCompany}
                               className={`h-5 w-auto max-w-[85px] object-contain object-left ${
-                                alumni.currentCompany.toLowerCase() === "uber" ? "dark:invert" : "dark:brightness-110"
+                                alumni.currentCompany.toLowerCase() === "uber"
+                                  ? "dark:invert"
+                                  : "dark:brightness-110"
                               }`}
                               loading="lazy"
                             />
@@ -603,34 +656,79 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center flex-wrap gap-x-2 text-xs text-muted-foreground mt-0.5">
-                          <span>{alumni.role}</span>
-                          <span className="text-success font-semibold inline-flex items-center gap-0.5">
-                            <TrendingUp className="w-3 h-3 stroke-[2.5]" />
+                      </div>
+
+                      {/* Curved Branch to Role & Hike */}
+                      <div className="relative pl-8 pt-1.5 pb-2">
+                        <div
+                          aria-hidden="true"
+                          className="absolute left-[9.5px] -top-1 bottom-3 w-4 border-l-[1.5px] border-b-[1.5px] border-slate-300 dark:border-slate-700/80 rounded-bl-md pointer-events-none"
+                        />
+                        <div className="flex items-center flex-wrap gap-x-2 text-[12px] leading-tight">
+                          <span className="text-slate-600 dark:text-slate-300 font-normal">
+                            {alumni.role}
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-600 select-none">|</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-0.5">
+                            <TrendingUp className="w-3.5 h-3.5 stroke-[2.5]" />
                             {alumni.hike}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Node 2 (Primary Bullet): Joined Quantum School */}
-                    <div className="relative flex items-start gap-3 z-10">
-                      <span className="w-2.5 h-2.5 rounded-full bg-primary ring-3 ring-primary/20 flex-none mt-1 shadow-2xs" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground leading-tight">
+                    {/* NODE 2 (MIDDLE): Joined Quantum School */}
+                    <div className="relative py-2.5">
+                      {/* Arrowhead pointing UP into Cyan Dot */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute left-[4px] -top-1.5 text-slate-400 dark:text-slate-500 z-10 pointer-events-none"
+                      >
+                        <svg
+                          className="w-3 h-3"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 10V2.5M2.5 6L6 2.5l3.5 3.5" />
+                        </svg>
+                      </div>
+
+                      <div className="flex items-center gap-3 relative z-10">
+                        {/* Cyan Circle Badge */}
+                        <div className="w-5 h-5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 border border-cyan-300/80 dark:border-cyan-700 flex items-center justify-center shrink-0 shadow-2xs">
+                          <span className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 leading-none">Q</span>
+                        </div>
+
+                        <p className="text-[13px] font-medium text-foreground leading-tight">
                           {alumni.lmsProgram}
                         </p>
                       </div>
                     </div>
 
-                    {/* Node 3 (Muted Bullet): Prior Background */}
-                    <div className="relative flex items-start gap-3 z-10">
-                      <span className="w-2.5 h-2.5 rounded-full bg-subtle-foreground/40 ring-3 ring-border flex-none mt-1 shadow-2xs" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground leading-tight">
+                    {/* NODE 3 (BOTTOM): Prior Experience */}
+                    <div className="relative pt-1">
+                      <div className="flex items-center gap-3 relative z-10">
+                        {/* Gray Circle Dot */}
+                        <div className="w-5 flex items-center justify-center shrink-0">
+                          <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                        </div>
+
+                        <p className="text-[13px] font-medium text-foreground leading-tight">
                           {alumni.priorRole}
                         </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                      </div>
+
+                      {/* Curved Branch to Prior Company */}
+                      <div className="relative pl-8 pt-1.5 pb-1">
+                        <div
+                          aria-hidden="true"
+                          className="absolute left-[9.5px] -top-1 bottom-3 w-4 border-l-[1.5px] border-b-[1.5px] border-slate-300 dark:border-slate-700/80 rounded-bl-md pointer-events-none"
+                        />
+                        <p className="text-xs text-muted-foreground leading-tight">
                           {alumni.priorCompany}
                         </p>
                       </div>
@@ -638,14 +736,15 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                   </div>
                 </div>
 
-                {/* Card Bottom: View Profile Button with Quantum Button Component */}
-                <div className="p-3 px-5 border-t border-border bg-surface-2/40">
+                {/* Card Bottom: View Profile Button */}
+                <div className="mt-5 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
                     block
                     leftIcon={<User className="w-3.5 h-3.5 text-muted-foreground" />}
                     onClick={() => setSelectedAlumni(alumni)}
+                    className="h-9.5 rounded-xl border-border bg-surface hover:bg-surface-2 text-foreground font-medium text-xs shadow-2xs"
                   >
                     View profile
                   </Button>
