@@ -698,12 +698,12 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                       </div>
 
                       <div className="flex items-center gap-3 relative z-10">
-                        {/* Quantum School Logo Badge */}
-                        <div className="w-5 h-5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 border border-cyan-300/80 dark:border-cyan-700 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-0.5">
+                        {/* Quantum School Logo (No background circle) */}
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0 bg-surface">
                           <img
                             src="/assets/logo.png"
                             alt="Quantum School"
-                            className="h-2.5 w-auto object-contain"
+                            className="h-3.5 w-auto max-w-[18px] object-contain"
                             loading="lazy"
                           />
                         </div>
