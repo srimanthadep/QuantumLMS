@@ -92,9 +92,9 @@ const asChannel = (s: string): Channel => (CHANNELS.find((c) => c.id === s)?.id 
 // Community app copy; the activity behind these isn't tracked per student.
 const TRENDING = ["LangGraph", "Hackathon", "LoRA", "Midterm", "RAG", "Evals"]
 const HELPERS = [
-  { name: "Priya Sharma", avatar: "/assets/student-2.png", points: 342 },
-  { name: "Rohit Verma", avatar: "/assets/student-3.png", points: 298 },
-  { name: "Sneha Patel", avatar: "/assets/student-4.png", points: 251 },
+  { name: "Priya Sharma", avatar: "", points: 342 },
+  { name: "Rohit Verma", avatar: "", points: 298 },
+  { name: "Sneha Patel", avatar: "", points: 251 },
 ]
 
 const postLink = (id: string) => `${window.location.origin}/student?page=community&post=${encodeURIComponent(id)}`

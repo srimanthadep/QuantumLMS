@@ -376,11 +376,9 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
             <div className="mt-3.5 pt-3 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img
-                  src="/assets/student-2.png"
-                  alt="Aarav Mehta"
-                  className="w-9 h-9 rounded-full object-cover border border-primary/30"
-                />
+                <div className="w-9 h-9 rounded-full bg-primary-soft text-primary-text font-bold text-xs flex items-center justify-center border border-primary-border shrink-0">
+                  AM
+                </div>
                 <div>
                   <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <span>Aarav Mehta</span>

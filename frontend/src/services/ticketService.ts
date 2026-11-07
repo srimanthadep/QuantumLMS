@@ -132,7 +132,7 @@ export function mapDbTicketToSupportTicket(
             role: "student" as const,
             message: row.description,
             timestamp: new Date(row.created_at).toLocaleString(),
-            avatar: profile?.avatar_url || row.student_avatar || "/assets/student-2.png",
+            avatar: profile?.avatar_url || row.student_avatar || undefined,
           },
         ]
 

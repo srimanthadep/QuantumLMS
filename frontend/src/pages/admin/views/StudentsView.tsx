@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -165,14 +166,7 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                   <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={s.avatar}
-                          alt={s.name}
-                          className="h-9 w-9 rounded-full object-cover border border-border"
-                          onError={(e) => {
-                            ;(e.target as any).src = "/assets/student-1.png"
-                          }}
-                        />
+                        <Avatar src={s.avatar} name={s.name} size="md" />
                         <div>
                           <div className="font-semibold text-foreground text-sm">{s.name}</div>
                           <div className="text-xs text-muted-foreground">{s.email}</div>

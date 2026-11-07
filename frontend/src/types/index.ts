@@ -147,7 +147,7 @@ export interface StudentItem {
   id: string
   name: string
   rollNumber: string
-  image: string
+  image?: string
   email?: string
   completion: number
   average: number
@@ -344,7 +344,7 @@ export interface DoubtItem {
   id: string
   studentId: string
   studentName: string
-  studentAvatar: string
+  studentAvatar?: string
   studentRoll: string
   courseId: string
   courseName: string

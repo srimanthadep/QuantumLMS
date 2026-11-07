@@ -50,7 +50,7 @@ export const TAG_CONFIG: Record<AlumniProfile["tag"], string> = {
 export interface AlumniProfile {
   id: string
   name: string
-  avatar: string
+  avatar?: string
   tag: "Career Gap" | "Fresher" | "Non-Tech to Tech" | "Switcher" | "Upskiller"
   currentCompany: string
   companyLogo?: string
@@ -72,7 +72,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-anuraj",
     name: "Anuraj Satardekar",
-    avatar: "/alumni/anuraj.png",
     tag: "Career Gap",
     currentCompany: "meesho",
     companyLogo: "/logos/meesho.svg",
@@ -92,7 +91,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-sandeep",
     name: "Sandeep gowda",
-    avatar: "/alumni/sandeep.png",
     tag: "Upskiller",
     currentCompany: "Uber",
     companyLogo: "/logos/uber.svg",
@@ -112,7 +110,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-arnav",
     name: "Arnav Bangaria",
-    avatar: "/alumni/arnav.png",
     tag: "Switcher",
     currentCompany: "ZS",
     companyLogo: "/logos/zs.svg",
@@ -132,7 +129,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-rhea",
     name: "Rhea Chawla",
-    avatar: "/placements/rhea_portrait.png",
     tag: "Switcher",
     currentCompany: "Byborg",
     companyLogo: "/logos/byborg.svg",
@@ -152,7 +148,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-shubhadip",
     name: "Subhadip Das",
-    avatar: "/placements/shubhadip_portrait.png",
     tag: "Non-Tech to Tech",
     currentCompany: "Mr. Cooper",
     companyLogo: "/logos/mrcooper.svg",
@@ -172,7 +167,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-nikita",
     name: "Nikita Singh Raghav",
-    avatar: "/placements/nikita_portrait.png",
     tag: "Upskiller",
     currentCompany: "Zepto",
     companyLogo: "/logos/zepto.svg",
@@ -192,7 +186,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-yoshita",
     name: "Yoshita B Shankar",
-    avatar: "/placements/yoshita_portrait.png",
     tag: "Fresher",
     currentCompany: "1DS",
     companyLogo: "/logos/1ds.svg",
@@ -212,7 +205,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-anup",
     name: "Anup Dhangar",
-    avatar: "/placements/anup_portrait.png",
     tag: "Career Gap",
     currentCompany: "Bhanzu",
     companyLogo: "/logos/bhanzu.svg",
@@ -232,7 +224,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-prathmesh",
     name: "Prathmesh Potdar",
-    avatar: "/assets/student-7.png",
     tag: "Fresher",
     currentCompany: "Flipkart",
     companyLogo: "/logos/flipkart.svg",
@@ -252,7 +243,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-sakshi",
     name: "Sakshi Singh",
-    avatar: "/assets/student-4.png",
     tag: "Switcher",
     currentCompany: "Razorpay",
     companyLogo: "/logos/razorpay.svg",
@@ -272,7 +262,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-sai",
     name: "Sai Manikanta",
-    avatar: "/assets/student-2.png",
     tag: "Upskiller",
     currentCompany: "IBM",
     companyLogo: "/logos/ibm.svg",
@@ -292,7 +281,6 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   {
     id: "alumni-tina",
     name: "Tina Digambar Kapadnis",
-    avatar: "/assets/student-5.png",
     tag: "Non-Tech to Tech",
     currentCompany: "Hexaware",
     companyLogo: "/logos/hexaware.svg",
@@ -562,26 +550,11 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 className="flex flex-col justify-between p-5 rounded-2xl border border-border bg-surface shadow-xs transition-all hover:border-border-strong hover:shadow-sm group overflow-hidden"
               >
                 <div>
-                  {/* Card Top: Avatar Photo (with initials fallback) + Name + Lightning Tag */}
+                  {/* Card Top: Initials Avatar + Name + Lightning Tag */}
                   <div className="flex items-center gap-3.5">
-                    {alumni.avatar ? (
-                      <img
-                        src={alumni.avatar}
-                        alt={alumni.name}
-                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-border/50 shrink-0 shadow-2xs"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement | null
-                          if (fallback) fallback.style.display = "flex"
-                        }}
-                      />
-                    ) : null}
                     <div
-                      className={`w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-sm items-center justify-center shadow-2xs shrink-0 ${
-                        alumni.avatar ? "hidden" : "flex"
-                      }`}
-                      aria-hidden="true"
+                      className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-sm flex items-center justify-center shadow-2xs shrink-0"
+                      aria-label={alumni.name}
                     >
                       {getInitials(alumni.name)}
                     </div>

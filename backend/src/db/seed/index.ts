@@ -80,7 +80,7 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
   const cap = new Date(anchor.getTime() - 5 * 60_000)
 
   await clearStudent(tx, studentId)
-  await tx.update(t.users).set({ full_name: "Niharika", avatar_url: "/assets/student-2.png", is_demo: true, updated_at: new Date() }).where(eq(t.users.id, studentId))
+  await tx.update(t.users).set({ full_name: "Niharika", avatar_url: null, is_demo: true, updated_at: new Date() }).where(eq(t.users.id, studentId))
   await tx
     .insert(t.profiles)
     .values({ id: studentId, roll_number: "QAI-2026-042" })

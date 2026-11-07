@@ -9,7 +9,7 @@ export interface DemoAccount {
   password: string
   title: string
   badge: string
-  avatar: string
+  avatar?: string
   tagline: string
   accentColor: string
 }
@@ -33,7 +33,7 @@ export const demoAccounts: DemoAccount[] = [
     password: "123456",
     title: "Academy Operations Lead",
     badge: "ADMIN",
-    avatar: "/assets/student-1.png",
+    avatar: undefined,
     tagline: "Courses, batches, instructors, enrolments, orders and reports",
     accentColor: "#2563eb",
   },
@@ -55,7 +55,7 @@ export const demoAccounts: DemoAccount[] = [
     password: "123456",
     title: "Learner · AI Engineering Cohort",
     badge: "LEARNER",
-    avatar: "/assets/student-2.png",
+    avatar: undefined,
     tagline: "Live classes, chaptered replays, assessments and certificates",
     accentColor: "#6d4aff",
   },

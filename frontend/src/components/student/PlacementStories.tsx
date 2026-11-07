@@ -27,8 +27,6 @@ export interface PlacementStory {
   head: string
   quote: string
   highlight: string
-  image: string
-  cardImage: string
   bg1?: string
   bg2?: string
 }
@@ -45,8 +43,6 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Transitioning from university to a high-scale European tech team in Luxembourg felt like a massive leap. QuantumLMS's distributed systems tracks and live system design labs gave me the exact domain knowledge to clear all technical evaluation rounds.",
     highlight: "Luxembourg International Offer",
-    image: "/placements/rhea_portrait.png",
-    cardImage: "/placements/rhea_card.png",
     bg1: "#1e5be0",
     bg2: "#5aa0ff",
   },
@@ -61,8 +57,6 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "I spent my college years focused entirely on competitive cricket before discovering data engineering. Building real-time analytics pipelines during the cohort bridged the entire gap and made my transition into Mr. Cooper seamless.",
     highlight: "Cricket to Data Analytics Switch",
-    image: "/placements/shubhadip_portrait.png",
-    cardImage: "/placements/shubhadip_card.png",
     bg1: "#1547c4",
     bg2: "#3b82f6",
   },
@@ -77,8 +71,6 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Instead of waiting a full year for traditional MBA admissions, I chose to upskill in product analytics and modern tech stacks. Joining Zepto's fast-paced engineering team proved it was the right decision.",
     highlight: "Fast-Track Tech Career",
-    image: "/placements/nikita_portrait.png",
-    cardImage: "/placements/nikita_card.png",
     bg1: "#1e5be0",
     bg2: "#5aa0ff",
   },
@@ -93,8 +85,6 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "Balancing college coursework and deep-dive coding was tough, but the consistency built resilience. The mentorship and code reviews transformed my code quality to industry standards.",
     highlight: "Consistent Daily Learner",
-    image: "/placements/yoshita_portrait.png",
-    cardImage: "/placements/yoshita_card.png",
     bg1: "#1747c4",
     bg2: "#4b8cf5",
   },
@@ -109,8 +99,6 @@ const PLACEMENT_STORIES: readonly PlacementStory[] = [
     quote:
       "After facing initial rejections, I doubled down on my core algorithms and web infrastructure fundamentals. Committing to structured daily problem solving opened the door to Bhanzu.",
     highlight: "Turned Rejections into Offer",
-    image: "/placements/anup_portrait.png",
-    cardImage: "/placements/anup_card.png",
     bg1: "#1a4fcf",
     bg2: "#5b9cff",
   },
@@ -302,25 +290,79 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
         className="flex gap-[22px] overflow-x-auto scroll-smooth py-1 px-0.5 scrollbar-none [scroll-snap-type:x_mandatory] [-ms-overflow-style:none]"
         style={{ scrollbarWidth: "none" }}
       >
-        {PLACEMENT_STORIES.map((story, idx) => (
-          <button
-            key={story.id}
-            type="button"
-            onClick={() => openStory(idx)}
-            aria-label={`${story.fullName} at ${story.company}`}
-            className="group relative flex-none w-[226px] h-[340px] rounded-[16px] overflow-hidden p-0 text-left cursor-pointer [scroll-snap-align:start] border border-border/40 focus-visible:outline-3 focus-visible:outline-[#6aa7ff] select-none shadow-md transition-transform duration-200 hover:-translate-y-1 active:scale-[0.985]"
-            style={{
-              backgroundColor: story.bg1 || "#1e5be0",
-            }}
-          >
-            <img
-              src={story.cardImage}
-              alt={`${story.fullName} at ${story.company}`}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
-          </button>
-        ))}
+        {PLACEMENT_STORIES.map((story, idx) => {
+          const initials = story.fullName
+            .trim()
+            .split(/\s+/)
+            .map((p) => p[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase()
+
+          return (
+            <button
+              key={story.id}
+              type="button"
+              onClick={() => openStory(idx)}
+              aria-label={`${story.fullName} at ${story.company}`}
+              className="group relative flex-none w-[226px] h-[340px] rounded-[20px] overflow-hidden p-5 text-left cursor-pointer [scroll-snap-align:start] border border-white/15 focus-visible:outline-3 focus-visible:outline-[#6aa7ff] select-none shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.985] flex flex-col justify-between"
+              style={{
+                background: `linear-gradient(165deg, ${story.bg2 || "#3b82f6"} 0%, ${story.bg1 || "#1547c4"} 55%, #061338 100%)`,
+              }}
+            >
+              {/* Top Meta: Company Badge & Package Tag */}
+              <div className="space-y-3 relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/20 text-white backdrop-blur-md border border-white/25">
+                    <Briefcase className="w-3 h-3 text-sky-200" />
+                    @{story.company}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400/25 text-amber-200 border border-amber-300/30">
+                    <Trophy className="w-3 h-3 text-amber-300" />
+                    {story.package}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-sky-200/90">
+                    {story.highlight}
+                  </p>
+                  <h3 className="text-base font-extrabold leading-snug text-white line-clamp-3 drop-shadow-xs">
+                    "{story.head}"
+                  </h3>
+                </div>
+              </div>
+
+              {/* Quote Excerpt */}
+              <div className="relative z-10 my-auto py-2">
+                <p className="text-[12px] leading-relaxed text-white/80 line-clamp-3 italic">
+                  "{story.quote}"
+                </p>
+              </div>
+
+              {/* Bottom Row: Initials Avatar + Student Name + Play Pill */}
+              <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-white/25 border border-white/35 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs backdrop-blur-md">
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate leading-tight">
+                      {story.fullName}
+                    </p>
+                    <p className="text-[11px] text-sky-200/80 truncate leading-tight mt-0.5">
+                      {story.role}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-8 h-8 rounded-full bg-white text-blue-600 flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-110">
+                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                </div>
+              </div>
+            </button>
+          )
+        })}
       </div>
 
       {/* Story Modal Player (Instagram/Reels Style Portal) */}
@@ -374,12 +416,14 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                   {/* Story Modal Header */}
                   <div className="relative z-30 flex items-center justify-between p-4 pt-6">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-10 w-10 rounded-full border-2 border-white/60 overflow-hidden shrink-0 shadow-sm bg-white/20">
-                        <img
-                          src={activeStory.image}
-                          alt={activeStory.fullName}
-                          className="w-full h-full object-cover object-top"
-                        />
+                      <div className="h-10 w-10 rounded-full border-2 border-white/60 shrink-0 shadow-sm bg-white/25 backdrop-blur-md flex items-center justify-center text-xs font-bold text-white">
+                        {activeStory.fullName
+                          .trim()
+                          .split(/\s+/)
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold truncate leading-tight text-white drop-shadow-xs">

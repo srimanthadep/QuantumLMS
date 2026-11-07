@@ -141,13 +141,13 @@ function scoresFor(assignmentId: string, points: (number | null)[], comments: st
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const LEARNERS = [
-  { key: "priya.sharma", name: "Priya Sharma", avatar: "/assets/student-4.png", roll: "QAI-2026-011" },
-  { key: "rohit.verma", name: "Rohit Verma", avatar: "/assets/student-3.png", roll: "QAI-2026-014" },
-  { key: "sneha.patel", name: "Sneha Patel", avatar: "/assets/student-1.png", roll: "QAI-2026-017" },
-  { key: "kabir.malhotra", name: "Kabir Malhotra", avatar: "/assets/student-5.png", roll: "QAI-2026-021" },
-  { key: "ananya.iyer", name: "Ananya Iyer", avatar: "/assets/student-6.png", roll: "QAI-2026-023" },
-  { key: "vikram.singh", name: "Vikram Singh", avatar: "/assets/student-7.png", roll: "QAI-2026-028" },
-  { key: "meghna.das", name: "Meghna Das", avatar: "/assets/student-8.png", roll: "QAI-2026-031" },
+  { key: "priya.sharma", name: "Priya Sharma", avatar: null, roll: "QAI-2026-011" },
+  { key: "rohit.verma", name: "Rohit Verma", avatar: null, roll: "QAI-2026-014" },
+  { key: "sneha.patel", name: "Sneha Patel", avatar: null, roll: "QAI-2026-017" },
+  { key: "kabir.malhotra", name: "Kabir Malhotra", avatar: null, roll: "QAI-2026-021" },
+  { key: "ananya.iyer", name: "Ananya Iyer", avatar: null, roll: "QAI-2026-023" },
+  { key: "vikram.singh", name: "Vikram Singh", avatar: null, roll: "QAI-2026-028" },
+  { key: "meghna.das", name: "Meghna Das", avatar: null, roll: "QAI-2026-031" },
   { key: "ishaan.gupta", name: "Ishaan Gupta", avatar: null, roll: "QAI-2026-036" },
 ] as const
 type LearnerKey = (typeof LEARNERS)[number]["key"]
