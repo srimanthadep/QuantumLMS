@@ -115,7 +115,7 @@ export default function RecentPlacementsCard({
 
         <button
           type="button"
-          onClick={() => onNavigate?.("Career Hub")}
+          onClick={() => onNavigate?.("Alumni")}
           className="group inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
         >
           View all
