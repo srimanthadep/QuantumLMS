@@ -52,6 +52,7 @@ import CourseCover from "@/components/shared/CourseCover"
 import DateTile from "@/components/student/DateTile"
 import RecentPlacementsCard from "@/components/student/RecentPlacementsCard"
 import PlacementStories from "@/components/student/PlacementStories"
+import SwingingLanyardBadge from "@/components/ui/SwingingLanyardBadge"
 import type { AssignmentData, CourseItem, QuizData, StudentNavPage, TimetableSlot } from "./studentTypes"
 import { coverCategory, dueLabel } from "./studentUtils"
 import { useStudentData } from "./data/StudentDataProvider"
@@ -366,93 +367,111 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
               </div>
 
               {/* Main Command Center Grid */}
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)] lg:items-center">
-                <div className="min-w-0">
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
-                    {activeCourse ? (activeCourse.lastWatched || activeCourse.title) : "Choose a course to begin"}
-                  </h2>
-                  {activeCourse && (
-                    <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-1">
-                      {activeCourse.title} · Module {activeCourse.completedModules + 1 || 1} · {activeCourse.completedModules} of {activeCourse.totalModules} modules completed
-                    </p>
-                  )}
+              <div className="flex flex-col lg:flex-row items-center gap-5 lg:gap-6 justify-between">
+                {/* Left & Center: Squeezed Command Info + 4 Stats */}
+                <div className="flex-1 min-w-0 grid gap-5 xl:gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(250px,0.85fr)] items-center">
+                  <div className="min-w-0">
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                      {activeCourse ? (activeCourse.lastWatched || activeCourse.title) : "Choose a course to begin"}
+                    </h2>
+                    {activeCourse && (
+                      <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-1">
+                        {activeCourse.title} · Module {activeCourse.completedModules + 1 || 1} · {activeCourse.completedModules} of {activeCourse.totalModules} modules completed
+                      </p>
+                    )}
 
-                  {/* Connected Course Progress Bar */}
-                  <div className="mt-4 max-w-lg">
-                    <div className="flex items-center justify-between text-xs font-medium text-white/90 mb-1.5">
-                      <span className="flex items-center gap-1.5">
-                        <Target className="h-3.5 w-3.5 text-primary" />
-                        {activeCourse?.nextMilestone ?? "Course progress"}
-                      </span>
-                      <span className="font-mono font-semibold text-white">{activeCourse?.progress ?? 0}%</span>
+                    {/* Connected Course Progress Bar */}
+                    <div className="mt-3.5 max-w-md">
+                      <div className="flex items-center justify-between text-xs font-medium text-white/90 mb-1.5">
+                        <span className="flex items-center gap-1.5">
+                          <Target className="h-3.5 w-3.5 text-primary" />
+                          {activeCourse?.nextMilestone ?? "Course progress"}
+                        </span>
+                        <span className="font-mono font-semibold text-white">{activeCourse?.progress ?? 0}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+                        <motion.div
+                          className="h-full rounded-full bg-primary"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
+                          style={{ originX: 0 }}
+                          transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
-                      <motion.div
-                        className="h-full rounded-full bg-primary"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
-                        style={{ originX: 0 }}
-                        transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
-                      />
+
+                    {/* Actions */}
+                    <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                      <Button
+                        variant="primary"
+                        size="default"
+                        leftIcon={<Play className="fill-current h-4 w-4" aria-hidden="true" />}
+                        onClick={() => activeCourse && openCourse(activeCourse)}
+                        className="font-semibold px-4 shadow-sm"
+                      >
+                        Resume learning
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="default"
+                        leftIcon={<Sparkles className="h-4 w-4 text-warning" aria-hidden="true" />}
+                        onClick={() => onNavigate("My Notes")}
+                        className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] text-xs font-medium"
+                      >
+                        Open study notes
+                      </Button>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <Button
-                      variant="primary"
-                      size="default"
-                      leftIcon={<Play className="fill-current h-4 w-4" aria-hidden="true" />}
-                      onClick={() => activeCourse && openCourse(activeCourse)}
-                      className="font-semibold px-4 shadow-sm"
-                    >
-                      Resume learning
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="default"
-                      leftIcon={<Sparkles className="h-4 w-4 text-warning" aria-hidden="true" />}
-                      onClick={() => onNavigate("My Notes")}
-                      className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] text-xs font-medium"
-                    >
-                      Open study notes
-                    </Button>
+                  {/* Integrated Compact 4-Stat Strip */}
+                  <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-3">
+                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-lg font-bold tabular-nums">{focusScore}</span>
+                        <span className="text-[10px] font-bold text-success uppercase">Focus</span>
+                      </div>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium">Focus score</p>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-lg font-bold tabular-nums">{streak} {streak === 1 ? "day" : "days"}</span>
+                        <Flame className="h-4 w-4 text-warning fill-current" />
+                      </div>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium">Learning streak</p>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-lg font-bold tabular-nums">{week.total}h</span>
+                        <Clock className="h-4 w-4 text-sky-400" />
+                      </div>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium">This week</p>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-lg font-bold tabular-nums">{priorityItems.length - completedItems}</span>
+                        <ListTodo className="h-4 w-4 text-amber-400" />
+                      </div>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium">Priority tasks</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Integrated Compact 4-Stat Strip */}
-                <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-3.5">
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white text-lg font-bold tabular-nums">{focusScore}</span>
-                      <span className="text-[10px] font-bold text-success uppercase">Focus</span>
-                    </div>
-                    <p className="text-[11px] text-white/70 mt-1 font-medium">Focus score</p>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white text-lg font-bold tabular-nums">{streak} {streak === 1 ? "day" : "days"}</span>
-                      <Flame className="h-4 w-4 text-warning fill-current" />
-                    </div>
-                    <p className="text-[11px] text-white/70 mt-1 font-medium">Learning streak</p>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white text-lg font-bold tabular-nums">{week.total}h</span>
-                      <Clock className="h-4 w-4 text-sky-400" />
-                    </div>
-                    <p className="text-[11px] text-white/70 mt-1 font-medium">This week</p>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white text-lg font-bold tabular-nums">{priorityItems.length - completedItems}</span>
-                      <ListTodo className="h-4 w-4 text-amber-400" />
-                    </div>
-                    <p className="text-[11px] text-white/70 mt-1 font-medium">Priority tasks</p>
-                  </div>
+                {/* Right Side: Interactive Swinging Lanyard Badge */}
+                <div className="hidden lg:block w-[180px] xl:w-[210px] h-[250px] xl:h-[270px] shrink-0 self-stretch relative -my-5 sm:-my-6 lg:-my-7 pointer-events-auto select-none">
+                  <SwingingLanyardBadge
+                    size={200}
+                    ropeLength={14}
+                    strapColor="#ea580c"
+                    image={{
+                      src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+                      alt: firstName,
+                    }}
+                    name={user?.name || firstName}
+                    style={{ width: "100%", height: "100%" }}
+                  />
                 </div>
               </div>
             </div>
