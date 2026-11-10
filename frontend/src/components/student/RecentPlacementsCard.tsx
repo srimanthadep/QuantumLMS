@@ -1,8 +1,7 @@
-import { memo } from "react"
 import { ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { StudentNavPage } from "@/pages/student/studentTypes"
-import CompanyLogo from "@/components/shared/CompanyLogo"
+import MirrorFlipCarousel from "@/components/ui/MirrorFlipCarousel"
 
 export interface PlacementItem {
   name: string
@@ -10,162 +9,46 @@ export interface PlacementItem {
   color: string
 }
 
-export const RECENT_PLACEMENTS: readonly PlacementItem[] = [
-  { name: "Anuraj Satardekar", company: "Meesho", color: "#9b1b6e" },
-  { name: "Sandeep Gowda", company: "Uber", color: "#111" },
-  { name: "Arnav Bangaria", company: "ZS", color: "#e0701a" },
-  { name: "Abhishek Ghosh", company: "Meesho", color: "#9b1b6e" },
-  { name: "Sai Manikanta", company: "IBM", color: "#1f5fbf" },
-  { name: "Rhea Chawla", company: "Byborg", color: "#2a2f9e" },
-  { name: "Tina Digambar Kapse", company: "Hexaware", color: "#e8541a" },
-  { name: "Anuron Sarma", company: "Amazon", color: "#e47911" },
-  { name: "Ashutosh Tiwari", company: "Optum Global", color: "#e87722" },
-  { name: "Ashish Kumar", company: "IBM", color: "#1f5fbf" },
-  { name: "Meetanshi Gupta", company: "Sigmoid Analytics", color: "#2b6cb0" },
-  { name: "Prathmesh Potdar", company: "Flipkart", color: "#2874f0" },
-  { name: "Anchal Rani Barnowal", company: "LTIMindtree", color: "#1b6fa8" },
-  { name: "Sakshi Singh", company: "Razorpay", color: "#2b6ae0" },
-  { name: "Akash Chakraborty", company: "EY", color: "#c9a400" },
-  { name: "Suman Bera", company: "Cognizant", color: "#2459a6" },
-  { name: "Mohammed Israhar", company: "Meesho", color: "#9b1b6e" },
-  { name: "Shahbaaz Shaikh", company: "DP World", color: "#1c2b5a" },
-  { name: "Ravneet Singh", company: "IndiGo", color: "#2a2f9e" },
-  { name: "Subhadip Das", company: "Mr. Cooper", color: "#2a6f4e" },
-  { name: "Shlok Singh", company: "Cure.fit", color: "#d63a3a" },
-  { name: "Pallavi Dash", company: "IndiGo", color: "#2a2f9e" },
-  { name: "Gaurav Agrawal", company: "Myntra", color: "#e0338a" },
-  { name: "Dheeraj B S", company: "IBM", color: "#1f5fbf" },
-] as const
-
-const AVATAR_TINTS = [
-  "#5b6b8c",
-  "#7a5c8a",
-  "#4f7d73",
-  "#8a6a4f",
-  "#566f93",
-  "#7b6a5a",
-] as const
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase()
-}
-
-interface PlacementRowProps {
-  item: PlacementItem
-  tint: string
-}
-
-const PlacementRow = memo(function PlacementRow({ item, tint }: PlacementRowProps) {
-  const initials = getInitials(item.name)
-
-  return (
-    <div className="group/row flex items-center gap-3 rounded-xl border border-border/70 bg-surface dark:bg-[#202024] px-3 py-2.5 transition-colors hover:border-border-strong">
-      <div
-        className="h-10 w-10 shrink-0 rounded-[10px] grid place-items-center text-white font-bold text-sm tracking-wide select-none shadow-xs"
-        style={{ backgroundColor: tint }}
-        aria-hidden="true"
-      >
-        {initials}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold text-sm leading-tight text-foreground">
-          {item.name}
-        </p>
-      </div>
-
-      {/* Official Company Logo (Clean, no badge background) */}
-      <CompanyLogo
-        name={item.company}
-        size="md"
-        variant="plain"
-        className="h-6 max-w-[68px] w-auto shrink-0 hover:scale-105 transition-transform"
-      />
-    </div>
-  )
-})
-
 export interface RecentPlacementsCardProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
   maxItems?: number
   className?: string
+  hideHeader?: boolean
 }
 
 export default function RecentPlacementsCard({
   onNavigate,
-  maxItems = 5,
   className,
+  hideHeader = false,
 }: RecentPlacementsCardProps) {
-  const displayItems = RECENT_PLACEMENTS.slice(0, maxItems)
-  const durationSeconds = 18
-
   return (
     <section
       aria-label="Recent student placements"
       className={cn(
-        "flex flex-col rounded-[18px] border border-border bg-surface p-3.5 sm:p-4 shadow-[var(--elev-xs)]",
+        "flex flex-col h-[298px] rounded-[18px] border border-border bg-surface shadow-[var(--elev-xs)] overflow-hidden",
         className
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 px-0.5">
-        <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
-          Recent placements
-        </h2>
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-1 shrink-0 z-10">
+          <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
+            Recent placements
+          </h2>
 
-        <button
-          type="button"
-          onClick={() => onNavigate?.("Alumni")}
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-        >
-          View all
-          <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </button>
-      </div>
-
-      {/* Scrolling Marquee Panel (Height calibrated to exactly match 2x2 KPI grid) */}
-      <div className="group relative h-[228px] overflow-hidden rounded-[16px] bg-surface-2 dark:bg-[#18181b] border border-border/60 p-2 motion-reduce:overflow-y-auto">
-        {/* Soft gradient masks at top and bottom for smooth fade */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-surface-2 dark:from-[#18181b] to-transparent z-10"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-surface-2 dark:from-[#18181b] to-transparent z-10"
-        />
-
-        {/* Track with infinite vertical translation */}
-        <div
-          className="flex flex-col will-change-transform group-hover:[animation-play-state:paused] motion-reduce:[animation:none]"
-          style={{
-            animation: `q-vertical-scroll ${durationSeconds}s linear infinite`,
-          }}
-        >
-          {/* First sequence of records */}
-          <div className="flex flex-col gap-2">
-            {displayItems.map((item, idx) => (
-              <PlacementRow
-                key={`p1-${idx}-${item.name}`}
-                item={item}
-                tint={AVATAR_TINTS[idx % AVATAR_TINTS.length]}
-              />
-            ))}
-          </div>
-
-          {/* Duplicate sequence for seamless 50% loop */}
-          <div aria-hidden="true" className="flex flex-col gap-2 pt-2">
-            {displayItems.map((item, idx) => (
-              <PlacementRow
-                key={`p2-${idx}-${item.name}`}
-                item={item}
-                tint={AVATAR_TINTS[idx % AVATAR_TINTS.length]}
-              />
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate?.("Alumni")}
+            className="group inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded cursor-pointer"
+          >
+            View all
+            <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </button>
         </div>
+      )}
+
+      <div className="relative flex-1 w-full min-h-0">
+        <MirrorFlipCarousel style={{ width: "100%", height: "100%" }} />
       </div>
     </section>
   )
 }
-
