@@ -80,7 +80,12 @@ type Pt = { x: number; y: number; px: number; py: number; im: number }
 
 function parseColor(c: string): [number, number, number, number] {
     if (!c || typeof c !== "string") return [0, 0, 0, 1]
-    const s = c.trim()
+    let s = c.trim()
+    if (s.startsWith("var(") && typeof document !== "undefined") {
+        const varName = s.slice(4, -1).trim()
+        const computed = getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
+        if (computed) s = computed
+    }
     if (s[0] === "#") {
         let h = s.slice(1)
         if (h.length === 3 || h.length === 4)
@@ -166,7 +171,12 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         gravity,
         damping,
         speed,
-        advanced: props.advanced,
+        name: props.name,
+        advanced: {
+            ...props.advanced,
+            ...(props.anchorY !== undefined ? { anchorY: props.anchorY } : {}),
+            ...(props.strapSpread !== undefined ? { strapSpread: props.strapSpread } : {}),
+        },
     }
 
     useEffect(() => {
@@ -202,8 +212,10 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             for (let el = root.parentElement; el && el !== root.ownerDocument.body; el = el.parentElement) {
                 const cs = win.getComputedStyle(el)
                 if (/hidden|clip/.test(cs.overflowX + cs.overflowY)) {
-                    clipEl = el
-                    break
+                    if (el.tagName.toLowerCase() !== "main" && el.id !== "main") {
+                        clipEl = el
+                        break
+                    }
                 }
             }
         }
@@ -631,12 +643,12 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         let tileKey = ""
         let tilePat: CanvasPattern | null = null
         const tileM = new DOMMatrix()
-        const insertTile = (img: HTMLImageElement | null, color: string, iw: number, ih: number, offY: number) => {
+        const insertTile = (img: HTMLImageElement | null, color: string, iw: number, ih: number, offY: number, studentName?: string) => {
             const q = 2 * dpr
             const tw = Math.ceil(iw * q) + 2
             const th = Math.ceil(ih * q) + 2
             const off = Math.max(-250, Math.min(250, typeof offY === "number" && isFinite(offY) ? offY : 0))
-            const key = `${img ? img.src : ""}|${color}|${tw}|${th}|${off}`
+            const key = `${img ? img.src : ""}|${color}|${tw}|${th}|${off}|${studentName || ""}`
             if (key === tileKey) return tilePat
             tileKey = key
             tilePat = null
@@ -653,6 +665,24 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
                 const dh = img.naturalHeight * sc
                 t.imageSmoothingQuality = "high"
                 t.drawImage(img, (tw - dw) / 2, (th - dh) * (0.5 - (off / 250) * 0.5), dw, dh)
+            }
+            if (studentName) {
+                const grad = t.createLinearGradient(0, th * 0.62, 0, th)
+                grad.addColorStop(0, "rgba(10, 15, 25, 0)")
+                grad.addColorStop(0.5, "rgba(10, 15, 25, 0.7)")
+                grad.addColorStop(1, "rgba(10, 15, 25, 0.95)")
+                t.fillStyle = grad
+                t.fillRect(0, th * 0.58, tw, th * 0.42)
+
+                t.font = `bold ${Math.round(13 * dpr)}px system-ui, -apple-system, sans-serif`
+                t.fillStyle = "#ffffff"
+                t.textAlign = "center"
+                t.textBaseline = "bottom"
+                t.fillText(studentName, tw / 2, th - 8 * dpr)
+
+                t.font = `700 ${Math.round(8.5 * dpr)}px system-ui, -apple-system, sans-serif`
+                t.fillStyle = "#ea580c"
+                t.fillText("QUANTUM LMS · STUDENT", tw / 2, th - 24 * dpr)
             }
             tilePat = ctx.createPattern(c, "no-repeat")
             return tilePat
@@ -699,7 +729,7 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             const iw = G.hW - 2 * m
             const ih = G.hH - adv.insertTop * s - 8 * s
             const img = getImage(imageSrc(v.image))
-            const tile = insertTile(img, v.cardColor, iw, ih, v.imageOffsetY)
+            const tile = insertTile(img, v.cardColor, iw, ih, v.imageOffsetY, v.name)
             if (tile) {
                 tileM.a = tileM.d = 1 / (2 * dpr)
                 tileM.e = ix - 1 / (2 * dpr)
@@ -1112,3 +1142,4 @@ const __originkitPresetProps = {
 export default function SwingingLanyardBadge(props: Record<string, unknown>) {
   return <__OriginkitBase_SwingingLanyardBadge {...(__originkitPresetProps as Record<string, unknown>)} {...props} />;
 }
+

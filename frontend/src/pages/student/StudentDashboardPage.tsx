@@ -319,11 +319,30 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col">
+    <div className="relative flex w-full min-w-0 flex-col">
+      {/* Interactive Swinging Lanyard Badge hanging from the line under brightness */}
+      <div className="hidden lg:block pointer-events-none absolute right-4 sm:right-5 lg:right-6 xl:right-8 -top-5 sm:-top-5 lg:-top-6 z-20 w-[190px] xl:w-[210px] h-[395px] xl:h-[415px]">
+        <div className="w-full h-full pointer-events-auto select-none">
+          <SwingingLanyardBadge
+            size={190}
+            ropeLength={31}
+            anchorY={0}
+            strapColor="var(--primary)"
+            image={{
+              src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+              alt: firstName,
+            }}
+            name={user?.name || firstName}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+      </div>
+
       <PageHeader
         eyebrow={today}
         title={`${greeting()}, ${firstName}`}
         description="Your learning command center for the day ahead."
+        className="relative z-10 lg:pr-[210px] xl:pr-[230px]"
         actions={
           <Button variant="outline" leftIcon={<CalendarDays aria-hidden="true" />} onClick={() => onNavigate("Schedule")}>
             View schedule
@@ -459,20 +478,8 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                   </div>
                 </div>
 
-                {/* Right Side: Interactive Swinging Lanyard Badge */}
-                <div className="hidden lg:block w-[180px] xl:w-[210px] h-[250px] xl:h-[270px] shrink-0 self-stretch relative -my-5 sm:-my-6 lg:-my-7 pointer-events-auto select-none">
-                  <SwingingLanyardBadge
-                    size={200}
-                    ropeLength={14}
-                    strapColor="#ea580c"
-                    image={{
-                      src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
-                      alt: firstName,
-                    }}
-                    name={user?.name || firstName}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </div>
+                {/* Right Side: Reserved space for the swinging lanyard badge hanging from the top line */}
+                <div className="hidden lg:block w-[180px] xl:w-[210px] shrink-0 self-stretch pointer-events-none" aria-hidden="true" />
               </div>
             </div>
           </section>
