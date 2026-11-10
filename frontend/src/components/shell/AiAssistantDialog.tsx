@@ -85,7 +85,9 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" })
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
   }, [messages, thinking])
 
   const ask = (text: string) => {
@@ -100,18 +102,21 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
         setThinking(false)
         const id = ++idRef.current
         setMessages((m) => [...m, { id, from: "ai", text: "" }])
-        // Reveal the reply word by word to feel like streaming.
+        // Reveal the reply in 2-word batches to feel like smooth streaming without timer flood.
         const words = reply.split(" ")
-        words.forEach((_, i) =>
-          timers.current.push(
-            setTimeout(() => {
-              setMessages((m) => m.map((msg) => (msg.id === id ? { ...msg, text: words.slice(0, i + 1).join(" ") } : msg)))
-            }, i * 28),
-          ),
-        )
-      }, 650),
+        let idx = 0
+        const streamTimer = setInterval(() => {
+          idx = Math.min(words.length, idx + 2)
+          const partial = words.slice(0, idx).join(" ")
+          setMessages((m) => m.map((msg) => (msg.id === id ? { ...msg, text: partial } : msg)))
+          if (idx >= words.length) clearInterval(streamTimer)
+        }, 45)
+        timers.current.push(streamTimer as unknown as ReturnType<typeof setTimeout>)
+      }, 450),
     )
   }
+
+  if (!open && messages.length === 0) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

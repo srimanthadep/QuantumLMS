@@ -2,7 +2,8 @@ import { and, asc, count, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
-import type { Tx } from "../../db/client.js"
+import type { Db, Tx } from "../../db/client.js"
+import { invalidateUserCache } from "../../auth/users.js"
 import {
   assignment_submissions, assignments, certificates, course_materials, course_modules, course_question_votes, course_questions,
   courses, enrollments, grades, lesson_progress, lessons, profiles, quiz_attempts, quizzes, study_activity, users,
@@ -36,6 +37,66 @@ async function issueCertificate(tx: Tx, studentId: string, courseId: string) {
   return cert
 }
 
+const CATALOG_TTL_MS = 30_000
+let catalogCache: {
+  expiresAt: number
+  data: {
+    courseRows: (typeof courses.$inferSelect)[]
+    modules: (typeof course_modules.$inferSelect)[]
+    lessonRows: {
+      id: string
+      module_id: string
+      course_id: string
+      position: number
+      title: string
+      duration: string
+      minutes: number
+      type: string
+      summary: string
+      video_url: string | null
+      video_qualities: unknown
+    }[]
+    assignmentRows: (typeof assignments.$inferSelect)[]
+    quizRows: (typeof quizzes.$inferSelect)[]
+  }
+} | null = null
+
+export function invalidateCatalogCache() {
+  catalogCache = null
+}
+
+async function getCatalogData(db: Db) {
+  const now = Date.now()
+  if (catalogCache && now < catalogCache.expiresAt) {
+    return catalogCache.data
+  }
+  const [courseRows, modules, lessonRows, assignmentRows, quizRows] = await Promise.all([
+    db.select().from(courses).orderBy(asc(courses.position)),
+    db.select().from(course_modules).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
+    db
+      .select({
+        id: lessons.id,
+        module_id: lessons.module_id,
+        course_id: lessons.course_id,
+        position: lessons.position,
+        title: lessons.title,
+        duration: lessons.duration,
+        minutes: lessons.minutes,
+        type: lessons.type,
+        summary: lessons.summary,
+        video_url: lessons.video_url,
+        video_qualities: lessons.video_qualities,
+      })
+      .from(lessons)
+      .orderBy(asc(lessons.course_id), asc(lessons.position)),
+    db.select().from(assignments).orderBy(asc(assignments.due_at)),
+    db.select().from(quizzes).orderBy(asc(quizzes.due_at)),
+  ])
+  const data = { courseRows, modules, lessonRows, assignmentRows, quizRows }
+  catalogCache = { data, expiresAt: Date.now() + CATALOG_TTL_MS }
+  return data
+}
+
 export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
 
@@ -43,31 +104,12 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get("/api/student/core", async (req) => {
     const s = me(req)
     await finalizeExpired(db, s.id)
-    const [profile, courseRows, modules, lessonRows, enrolled, progress, assignmentRows, submissions, quizRows, attempts, requests] = await Promise.all([
+    const [catalog, profile, enrolled, progress, submissions, attempts, requests] = await Promise.all([
+      getCatalogData(db),
       studentProfile(db, s.id),
-      db.select().from(courses).orderBy(asc(courses.position)),
-      db.select().from(course_modules).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
-      db
-        .select({
-          id: lessons.id,
-          module_id: lessons.module_id,
-          course_id: lessons.course_id,
-          position: lessons.position,
-          title: lessons.title,
-          duration: lessons.duration,
-          minutes: lessons.minutes,
-          type: lessons.type,
-          summary: lessons.summary,
-          video_url: lessons.video_url,
-          video_qualities: lessons.video_qualities,
-        })
-        .from(lessons)
-        .orderBy(asc(lessons.course_id), asc(lessons.position)),
       db.select({ course_id: enrollments.course_id, enrolled_at: enrollments.enrolled_at }).from(enrollments).where(eq(enrollments.student_id, s.id)),
       db.select({ lesson_id: lesson_progress.lesson_id, completed_at: lesson_progress.completed_at }).from(lesson_progress).where(eq(lesson_progress.student_id, s.id)),
-      db.select().from(assignments).orderBy(asc(assignments.due_at)),
       db.select().from(assignment_submissions).where(eq(assignment_submissions.student_id, s.id)),
-      db.select().from(quizzes).orderBy(asc(quizzes.due_at)),
       db.select().from(quiz_attempts).where(eq(quiz_attempts.student_id, s.id)).orderBy(asc(quiz_attempts.started_at)),
       db.execute(sql`
         select r.id, s.assignment_id, r.status, r.original_score, r.revised_score, r.created_at, r.resolved_at
@@ -75,7 +117,19 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         where r.student_id = ${s.id}::uuid`),
     ])
     const reevaluations = requests.rows
-    return { profile, courses: courseRows, modules, lessons: lessonRows, enrollments: enrolled, progress, assignments: assignmentRows, submissions, quizzes: quizRows, attempts, reevaluations }
+    return {
+      profile,
+      courses: catalog.courseRows,
+      modules: catalog.modules,
+      lessons: catalog.lessonRows,
+      enrollments: enrolled,
+      progress,
+      assignments: catalog.assignmentRows,
+      submissions,
+      quizzes: catalog.quizRows,
+      attempts,
+      reevaluations,
+    }
   })
 
   app.get("/api/student/profile", async (req) => studentProfile(db, me(req).id))
@@ -106,7 +160,10 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       const account: Partial<typeof users.$inferInsert> = {}
       if (p.full_name !== undefined) account.full_name = p.full_name
       if (p.avatar_url !== undefined) account.avatar_url = p.avatar_url
-      if (Object.keys(account).length) await tx.update(users).set({ ...account, updated_at: new Date() }).where(eq(users.id, s.id))
+      if (Object.keys(account).length) {
+        await tx.update(users).set({ ...account, updated_at: new Date() }).where(eq(users.id, s.id))
+        invalidateUserCache(s.id)
+      }
       const { full_name: _n, avatar_url: _a, ...details } = p
       if (Object.keys(details).length) await tx.update(profiles).set({ ...details, updated_at: new Date() }).where(eq(profiles.id, s.id))
       return studentProfile(tx, s.id)
@@ -155,8 +212,10 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
             .where(and(eq(study_activity.student_id, s.id), eq(study_activity.day, today)))
         }
       }
-      const [{ total }] = await tx.select({ total: count() }).from(lessons).where(eq(lessons.course_id, l.course_id))
-      const [{ completed }] = await tx.select({ completed: count() }).from(lesson_progress).where(and(eq(lesson_progress.student_id, s.id), eq(lesson_progress.course_id, l.course_id)))
+      const [[{ total }], [{ completed }]] = await Promise.all([
+        tx.select({ total: count() }).from(lessons).where(eq(lessons.course_id, l.course_id)),
+        tx.select({ completed: count() }).from(lesson_progress).where(and(eq(lesson_progress.student_id, s.id), eq(lesson_progress.course_id, l.course_id))),
+      ])
       const certificate = total > 0 && completed === total ? await issueCertificate(tx, s.id, l.course_id) : null
       return { course_id: l.course_id, completed, total, certificate }
     })

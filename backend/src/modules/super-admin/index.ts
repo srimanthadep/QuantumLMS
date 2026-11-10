@@ -1,8 +1,10 @@
 import { asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
+import { invalidateUserCache } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import { authenticate, me, parse } from "../../http.js"
+import { invalidateCatalogCache } from "../student/courses.js"
 
 export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
@@ -68,6 +70,8 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
       // 2. Flush global cache
       scope.post("/flush-cache", async (req) => {
         const u = me(req)
+        invalidateCatalogCache()
+        invalidateUserCache()
         return {
           ok: true,
           clearedAt: new Date().toISOString(),

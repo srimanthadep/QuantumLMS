@@ -4,11 +4,11 @@ import type { NotificationSource, ShellNotification } from "@/components/shell/N
 import PageTransition from "@/components/motion/PageTransition"
 import { useToast } from "@/components/ui/toast"
 import type { StudentNavPage, CourseItem } from "./studentTypes"
-import StudentDashboardPage from "./StudentDashboardPage"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import StudentDataProvider, { useStudentData } from "./data/StudentDataProvider"
 import type { SubmissionInput } from "./data/actions"
 import { relTime } from "./studentUtils"
+const StudentDashboardPage = lazy(() => import("./StudentDashboardPage"))
 const MyCoursesPage = lazy(() => import("./MyCoursesPage"))
 const CourseDetailsPage = lazy(() => import("./CourseDetailsPage"))
 const SchedulePage = lazy(() => import("./SchedulePage"))

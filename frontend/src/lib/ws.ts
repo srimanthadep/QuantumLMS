@@ -24,9 +24,22 @@ class WebSocketClient {
   private retryCount = 0
 
   constructor() {
-    if (typeof window !== "undefined") {
-      this.connect()
+    // Connect lazily on first channel subscription instead of immediately on module import
+  }
+
+  public disconnect() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
     }
+    this.stopHeartbeat()
+    if (this.socket) {
+      this.socket.onclose = null
+      this.socket.onerror = null
+      this.socket.close()
+      this.socket = null
+    }
+    this.setStatus("disconnected")
   }
 
   private getUrl(): string {
@@ -122,12 +135,12 @@ class WebSocketClient {
   }
 
   private scheduleReconnect() {
-    if (this.reconnectTimeout) return
+    if (this.reconnectTimeout || this.listeners.size === 0) return
     const delay = Math.min(1000 * Math.pow(1.5, this.retryCount), 10_000)
     this.retryCount++
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null
-      this.connect()
+      if (this.listeners.size > 0) this.connect()
     }, delay)
   }
 
@@ -138,6 +151,9 @@ class WebSocketClient {
   }
 
   public subscribe(channel: string, listener: MessageListener): () => void {
+    if (typeof window !== "undefined" && !this.socket) {
+      this.connect()
+    }
     if (!this.listeners.has(channel)) {
       this.listeners.set(channel, new Set())
       this.sendRaw({ action: "subscribe", channel })
@@ -151,6 +167,9 @@ class WebSocketClient {
         if (subs.size === 0) {
           this.listeners.delete(channel)
           this.sendRaw({ action: "unsubscribe", channel })
+          if (this.listeners.size === 0) {
+            this.disconnect()
+          }
         }
       }
     }

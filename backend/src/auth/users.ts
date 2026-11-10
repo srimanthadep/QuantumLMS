@@ -22,6 +22,30 @@ export interface AuthUser {
 export type Onboard = (tx: Parameters<Parameters<Db["transaction"]>[0]>[0], user: AuthUser) => Promise<void>
 
 const SEEN_EVERY_MS = 5 * 60_000
+const USER_CACHE_TTL_MS = 60_000
+
+const userRowCache = new Map<string, { row: typeof users.$inferSelect; expiresAt: number }>()
+
+export function invalidateUserCache(idOrSub?: string) {
+  if (!idOrSub) {
+    userRowCache.clear()
+    return
+  }
+  userRowCache.delete(idOrSub)
+  for (const [sub, entry] of userRowCache.entries()) {
+    if (entry.row.id === idOrSub || entry.row.email.toLowerCase() === idOrSub.toLowerCase()) {
+      userRowCache.delete(sub)
+    }
+  }
+}
+
+function cacheUserRow(sub: string, row: typeof users.$inferSelect) {
+  if (userRowCache.size >= 1000) {
+    const oldest = userRowCache.keys().next().value
+    if (oldest) userRowCache.delete(oldest)
+  }
+  userRowCache.set(sub, { row, expiresAt: Date.now() + USER_CACHE_TTL_MS })
+}
 
 function nameFromEmail(email: string): string {
   const local = email.split("@")[0] ?? ""
@@ -53,21 +77,31 @@ export async function resolveUser(
     token: claims.token,
   })
 
-  const [existing] = await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1)
+  const now = Date.now()
+  const cachedEntry = userRowCache.get(claims.sub)
+  const existing =
+    cachedEntry && now < cachedEntry.expiresAt
+      ? cachedEntry.row
+      : (await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1))[0]
+
   if (existing) {
     // "Sign out of all devices" ends the access tokens Cognito already issued, not only the refresh tokens.
     if (existing.sessions_revoked_at && claims.issuedAt <= Math.floor(existing.sessions_revoked_at.getTime() / 1000)) {
       throw unauthorized("You were signed out. Sign in again.")
     }
     const isDemo = opts.demoEmails.includes(existing.email.toLowerCase())
-    const stale = !existing.last_seen_at || Date.now() - existing.last_seen_at.getTime() > SEEN_EVERY_MS
+    const stale = !existing.last_seen_at || now - existing.last_seen_at.getTime() > SEEN_EVERY_MS
     if (existing.role !== role || existing.is_demo !== isDemo || stale) {
       const [u] = await db
         .update(users)
         .set({ role, is_demo: isDemo, last_seen_at: new Date(), updated_at: existing.role !== role ? new Date() : existing.updated_at })
         .where(eq(users.id, existing.id))
         .returning()
+      cacheUserRow(claims.sub, u)
       return toAuth(u)
+    }
+    if (!cachedEntry || now >= cachedEntry.expiresAt) {
+      cacheUserRow(claims.sub, existing)
     }
     return toAuth(existing)
   }
@@ -93,6 +127,7 @@ export async function resolveUser(
         throw forbidden("This email belongs to another account. Contact support.")
       }
       const [u] = await tx.update(users).set({ cognito_sub: claims.sub, role, last_seen_at: new Date(), updated_at: new Date() }).where(eq(users.id, byEmail.id)).returning()
+      cacheUserRow(claims.sub, u)
       return toAuth(u)
     }
     const [u] = await tx
@@ -103,8 +138,10 @@ export async function resolveUser(
     if (!u) {
       // Another request created the row first.
       const [again] = await tx.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1)
+      cacheUserRow(claims.sub, again)
       return toAuth(again)
     }
+    cacheUserRow(claims.sub, u)
     const auth = toAuth(u)
     await opts.onboard[role]?.(tx, auth)
     return auth

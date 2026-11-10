@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useMemo } from "react"
+import { lazy, Suspense, useState, useMemo, useCallback } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
 import PageTransition from "@/components/motion/PageTransition"
@@ -12,22 +12,22 @@ import {
   ManualEnrolModal,
 } from "@/components/AdminModals"
 
-import OverviewView from "./views/OverviewView"
-import CoursesView from "./views/CoursesView"
-import BatchesView from "./views/BatchesView"
-import TeachersView from "./views/TeachersView"
-import StudentsView from "./views/StudentsView"
-import OrdersView from "./views/OrdersView"
-import ReportsView from "./views/ReportsView"
-import SettingsView from "./views/SettingsView"
-import TeacherApprovalsView from "./views/TeacherApprovalsView"
+const OverviewView = lazy(() => import("./views/OverviewView"))
+const CoursesView = lazy(() => import("./views/CoursesView"))
+const BatchesView = lazy(() => import("./views/BatchesView"))
+const TeachersView = lazy(() => import("./views/TeachersView"))
+const StudentsView = lazy(() => import("./views/StudentsView"))
+const OrdersView = lazy(() => import("./views/OrdersView"))
+const ReportsView = lazy(() => import("./views/ReportsView"))
+const SettingsView = lazy(() => import("./views/SettingsView"))
+const TeacherApprovalsView = lazy(() => import("./views/TeacherApprovalsView"))
 
 // Single-tenant platform operations views
-import PlatformHealthView from "../super-admin/views/PlatformHealthView"
-import RbacView from "../super-admin/views/RbacView"
-import AuditLogsView from "../super-admin/views/AuditLogsView"
-import AiUsageView from "../super-admin/views/AiUsageView"
-import RevenueView from "../super-admin/views/RevenueView"
+const PlatformHealthView = lazy(() => import("../super-admin/views/PlatformHealthView"))
+const RbacView = lazy(() => import("../super-admin/views/RbacView"))
+const AuditLogsView = lazy(() => import("../super-admin/views/AuditLogsView"))
+const AiUsageView = lazy(() => import("../super-admin/views/AiUsageView"))
+const RevenueView = lazy(() => import("../super-admin/views/RevenueView"))
 
 // Lazy load Super Admin in case role="Super Admin" is passed to AdminPortal
 const SuperAdminPortal = lazy(() => import("../super-admin/SuperAdminPortal"))
@@ -117,11 +117,17 @@ function useAdminNotifications(batches: any[], orders: any[]): NotificationSourc
     return out
   }, [batches, orders, read])
 
-  return {
-    items: entries,
-    onSelect: (n) => setRead((prev) => new Set([...prev, n.id])),
-    onMarkAllRead: () => setRead(new Set(entries.map((e) => e.id))),
-  }
+  const onSelect = useCallback((n: ShellNotification) => setRead((prev) => new Set([...prev, n.id])), [])
+  const onMarkAllRead = useCallback(() => setRead(new Set(entries.map((e) => e.id))), [entries])
+
+  return useMemo(
+    () => ({
+      items: entries,
+      onSelect,
+      onMarkAllRead,
+    }),
+    [entries, onSelect, onMarkAllRead],
+  )
 }
 
 export default function AdminPortal({

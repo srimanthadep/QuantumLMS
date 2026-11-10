@@ -17,16 +17,15 @@ export async function socialRoutes(app: FastifyInstance, ctx: AppContext) {
   /* --------------------------------- Community -------------------------------- */
   app.get("/api/student/community", async (req) => {
     const s = me(req)
-    const [posts, likes, saves, squads, members] = await Promise.all([
+    const topPostIds = db.select({ id: community_posts.id }).from(community_posts).orderBy(desc(community_posts.created_at)).limit(100)
+    const [posts, replies, likes, saves, squads, members] = await Promise.all([
       db.select().from(community_posts).orderBy(desc(community_posts.created_at)).limit(100),
+      db.select().from(post_replies).where(inArray(post_replies.post_id, topPostIds)).orderBy(asc(post_replies.created_at)).limit(1000),
       db.select({ post_id: post_likes.post_id }).from(post_likes).where(eq(post_likes.student_id, s.id)),
       db.select({ post_id: post_saves.post_id }).from(post_saves).where(eq(post_saves.student_id, s.id)),
       db.select().from(study_squads).orderBy(asc(study_squads.position)),
       db.select({ squad_id: squad_members.squad_id }).from(squad_members).where(eq(squad_members.student_id, s.id)),
     ])
-    const replies = posts.length
-      ? await db.select().from(post_replies).where(inArray(post_replies.post_id, posts.map((p) => p.id))).orderBy(asc(post_replies.created_at)).limit(1000)
-      : []
     return { posts, replies, liked: likes.map((l) => l.post_id), saved: saves.map((x) => x.post_id), squads, joined: members.map((m) => m.squad_id) }
   })
 

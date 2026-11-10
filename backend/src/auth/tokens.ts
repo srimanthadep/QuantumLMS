@@ -38,17 +38,44 @@ export const isRole = (r: string): r is Role => (ROLES as readonly string[]).inc
  */
 export function createTokenVerifier(opts: { issuer: string; jwksUri: string; clientId: string; keys?: JWTVerifyGetKey }): VerifyToken {
   const keys = opts.keys ?? createRemoteJWKSet(new URL(opts.jwksUri), { cooldownDuration: 30_000, cacheMaxAge: 10 * 60_000 })
+  const tokenCache = new Map<string, { claims: TokenClaims; expiresAt: number }>()
+
   return async (token) => {
+    const now = Date.now()
+    const cached = tokenCache.get(token)
+    if (cached && now < cached.expiresAt) {
+      return cached.claims
+    }
+
     let payload
     try {
       ;({ payload } = await jwtVerify(token, keys, { issuer: opts.issuer, clockTolerance: 5 }))
     } catch {
+      tokenCache.delete(token)
       throw unauthorized("Your session expired. Sign in again.")
     }
     if (payload.token_use !== "access" || payload.client_id !== opts.clientId || typeof payload.sub !== "string") {
       throw unauthorized("Your session expired. Sign in again.")
     }
     const groups = Array.isArray(payload["cognito:groups"]) ? (payload["cognito:groups"] as unknown[]).filter((g): g is string => typeof g === "string") : []
-    return { sub: payload.sub, username: String(payload.username ?? payload.sub), groups, issuedAt: typeof payload.iat === "number" ? payload.iat : 0, token }
+    const claims: TokenClaims = {
+      sub: payload.sub,
+      username: String(payload.username ?? payload.sub),
+      groups,
+      issuedAt: typeof payload.iat === "number" ? payload.iat : 0,
+      token,
+    }
+
+    const expMs = typeof payload.exp === "number" ? payload.exp * 1000 - 5_000 : now + 60_000
+    const expiresAt = Math.min(now + 60_000, expMs)
+    if (expiresAt > now) {
+      if (tokenCache.size >= 500) {
+        const oldestKey = tokenCache.keys().next().value
+        if (oldestKey) tokenCache.delete(oldestKey)
+      }
+      tokenCache.set(token, { claims, expiresAt })
+    }
+
+    return claims
   }
 }

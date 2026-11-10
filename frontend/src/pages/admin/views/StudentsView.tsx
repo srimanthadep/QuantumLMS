@@ -33,6 +33,9 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
   const [statusFilter, setStatusFilter] = useState("All")
   const [selectedBatch, setSelectedBatch] = useState("All")
 
+  // View student profile state
+  const [viewingStudent, setViewingStudent] = useState<AdminStudent | null>(null)
+
   // Edit student state
   const [editingStudent, setEditingStudent] = useState<AdminStudent | null>(null)
   const [editName, setEditName] = useState("")
@@ -163,7 +166,19 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                 </tr>
               ) : (
                 filteredStudents.map((s) => (
-                  <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
+                  <tr
+                    key={s.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setViewingStudent(s)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setViewingStudent(s)
+                      }
+                    }}
+                    className="cursor-pointer hover:bg-surface-2/60 transition-colors"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar src={s.avatar} name={s.name} size="md" />
@@ -230,12 +245,15 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                       </Badge>
                     </td>
 
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleOpenEdit(s)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenEdit(s)
+                          }}
                           className="h-8 px-2 text-xs text-primary-text hover:text-primary-hover"
                           title="Edit Learner"
                         >
@@ -244,7 +262,10 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setDeletingStudent(s)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeletingStudent(s)
+                          }}
                           className="h-8 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
                           title="Delete Learner"
                         >
@@ -259,6 +280,84 @@ export default function StudentsView({ store, onOpenManualEnrol }: StudentsViewP
           </table>
         </div>
       </div>
+
+      {/* Learner 360 Profile Dialog */}
+      <Dialog open={!!viewingStudent} onOpenChange={(open) => !open && setViewingStudent(null)}>
+        <DialogContent className="max-w-lg">
+          {viewingStudent && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3.5">
+                  <Avatar src={viewingStudent.avatar} name={viewingStudent.name} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <DialogTitle className="truncate">{viewingStudent.name}</DialogTitle>
+                      <Badge
+                        variant={
+                          viewingStudent.status === "Active"
+                            ? "default"
+                            : viewingStudent.status === "Completed"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {viewingStudent.status}
+                      </Badge>
+                    </div>
+                    <DialogDescription className="truncate mt-0.5">
+                      {viewingStudent.email} · Enrolled {viewingStudent.enrolledAt}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="rounded-xl border border-border bg-surface-2/60 p-3.5 space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active Track & Cohort</p>
+                  <p className="text-sm font-bold text-foreground">{viewingStudent.courseTitle}</p>
+                  <p className="text-xs font-mono text-muted-foreground">{viewingStudent.batchName}</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-border bg-surface-2/40 p-3 text-center">
+                    <p className="text-[11px] text-muted-foreground">Completion</p>
+                    <p className="mt-1 text-lg font-bold font-mono text-foreground">{viewingStudent.progress}%</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-surface-2/40 p-3 text-center">
+                    <p className="text-[11px] text-muted-foreground">Attendance</p>
+                    <p className={`mt-1 text-lg font-bold font-mono ${viewingStudent.attendanceRate >= 80 ? "text-success" : "text-danger"}`}>
+                      {viewingStudent.attendanceRate}%
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-surface-2/40 p-3 text-center">
+                    <p className="text-[11px] text-muted-foreground">Eval Score</p>
+                    <p className="mt-1 text-lg font-bold font-mono text-foreground">{viewingStudent.evaluationScore}/100</p>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const studentToEdit = viewingStudent
+                    setViewingStudent(null)
+                    handleOpenEdit(studentToEdit)
+                  }}
+                >
+                  <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+                  Edit Details
+                </Button>
+                <Button type="button" onClick={() => setViewingStudent(null)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Student Modal */}
       <Dialog open={!!editingStudent} onOpenChange={(open) => !open && setEditingStudent(null)}>

@@ -18,19 +18,16 @@ import {
 import { badRequest, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
 import { transcodeMultiQuality } from "../../services/video_transcode.js"
+import { invalidateCatalogCache } from "../student/courses.js"
 
 export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
 
   // 1. List all courses with stats
   app.get("/courses", async () => {
-    const courseRows = await db
-      .select()
-      .from(courses)
-      .orderBy(asc(courses.position), asc(courses.title))
-
-    // Query enrollments count, modules count and lessons count per course
-    const [enrolledCounts, moduleCounts, lessonCounts] = await Promise.all([
+    // Query courses, enrollments count, modules count and lessons count in parallel
+    const [courseRows, enrolledCounts, moduleCounts, lessonCounts] = await Promise.all([
+      db.select().from(courses).orderBy(asc(courses.position), asc(courses.title)),
       db.execute(sql`
         select course_id, count(*)::int as count
         from lms.enrollments
@@ -71,40 +68,40 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
   // 2. Get single course with its modules and lessons
   app.get<{ Params: { id: string } }>("/courses/:id", async (req) => {
-    const [course] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
-    if (!course) throw notFound("Course not found.")
-
-    const [modulesList, lessonsList, enrollmentsList, materialsList, assignmentsList] = await Promise.all([
+    const courseId = req.params.id
+    const [[course], modulesList, lessonsList, [enrolledCountRow], materialsList, assignmentsList] = await Promise.all([
+      db.select().from(courses).where(eq(courses.id, courseId)).limit(1),
       db
         .select()
         .from(course_modules)
-        .where(eq(course_modules.course_id, course.id))
+        .where(eq(course_modules.course_id, courseId))
         .orderBy(asc(course_modules.position)),
       db
         .select()
         .from(lessons)
-        .where(eq(lessons.course_id, course.id))
+        .where(eq(lessons.course_id, courseId))
         .orderBy(asc(lessons.position)),
       db
-        .select()
+        .select({ n: sql<number>`count(*)::int` })
         .from(enrollments)
-        .where(eq(enrollments.course_id, course.id)),
+        .where(eq(enrollments.course_id, courseId)),
       db
         .select()
         .from(course_materials)
-        .where(eq(course_materials.course_id, course.id))
+        .where(eq(course_materials.course_id, courseId))
         .orderBy(asc(course_materials.position)),
       db
         .select()
         .from(assignments)
-        .where(eq(assignments.course_id, course.id))
+        .where(eq(assignments.course_id, courseId))
         .orderBy(asc(assignments.due_at)),
     ])
+    if (!course) throw notFound("Course not found.")
 
     return {
       course: {
         ...course,
-        enrolled_students: enrollmentsList.length,
+        enrolled_students: enrolledCountRow?.n ?? 0,
         modules_count: modulesList.length,
         lessons_count: lessonsList.length,
       },
@@ -208,6 +205,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       type: "video",
       summary: `Welcome to ${input.title}. In this initial lesson we establish development tools, environment dependencies, and project structure.`,
     })
+    invalidateCatalogCache()
 
     reply.code(201)
     return {
@@ -248,6 +246,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       .set(patch)
       .where(eq(courses.id, req.params.id))
       .returning()
+    invalidateCatalogCache()
 
     return { ok: true, course: updated }
   })
@@ -258,6 +257,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     if (!existing) throw notFound("Course not found.")
 
     await db.delete(courses).where(eq(courses.id, req.params.id))
+    invalidateCatalogCache()
     return { ok: true, deleted: existing.id }
   })
 
@@ -290,6 +290,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         duration: input.duration,
       })
       .returning()
+    invalidateCatalogCache()
 
     reply.code(201)
     return { ok: true, module: moduleRow }
@@ -303,6 +304,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       .where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id)))
       .returning()
     if (!updated) throw notFound("Module not found.")
+    invalidateCatalogCache()
     return { ok: true, module: updated }
   })
 
@@ -310,6 +312,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     await db
       .delete(course_modules)
       .where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id)))
+    invalidateCatalogCache()
     return { ok: true, deleted: req.params.moduleId }
   })
 
@@ -354,6 +357,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         video_qualities: input.videoQualities || {},
       })
       .returning()
+    invalidateCatalogCache()
 
     reply.code(201)
     return { ok: true, lesson: lessonRow }
@@ -378,6 +382,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       .where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
       .returning()
     if (!updated) throw notFound("Lesson not found.")
+    invalidateCatalogCache()
     return { ok: true, lesson: updated }
   })
 
@@ -385,6 +390,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     await db
       .delete(lessons)
       .where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+    invalidateCatalogCache()
     return { ok: true, deleted: req.params.lessonId }
   })
 
@@ -658,6 +664,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
           video_url: qualities["720p"]?.url || qualities["1080p"]?.url || `/api/files/videos/${input.videoKey}`,
         })
         .where(eq(lessons.course_id, input.courseId))
+      invalidateCatalogCache()
 
       return {
         ok: true,
@@ -947,6 +954,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       video_url: chosenUrl,
       video_qualities: input.qualities || {},
     })
+    invalidateCatalogCache()
 
     // Create download/stream URL for the uploaded video
     let r2PresignedUrl: string = input.videoKey

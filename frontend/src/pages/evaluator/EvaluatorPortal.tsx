@@ -6,8 +6,8 @@ import PageTransition from "@/components/motion/PageTransition"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import EvaluatorDataProvider, { useEvaluator } from "./data/EvaluatorDataProvider"
 import { dueLabel, relTime, shortTitle } from "./data/derive"
-import DashboardPage from "./DashboardPage"
 
+const DashboardPage = lazy(() => import("./DashboardPage"))
 const QueuePage = lazy(() => import("./QueuePage"))
 const WorkspacePage = lazy(() => import("./WorkspacePage"))
 const ReevaluationsPage = lazy(() => import("./ReevaluationsPage"))

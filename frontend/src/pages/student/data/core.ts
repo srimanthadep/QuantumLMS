@@ -62,10 +62,10 @@ interface CoreResponse {
   reevaluations: ReevaluationRow[]
 }
 
-export async function loadCore(uid: string): Promise<CoreRaw> {
+export async function loadCore(uid?: string): Promise<CoreRaw> {
   const r = await api.get<CoreResponse>("/student/core", "Your profile could not be loaded.")
   return {
-    uid,
+    uid: uid ?? r.profile.id,
     profile: r.profile,
     courses: r.courses,
     modules: r.modules,

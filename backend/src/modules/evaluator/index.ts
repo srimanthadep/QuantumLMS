@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
-import type { AuthUser } from "../../auth/users.js"
+import { invalidateUserCache, type AuthUser } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
 import { evaluator_assignments, evaluator_profiles, rubrics, users } from "../../db/schema.js"
@@ -11,9 +11,12 @@ import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
 import { forbidden } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import type { Storage } from "../../storage/storage.js"
+import { invalidateCatalogCache } from "../student/courses.js"
 import { queueRoutes } from "./queue.js"
 import { reevaluationRoutes } from "./reevaluations.js"
 import { reportRoutes } from "./reports.js"
+
+const onboardedEvaluators = new Set<string>()
 
 export const isDemoEvaluator = (ctx: Pick<AppContext, "config">, u: AuthUser) =>
   ctx.config.DEMO_MODE && u.is_demo && u.email.toLowerCase() === ctx.config.DEMO_EVALUATOR_EMAIL.toLowerCase()
@@ -45,19 +48,19 @@ export async function onboardEvaluator(tx: Tx, user: AuthUser, ctx: Pick<AppCont
 }
 
 async function profileView(db: Tx, user: AuthUser) {
-  const [row] = await db.select({ u: users, p: evaluator_profiles }).from(evaluator_profiles).innerJoin(users, eq(users.id, evaluator_profiles.id)).where(eq(evaluator_profiles.id, user.id)).limit(1)
-  const stats = (
-    await db.execute(sql`
+  const [[row], statsRes, assignedRes] = await Promise.all([
+    db.select({ u: users, p: evaluator_profiles }).from(evaluator_profiles).innerJoin(users, eq(users.id, evaluator_profiles.id)).where(eq(evaluator_profiles.id, user.id)).limit(1),
+    db.execute(sql`
       select count(*) filter (where status in ('evaluated', 'released'))::int as finished,
              count(*) filter (where status = 'released')::int as released
-      from lms.evaluations where evaluator_id = ${user.id}::uuid`)
-  ).rows[0] as { finished: number; released: number }
-  const assigned = (
-    await db.execute(sql`
+      from lms.evaluations where evaluator_id = ${user.id}::uuid`),
+    db.execute(sql`
       select a.id, a.title, c.code as course_code from lms.evaluator_assignments ea
       join lms.assignments a on a.id = ea.assignment_id join lms.courses c on c.id = a.course_id
-      where ea.evaluator_id = ${user.id}::uuid order by a.due_at`)
-  ).rows as { id: string; title: string; course_code: string }[]
+      where ea.evaluator_id = ${user.id}::uuid order by a.due_at`),
+  ])
+  const stats = statsRes.rows[0] as { finished: number; released: number }
+  const assigned = assignedRes.rows as { id: string; title: string; course_code: string }[]
   return {
     id: row.u.id,
     email: row.u.email,
@@ -80,8 +83,10 @@ export async function evaluatorModule(app: FastifyInstance, ctx: AppContext) {
     // Accounts that joined the evaluators group after their first sign-in get their profile on first use.
     scope.addHook("preHandler", async (req) => {
       const u = me(req)
+      if (onboardedEvaluators.has(u.id)) return
       const has = await ctx.db.query.evaluator_profiles.findFirst({ where: eq(evaluator_profiles.id, u.id), columns: { id: true } })
       if (!has) await ctx.db.transaction((tx) => onboardEvaluator(tx, u, ctx))
+      onboardedEvaluators.add(u.id)
     })
 
     await queueRoutes(scope, ctx)
@@ -120,6 +125,7 @@ export async function evaluatorModule(app: FastifyInstance, ctx: AppContext) {
           })
           .where(eq(evaluator_profiles.id, u.id))
       })
+      if (b.full_name !== undefined) invalidateUserCache(u.id)
       return profileView(ctx.db, u)
     })
 
@@ -132,6 +138,8 @@ export async function evaluatorModule(app: FastifyInstance, ctx: AppContext) {
         await seedContent(tx, now, ctx.config.CAMPUS_TZ)
         await seedEvaluatorDemo(tx, { evaluatorId: u.id, anchor: now, tz: ctx.config.CAMPUS_TZ, storage: ctx.storage, demoStudentEmail: ctx.config.DEMO_STUDENT_EMAIL })
       })
+      invalidateCatalogCache()
+      invalidateUserCache(u.id)
       const demo = DEMO_ACCOUNTS.find((a) => a.role === "Evaluator")
       if (demo) {
         await ctx.cognito.setPassword(u.username, demo.password).catch((err) => req.log.warn({ err }, "demo password reset failed"))

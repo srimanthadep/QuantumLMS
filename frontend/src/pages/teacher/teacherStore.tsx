@@ -6,6 +6,7 @@ import type {
   CourseItem,
   DoubtItem,
   LessonItem,
+  LessonMaterial,
   LiveAttendanceRecord,
   LiveSessionItem,
   ModuleAssignmentItem,
@@ -47,12 +48,21 @@ function load<T>(key: string, fallback: T): T {
   }
   return fallback
 }
+const teacherSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 function save(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    // storage unavailable: state stays in memory
-  }
+  const prev = teacherSaveTimers.get(key)
+  if (prev) clearTimeout(prev)
+  teacherSaveTimers.set(
+    key,
+    setTimeout(() => {
+      teacherSaveTimers.delete(key)
+      try {
+        localStorage.setItem(key, JSON.stringify(value))
+      } catch {
+        // storage unavailable: state stays in memory
+      }
+    }, 250),
+  )
 }
 
 export const assignmentKey = (courseId: string, moduleId: string) => `${courseId}:${moduleId}`

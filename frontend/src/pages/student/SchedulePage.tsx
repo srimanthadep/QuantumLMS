@@ -63,7 +63,7 @@ import ProgressRing from "@/components/charts/ProgressRing"
 import AnimatedNumber from "@/components/motion/AnimatedNumber"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import DateTile from "@/components/student/DateTile"
-import type { AnnouncementItem, EventItem, TimetableSlot } from "./studentTypes"
+import type { AnnouncementItem, EventItem, StudentNavPage, TimetableSlot } from "./studentTypes"
 import { campusParts, campusTime, downloadTextFile, fmtDate, isoDay } from "./studentUtils"
 import { useStudentResource } from "./data/StudentDataProvider"
 import { useAttendance, useReminders, useTimetable } from "./data/hooks"
@@ -269,6 +269,7 @@ function Timetable({ onToast, onNavigate }: { onToast: (m: string) => void; onNa
         <div className="flex items-center justify-between gap-3">
           <SegmentedControl
             size="sm"
+            aria-label="Schedule view mode"
             value={viewMode}
             onChange={(v) => setViewMode(v as "weekly" | "monthly")}
             options={[

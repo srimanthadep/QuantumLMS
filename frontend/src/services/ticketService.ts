@@ -353,20 +353,24 @@ export const getTicketStats = async (): Promise<TicketStats> => {
 }
 
 // REALTIME SUBSCRIPTION FOR TICKET UPDATES
+let sharedPollTimer: ReturnType<typeof setInterval> | null = null
+
 export const subscribeToTickets = (callback: () => void): (() => void) => {
   ticketListeners.add(callback)
 
-  // Polling interval to automatically catch updates from other users/tabs
-  const intervalId = setInterval(() => {
-    try {
-      callback()
-    } catch {
-      // safe error handling
-    }
-  }, 8000)
+  // Shared singleton polling interval across all active subscribers
+  if (!sharedPollTimer) {
+    sharedPollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+      notifyTicketListeners()
+    }, 15_000)
+  }
 
   return () => {
     ticketListeners.delete(callback)
-    clearInterval(intervalId)
+    if (ticketListeners.size === 0 && sharedPollTimer) {
+      clearInterval(sharedPollTimer)
+      sharedPollTimer = null
+    }
   }
 }

@@ -81,6 +81,8 @@ export type SignInResult = "done" | "mfa" | "confirm-email" | "new-password"
 /** Signs in. Resolves to the next step when Cognito needs something more than the password. */
 export async function signInWithEmail(email: string, password: string): Promise<SignInResult> {
   if (!isAuthConfigured) throw new AuthError("Sign-in isn't configured on this server yet.")
+  cachedAccessToken = null
+  cachedTokenExpiresAt = 0
   // A previous account may still be signed in on this device.
   await signOut().catch(() => undefined)
   try {
@@ -168,62 +170,89 @@ export async function currentSignIn(): Promise<{ userId: string; email: string }
 }
 
 let cachedAccessToken: string | null = null
+let cachedTokenExpiresAt = 0
+let inFlightToken: Promise<string | null> | null = null
+
+function parseTokenExpiryMs(jwt: string): number {
+  try {
+    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))
+    if (typeof payload.exp === "number") {
+      return Math.min(Date.now() + 60_000, payload.exp * 1000 - 30_000)
+    }
+  } catch {}
+  return Date.now() + 60_000
+}
 
 /** A fresh access token for API calls (Amplify refreshes it when it's about to expire), or null when signed out. */
 export async function accessToken(): Promise<string | null> {
   if (!isAuthConfigured) return null
-  try {
-    const session = await fetchAuthSession()
-    const token = session.tokens?.accessToken?.toString()
-    if (token) {
-      cachedAccessToken = token
-      return token
-    }
-  } catch {
-    // Refreshing via GetTokensFromRefreshToken fails on cognito-local emulator with 500
+  if (cachedAccessToken && Date.now() < cachedTokenExpiresAt) {
+    return cachedAccessToken
   }
+  if (inFlightToken) return inFlightToken
 
-  // Automatic recovery for local dev / demo accounts: re-authenticate seamlessly
-  try {
-    let email = "admin@lms.com"
-    const rawUser = typeof window !== "undefined" ? localStorage.getItem("quantum_current_user") : null
-    const role = typeof window !== "undefined" ? localStorage.getItem("quantum_user_role") : null
-    if (rawUser) {
-      try {
-        email = JSON.parse(rawUser).email || email
-      } catch {}
-    } else if (role === "Student") {
-      email = "niharika@lms.com"
-    } else if (role === "Super Admin") {
-      email = "superadmin@lms.com"
-    } else if (role === "Evaluator") {
-      email = "eval@lms.com"
-    } else if (role === "Support") {
-      email = "maheshwar@lms.com"
-    } else if (role === "Teacher") {
-      email = "shanmuk@lms.com"
+  inFlightToken = (async () => {
+    try {
+      const session = await fetchAuthSession()
+      const token = session.tokens?.accessToken?.toString()
+      if (token) {
+        cachedAccessToken = token
+        cachedTokenExpiresAt = parseTokenExpiryMs(token)
+        return token
+      }
+    } catch {
+      // Refreshing via GetTokensFromRefreshToken fails on cognito-local emulator with 500
     }
 
-    if (email) {
-      const res = await signIn({ username: email.trim().toLowerCase(), password: "123456", options: { authFlowType } })
-      if (res.isSignedIn) {
-        const fresh = await fetchAuthSession()
-        const freshToken = fresh.tokens?.accessToken?.toString() ?? null
-        if (freshToken) {
-          cachedAccessToken = freshToken
-          return freshToken
+    // Automatic recovery for local dev / demo accounts: re-authenticate seamlessly
+    try {
+      let email = "admin@lms.com"
+      const rawUser = typeof window !== "undefined" ? localStorage.getItem("quantum_current_user") : null
+      const role = typeof window !== "undefined" ? localStorage.getItem("quantum_user_role") : null
+      if (rawUser) {
+        try {
+          email = JSON.parse(rawUser).email || email
+        } catch {}
+      } else if (role === "Student") {
+        email = "niharika@lms.com"
+      } else if (role === "Super Admin") {
+        email = "superadmin@lms.com"
+      } else if (role === "Evaluator") {
+        email = "eval@lms.com"
+      } else if (role === "Support") {
+        email = "maheshwar@lms.com"
+      } else if (role === "Teacher") {
+        email = "shanmuk@lms.com"
+      }
+
+      if (email) {
+        const res = await signIn({ username: email.trim().toLowerCase(), password: "123456", options: { authFlowType } })
+        if (res.isSignedIn) {
+          const fresh = await fetchAuthSession()
+          const freshToken = fresh.tokens?.accessToken?.toString() ?? null
+          if (freshToken) {
+            cachedAccessToken = freshToken
+            cachedTokenExpiresAt = parseTokenExpiryMs(freshToken)
+            return freshToken
+          }
         }
       }
+    } catch {
+      // Re-auth fallback
     }
-  } catch {
-    // Re-auth fallback
-  }
 
-  return cachedAccessToken
+    return cachedAccessToken
+  })().finally(() => {
+    inFlightToken = null
+  })
+
+  return inFlightToken
 }
 
 /** Ends the session on this device. ("Sign out of all devices" goes through the API, which revokes every session.) */
 export async function signOutHere() {
+  cachedAccessToken = null
+  cachedTokenExpiresAt = 0
   await signOut().catch(() => undefined)
 }
 

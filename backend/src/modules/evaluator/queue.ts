@@ -95,8 +95,8 @@ export async function loadQueue(db: Tx, user: AuthUser) {
 export type QueueItem = Awaited<ReturnType<typeof loadQueue>>[number]
 
 /** The assignments the evaluator marks, with rubric details and how far marking has got. */
-async function loadAssessments(db: Tx, user: AuthUser, items: QueueItem[]) {
-  const rows = (
+async function queryAssessmentRows(db: Tx, user: AuthUser) {
+  return (
     await db.execute(sql`
       select a.id, a.title, a.description, a.due_at, a.max_marks, c.code as course_code, c.title as course_title,
              rb.title as rubric_title, (select count(*) from lms.rubric_criteria rc where rc.rubric_id = rb.id)::int as criteria_count,
@@ -108,6 +108,9 @@ async function loadAssessments(db: Tx, user: AuthUser, items: QueueItem[]) {
       where ea.evaluator_id = ${user.id}::uuid
       order by a.due_at asc`)
   ).rows as Record<string, any>[]
+}
+
+function buildAssessments(rows: Record<string, any>[], items: QueueItem[]) {
   return rows.map((a) => {
     const mine = items.filter((i) => i.assignment_id === a.id)
     const count = (s: QueueState) => mine.filter((i) => i.state === s).length
@@ -177,8 +180,8 @@ export async function queueRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.get("/api/evaluator/queue", async (req) => {
     const u = me(req)
-    const items = await loadQueue(db, u)
-    return { items, assessments: await loadAssessments(db, u, items) }
+    const [items, assessmentRows] = await Promise.all([loadQueue(db, u), queryAssessmentRows(db, u)])
+    return { items, assessments: buildAssessments(assessmentRows, items) }
   })
 
   app.get<{ Params: { id: string } }>("/api/evaluator/submissions/:id", async (req) => {

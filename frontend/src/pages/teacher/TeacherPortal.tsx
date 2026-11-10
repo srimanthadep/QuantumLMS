@@ -5,8 +5,8 @@ import type { NotificationSource, ShellNotification } from "@/components/shell/N
 import PageTransition from "@/components/motion/PageTransition"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import { TeacherDataProvider, useTeacherData } from "./teacherStore"
-import TeacherDashboardPage from "./TeacherDashboardPage"
 
+const TeacherDashboardPage = lazy(() => import("./TeacherDashboardPage"))
 const CoursesPage = lazy(() => import("./CoursesPage"))
 const CourseWorkspacePage = lazy(() => import("./course/CourseWorkspacePage"))
 const LiveClassesPage = lazy(() => import("./LiveClassesPage"))

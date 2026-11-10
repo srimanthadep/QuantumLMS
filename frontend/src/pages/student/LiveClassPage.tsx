@@ -76,9 +76,18 @@ interface TranscriptLine {
   text: string
 }
 
+function LiveElapsedClock({ initialSeconds }: { initialSeconds: number }) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(initialSeconds)
+  useEffect(() => {
+    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return <>{formatClock(elapsedSeconds)}</>
+}
+
 export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment }: LiveClassPageProps) {
   const data = useStudentData()
-  const user = data.profile ?? {}
+  const user = data.profile
   const assignments = data.view?.assignments ?? []
 
   // Active Live Session details
@@ -102,13 +111,6 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
       "State Reducers for In-Class Lab",
     ],
   }
-
-  // Live Timer
-  const [elapsedSeconds, setElapsedSeconds] = useState(1455) // ~24m 15s in
-  useEffect(() => {
-    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   // Live Interactive States
   const [handRaised, setHandRaised] = useState(false)
@@ -158,8 +160,8 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
     if (!chatInput.trim()) return
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
-      sender: user.name || "Me",
-      avatar: user.avatar,
+      sender: user?.full_name || "Me",
+      avatar: user?.avatar_url ?? undefined,
       isMe: true,
       time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
       text: chatInput.trim(),
@@ -213,7 +215,7 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
 
   // Assessment Upload State
   const activeAssignment: AssignmentData =
-    assignments?.find((a) => a.courseCode === session.courseCode || a.course?.includes("Generative")) ||
+    assignments?.find((a) => a.courseId === session.courseCode || a.course?.includes("Generative")) ||
     assignments?.[0] || {
       id: "as-live-1",
       title: "In-Class Milestone: Cyclical Graph Checkpoint Reducer",
@@ -295,7 +297,7 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
               <UserCheck className="h-4 w-4 text-success" />
               <span>Attendance: Marked Present</span>
               <span className="rounded bg-success/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success-text">
-                {formatClock(elapsedSeconds)}
+                <LiveElapsedClock initialSeconds={1455} />
               </span>
             </div>
             <div className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground shadow-xs">
@@ -356,7 +358,7 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
                   LIVE
                 </span>
                 <span className="rounded-md bg-black/60 px-2.5 py-1 text-xs font-mono tabular-nums text-white/90 backdrop-blur-sm border border-white/10">
-                  {formatClock(elapsedSeconds)}
+                  <LiveElapsedClock initialSeconds={1455} />
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -543,7 +545,6 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
                 {/* Chat Input Bar */}
                 <form onSubmit={handleSendChat} className="shrink-0 border-t border-border p-3 flex items-center gap-2 bg-surface">
                   <Input
-                    size="sm"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask a question or reply..."
@@ -676,7 +677,6 @@ export default function LiveClassPage({ onNavigate, onToast, onSubmitAssignment 
                     {/* GitHub Repo Link */}
                     <Field label="GitHub Repository (Optional)" hint="Link to public or shared repo">
                       <Input
-                        size="sm"
                         leading={<GitBranch className="h-3.5 w-3.5" />}
                         value={repoUrl}
                         onChange={(e) => setRepoUrl(e.target.value)}

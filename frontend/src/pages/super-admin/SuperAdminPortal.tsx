@@ -1,4 +1,4 @@
-import { Suspense, useState, useMemo, useEffect } from "react"
+import { lazy, Suspense, useState, useMemo, useEffect, useCallback } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
 import PageTransition from "@/components/motion/PageTransition"
@@ -13,21 +13,21 @@ import {
 } from "@/components/AdminModals"
 
 // Super Admin platform console views
-import PlatformHealthView from "./views/PlatformHealthView"
-import RbacView from "./views/RbacView"
-import AuditLogsView from "./views/AuditLogsView"
-import AiUsageView from "./views/AiUsageView"
-import RevenueView from "./views/RevenueView"
-import SuperAdminSettingsView from "./views/SuperAdminSettingsView"
+const PlatformHealthView = lazy(() => import("./views/PlatformHealthView"))
+const RbacView = lazy(() => import("./views/RbacView"))
+const AuditLogsView = lazy(() => import("./views/AuditLogsView"))
+const AiUsageView = lazy(() => import("./views/AiUsageView"))
+const RevenueView = lazy(() => import("./views/RevenueView"))
+const SuperAdminSettingsView = lazy(() => import("./views/SuperAdminSettingsView"))
 
 // Academy admin views (Super Admin has complete edit & delete authority)
-import OverviewView from "../admin/views/OverviewView"
-import CoursesView from "../admin/views/CoursesView"
-import BatchesView from "../admin/views/BatchesView"
-import TeachersView from "../admin/views/TeachersView"
-import StudentsView from "../admin/views/StudentsView"
-import OrdersView from "../admin/views/OrdersView"
-import ReportsView from "../admin/views/ReportsView"
+const OverviewView = lazy(() => import("../admin/views/OverviewView"))
+const CoursesView = lazy(() => import("../admin/views/CoursesView"))
+const BatchesView = lazy(() => import("../admin/views/BatchesView"))
+const TeachersView = lazy(() => import("../admin/views/TeachersView"))
+const StudentsView = lazy(() => import("../admin/views/StudentsView"))
+const OrdersView = lazy(() => import("../admin/views/OrdersView"))
+const ReportsView = lazy(() => import("../admin/views/ReportsView"))
 
 interface SuperAdminPortalProps {
   currentUser?: CurrentUser
@@ -127,11 +127,17 @@ function useSuperAdminNotifications(
     return out
   }, [auditLogs, batches, orders, read])
 
-  return {
-    items: entries,
-    onSelect: (n) => setRead((prev) => new Set([...prev, n.id])),
-    onMarkAllRead: () => setRead(new Set(entries.map((e) => e.id))),
-  }
+  const onSelect = useCallback((n: ShellNotification) => setRead((prev) => new Set([...prev, n.id])), [])
+  const onMarkAllRead = useCallback(() => setRead(new Set(entries.map((e) => e.id))), [entries])
+
+  return useMemo(
+    () => ({
+      items: entries,
+      onSelect,
+      onMarkAllRead,
+    }),
+    [entries, onSelect, onMarkAllRead],
+  )
 }
 
 export default function SuperAdminPortal({

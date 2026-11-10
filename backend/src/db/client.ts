@@ -18,6 +18,8 @@ export function createPool(config: Pick<Config, "DATABASE_URL" | "DATABASE_SSL" 
     max: config.DATABASE_POOL_MAX,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
     application_name: "quantum-lms-api",
   })
 

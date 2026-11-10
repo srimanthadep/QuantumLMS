@@ -109,7 +109,13 @@ function AdminRoute({ role }: { role: "Admin" | "Super Admin" }) {
       load={() => api.get<{ stats: any }>("/admin/stats").then(() => ({ id: "admin" }))}
       errorTitle={`The ${role.toLowerCase()} portal can't connect`}
     >
-      {() => <AdminPortal role={role} currentUser={p.currentUser} onToast={p.onToast} />}
+      {() =>
+        role === "Super Admin" ? (
+          <SuperAdminPortal currentUser={p.currentUser} onToast={p.onToast} />
+        ) : (
+          <AdminPortal role={role} currentUser={p.currentUser} onToast={p.onToast} />
+        )
+      }
     </CognitoGate>
   )
 }

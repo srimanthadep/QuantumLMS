@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import {
+  ArrowLeft,
   BookOpen,
   Plus,
   Trash2,
@@ -24,6 +25,11 @@ import {
   Check,
   ChevronRight,
   Loader2,
+  ChevronDown,
+  ChevronsUpDown,
+  Settings2,
+  Star,
+  type LucideIcon,
 } from "lucide-react"
 import {
   Dialog,
@@ -38,7 +44,11 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CustomSelect } from "@/components/ui/select"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Progress } from "@/components/ui/progress"
+import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
+import { formatINR, seatPercent, themeFor, CATEGORIES, STATUSES } from "./courses/courseTheme"
+import { NavItem, PanelHeader, WorkspaceEmpty, dueInfo } from "./courses/WorkspaceParts"
 import type { AdminCourse } from "@/data/adminStore"
 
 interface CourseModuleItem {
@@ -107,6 +117,7 @@ export default function CourseEditorModal({
 }: CourseEditorModalProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("curriculum")
   const [loading, setLoading] = useState(false)
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set())
 
   // Remote data
   const [modules, setModules] = useState<CourseModuleItem[]>([])
@@ -186,6 +197,7 @@ export default function CourseEditorModal({
       }>(`/admin/courses/${course.id}`)
 
       setModules(res.modules || [])
+      setOpenModules(new Set((res.modules || []).map((m) => m.id)))
       setLessons(res.lessons || [])
       setMaterials(res.materials || [])
       setAssignmentsList(res.assignments || [])
@@ -230,6 +242,7 @@ export default function CourseEditorModal({
       })
       if (res.module) {
         setModules((prev) => [...prev, res.module])
+        setOpenModules((prev) => new Set(prev).add(res.module.id))
         onToast(`Added chapter "${res.module.title}"`)
         setIsAddModuleOpen(false)
         setNewModuleTitle("")
@@ -498,586 +511,577 @@ export default function CourseEditorModal({
     }
   }
 
+  // ---- Derived workspace numbers -------------------------------------------------
+  const totalMinutes = lessons.reduce((sum, l) => sum + (l.minutes || 0), 0)
+  const runtimeLabel = totalMinutes >= 60 ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` : `${totalMinutes}m`
+  const videoLessons = lessons.filter((l) => l.type === "video")
+  const videosReady = videoLessons.filter((l) => l.video_url).length
+  const { gradient, icon: CourseIcon } = themeFor(course.category)
+  const seatPct = seatPercent(course)
+  const allOpen = modules.length > 0 && openModules.size === modules.length
+
+  const toggleModule = (id: string) =>
+    setOpenModules((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
+    { id: "curriculum", label: "Curriculum", icon: Layers, count: modules.length },
+    { id: "materials", label: "Materials", icon: FileText, count: materials.length },
+    { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
+    { id: "settings", label: "Settings", icon: Settings2 },
+  ]
+
+  const statusDot = course.status === "Published" ? "bg-emerald-300" : course.status === "Draft" ? "bg-amber-300" : "bg-slate-300"
+
+  const openNewAssignment = () => {
+    setEditingAssignment(null)
+    setAssignTitle("")
+    setAssignDesc("")
+    setAssignMarks(100)
+    setAssignPriority("Normal")
+    setIsAddAssignmentOpen(true)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
-        {/* Modal Top Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-surface-2/60">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <DialogTitle className="text-lg font-bold text-foreground">{course.title}</DialogTitle>
-                <Badge variant="outline" className="text-xs">
-                  {course.category}
-                </Badge>
-                <Badge
-                  variant={course.status === "Published" ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {course.status}
-                </Badge>
+      <DialogContent
+        hideClose
+        containerClassName="p-0 sm:p-0"
+        className="w-screen h-dvh max-w-none max-h-dvh flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-none border-0 bg-background text-foreground shadow-none"
+      >
+        {/* ===== Hero header ===== */}
+        <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-br text-white", gradient)}>
+          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-56 w-56 rotate-[-10deg] text-white/10" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" aria-hidden="true" />
+          <div className="relative px-4 py-4 sm:px-8 sm:py-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5 text-[11px] font-medium">
+                  <Button variant="glass" size="sm" onClick={() => onOpenChange(false)} leftIcon={<ArrowLeft aria-hidden="true" />}>
+                    Back to courses
+                  </Button>
+                  <span className="rounded-full bg-white/20 px-2.5 py-1 backdrop-blur">{course.category}</span>
+                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 backdrop-blur">
+                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} aria-hidden="true" />
+                    {course.status}
+                  </span>
+                </div>
+                <DialogTitle className="mt-3 truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">{course.title}</DialogTitle>
+                <DialogDescription className="mt-1 text-sm text-white/80">
+                  Led by {course.instructor}. Build the curriculum, attach materials and set assignments.
+                </DialogDescription>
               </div>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Manage video chapters, materials, assignments, and curriculum architecture
-              </DialogDescription>
+
+              <dl className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: "Chapters", value: String(modules.length) },
+                  { label: "Lessons", value: String(lessons.length) },
+                  { label: "Runtime", value: runtimeLabel },
+                  { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
+                ].map((s) => (
+                  <div key={s.label} className="min-w-[96px] rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{s.label}</dt>
+                    <dd className="text-lg font-bold tabular-nums">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-border px-6 bg-surface">
-          <button
-            type="button"
-            onClick={() => setActiveTab("curriculum")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "curriculum"
-                ? "border-primary text-primary-text"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            Chapters & Videos ({modules.length})
-          </button>
+        {/* ===== Body: sidebar + panel ===== */}
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          {/* Desktop sidebar */}
+          <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-surface p-4 lg:flex">
+            <nav aria-label="Workspace sections" className="flex flex-col gap-1">
+              {tabs.map((t) => (
+                <NavItem key={t.id} icon={t.icon} label={t.label} count={t.count} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} />
+              ))}
+            </nav>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("materials")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "materials"
-                ? "border-primary text-primary-text"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            Materials ({materials.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("assignments")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "assignments"
-                ? "border-primary text-primary-text"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <GraduationCap className="h-4 w-4" />
-            Assignments ({assignmentsList.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("settings")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "settings"
-                ? "border-primary text-primary-text"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Edit2 className="h-4 w-4" />
-            Course Settings
-          </button>
-        </div>
-
-        {/* Tab Contents */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="mt-2 text-sm">Loading course details...</p>
+            <div className="space-y-3 rounded-2xl border border-border bg-surface-2/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Seats</span>
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {course.enrolledStudents} / {course.capacity}
+                  </span>
+                </div>
+                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
+              </div>
+              <dl className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Tuition</dt>
+                  <dd className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Revenue</dt>
+                  <dd className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Rating</dt>
+                  <dd className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
+                    <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
+                    {course.rating}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Completion</dt>
+                  <dd className="font-semibold tabular-nums text-foreground">{course.completionRate}%</dd>
+                </div>
+              </dl>
+              <p className="truncate border-t border-border pt-3 text-[11px] tabular-nums text-subtle-foreground" title={course.id}>
+                ID · {course.id}
+              </p>
             </div>
-          ) : (
-            <>
-              {/* TAB 1: CURRICULUM (CHAPTERS & VIDEO LESSONS) */}
-              {activeTab === "curriculum" && (
-                <div className="space-y-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-foreground">Course Curriculum</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Organize chapters and upload video lectures with neural transcripts.
-                      </p>
-                    </div>
+          </aside>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() => setIsAddModuleOpen(true)}
-                      >
-                        New Chapter
-                      </Button>
-                      <Button
-                        size="sm"
-                        leftIcon={<Video className="h-4 w-4" />}
-                        onClick={() => onOpenVideoUpload(course.id)}
-                      >
-                        Upload Video Chapter
-                      </Button>
-                    </div>
-                  </div>
+          {/* Mobile section pills */}
+          <nav aria-label="Workspace sections" className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:hidden">
+            {tabs.map((t) => (
+              <NavItem key={t.id} pill icon={t.icon} label={t.label} count={t.count} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} />
+            ))}
+          </nav>
 
-                  {modules.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border p-12 text-center bg-surface-2/30">
-                      <Layers className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h4 className="text-sm font-semibold text-foreground">No chapters in this course yet</h4>
-                      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
-                        Add your first chapter or upload a video lecture to automatically generate multi-quality streaming and synchronized transcripts.
-                      </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setIsAddModuleOpen(true)}>
-                          Add Chapter
-                        </Button>
-                        <Button size="sm" onClick={() => onOpenVideoUpload(course.id)}>
-                          Upload Video Lecture
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {modules.map((m, mIdx) => {
-                        const moduleLessons = lessons.filter((l) => l.module_id === m.id)
-                        return (
-                          <div
-                            key={m.id}
-                            className="rounded-xl border border-border bg-surface-2/40 overflow-hidden shadow-xs"
+          {/* Panel */}
+          <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+            <div className="w-full space-y-5 px-5 py-6 sm:px-8">
+              {loading ? (
+                <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface-2/60" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* ---------- CURRICULUM ---------- */}
+                  {activeTab === "curriculum" && (
+                    <div className="space-y-5">
+                      <PanelHeader title="Curriculum" description="Organise chapters and lessons. Upload video lectures to get transcripts and multi-quality streaming.">
+                        {modules.length > 1 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            leftIcon={<ChevronsUpDown aria-hidden="true" />}
+                            onClick={() => setOpenModules(allOpen ? new Set() : new Set(modules.map((m) => m.id)))}
                           >
-                            {/* Chapter Bar */}
-                            <div className="flex items-center justify-between px-4 py-3 bg-surface-2 border-b border-border/60">
-                              <div className="flex items-center gap-2.5">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary-soft text-primary-text text-xs font-bold">
-                                  {mIdx + 1}
-                                </span>
-                                <div>
-                                  <h4 className="text-sm font-bold text-foreground">{m.title}</h4>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{moduleLessons.length} lessons</span>
-                                    <span>·</span>
-                                    <span>{m.duration || "1 Hour"}</span>
-                                  </div>
-                                </div>
-                              </div>
+                            {allOpen ? "Collapse all" : "Expand all"}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" leftIcon={<Plus aria-hidden="true" />} onClick={() => setIsAddModuleOpen(true)}>
+                          New chapter
+                        </Button>
+                        <Button size="sm" leftIcon={<Video aria-hidden="true" />} onClick={() => onOpenVideoUpload(course.id)}>
+                          Upload video
+                        </Button>
+                      </PanelHeader>
 
-                              <div className="flex items-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setTargetModuleId(m.id)
-                                    setIsAddLessonOpen(true)
-                                  }}
-                                  leftIcon={<Plus className="h-3.5 w-3.5" />}
-                                  className="h-7 text-xs"
-                                >
-                                  Add Lesson
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => onOpenVideoUpload(course.id, m.id)}
-                                  leftIcon={<Video className="h-3.5 w-3.5 text-primary" />}
-                                  className="h-7 text-xs"
-                                >
-                                  Upload Video
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setEditingModule(m)
-                                    setEditModTitle(m.title)
-                                    setEditModDuration(m.duration)
-                                  }}
-                                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteModule(m.id, m.title)}
-                                  className="h-7 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Lessons List within Chapter */}
-                            <div className="divide-y divide-border/50">
-                              {moduleLessons.length === 0 ? (
-                                <div className="p-4 text-center text-xs text-muted-foreground">
-                                  No lessons in this chapter yet. Click "Add Lesson" or "Upload Video".
-                                </div>
-                              ) : (
-                                moduleLessons.map((l) => (
-                                  <div
-                                    key={l.id}
-                                    className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-3/40 transition-colors"
+                      {modules.length === 0 ? (
+                        <WorkspaceEmpty icon={Layers} title="No chapters yet" description="Add a chapter to group lessons, or upload a video lecture to get started.">
+                          <Button size="sm" variant="outline" onClick={() => setIsAddModuleOpen(true)}>
+                            Add chapter
+                          </Button>
+                          <Button size="sm" onClick={() => onOpenVideoUpload(course.id)}>
+                            Upload video lecture
+                          </Button>
+                        </WorkspaceEmpty>
+                      ) : (
+                        <ol className="space-y-3">
+                          {modules.map((m, mIdx) => {
+                            const moduleLessons = lessons.filter((l) => l.module_id === m.id)
+                            const isOpen = openModules.has(m.id)
+                            return (
+                              <li key={m.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-xs">
+                                <div className="flex items-center gap-2 px-3 py-2.5 sm:px-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleModule(m.id)}
+                                    aria-expanded={isOpen}
+                                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
                                   >
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface text-muted-foreground">
-                                        {l.type === "video" ? (
-                                          <Video className="h-3.5 w-3.5 text-primary-text" />
-                                        ) : l.type === "lab" ? (
-                                          <Sparkles className="h-3.5 w-3.5 text-warning" />
-                                        ) : (
-                                          <FileText className="h-3.5 w-3.5 text-foreground" />
-                                        )}
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-semibold text-foreground truncate">
-                                            {l.title}
-                                          </span>
-                                          {l.video_url && (
-                                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 bg-primary-soft text-primary-text">
-                                              Video Ready
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <div className="text-[11px] text-muted-foreground">
-                                          {l.duration || `${l.minutes}m`} · {l.type.toUpperCase()}
-                                        </div>
-                                      </div>
-                                    </div>
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary-text">
+                                      {mIdx + 1}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-sm font-semibold text-foreground">{m.title}</span>
+                                      <span className="block text-xs text-muted-foreground">
+                                        {moduleLessons.length} {moduleLessons.length === 1 ? "lesson" : "lessons"} · {m.duration || "1 Hour"}
+                                      </span>
+                                    </span>
+                                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
+                                  </button>
 
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditingLesson(l)}
-                                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                      >
-                                        <Edit2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDeleteLesson(l.id, l.title)}
-                                        className="h-7 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </div>
+                                  <div className="flex shrink-0 items-center gap-0.5">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="hidden sm:inline-flex"
+                                      leftIcon={<Plus aria-hidden="true" />}
+                                      onClick={() => {
+                                        setTargetModuleId(m.id)
+                                        setIsAddLessonOpen(true)
+                                        setOpenModules((prev) => new Set(prev).add(m.id))
+                                      }}
+                                    >
+                                      Lesson
+                                    </Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Upload video to ${m.title}`}
+                                      title="Upload video"
+                                      onClick={() => onOpenVideoUpload(course.id, m.id)}
+                                    >
+                                      <Video aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Rename ${m.title}`}
+                                      title="Edit chapter"
+                                      onClick={() => {
+                                        setEditingModule(m)
+                                        setEditModTitle(m.title)
+                                        setEditModDuration(m.duration)
+                                      }}
+                                    >
+                                      <Edit2 aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Delete ${m.title}`}
+                                      title="Delete chapter"
+                                      className="text-danger hover:bg-danger/10 hover:text-danger"
+                                      onClick={() => handleDeleteModule(m.id, m.title)}
+                                    >
+                                      <Trash2 aria-hidden="true" />
+                                    </Button>
                                   </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB 2: COURSE MATERIALS */}
-              {activeTab === "materials" && (
-                <div className="space-y-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-foreground">Course Materials & Downloads</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Upload lecture slides, research papers, Jupyter notebooks, and datasets.
-                      </p>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      leftIcon={<Upload className="h-4 w-4" />}
-                      onClick={() => setIsAddMaterialOpen(true)}
-                    >
-                      Upload Material
-                    </Button>
-                  </div>
-
-                  {materials.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border p-12 text-center bg-surface-2/30">
-                      <FileText className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h4 className="text-sm font-semibold text-foreground">No course materials uploaded yet</h4>
-                      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
-                        Share slide decks, code repositories, reference PDFs, or sample datasets with enrolled learners.
-                      </p>
-                      <Button size="sm" onClick={() => setIsAddMaterialOpen(true)}>
-                        Upload Material
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {materials.map((mat) => {
-                        const IconComponent =
-                          mat.type === "Code Notebook"
-                            ? FileCode
-                            : mat.type === "Dataset"
-                            ? Database
-                            : mat.type === "Slides"
-                            ? Presentation
-                            : FileText
-
-                        return (
-                          <div
-                            key={mat.id}
-                            className="flex flex-col justify-between rounded-xl border border-border bg-surface-2/40 p-4 hover:border-primary-border transition-colors shadow-xs"
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-primary">
-                                    <IconComponent className="h-4 w-4" />
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {mat.type}
-                                  </Badge>
                                 </div>
-                                <span className="text-xs font-mono text-muted-foreground">{mat.size}</span>
-                              </div>
 
-                              <div>
-                                <h4 className="text-sm font-bold text-foreground leading-snug">{mat.title}</h4>
-                                {mat.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                    {mat.description}
-                                  </p>
+                                {isOpen && (
+                                  <div className="border-t border-border bg-surface-2/30">
+                                    {moduleLessons.length === 0 ? (
+                                      <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+                                        <p className="text-xs text-muted-foreground">This chapter has no lessons yet.</p>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            leftIcon={<Plus aria-hidden="true" />}
+                                            onClick={() => {
+                                              setTargetModuleId(m.id)
+                                              setIsAddLessonOpen(true)
+                                            }}
+                                          >
+                                            Add lesson
+                                          </Button>
+                                          <Button size="sm" variant="outline" leftIcon={<Video aria-hidden="true" />} onClick={() => onOpenVideoUpload(course.id, m.id)}>
+                                            Upload video
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <ul className="divide-y divide-border/60">
+                                        {moduleLessons.map((l, lIdx) => (
+                                          <li key={l.id} className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2/60 sm:px-4">
+                                            <span className="w-5 shrink-0 text-center tabular-nums text-[11px] font-medium text-subtle-foreground">{lIdx + 1}</span>
+                                            <span
+                                              className={cn(
+                                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                                                l.type === "video" ? "bg-primary-soft text-primary-text" : l.type === "lab" ? "bg-warning-soft text-warning" : "bg-info-soft text-info",
+                                              )}
+                                            >
+                                              {l.type === "video" ? <Video className="h-4 w-4" aria-hidden="true" /> : l.type === "lab" ? <Sparkles className="h-4 w-4" aria-hidden="true" /> : <FileText className="h-4 w-4" aria-hidden="true" />}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-sm font-medium text-foreground">{l.title}</p>
+                                              <p className="text-xs text-muted-foreground">
+                                                {l.duration || `${l.minutes}m`} · <span className="capitalize">{l.type}</span>
+                                              </p>
+                                            </div>
+                                            {l.type === "video" &&
+                                              (l.video_url ? (
+                                                <Badge tone="success" size="sm" dot className="hidden sm:inline-flex">
+                                                  Video ready
+                                                </Badge>
+                                              ) : (
+                                                <Badge tone="warning" size="sm" className="hidden sm:inline-flex">
+                                                  No video
+                                                </Badge>
+                                              ))}
+                                            <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                                              <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} onClick={() => setEditingLesson(l)}>
+                                                <Edit2 aria-hidden="true" />
+                                              </Button>
+                                              <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                aria-label={`Delete ${l.title}`}
+                                                className="text-danger hover:bg-danger/10 hover:text-danger"
+                                                onClick={() => handleDeleteLesson(l.id, l.title)}
+                                              >
+                                                <Trash2 aria-hidden="true" />
+                                              </Button>
+                                            </div>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
                                 )}
-                              </div>
-                            </div>
+                              </li>
+                            )
+                          })}
+                        </ol>
+                      )}
 
-                            <div className="flex items-center justify-between border-t border-border/60 pt-3 mt-3">
-                              {mat.url ? (
-                                <a
-                                  href={mat.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-text hover:underline"
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                  Download File
-                                </a>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">Resource Link</span>
-                              )}
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteMaterial(mat.id, mat.title)}
-                                className="h-7 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      })}
+                      {modules.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAddModuleOpen(true)}
+                          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary-border hover:bg-primary-soft/40 hover:text-primary-text"
+                        >
+                          <Plus className="h-4 w-4" aria-hidden="true" />
+                          Add another chapter
+                        </button>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* TAB 3: ASSIGNMENTS */}
-              {activeTab === "assignments" && (
-                <div className="space-y-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-foreground">Course Assignments</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Create graded milestones, deadlines, and project submissions for learners.
-                      </p>
+                  {/* ---------- MATERIALS ---------- */}
+                  {activeTab === "materials" && (
+                    <div className="space-y-5">
+                      <PanelHeader title="Materials" description="Slides, notebooks, datasets and reference PDFs available to enrolled learners.">
+                        <Button size="sm" leftIcon={<Upload aria-hidden="true" />} onClick={() => setIsAddMaterialOpen(true)}>
+                          Upload material
+                        </Button>
+                      </PanelHeader>
+
+                      {materials.length === 0 ? (
+                        <WorkspaceEmpty icon={FileText} title="No materials yet" description="Share slide decks, code notebooks or datasets with your learners.">
+                          <Button size="sm" onClick={() => setIsAddMaterialOpen(true)}>
+                            Upload material
+                          </Button>
+                        </WorkspaceEmpty>
+                      ) : (
+                        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {materials.map((mat) => {
+                            const MatIcon = mat.type === "Code Notebook" ? FileCode : mat.type === "Dataset" ? Database : mat.type === "Slides" ? Presentation : FileText
+                            const matTone =
+                              mat.type === "Code Notebook"
+                                ? "bg-success-soft text-success"
+                                : mat.type === "Dataset"
+                                  ? "bg-info-soft text-info"
+                                  : mat.type === "Slides"
+                                    ? "bg-warning-soft text-warning"
+                                    : "bg-primary-soft text-primary-text"
+                            return (
+                              <li key={mat.id} className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xs transition-colors hover:border-primary-border">
+                                <div className="flex items-start gap-3">
+                                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", matTone)}>
+                                    <MatIcon className="h-5 w-5" aria-hidden="true" />
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{mat.title}</h3>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {mat.type} · <span className="tabular-nums">{mat.size}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                {mat.description && <p className="line-clamp-2 text-xs text-muted-foreground">{mat.description}</p>}
+                                <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
+                                  {mat.url ? (
+                                    <a
+                                      href={mat.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-text hover:underline"
+                                    >
+                                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                                      Download
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">No file attached</span>
+                                  )}
+                                  <Button
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    aria-label={`Delete ${mat.title}`}
+                                    className="text-danger hover:bg-danger/10 hover:text-danger"
+                                    onClick={() => handleDeleteMaterial(mat.id, mat.title)}
+                                  >
+                                    <Trash2 aria-hidden="true" />
+                                  </Button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
                     </div>
+                  )}
 
-                    <Button
-                      size="sm"
-                      leftIcon={<Plus className="h-4 w-4" />}
-                      onClick={() => {
-                        setEditingAssignment(null)
-                        setAssignTitle("")
-                        setAssignDesc("")
-                        setAssignMarks(100)
-                        setAssignPriority("Normal")
-                        setIsAddAssignmentOpen(true)
-                      }}
-                    >
-                      New Assignment
-                    </Button>
-                  </div>
+                  {/* ---------- ASSIGNMENTS ---------- */}
+                  {activeTab === "assignments" && (
+                    <div className="space-y-5">
+                      <PanelHeader title="Assignments" description="Graded milestones, deadlines and project submissions.">
+                        <Button size="sm" leftIcon={<Plus aria-hidden="true" />} onClick={openNewAssignment}>
+                          New assignment
+                        </Button>
+                      </PanelHeader>
 
-                  {assignmentsList.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border p-12 text-center bg-surface-2/30">
-                      <GraduationCap className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h4 className="text-sm font-semibold text-foreground">No assignments created yet</h4>
-                      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
-                        Add hands-on assignments to evaluate learner knowledge and grant course certificates.
-                      </p>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setEditingAssignment(null)
-                          setIsAddAssignmentOpen(true)
-                        }}
-                      >
-                        Create Assignment
-                      </Button>
+                      {assignmentsList.length === 0 ? (
+                        <WorkspaceEmpty icon={GraduationCap} title="No assignments yet" description="Add hands-on assignments to assess learners and unlock certificates.">
+                          <Button size="sm" onClick={openNewAssignment}>
+                            Create assignment
+                          </Button>
+                        </WorkspaceEmpty>
+                      ) : (
+                        <ul className="space-y-3">
+                          {assignmentsList.map((a) => {
+                            const due = dueInfo(a.due_at)
+                            return (
+                              <li key={a.id} className="flex overflow-hidden rounded-2xl border border-border bg-surface shadow-xs transition-colors hover:border-primary-border">
+                                <span
+                                  className={cn("w-1.5 shrink-0", a.priority === "High" ? "bg-danger" : a.priority === "Medium" ? "bg-warning" : "bg-border-strong")}
+                                  aria-hidden="true"
+                                />
+                                <div className="flex min-w-0 flex-1 items-start gap-3 p-4">
+                                  <div className="min-w-0 flex-1 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <h3 className="text-sm font-semibold text-foreground">{a.title}</h3>
+                                      <Badge tone={a.priority === "High" ? "danger" : a.priority === "Medium" ? "warning" : "neutral"} size="sm">
+                                        {a.priority}
+                                      </Badge>
+                                      <Badge tone="primary" size="sm">
+                                        {a.max_marks} pts
+                                      </Badge>
+                                    </div>
+                                    {a.description && <p className="line-clamp-2 text-xs text-muted-foreground">{a.description}</p>}
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                      <span className="flex items-center gap-1.5">
+                                        <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                                        {new Date(a.due_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                      </span>
+                                      <Badge tone={due.tone} size="sm">
+                                        {due.label}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-0.5">
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Edit ${a.title}`}
+                                      onClick={() => {
+                                        setEditingAssignment(a)
+                                        setAssignTitle(a.title)
+                                        setAssignDesc(a.description || "")
+                                        setAssignMarks(a.max_marks)
+                                        setAssignPriority(a.priority)
+                                        setAssignDueDate(new Date(a.due_at).toISOString().split("T")[0])
+                                        setIsAddAssignmentOpen(true)
+                                      }}
+                                    >
+                                      <Edit2 aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Delete ${a.title}`}
+                                      className="text-danger hover:bg-danger/10 hover:text-danger"
+                                      onClick={() => handleDeleteAssignment(a.id, a.title)}
+                                    >
+                                      <Trash2 aria-hidden="true" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {assignmentsList.map((a) => (
-                        <div
-                          key={a.id}
-                          className="flex items-center justify-between rounded-xl border border-border bg-surface-2/40 p-4 hover:border-primary-border transition-colors shadow-xs"
-                        >
-                          <div className="space-y-1 min-w-0 flex-1 pr-4">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-foreground">{a.title}</h4>
-                              <Badge
-                                variant={
-                                  a.priority === "High"
-                                    ? "destructive"
-                                    : a.priority === "Medium"
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className="text-[10px] py-0 px-1.5 h-4"
-                              >
-                                {a.priority} Priority
-                              </Badge>
-                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4">
-                                {a.max_marks} pts
-                              </Badge>
-                            </div>
-                            {a.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
-                            )}
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>Due {new Date(a.due_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-                            </div>
+                  )}
+
+                  {/* ---------- SETTINGS ---------- */}
+                  {activeTab === "settings" && (
+                    <form onSubmit={handleSaveCourseSettings} className="space-y-5">
+                      <PanelHeader title="Course settings" description="Catalog details, delivery format and pricing." />
+
+                      <section className="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-xs">
+                        <h3 className="text-sm font-semibold text-foreground">Basics</h3>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-foreground">Course title</label>
+                          <Input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Domain category</label>
+                            <CustomSelect value={editCategory} onChange={setEditCategory} options={[...CATEGORIES]} />
                           </div>
-
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingAssignment(a)
-                                setAssignTitle(a.title)
-                                setAssignDesc(a.description || "")
-                                setAssignMarks(a.max_marks)
-                                setAssignPriority(a.priority)
-                                setAssignDueDate(new Date(a.due_at).toISOString().split("T")[0])
-                                setIsAddAssignmentOpen(true)
-                              }}
-                              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteAssignment(a.id, a.title)}
-                              className="h-8 px-2 text-xs text-danger hover:text-danger hover:bg-danger/10"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Lead instructor</label>
+                            <Input required value={editInstructor} onChange={(e) => setEditInstructor(e.target.value)} />
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-foreground">Overview</label>
+                          <textarea
+                            rows={4}
+                            className="w-full rounded-md border border-border bg-surface p-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20"
+                            placeholder="Prerequisites, syllabus topics and target outcomes for learners…"
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                          />
+                        </div>
+                      </section>
+
+                      <section className="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-xs">
+                        <h3 className="text-sm font-semibold text-foreground">Delivery & pricing</h3>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Difficulty</label>
+                            <CustomSelect value={editLevel} onChange={(val) => setEditLevel(val as any)} options={["Beginner", "Intermediate", "Advanced"]} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Duration</label>
+                            <Input value={editDuration} onChange={(e) => setEditDuration(e.target.value)} placeholder="e.g. 12 Weeks" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Status</label>
+                            <CustomSelect value={editStatus} onChange={(val) => setEditStatus(val as AdminCourse["status"])} options={STATUSES} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Tuition fee (₹)</label>
+                            <Input type="number" min={0} value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">Seat capacity</label>
+                            <Input type="number" min={10} value={editCapacity} onChange={(e) => setEditCapacity(Number(e.target.value))} />
+                          </div>
+                        </div>
+                      </section>
+
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                          Close
+                        </Button>
+                        <Button type="submit">Save settings</Button>
+                      </div>
+                    </form>
                   )}
-                </div>
+                </>
               )}
-
-              {/* TAB 4: COURSE DETAILS & SETTINGS */}
-              {activeTab === "settings" && (
-                <form onSubmit={handleSaveCourseSettings} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">Course Title</label>
-                    <Input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Domain Category</label>
-                      <CustomSelect
-                        value={editCategory}
-                        onChange={setEditCategory}
-                        options={[
-                          "LLM Engineering",
-                          "Agentic Systems",
-                          "MLOps",
-                          "Computer Vision",
-                          "AI Foundations",
-                        ]}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
-                      <Input required value={editInstructor} onChange={(e) => setEditInstructor(e.target.value)} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Difficulty Level</label>
-                      <CustomSelect
-                        value={editLevel}
-                        onChange={(val) => setEditLevel(val as any)}
-                        options={["Beginner", "Intermediate", "Advanced"]}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Tuition Fee (₹)</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={editPrice}
-                        onChange={(e) => setEditPrice(Number(e.target.value))}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Seat Capacity</label>
-                      <Input
-                        type="number"
-                        min={10}
-                        value={editCapacity}
-                        onChange={(e) => setEditCapacity(Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">Course Overview / Description</label>
-                    <textarea
-                      rows={3}
-                      className="w-full rounded-md border border-border bg-surface p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="Explain prerequisites, syllabus topics, and target outcomes for learners..."
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button type="submit">Save Course Settings</Button>
-                  </div>
-                </form>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Dialog Footer */}
-        <div className="flex items-center justify-between border-t border-border px-6 py-3.5 bg-surface-2/40">
-          <span className="text-xs text-muted-foreground">Course ID: {course.id}</span>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
+            </div>
+          </main>
         </div>
       </DialogContent>
 

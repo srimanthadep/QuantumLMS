@@ -183,11 +183,11 @@ function CourseStudentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-border bg-surface text-foreground shadow-2xl gap-0">
+      <DialogContent hideClose className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-border bg-surface text-foreground shadow-2xl gap-0">
         {/* Header */}
         <div className="shrink-0 border-b border-border bg-surface-2 p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
                 <Users className="h-6 w-6" />
               </div>
@@ -203,9 +203,18 @@ function CourseStudentsDialog({
                 </DialogDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button size="sm" variant="outline" leftIcon={<Download className="h-3.5 w-3.5" />} onClick={exportCourseCsv}>
                 Export CSV
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                aria-label="Close"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-surface hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -228,7 +237,6 @@ function CourseStudentsDialog({
               />
             </div>
             <Input
-              size="sm"
               leading={<Search className="h-3.5 w-3.5" aria-hidden="true" />}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -263,12 +271,23 @@ function CourseStudentsDialog({
                     <th className="px-4 py-3">Completion</th>
                     <th className="px-4 py-3 text-right">Average</th>
                     <th className="px-4 py-3 text-right">Attendance</th>
-                    <th className="px-4 py-3 text-right">Profile</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {visible.map((s) => (
-                    <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
+                    <tr
+                      key={s.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelectStudent(s.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          onSelectStudent(s.id)
+                        }
+                      }}
+                      className="cursor-pointer hover:bg-surface-2/60 transition-colors"
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <Avatar src={s.image} name={s.name} size="sm" status={s.lastActivity === "Just now" ? "online" : undefined} />
@@ -294,17 +313,6 @@ function CourseStudentsDialog({
                         <span className={cn("text-xs font-medium tabular-nums", s.attendance < 80 ? "text-danger font-semibold" : "text-foreground")}>
                           {s.attendance}%
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs px-2.5"
-                          rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
-                          onClick={() => onSelectStudent(s.id)}
-                        >
-                          360 View
-                        </Button>
                       </td>
                     </tr>
                   ))}

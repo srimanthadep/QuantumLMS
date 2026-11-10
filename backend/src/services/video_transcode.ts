@@ -164,25 +164,27 @@ export async function transcodeMultiQuality(
     })
   })
 
-  // Upload each generated quality to storage
+  // Upload each generated quality to storage in parallel
   const results: Record<string, TranscodeResult> = {}
-  for (const item of outputs) {
-    if (fs.existsSync(item.tempFile)) {
-      const stat = await fs.promises.stat(item.tempFile)
-      if (stat.size > 0) {
-        const buffer = await fs.promises.readFile(item.tempFile)
-        await storage.put(item.r2Key, buffer, "video/mp4")
-        results[item.key] = {
-          label: item.profile.label,
-          height: item.profile.height,
-          key: item.r2Key,
-          url: `/api/files/videos/${item.r2Key}`,
-          size: stat.size,
+  await Promise.all(
+    outputs.map(async (item) => {
+      if (fs.existsSync(item.tempFile)) {
+        const stat = await fs.promises.stat(item.tempFile)
+        if (stat.size > 0) {
+          const buffer = await fs.promises.readFile(item.tempFile)
+          await storage.put(item.r2Key, buffer, "video/mp4")
+          results[item.key] = {
+            label: item.profile.label,
+            height: item.profile.height,
+            key: item.r2Key,
+            url: `/api/files/videos/${item.r2Key}`,
+            size: stat.size,
+          }
         }
+        await fs.promises.unlink(item.tempFile).catch(() => {})
       }
-      await fs.promises.unlink(item.tempFile).catch(() => {})
-    }
-  }
+    })
+  )
 
   return results
 }

@@ -874,12 +874,22 @@ function loadStorage<T>(key: string, fallback: T): T {
   return fallback
 }
 
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
 function saveStorage(key: string, data: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data))
-  } catch {
-    // ignore
-  }
+  const prev = saveTimers.get(key)
+  if (prev) clearTimeout(prev)
+  saveTimers.set(
+    key,
+    setTimeout(() => {
+      saveTimers.delete(key)
+      try {
+        localStorage.setItem(key, JSON.stringify(data))
+      } catch {
+        // ignore
+      }
+    }, 250),
+  )
 }
 
 // Custom Hook for Admin Data

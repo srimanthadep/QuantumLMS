@@ -4,8 +4,10 @@ import helmet from "@fastify/helmet"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
 import { createHash } from "node:crypto"
+import { gzipSync } from "node:zlib"
 import { eq, sql } from "drizzle-orm"
 import type { AppContext } from "./context.js"
+import { invalidateUserCache } from "./auth/users.js"
 import { users } from "./db/schema.js"
 import { AppError, forbidden, fromPgError } from "./errors.js"
 import { authenticate, me } from "./http.js"
@@ -58,7 +60,7 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     },
   })
 
-  // HTTP Browser Caching & Conditional Request Revalidation (ETag / If-None-Match)
+  // HTTP Browser Caching, Conditional Request Revalidation (ETag / If-None-Match) & Gzip Compression
   app.addHook("onSend", async (req, reply, payload) => {
     if (req.method !== "GET" || typeof payload !== "string") return payload
 
@@ -83,6 +85,16 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
       reply.header("Cache-Control", "public, max-age=31536000, immutable")
     } else {
       reply.header("Cache-Control", "private, no-cache, must-revalidate")
+    }
+
+    // Compress JSON payloads > 1 KB when the client supports gzip
+    if (payload.length > 1024 && !reply.getHeader("content-encoding")) {
+      const acceptEncoding = req.headers["accept-encoding"]
+      if (typeof acceptEncoding === "string" && /\bgzip\b/i.test(acceptEncoding)) {
+        reply.header("Content-Encoding", "gzip")
+        reply.header("Vary", "Accept-Encoding")
+        return gzipSync(Buffer.from(payload))
+      }
     }
 
     return payload
@@ -122,6 +134,8 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
       throw new AppError(502, "upstream_error", "Couldn't sign out of all devices. Try again.")
     }
     await ctx.db.update(users).set({ sessions_revoked_at: new Date(), updated_at: new Date() }).where(eq(users.id, u.id))
+    invalidateUserCache(u.id)
+    invalidateUserCache(u.sub)
     return reply.code(204).send()
   })
 

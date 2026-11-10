@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Amazon Cognito authentication with Node example</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.5;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    .container {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+    }
+    h1 {
+      color: #0284c7;
+      margin-top: 0;
+      font-size: 24px;
+    }
+    .card {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    pre {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .btn {
+      display: inline-block;
+      background: #0284c7;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #0369a1;
+    }
+    .btn-logout {
+      background: #ef4444;
+    }
+    .btn-logout:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Amazon Cognito User Pool Demo</h1>
+    <% if (isAuthenticated) { %>
+      <div class="card">
+        <h2>Welcome, <%= (userInfo && (userInfo.username || userInfo.email)) || "User" %></h2>
+        <p>Here are some attributes you can use as a developer:</p>
+        <pre><%= JSON.stringify(userInfo, null, 4) %></pre>
+      </div>
+      <a href="/logout" class="btn btn-logout">Logout</a>
+    <% } else { %>
+      <div class="card">
+        <p>Please log in to continue with Amazon Cognito Managed Login.</p>
+        <a href="/login" class="btn">Login with Amazon Cognito</a>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>
+

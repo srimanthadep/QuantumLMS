@@ -3,8 +3,8 @@ import { useSession } from "@/app/session"
 import CognitoGate, { FullPageError } from "@/app/CognitoGate"
 import RouteFallback from "@/app/RouteFallback"
 import { useToast } from "@/components/ui/toast"
-import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError, type StudentProfile } from "@/lib/api"
-import { mutate, peek, refresh, useResource, type Resource } from "@/lib/resource"
+import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError } from "@/lib/api"
+import { mutate, peek, prime, refresh, useResource, type Resource } from "@/lib/resource"
 import { useChannel } from "@/lib/ws"
 import type { CourseItem } from "../studentTypes"
 import * as actions from "./actions"
@@ -12,8 +12,14 @@ import { deriveCore, loadAttempts, loadCore, type CoreRaw, type CoreView, type P
 import { requestReevaluation, type StudentRequest } from "./evaluation"
 import { loadNotifications, markAllNotificationsRead, markNotificationRead, type NotificationRow } from "./notifications"
 
-// The API knows the account by its own id (and creates the student profile on first use).
-const loadStudentProfile = () => api.get<StudentProfile>("/student/profile", "We couldn't open your student profile.")
+// Load core + notifications in a single parallel round-trip and prime the cache so DataLoader renders immediately.
+const loadInitialStudentData = async () => {
+  const [raw, notes] = await Promise.all([loadCore(), loadNotifications()])
+  const uid = raw.profile.id
+  prime(`${uid}:core`, raw)
+  prime(`${uid}:notifications`, notes)
+  return raw.profile
+}
 
 /* ------------------------------ Data context ------------------------------ */
 
@@ -240,7 +246,7 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
 /** Signs the student in (when needed) and loads their data before rendering the portal. */
 export default function StudentDataProvider({ children }: { children: ReactNode }) {
   return (
-    <CognitoGate demo={DEMO_STUDENT} load={loadStudentProfile} errorTitle="The student portal can't connect">
+    <CognitoGate demo={DEMO_STUDENT} load={loadInitialStudentData} errorTitle="The student portal can't connect">
       {(uid) => (
         <DataLoader key={uid} uid={uid}>
           {children}

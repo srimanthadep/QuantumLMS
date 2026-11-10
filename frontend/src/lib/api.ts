@@ -62,6 +62,8 @@ interface CacheEntry {
 const memoryCache = new Map<string, CacheEntry>()
 // ETag cache: path -> ETag string
 const etagCache = new Map<string, string>()
+// In-flight GET request deduplication: path -> Promise<unknown>
+const inFlightGet = new Map<string, Promise<unknown>>()
 
 const STORAGE_PREFIX = "qlms_cache_"
 
@@ -164,84 +166,100 @@ export async function request<T>(
       memoryCache.set(path, { data: sessionCached, expiresAt: Date.now() + (options.ttl ?? 30_000) })
       return sessionCached
     }
+    const inflight = inFlightGet.get(path)
+    if (inflight) {
+      return inflight as Promise<T>
+    }
   }
 
-  const token = await accessToken()
-  let res: Response
-  try {
-    const headers: Record<string, string> = {
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+  const exec = async (): Promise<T> => {
+    const token = await accessToken()
+    let res: Response
+    try {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      }
+
+      // Attach conditional ETag header if available in browser cache
+      if (method === "GET" && etagCache.has(path)) {
+        headers["If-None-Match"] = etagCache.get(path)!
+      }
+
+      res = await fetch(`${BASE}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      })
+    } catch {
+      throw new ApiError("Can't reach the server. Check your connection and try again.", "network")
     }
 
-    // Attach conditional ETag header if available in browser cache
-    if (method === "GET" && etagCache.has(path)) {
-      headers["If-None-Match"] = etagCache.get(path)!
+    // 304 Not Modified: Reuse cached data and extend TTL
+    if (res.status === 304) {
+      const cached = memoryCache.get(path)?.data ?? readStorageCache<T>(path)
+      if (cached) {
+        const ttl = options.ttl ?? 30_000
+        memoryCache.set(path, {
+          data: cached,
+          etag: etagCache.get(path),
+          expiresAt: Date.now() + ttl,
+        })
+        writeStorageCache(path, cached, ttl)
+        return cached as T
+      }
     }
 
-    res = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    })
-  } catch {
-    throw new ApiError("Can't reach the server. Check your connection and try again.", "network")
-  }
+    if (res.status === 204) {
+      invalidateCacheForMutation(method, path)
+      return undefined as T
+    }
 
-  // 304 Not Modified: Reuse cached data and extend TTL
-  if (res.status === 304) {
-    const cached = memoryCache.get(path)?.data ?? readStorageCache<T>(path)
-    if (cached) {
+    const data = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
+    if (!res.ok) {
+      const message = data?.error?.message
+      if (res.status === 401) throw new ApiError(message ?? "Your session expired. Sign in again.", "unauthorized", 401)
+      throw new ApiError(
+        res.status >= 500
+          ? (fallback ?? message ?? "Something went wrong on our side. Try again.")
+          : (message ?? fallback ?? "That didn't work. Try again."),
+        data?.error?.code,
+        res.status,
+      )
+    }
+
+    // Store in browser cache on successful GET
+    if (method === "GET") {
+      const etag = res.headers.get("etag")
+      if (etag) etagCache.set(path, etag)
+
       const ttl = options.ttl ?? 30_000
-      memoryCache.set(path, {
-        data: cached,
-        etag: etagCache.get(path),
-        expiresAt: Date.now() + ttl,
-      })
-      writeStorageCache(path, cached, ttl)
-      return cached as T
+      if (ttl > 0) {
+        memoryCache.set(path, {
+          data,
+          etag: etag ?? undefined,
+          expiresAt: Date.now() + ttl,
+        })
+        writeStorageCache(path, data, ttl)
+      }
+    } else {
+      // Automatically purge stale cached entries on mutations
+      invalidateCacheForMutation(method, path)
     }
+
+    return data as T
   }
 
-  if (res.status === 204) {
-    invalidateCacheForMutation(method, path)
-    return undefined as T
-  }
-
-  const data = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
-  if (!res.ok) {
-    const message = data?.error?.message
-    if (res.status === 401) throw new ApiError(message ?? "Your session expired. Sign in again.", "unauthorized", 401)
-    throw new ApiError(
-      res.status >= 500
-        ? (fallback ?? message ?? "Something went wrong on our side. Try again.")
-        : (message ?? fallback ?? "That didn't work. Try again."),
-      data?.error?.code,
-      res.status,
-    )
-  }
-
-  // Store in browser cache on successful GET
   if (method === "GET") {
-    const etag = res.headers.get("etag")
-    if (etag) etagCache.set(path, etag)
-
-    const ttl = options.ttl ?? 30_000
-    if (ttl > 0) {
-      memoryCache.set(path, {
-        data,
-        etag: etag ?? undefined,
-        expiresAt: Date.now() + ttl,
-      })
-      writeStorageCache(path, data, ttl)
-    }
-  } else {
-    // Automatically purge stale cached entries on mutations
-    invalidateCacheForMutation(method, path)
+    const p = exec().finally(() => {
+      inFlightGet.delete(path)
+    })
+    inFlightGet.set(path, p)
+    return p
   }
 
-  return data as T
+  return exec()
 }
 
 export const api = {
@@ -249,6 +267,34 @@ export const api = {
     request<T>("GET", path, undefined, fallbackOrOpts),
   post: <T>(path: string, body?: unknown, fallback?: string) =>
     request<T>("POST", path, body ?? {}, fallback),
+  postBuffer: async <T>(
+    path: string,
+    body: BodyInit,
+    opts?: { headers?: Record<string, string>; fallback?: string },
+  ): Promise<T> => {
+    const token = await accessToken()
+    let res: Response
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(opts?.headers ?? {}),
+        },
+        body,
+      })
+    } catch {
+      throw new ApiError("Can't reach the server. Check your connection and try again.", "network")
+    }
+    const data = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
+    if (!res.ok) {
+      const message = data?.error?.message
+      throw new ApiError(message ?? opts?.fallback ?? "Upload failed. Try again.", data?.error?.code, res.status)
+    }
+    invalidateCacheForMutation("POST", path)
+    return data as T
+  },
   put: <T>(path: string, body?: unknown, fallback?: string) =>
     request<T>("PUT", path, body ?? {}, fallback),
   patch: <T>(path: string, body?: unknown, fallback?: string) =>

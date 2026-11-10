@@ -205,18 +205,17 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
       req.body,
     )
 
-    const [u] = await db.select().from(users).where(eq(users.id, b.student_id)).limit(1)
+    const [[u], [c], [existing]] = await Promise.all([
+      db.select().from(users).where(eq(users.id, b.student_id)).limit(1),
+      db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1),
+      db
+        .select()
+        .from(enrollments)
+        .where(sql`${enrollments.student_id} = ${b.student_id} and ${enrollments.course_id} = ${b.course_id}`)
+        .limit(1),
+    ])
     if (!u) throw notFound("Student not found.")
-
-    const [c] = await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1)
     if (!c) throw notFound("Course not found.")
-
-    // Check if already enrolled
-    const [existing] = await db
-      .select()
-      .from(enrollments)
-      .where(sql`${enrollments.student_id} = ${u.id} and ${enrollments.course_id} = ${c.id}`)
-      .limit(1)
 
     if (existing) {
       return { enrollment: existing, message: "Student is already enrolled." }

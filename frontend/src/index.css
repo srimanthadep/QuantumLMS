@@ -6,7 +6,6 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/palette-bridge.css";
-@import "./styles/legacy.css";
 
 /* Semantic tokens exposed to Tailwind utilities (bg-surface, text-muted-foreground, ...). */
 @theme inline {
@@ -82,4 +81,17 @@
   --text-body-lg--line-height: 26px;
   --text-caption: 12px;
   --text-caption--line-height: 16px;
+}
+
+@media (max-height: 700px) {
+  .auth-page .auth-learning-preview,
+  .auth-page .auth-security-note,
+  .auth-page .auth-footer {
+    display: none !important;
+  }
+
+  .auth-page > div > section {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
 }

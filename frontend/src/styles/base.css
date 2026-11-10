@@ -198,6 +198,16 @@
   }
 }
 
+/* Story progress bar GPU scaleX fill */
+@keyframes storyBarFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* Respect reduced motion globally (framer-motion uses MotionConfig reducedMotion="user"). */
 @media (prefers-reduced-motion: reduce) {
   *,

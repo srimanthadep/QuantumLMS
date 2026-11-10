@@ -145,9 +145,11 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
 /** Signs the evaluator in (the demo account for demo sessions) and loads the desk's data before rendering. */
 export default function EvaluatorDataProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
-    const p = await api.loadProfile()
-    // The profile doubles as the sign-in check; keep it so the desk doesn't fetch it twice.
+    const [p, q, r] = await Promise.all([api.loadProfile(), api.loadQueue(), api.loadReevaluations()])
+    // Prime all three resources in parallel so DataLoader renders immediately without a second-stage wait.
     prime(`${p.id}:ev:profile`, p)
+    prime(`${p.id}:ev:queue`, q)
+    prime(`${p.id}:ev:requests`, r)
     return p
   }, [])
   return (

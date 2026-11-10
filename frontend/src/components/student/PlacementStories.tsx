@@ -115,7 +115,6 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
   const [canScrollRight, setCanScrollRight] = useState(true)
   const [isPaused, setIsPaused] = useState(false)
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null)
-  const [storyProgress, setStoryProgress] = useState(0)
   const [isStoryModalPaused, setIsStoryModalPaused] = useState(false)
 
   // Update button disabled states based on scroll position
@@ -164,28 +163,18 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
     return () => clearInterval(interval)
   }, [isPaused, activeStoryIndex])
 
-  // Modal story autoplay pace (6 seconds per story)
+  // Modal story autoplay pace (6 seconds per story, driven by a single timeout + CSS animation)
   useEffect(() => {
     if (activeStoryIndex === null || isStoryModalPaused) return
 
-    const duration = 6000
-    const intervalMs = 50
-    const step = (intervalMs / duration) * 100
-
-    const timer = setInterval(() => {
-      setStoryProgress((prev) => {
-        if (prev >= 100) {
-          setActiveStoryIndex((curr) => {
-            if (curr === null) return null
-            return curr < PLACEMENT_STORIES.length - 1 ? curr + 1 : 0
-          })
-          return 0
-        }
-        return prev + step
+    const timer = setTimeout(() => {
+      setActiveStoryIndex((curr) => {
+        if (curr === null) return null
+        return curr < PLACEMENT_STORIES.length - 1 ? curr + 1 : 0
       })
-    }, intervalMs)
+    }, 6000)
 
-    return () => clearInterval(timer)
+    return () => clearTimeout(timer)
   }, [activeStoryIndex, isStoryModalPaused])
 
   // Prevent background scroll when story modal is open
@@ -201,13 +190,11 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
 
   const openStory = (idx: number) => {
     setActiveStoryIndex(idx)
-    setStoryProgress(0)
     setIsStoryModalPaused(false)
   }
 
   const closeStory = () => {
     setActiveStoryIndex(null)
-    setStoryProgress(0)
   }
 
   // Keyboard navigation for modal
@@ -217,11 +204,9 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
       if (e.key === "Escape") closeStory()
       if (e.key === "ArrowLeft") {
         setActiveStoryIndex((curr) => (curr !== null && curr > 0 ? curr - 1 : PLACEMENT_STORIES.length - 1))
-        setStoryProgress(0)
       }
       if (e.key === "ArrowRight") {
         setActiveStoryIndex((curr) => (curr !== null && curr < PLACEMENT_STORIES.length - 1 ? curr + 1 : 0))
-        setStoryProgress(0)
       }
     }
     window.addEventListener("keydown", onKeyDown)
@@ -399,15 +384,19 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                         className="h-1 flex-1 rounded-full bg-white/25 overflow-hidden"
                       >
                         <div
-                          className="h-full bg-white rounded-full transition-all duration-75"
-                          style={{
-                            width:
-                              idx === activeStoryIndex
-                                ? `${storyProgress}%`
-                                : idx < (activeStoryIndex ?? 0)
-                                ? "100%"
-                                : "0%",
-                          }}
+                          key={idx === activeStoryIndex ? `active-${activeStoryIndex}` : `seg-${idx}`}
+                          className="h-full bg-white rounded-full origin-left"
+                          style={
+                            idx === activeStoryIndex
+                              ? {
+                                  width: "100%",
+                                  animation: "storyBarFill 6000ms linear forwards",
+                                  animationPlayState: isStoryModalPaused ? "paused" : "running",
+                                }
+                              : {
+                                  width: idx < (activeStoryIndex ?? 0) ? "100%" : "0%",
+                                }
+                          }
                         />
                       </div>
                     ))}
@@ -461,7 +450,6 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                     aria-label="Previous story"
                     onClick={() => {
                       setActiveStoryIndex((c) => (c !== null && c > 0 ? c - 1 : PLACEMENT_STORIES.length - 1))
-                      setStoryProgress(0)
                     }}
                     className="absolute inset-y-16 left-0 w-1/4 z-20 cursor-pointer opacity-0"
                   />
@@ -470,7 +458,6 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                     aria-label="Next story"
                     onClick={() => {
                       setActiveStoryIndex((c) => (c !== null && c < PLACEMENT_STORIES.length - 1 ? c + 1 : 0))
-                      setStoryProgress(0)
                     }}
                     className="absolute inset-y-16 right-0 w-1/4 z-20 cursor-pointer opacity-0"
                   />

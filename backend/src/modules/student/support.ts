@@ -31,14 +31,13 @@ export async function supportRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.get("/api/student/support", async (req) => {
     const s = me(req)
-    const [faqRows, votes, tickets] = await Promise.all([
+    const studentTicketIds = db.select({ id: support_tickets.id }).from(support_tickets).where(eq(support_tickets.student_id, s.id))
+    const [faqRows, votes, tickets, replies] = await Promise.all([
       db.select().from(faqs).orderBy(asc(faqs.position)),
       db.select({ faq_id: faq_votes.faq_id, vote: faq_votes.vote }).from(faq_votes).where(eq(faq_votes.student_id, s.id)),
       db.select().from(support_tickets).where(eq(support_tickets.student_id, s.id)).orderBy(desc(support_tickets.created_at)),
+      db.select().from(ticket_replies).where(inArray(ticket_replies.ticket_id, studentTicketIds)).orderBy(asc(ticket_replies.created_at)),
     ])
-    const replies = tickets.length
-      ? await db.select().from(ticket_replies).where(inArray(ticket_replies.ticket_id, tickets.map((t) => t.id))).orderBy(asc(ticket_replies.created_at))
-      : []
     return { faqs: faqRows, votes, tickets, replies }
   })
 
@@ -75,10 +74,12 @@ export async function supportRoutes(app: FastifyInstance, ctx: AppContext) {
         .values({ id: `TKT-${n}`, student_id: s.id, category: b.category.length >= 2 ? b.category : "Other", subject: b.subject, description: b.description, priority: b.priority, attachment_name: name, attachment_size: size, attachment_path: key })
         .returning()
       // The description opens the conversation, as the first message from the student.
-      await tx.insert(ticket_replies).values({ ticket_id: ticket.id, author_id: s.id, author_name: s.full_name, author_role: "Student", author_avatar: s.avatar_url, content: ticket.description, attachment_name: name, attachment_path: key })
+      const [firstReply] = await tx
+        .insert(ticket_replies)
+        .values({ ticket_id: ticket.id, author_id: s.id, author_name: s.full_name, author_role: "Student", author_avatar: s.avatar_url, content: ticket.description, attachment_name: name, attachment_path: key })
+        .returning()
       await notify(tx, s.id, "system", `Ticket ${ticket.id} created`, `${ticket.subject}. We'll reply soon.`, "support")
-      const replies = await tx.select().from(ticket_replies).where(eq(ticket_replies.ticket_id, ticket.id)).orderBy(asc(ticket_replies.created_at))
-      return { ticket, replies }
+      return { ticket, replies: [firstReply] }
     })
   })
 

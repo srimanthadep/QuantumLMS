@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify"
 import { z, type ZodType } from "zod"
-import { eq } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import type { AuthUser } from "./auth/users.js"
 import { users, type Role } from "./db/schema.js"
 import { badRequest, forbidden, unauthorized } from "./errors.js"
@@ -10,6 +10,20 @@ declare module "fastify" {
   interface FastifyRequest {
     user?: AuthUser
   }
+}
+
+const demoUserCache = new Map<string, { row: typeof users.$inferSelect; expiresAt: number }>()
+
+async function getDemoUser(ctx: AppContext, email: string): Promise<typeof users.$inferSelect | undefined> {
+  const key = email.toLowerCase()
+  const now = Date.now()
+  const cached = demoUserCache.get(key)
+  if (cached && now < cached.expiresAt) return cached.row
+  const [row] = await ctx.db.select().from(users).where(sql`lower(${users.email}) = ${key}`).limit(1)
+  if (row) {
+    demoUserCache.set(key, { row, expiresAt: now + 60_000 })
+  }
+  return row
 }
 
 function toDemoAuthUser(u: typeof users.$inferSelect, token = "demo-token"): AuthUser {
@@ -48,7 +62,7 @@ export function authenticate(ctx: AppContext, roles?: Role[]) {
           : roles?.includes("Evaluator")
           ? ctx.config.DEMO_EVALUATOR_EMAIL
           : ctx.config.DEMO_STUDENT_EMAIL
-        const [demoUser] = await ctx.db.select().from(users).where(eq(users.email, fallbackEmail)).limit(1)
+        const demoUser = await getDemoUser(ctx, fallbackEmail)
         if (demoUser) {
           req.user = toDemoAuthUser(demoUser)
           return
@@ -64,7 +78,7 @@ export function authenticate(ctx: AppContext, roles?: Role[]) {
         const fallbackEmail = roles?.includes("Admin") || roles?.includes("Super Admin")
           ? ctx.config.DEMO_ADMIN_EMAIL
           : ctx.config.DEMO_STUDENT_EMAIL
-        const [demoUser] = await ctx.db.select().from(users).where(eq(users.email, fallbackEmail)).limit(1)
+        const demoUser = await getDemoUser(ctx, fallbackEmail)
         if (demoUser) {
           req.user = toDemoAuthUser(demoUser, token)
           return

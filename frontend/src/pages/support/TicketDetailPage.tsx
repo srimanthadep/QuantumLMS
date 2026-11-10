@@ -468,21 +468,24 @@ export default function TicketDetailPage({ onToast }: TicketDetailPageProps) {
           {/* Student Profile Card */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
+              <CardTitle className="text-base">
                 <span>Student 360° Profile</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-primary-text"
-                  onClick={() => setIsStudent360Open(true)}
-                >
-                  Full Profile →
-                </Button>
               </CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setIsStudent360Open(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setIsStudent360Open(true)
+                  }
+                }}
+                className="flex items-center gap-3 cursor-pointer rounded-xl p-2 -mx-2 hover:bg-surface-2 transition-colors"
+              >
                 <Avatar name={ticket.studentName} className="h-11 w-11 border border-border" />
                 <div className="min-w-0">
                   <p className="font-semibold text-foreground text-sm truncate">{ticket.studentName}</p>

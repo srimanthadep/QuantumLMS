@@ -337,7 +337,18 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
               <>
                 {/* Active Chat Header */}
                 <div className="p-3.5 border-b border-border flex items-center justify-between bg-surface-2/40 shrink-0">
-                  <div className="flex items-center gap-3">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsStudent360Open(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setIsStudent360Open(true)
+                      }
+                    }}
+                    className="flex items-center gap-3 cursor-pointer rounded-lg p-1.5 -m-1.5 hover:bg-surface-2 transition-colors"
+                  >
                     <Avatar name={currentSession.studentName} className="h-9 w-9" />
                     <div>
                       <h4 className="text-sm font-semibold text-foreground">
@@ -350,14 +361,6 @@ export default function LiveChatPage({ onToast }: LiveChatPageProps) {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-8"
-                      onClick={() => setIsStudent360Open(true)}
-                    >
-                      Student 360°
-                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

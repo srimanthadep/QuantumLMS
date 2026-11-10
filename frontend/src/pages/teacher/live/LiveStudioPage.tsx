@@ -64,6 +64,7 @@ import ProgressRing from "@/components/charts/ProgressRing"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import CopyButton from "@/components/student/CopyButton"
 import IconTile from "@/components/teacher/IconTile"
+import StudentDrawer from "@/components/teacher/StudentDrawer"
 import { cn } from "@/lib/utils"
 import { ease, spring, transition } from "@/lib/motion"
 import type { AIMonitoringSuggestion, AttendanceStatus, StudentItem } from "@/types"
@@ -276,6 +277,7 @@ export default function LiveStudioPage() {
   const [endOpen, setEndOpen] = useState(false)
   const [publishWhenReady, setPublishWhenReady] = useState(true)
   const [sendSummary, setSendSummary] = useState(true)
+  const [drawerStudentId, setDrawerStudentId] = useState<string | null>(null)
 
   // Real-time classroom WebSocket channel for questions and student interactions
   useChannel(session ? `live:${session.id}` : null, (event, payload) => {
@@ -321,10 +323,10 @@ export default function LiveStudioPage() {
   }
 
   const crumbs = [{ label: "Live classes", onClick: () => navigate("/teacher/live-class") }, { label: session.title }]
+  const ended = session.status === "Completed"
 
   if (!live) {
     const rec = recordings.find((r) => r.sessionId === session.id)
-    const ended = session.status === "Completed"
     return (
       <div className="flex w-full flex-col">
         <PageHeader breadcrumb={crumbs} eyebrow={session.courseCode} title={session.title} description={`${formatTimeRange(session.startTime, session.endTime)} · ${session.platform}`} />
@@ -787,7 +789,19 @@ export default function LiveStudioPage() {
 
                 <ul className="-mx-2 flex max-h-[440px] flex-col overflow-y-auto" aria-label="Roster">
                   {shownRoster.map((r) => (
-                    <li key={r.id} className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface-2">
+                    <li
+                      key={r.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setDrawerStudentId(r.studentId)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setDrawerStudentId(r.studentId)
+                        }
+                      }}
+                      className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface-2"
+                    >
                       <Avatar src={r.avatar} name={r.name} size="sm" status={r.status === "Present" || r.status === "Late" ? "online" : "offline"} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">{r.name}</p>
@@ -1105,6 +1119,8 @@ export default function LiveStudioPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StudentDrawer studentId={drawerStudentId} open={drawerStudentId !== null} onOpenChange={(o) => !o && setDrawerStudentId(null)} />
     </div>
   )
 }

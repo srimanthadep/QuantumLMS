@@ -1,7 +1,7 @@
 import { asc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
-import type { AuthUser } from "../../auth/users.js"
+import { invalidateUserCache, type AuthUser } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
 import { courses, enrollments, profiles, roll_number_seq } from "../../db/schema.js"
@@ -11,12 +11,14 @@ import { badRequest, forbidden } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { BUCKETS, objectKey, keyOwner, type Bucket } from "../../storage/storage.js"
 import { campusRoutes, publicCertificateRoutes } from "./campus.js"
-import { courseRoutes } from "./courses.js"
+import { courseRoutes, invalidateCatalogCache } from "./courses.js"
 import { evaluationRoutes } from "./evaluation.js"
 import { notify } from "./notify.js"
 import { quizRoutes } from "./quizzes.js"
 import { socialRoutes } from "./social.js"
 import { supportRoutes } from "./support.js"
+
+const onboardedStudents = new Set<string>()
 
 const isDemoStudent = (ctx: AppContext, u: AuthUser) => ctx.config.DEMO_MODE && u.is_demo && u.email.toLowerCase() === ctx.config.DEMO_STUDENT_EMAIL.toLowerCase()
 
@@ -48,8 +50,10 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
     // Accounts created before they were students (or moved into the group later) get their profile on first use.
     scope.addHook("preHandler", async (req) => {
       const u = me(req)
+      if (onboardedStudents.has(u.id)) return
       const has = await ctx.db.query.profiles.findFirst({ where: eq(profiles.id, u.id), columns: { id: true } })
       if (!has) await ctx.db.transaction((tx) => onboardStudent(tx, u, ctx))
+      onboardedStudents.add(u.id)
     })
 
     await courseRoutes(scope, ctx)
@@ -97,6 +101,8 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
         await seedContent(tx, now, ctx.config.CAMPUS_TZ)
         await seedStudentDemo(tx, s.id, now, ctx.config.CAMPUS_TZ)
       })
+      invalidateCatalogCache()
+      invalidateUserCache(s.id)
       // Files the demo uploaded aren't referenced any more.
       for (const bucket of Object.keys(BUCKETS)) {
         const keys = await ctx.storage.list(`${bucket}/${s.id}/`).catch(() => [])

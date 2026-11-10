@@ -21,8 +21,9 @@ export interface TicketStudentInfo {
 
 async function loadTicketWithDetails(tx: Tx, ticketId: string) {
   const cleanId = ticketId.replace(/^#/, "").trim()
-  const rows = (
-    await tx.execute(sql`
+  const upperId = cleanId.toUpperCase()
+  const [rowsRes, replies] = await Promise.all([
+    tx.execute(sql`
       select
         t.id, t.student_id, t.category, t.subject, t.description, t.priority, t.status,
         t.attachment_name, t.attachment_size, t.attachment_path, t.resolution_notes,
@@ -34,19 +35,19 @@ async function loadTicketWithDetails(tx: Tx, ticketId: string) {
       from lms.support_tickets t
       join lms.users u on u.id = t.student_id
       left join lms.profiles p on p.id = t.student_id
-      where t.id = ${cleanId} or lower(t.id) = lower(${cleanId})
+      where t.id = ${cleanId} or t.id = ${upperId}
       limit 1
-    `)
-  ).rows as any[]
+    `),
+    tx
+      .select()
+      .from(ticket_replies)
+      .where(sql`${ticket_replies.ticket_id} = ${cleanId} or ${ticket_replies.ticket_id} = ${upperId}`)
+      .orderBy(asc(ticket_replies.created_at)),
+  ])
+  const rows = rowsRes.rows as any[]
 
   if (!rows.length) throw notFound("Ticket not found.")
   const row = rows[0]
-
-  const replies = await tx
-    .select()
-    .from(ticket_replies)
-    .where(eq(ticket_replies.ticket_id, row.id))
-    .orderBy(asc(ticket_replies.created_at))
 
   const ticket = {
     id: row.id,
@@ -87,8 +88,8 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
 
     // List all tickets with joined student profiles & replies
     scope.get("/api/support/tickets", async () => {
-      const rows = (
-        await db.execute(sql`
+      const [rowsRes, allReplies] = await Promise.all([
+        db.execute(sql`
           select
             t.id, t.student_id, t.category, t.subject, t.description, t.priority, t.status,
             t.attachment_name, t.attachment_size, t.attachment_path, t.resolution_notes,
@@ -101,17 +102,10 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
           join lms.users u on u.id = t.student_id
           left join lms.profiles p on p.id = t.student_id
           order by t.created_at desc
-        `)
-      ).rows as any[]
-
-      const ticketIds = rows.map((r) => r.id)
-      const allReplies = ticketIds.length
-        ? await db
-            .select()
-            .from(ticket_replies)
-            .where(inArray(ticket_replies.ticket_id, ticketIds))
-            .orderBy(asc(ticket_replies.created_at))
-        : []
+        `),
+        db.select().from(ticket_replies).orderBy(asc(ticket_replies.created_at)),
+      ])
+      const rows = rowsRes.rows as any[]
 
       const repliesByTicket = new Map<string, typeof allReplies>()
       for (const reply of allReplies) {
@@ -170,8 +164,9 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
       )
 
       return db.transaction(async (tx) => {
+        const upperId = cleanId.toUpperCase()
         const lockRes = await tx.execute(
-          sql`select * from lms.support_tickets where id = ${cleanId} or lower(id) = lower(${cleanId}) for update`,
+          sql`select * from lms.support_tickets where id = ${cleanId} or id = ${upperId} for update`,
         )
         const t = lockRes.rows[0] as (typeof support_tickets.$inferSelect) | undefined
         if (!t) throw notFound("Ticket not found.")
@@ -245,8 +240,9 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
       )
 
       return db.transaction(async (tx) => {
+        const upperId = cleanId.toUpperCase()
         const lockRes = await tx.execute(
-          sql`select * from lms.support_tickets where id = ${cleanId} or lower(id) = lower(${cleanId}) for update`,
+          sql`select * from lms.support_tickets where id = ${cleanId} or id = ${upperId} for update`,
         )
         const t = lockRes.rows[0] as (typeof support_tickets.$inferSelect) | undefined
         if (!t) throw notFound("Ticket not found.")

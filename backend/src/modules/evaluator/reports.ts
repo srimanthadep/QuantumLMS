@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify"
 import type { AppContext } from "../../context.js"
 import { me } from "../../http.js"
 import { addDays, localDay } from "../../lib/time.js"
-import { letterGrade, rubricFor, scaled, type Scores } from "./grading.js"
+import { letterGrade, rubricsFor, scaled, type Scores } from "./grading.js"
 
 const GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "D", "F"] as const
 
@@ -26,8 +26,8 @@ export async function reportRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.get("/api/evaluator/reports", async (req) => {
     const u = me(req)
-    const rows = (
-      await db.execute(sql`
+    const [rowsRes, requestsRes] = await Promise.all([
+      db.execute(sql`
         select s.id, s.assignment_id, s.submitted_at, s.status as submission_status, s.score as released_score,
                a.title, a.max_marks, a.due_at, c.code as course_code,
                e.status, e.scores, e.total, e.evaluator_id, eu.full_name as evaluator_name, e.evaluated_at, e.released_at
@@ -36,18 +36,17 @@ export async function reportRoutes(app: FastifyInstance, ctx: AppContext) {
         join lms.assignments a on a.id = s.assignment_id
         join lms.courses c on c.id = a.course_id
         left join lms.evaluations e on e.submission_id = s.id
-        left join lms.users eu on eu.id = e.evaluator_id`)
-    ).rows as Record<string, any>[]
-    const requests = (
-      await db.execute(sql`
+        left join lms.users eu on eu.id = e.evaluator_id`),
+      db.execute(sql`
         select r.status, r.original_score, r.revised_score from lms.reevaluation_requests r
         join lms.assignment_submissions s on s.id = r.submission_id
-        join lms.evaluator_assignments ea on ea.assignment_id = s.assignment_id and ea.evaluator_id = ${u.id}::uuid`)
-    ).rows as { status: string; original_score: number; revised_score: number | null }[]
+        join lms.evaluator_assignments ea on ea.assignment_id = s.assignment_id and ea.evaluator_id = ${u.id}::uuid`),
+    ])
+    const rows = rowsRes.rows as Record<string, any>[]
+    const requests = requestsRes.rows as { status: string; original_score: number; revised_score: number | null }[]
 
     const assignmentIds = [...new Set(rows.map((r) => r.assignment_id as string))]
-    const rubricList = await Promise.all(assignmentIds.map((id) => rubricFor(db, id)))
-    const rubricOf = new Map(assignmentIds.map((id, i) => [id, rubricList[i]]))
+    const rubricOf = await rubricsFor(db, assignmentIds)
 
     const finished = (r: Record<string, any>) => r.status === "evaluated" || r.status === "released" || (!r.status && r.submission_status === "Graded")
     const pctOf = (r: Record<string, any>) => {

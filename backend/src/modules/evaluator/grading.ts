@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, sql } from "drizzle-orm"
 import type { Tx } from "../../db/client.js"
 import { assignment_submissions, assignments, evaluations, evaluator_assignments, rubric_criteria, rubrics } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
@@ -41,6 +41,50 @@ export async function rubricFor(tx: Tx, assignmentId: string) {
   return { id: r.id, title: r.title, version: r.version, guidance: r.guidance, criteria, max_points: criteria.reduce((s, c) => s + c.max_points, 0) }
 }
 export type Rubric = NonNullable<Awaited<ReturnType<typeof rubricFor>>>
+
+/** Batch-loads rubrics and their criteria for multiple assignments in 2 queries instead of 2*N. */
+export async function rubricsFor(tx: Tx, assignmentIds: string[]): Promise<Map<string, Rubric | null>> {
+  const result = new Map<string, Rubric | null>()
+  if (!assignmentIds.length) return result
+  for (const id of assignmentIds) result.set(id, null)
+
+  const rubricRows = await tx.select().from(rubrics).where(inArray(rubrics.assignment_id, assignmentIds))
+  if (!rubricRows.length) return result
+
+  const criteriaRows = await tx
+    .select()
+    .from(rubric_criteria)
+    .where(inArray(rubric_criteria.rubric_id, rubricRows.map((r) => r.id)))
+    .orderBy(asc(rubric_criteria.position))
+
+  const criteriaByRubric = new Map<string, typeof criteriaRows>()
+  for (const c of criteriaRows) {
+    const list = criteriaByRubric.get(c.rubric_id) ?? []
+    list.push(c)
+    criteriaByRubric.set(c.rubric_id, list)
+  }
+
+  for (const r of rubricRows) {
+    const rows = criteriaByRubric.get(r.id) ?? []
+    const criteria = rows.map((c) => ({
+      id: c.id,
+      position: c.position,
+      title: c.title,
+      description: c.description,
+      max_points: c.max_points,
+      levels: (c.levels ?? []) as Level[],
+    }))
+    result.set(r.assignment_id, {
+      id: r.id,
+      title: r.title,
+      version: r.version,
+      guidance: r.guidance,
+      criteria,
+      max_points: criteria.reduce((s, c) => s + c.max_points, 0),
+    })
+  }
+  return result
+}
 
 /**
  * Scores for the rubric's own criteria only. Points must be whole numbers from 0 to the criterion's maximum.

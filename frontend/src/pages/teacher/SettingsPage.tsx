@@ -125,11 +125,14 @@ export default function SettingsPage() {
   ])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(settings))
-    } catch {
-      // storage unavailable
-    }
+    const id = setTimeout(() => {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(settings))
+      } catch {
+        // storage unavailable
+      }
+    }, 300)
+    return () => clearTimeout(id)
   }, [settings])
   useEffect(() => () => (photo ? URL.revokeObjectURL(photo) : undefined), [photo])
 
