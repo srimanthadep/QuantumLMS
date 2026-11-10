@@ -529,10 +529,10 @@ export default function CourseEditorModal({
     })
 
   const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
-    { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
+    { id: "curriculum", label: "Curriculum", icon: Layers, count: modules.length },
     { id: "materials", label: "Materials", icon: FileText, count: materials.length },
     { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
-    { id: "settings", label: "Course Settings", icon: Settings2 },
+    { id: "settings", label: "Settings", icon: Settings2 },
   ]
 
   const statusDot = course.status === "Published" ? "bg-emerald-300" : course.status === "Draft" ? "bg-amber-300" : "bg-slate-300"
@@ -615,70 +615,71 @@ export default function CourseEditorModal({
           </div>
         </header>
 
-        {/* ===== Horizontal Tabs Bar (Full Width) ===== */}
-        <div className="shrink-0 border-b border-border bg-surface px-4 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <nav aria-label="Workspace sections" className="flex gap-1 overflow-x-auto no-scrollbar py-2">
-              {tabs.map((t) => {
-                const active = activeTab === t.id
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setActiveTab(t.id)}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap",
-                      active
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
-                    )}
-                  >
-                    <t.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span>{t.label}</span>
-                    {t.count !== undefined && (
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
-                          active ? "bg-white/20 text-white" : "bg-surface-2 text-muted-foreground"
-                        )}
-                      >
-                        {t.count}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+        {/* ===== Body: sidebar on the left + panel on the right ===== */}
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          {/* Desktop Left Sidebar */}
+          <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-surface p-4 lg:flex">
+            <nav aria-label="Workspace sections" className="flex flex-col gap-1.5">
+              {tabs.map((t) => (
+                <NavItem
+                  key={t.id}
+                  icon={t.icon}
+                  label={t.label}
+                  count={t.count}
+                  active={activeTab === t.id}
+                  onClick={() => setActiveTab(t.id)}
+                />
+              ))}
             </nav>
 
-            {/* Course Snapshot telemetry on right of tabs */}
-            <div className="hidden lg:flex items-center gap-3.5 text-xs font-medium text-muted-foreground py-2 shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span>Seats:</span>
-                <span className="font-semibold tabular-nums text-foreground">{course.enrolledStudents} / {course.capacity}</span>
+            <div className="space-y-3 rounded-2xl border border-border bg-surface-2/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Seats</span>
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {course.enrolledStudents} / {course.capacity}
+                  </span>
+                </div>
+                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
               </div>
-              <div className="h-3 w-px bg-border" />
-              <div className="flex items-center gap-1.5">
-                <span>Tuition:</span>
-                <span className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</span>
-              </div>
-              <div className="h-3 w-px bg-border" />
-              <div className="flex items-center gap-1.5">
-                <span>Revenue:</span>
-                <span className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</span>
-              </div>
-              <div className="h-3 w-px bg-border" />
-              <div className="flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
-                <span className="font-semibold tabular-nums text-foreground">{course.rating}</span>
-              </div>
+              <dl className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Tuition</dt>
+                  <dd className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Revenue</dt>
+                  <dd className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Rating</dt>
+                  <dd className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
+                    <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
+                    {course.rating}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Completion</dt>
+                  <dd className="font-semibold tabular-nums text-foreground">{course.completionRate}%</dd>
+                </div>
+              </dl>
+              <p className="truncate border-t border-border pt-3 text-[11px] font-mono tabular-nums text-subtle-foreground" title={course.id}>
+                ID · {course.id}
+              </p>
             </div>
-          </div>
-        </div>
+          </aside>
 
-        {/* ===== Full Width Workspace Panel ===== */}
-        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-          <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 sm:px-8">
+          {/* Mobile section pills */}
+          <nav aria-label="Workspace sections" className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:hidden">
+            {tabs.map((t) => (
+              <NavItem key={t.id} pill icon={t.icon} label={t.label} count={t.count} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} />
+            ))}
+          </nav>
+
+          {/* Right Main Content Panel */}
+          <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+            <div className="w-full space-y-6 px-5 py-6 sm:px-8">
             {loading ? (
               <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
                 {[0, 1, 2].map((i) => (
@@ -1125,6 +1126,7 @@ export default function CourseEditorModal({
               )}
             </div>
           </main>
+        </div>
 
         {/* ===== Workspace Footer ===== */}
         <footer className="shrink-0 border-t border-border bg-surface px-4 py-3 sm:px-8 flex items-center justify-between text-xs text-muted-foreground">

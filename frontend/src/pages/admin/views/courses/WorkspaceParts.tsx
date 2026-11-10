@@ -62,9 +62,11 @@ export function NavItem({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 whitespace-nowrap text-sm font-medium transition-colors",
-        pill ? "rounded-full px-3.5 py-1.5" : "w-full rounded-xl px-3 py-2.5",
-        active ? "bg-primary-soft text-primary-text" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+        "flex items-center gap-2.5 whitespace-nowrap text-sm font-semibold transition-all",
+        pill ? "rounded-full px-3.5 py-1.5" : "w-full rounded-xl px-3.5 py-2.5",
+        active
+          ? "bg-primary text-primary-foreground shadow-xs"
+          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -72,8 +74,8 @@ export function NavItem({
       {count !== undefined && (
         <span
           className={cn(
-            "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-            active ? "bg-primary/15 text-primary-text" : "bg-surface-2 text-muted-foreground",
+            "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
+            active ? "bg-white/20 text-white" : "bg-surface-2 text-muted-foreground",
           )}
         >
           {count}
