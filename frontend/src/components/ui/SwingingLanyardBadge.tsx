@@ -643,12 +643,23 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         let tileKey = ""
         let tilePat: CanvasPattern | null = null
         const tileM = new DOMMatrix()
-        const insertTile = (img: HTMLImageElement | null, color: string, iw: number, ih: number, offY: number, studentName?: string) => {
+        const resolveCssColor = (c: string, fallback = "#ea580c"): string => {
+            if (!c || typeof c !== "string") return fallback
+            const s = c.trim()
+            if (s.startsWith("var(") && typeof document !== "undefined") {
+                const varName = s.slice(4, -1).trim()
+                const computed = getComputedStyle(root).getPropertyValue(varName).trim() ||
+                    getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
+                if (computed) return resolveCssColor(computed, fallback)
+            }
+            return s || fallback
+        }
+        const insertTile = (img: HTMLImageElement | null, color: string, iw: number, ih: number, offY: number, studentName?: string, accentColor?: string) => {
             const q = 2 * dpr
             const tw = Math.ceil(iw * q) + 2
             const th = Math.ceil(ih * q) + 2
             const off = Math.max(-250, Math.min(250, typeof offY === "number" && isFinite(offY) ? offY : 0))
-            const key = `${img ? img.src : ""}|${color}|${tw}|${th}|${off}|${studentName || ""}`
+            const key = `${img ? img.src : ""}|${color}|${tw}|${th}|${off}|${studentName || ""}|${accentColor || ""}`
             if (key === tileKey) return tilePat
             tileKey = key
             tilePat = null
@@ -667,22 +678,22 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
                 t.drawImage(img, (tw - dw) / 2, (th - dh) * (0.5 - (off / 250) * 0.5), dw, dh)
             }
             if (studentName) {
-                const grad = t.createLinearGradient(0, th * 0.62, 0, th)
+                const grad = t.createLinearGradient(0, th * 0.58, 0, th)
                 grad.addColorStop(0, "rgba(10, 15, 25, 0)")
-                grad.addColorStop(0.5, "rgba(10, 15, 25, 0.7)")
-                grad.addColorStop(1, "rgba(10, 15, 25, 0.95)")
+                grad.addColorStop(0.5, "rgba(10, 15, 25, 0.72)")
+                grad.addColorStop(1, "rgba(10, 15, 25, 0.96)")
                 t.fillStyle = grad
-                t.fillRect(0, th * 0.58, tw, th * 0.42)
+                t.fillRect(0, th * 0.54, tw, th * 0.46)
 
-                t.font = `bold ${Math.round(13 * dpr)}px system-ui, -apple-system, sans-serif`
+                t.font = `700 ${Math.round(10.5 * q)}px system-ui, -apple-system, sans-serif`
                 t.fillStyle = "#ffffff"
                 t.textAlign = "center"
                 t.textBaseline = "bottom"
-                t.fillText(studentName, tw / 2, th - 8 * dpr)
+                t.fillText(studentName, tw / 2, th - 6 * q, tw - 10 * q)
 
-                t.font = `700 ${Math.round(8.5 * dpr)}px system-ui, -apple-system, sans-serif`
-                t.fillStyle = "#ea580c"
-                t.fillText("QUANTUM LMS · STUDENT", tw / 2, th - 24 * dpr)
+                t.font = `700 ${Math.round(6 * q)}px system-ui, -apple-system, sans-serif`
+                t.fillStyle = accentColor || "#ea580c"
+                t.fillText("QUANTUM LMS · STUDENT", tw / 2, th - 19 * q, tw - 10 * q)
             }
             tilePat = ctx.createPattern(c, "no-repeat")
             return tilePat
@@ -729,7 +740,7 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             const iw = G.hW - 2 * m
             const ih = G.hH - adv.insertTop * s - 8 * s
             const img = getImage(imageSrc(v.image))
-            const tile = insertTile(img, v.cardColor, iw, ih, v.imageOffsetY, v.name)
+            const tile = insertTile(img, v.cardColor, iw, ih, v.imageOffsetY, v.name, v.strapColor)
             if (tile) {
                 tileM.a = tileM.d = 1 / (2 * dpr)
                 tileM.e = ix - 1 / (2 * dpr)
@@ -944,10 +955,15 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             }
 
             const sheen = adv.strapSheen / 100
-            drawStraps(left, right, baseL, baseR, strapW, v.strapColor, sheen, G.segL)
-            drawClip(v, adv, G, ang, false)
-            drawCard(v, adv, G, ang, hoverAmt)
-            drawClip(v, adv, G, ang, true)
+            const rv = {
+                ...v,
+                strapColor: resolveCssColor(v.strapColor, "#ea580c"),
+                cardColor: resolveCssColor(v.cardColor, "#F2F2F2"),
+            }
+            drawStraps(left, right, baseL, baseR, strapW, rv.strapColor, sheen, G.segL)
+            drawClip(rv, adv, G, ang, false)
+            drawCard(rv, adv, G, ang, hoverAmt)
+            drawClip(rv, adv, G, ang, true)
 
             const vig = adv.vignette / 100
             if (vig > 0) {

@@ -321,12 +321,13 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
   return (
     <div className="relative flex w-full min-w-0 flex-col">
       {/* Interactive Swinging Lanyard Badge hanging from the line under brightness */}
-      <div className="hidden lg:block pointer-events-none absolute right-4 sm:right-5 lg:right-6 xl:right-8 -top-5 sm:-top-5 lg:-top-6 z-20 w-[190px] xl:w-[210px] h-[395px] xl:h-[415px]">
+      <div className="hidden lg:block pointer-events-none absolute right-1 xl:right-3 -top-5 sm:-top-5 lg:-top-6 z-20 w-[205px] xl:w-[220px] h-[400px] xl:h-[420px]">
         <div className="w-full h-full pointer-events-auto select-none">
           <SwingingLanyardBadge
-            size={190}
-            ropeLength={31}
+            size={195}
+            ropeLength={33}
             anchorY={0}
+            strapSpread={105}
             strapColor="var(--primary)"
             image={{
               src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
@@ -342,7 +343,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
         eyebrow={today}
         title={`${greeting()}, ${firstName}`}
         description="Your learning command center for the day ahead."
-        className="relative z-10 lg:pr-[210px] xl:pr-[230px]"
+        className="relative z-10 lg:pr-[215px] xl:pr-[235px]"
         actions={
           <Button variant="outline" leftIcon={<CalendarDays aria-hidden="true" />} onClick={() => onNavigate("Schedule")}>
             View schedule
@@ -351,46 +352,45 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
       />
 
       <Stagger className="flex flex-col gap-5" stagger={0.055}>
-        {/* The dashboard's one focal surface: the active learning command center. */}
+        {/* The dashboard's one focal surface: the active learning command center, sized to give the hanging lanyard its own column. */}
         <StaggerItem>
-          <section
-            className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F17] shadow-xl [contain:paint] transform-gpu"
-            aria-label="Learning command center"
-          >
-            {activeCourse && (
-              <img
-                src={activeCourse.image}
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[0.14] [mask-image:linear-gradient(90deg,transparent_10%,black_65%)] lg:w-2/3"
-              />
-            )}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-[#0B0F17]/90 to-[#0B0F17]" />
-            <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+          <div className="lg:pr-[215px] xl:pr-[235px]">
+            <section
+              className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F17] shadow-xl [contain:paint] transform-gpu"
+              aria-label="Learning command center"
+            >
+              {activeCourse && (
+                <img
+                  src={activeCourse.image}
+                  alt=""
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[0.14] [mask-image:linear-gradient(90deg,transparent_10%,black_65%)] lg:w-2/3"
+                />
+              )}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-[#0B0F17]/90 to-[#0B0F17]" />
+              <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
 
-            <div className="p-5 sm:p-6 lg:p-7">
-              {/* Top Tagline */}
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <Badge tone="live" dot className="border-white/15 bg-white/10 text-white text-[11px] px-2.5 py-0.5">
-                    Learning Live
-                  </Badge>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
-                    Your Next Lesson
-                  </span>
-                  <span className="hidden sm:inline text-xs text-white/40">· Continue where you left off</span>
+              <div className="p-5 sm:p-6 lg:p-7">
+                {/* Top Tagline */}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Badge tone="live" dot className="shrink-0 border-white/15 bg-white/10 text-white text-[11px] px-2.5 py-0.5">
+                      Learning Live
+                    </Badge>
+                    <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
+                      Your Next Lesson
+                    </span>
+                    <span className="hidden xl:inline truncate text-xs text-white/40">· Continue where you left off</span>
+                  </div>
+                  <div className="shrink-0 text-xs text-white/60 font-mono">
+                    {today}
+                  </div>
                 </div>
-                <div className="text-xs text-white/60 font-mono">
-                  {today}
-                </div>
-              </div>
 
-              {/* Main Command Center Grid */}
-              <div className="flex flex-col lg:flex-row items-center gap-5 lg:gap-6 justify-between">
-                {/* Left & Center: Squeezed Command Info + 4 Stats */}
-                <div className="flex-1 min-w-0 grid gap-5 xl:gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(250px,0.85fr)] items-center">
+                {/* Main Command Center Grid */}
+                <div className="grid gap-4 xl:gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(235px,0.8fr)] xl:grid-cols-[minmax(0,1.25fr)_minmax(255px,0.85fr)] items-center">
                   <div className="min-w-0">
-                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                    <h2 className="text-lg sm:text-xl xl:text-2xl font-bold tracking-tight text-white line-clamp-1">
                       {activeCourse ? (activeCourse.lastWatched || activeCourse.title) : "Choose a course to begin"}
                     </h2>
                     {activeCourse && (
@@ -443,46 +443,43 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                   </div>
 
                   {/* Integrated Compact 4-Stat Strip */}
-                  <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-3">
+                  <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-2.5 xl:p-3">
                     <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-white text-lg font-bold tabular-nums">{focusScore}</span>
                         <span className="text-[10px] font-bold text-success uppercase">Focus</span>
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium">Focus score</p>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Focus score</p>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-white text-lg font-bold tabular-nums">{streak} {streak === 1 ? "day" : "days"}</span>
-                        <Flame className="h-4 w-4 text-warning fill-current" />
+                        <Flame className="h-4 w-4 shrink-0 text-warning fill-current" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium">Learning streak</p>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Learning streak</p>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-white text-lg font-bold tabular-nums">{week.total}h</span>
-                        <Clock className="h-4 w-4 text-sky-400" />
+                        <Clock className="h-4 w-4 shrink-0 text-sky-400" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium">This week</p>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">This week</p>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-white text-lg font-bold tabular-nums">{priorityItems.length - completedItems}</span>
-                        <ListTodo className="h-4 w-4 text-amber-400" />
+                        <ListTodo className="h-4 w-4 shrink-0 text-amber-400" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium">Priority tasks</p>
+                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Priority tasks</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Right Side: Reserved space for the swinging lanyard badge hanging from the top line */}
-                <div className="hidden lg:block w-[180px] xl:w-[210px] shrink-0 self-stretch pointer-events-none" aria-hidden="true" />
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         </StaggerItem>
 
         {/* Signals & Placements Overview Grid */}
