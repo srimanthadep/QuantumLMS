@@ -320,8 +320,8 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
   return (
     <div className="relative flex w-full min-w-0 flex-col">
-      {/* Interactive Swinging Lanyard Badge hanging from the line under brightness, tucked to the far right */}
-      <div className="hidden lg:block pointer-events-none absolute -right-3 xl:-right-4 -top-5 sm:-top-5 lg:-top-6 z-20 w-[176px] xl:w-[190px] h-[400px] xl:h-[420px]">
+      {/* Interactive Swinging Lanyard Badge hanging from the top border line on the left */}
+      <div className="hidden lg:block pointer-events-none absolute -left-3 xl:-left-4 -top-5 sm:-top-5 lg:-top-6 z-20 w-[176px] xl:w-[190px] h-[400px] xl:h-[420px]">
         <div className="w-full h-full pointer-events-auto select-none">
           <SwingingLanyardBadge
             size={188}
@@ -343,7 +343,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
         eyebrow={today}
         title={`${greeting()}, ${firstName}`}
         description="Your learning command center for the day ahead."
-        className="relative z-10 lg:pr-[164px] xl:pr-[176px]"
+        className="relative z-10 lg:pl-[164px] xl:pl-[176px]"
         actions={
           <Button variant="outline" leftIcon={<CalendarDays aria-hidden="true" />} onClick={() => onNavigate("Schedule")}>
             View schedule
@@ -352,9 +352,9 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
       />
 
       <Stagger className="flex flex-col gap-5" stagger={0.055}>
-        {/* The dashboard's one focal surface: the active learning command center, sized to give the hanging lanyard its own column. */}
+        {/* The dashboard's one focal surface: the active learning command center on the right, clearing the lanyard on the left. */}
         <StaggerItem>
-          <div className="lg:pr-[164px] xl:pr-[176px]">
+          <div className="lg:pl-[164px] xl:pl-[176px]">
             <section
               className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F17] shadow-xl [contain:paint] transform-gpu"
               aria-label="Learning command center"
