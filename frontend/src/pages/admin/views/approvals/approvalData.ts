@@ -89,151 +89,45 @@ export const STATUS_META: Record<ApprovalStatus, { label: string; tone: "warning
 
 export const STORAGE_KEY = "admin:teacher_approvals"
 
-export const SEED_APPROVALS: ApprovalRecord[] = [
-  {
-    id: "appr-sched-1",
-    category: "class_schedule",
-    title: "Deep Dive: Fine-Tuning Llama-3 with LoRA & QLoRA",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    instructor: "Srimanth",
-    submittedAt: "Today, 09:30 AM",
-    status: "Pending",
-    details: {
-      date: "2026-11-12",
-      time: "7:00 PM - 8:45 PM IST",
-      duration: "105 mins",
-      type: "Live Classroom (Studio)",
-      notes: "Interactive GPU cluster demo requiring learner compute instances.",
-    },
-  },
-  {
-    id: "appr-sched-2",
-    category: "class_schedule",
-    title: "Graph RAG Architecture & Vector Index Sharding",
-    courseName: "Agentic Systems & Workflow Automation",
-    courseCode: "AI-302",
-    instructor: "Shanmuk",
-    submittedAt: "Yesterday, 04:15 PM",
-    status: "Pending",
-    details: {
-      date: "2026-11-14",
-      time: "6:30 PM - 8:00 PM IST",
-      duration: "90 mins",
-      type: "Live Interactive Lab",
-      notes: "Requires Neo4j sandbox instance activation.",
-    },
-  },
-  {
-    id: "appr-curr-1",
-    category: "curriculum_item",
-    title: "Production RAG Evaluator with Ragas & TruLens",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    moduleName: "Module 3: Retrieval Augmented Generation",
-    instructor: "Srimanth",
-    submittedAt: "Today, 10:15 AM",
-    status: "Pending",
-    details: {
-      type: "Coding Lab Assignment",
-      marks: 100,
-      notes: "Hands-on pipeline evaluation with automated unit tests.",
-    },
-  },
-  {
-    id: "appr-curr-2",
-    category: "curriculum_item",
-    title: "Attention Mechanism & KV-Cache Checkpoint Assessment",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    moduleName: "Module 1: Transformers Architecture",
-    instructor: "Srimanth",
-    submittedAt: "Today, 10:45 AM",
-    status: "Pending",
-    details: {
-      type: "Timed Quiz Assessment",
-      marks: 100,
-      passingMarks: 65,
-      timeLimit: "30 mins",
-      notes: "20 multiple choice questions with code snippets.",
-    },
-  },
-  {
-    id: "appr-curr-3",
-    category: "curriculum_item",
-    title: "FlashAttention-2 & Memory Bandwidth Reference Guide",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    moduleName: "Module 2: LLM Inference Optimization",
-    instructor: "Srimanth",
-    submittedAt: "Yesterday, 06:00 PM",
-    status: "Pending",
-    details: {
-      type: "Study Material (PDF)",
-      fileSize: "PDF · 4.8 MB",
-      notes: "Supplementary hardware architecture schematics.",
-    },
-  },
-  {
-    id: "appr-vid-1",
-    category: "video_recording",
-    title: "Live Class: Decision Trees, Entropy & Information Gain",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    moduleName: "Module 2: Machine Learning Fundamentals",
-    instructor: "Srimanth",
-    submittedAt: "Today, 11:50 AM",
-    status: "Pending",
-    details: {
-      duration: "50 mins",
-      chaptersCount: 5,
-      fileSize: "1080p Full HD · 640 MB",
-      notes: "Live recording completed and auto-chaptered. Verified audio clarity.",
-    },
-  },
-  {
-    id: "appr-grd-1",
-    category: "publish_grade",
-    title: "Module 1 Milestone: Multi-Head Attention from Scratch",
-    courseName: "GenAI Engineering (LLMs & Multi-Agent)",
-    courseCode: "AI-301",
-    moduleName: "Module 1: Transformers Architecture",
-    instructor: "Srimanth",
-    submittedAt: "Today, 11:10 AM",
-    status: "Pending",
-    details: {
-      submissionsGraded: 24,
-      averageScore: 86,
-      marks: 100,
-      notes: "All 24 submissions graded with detailed feedback rubrics. Ready to publish to learner report cards.",
-    },
-  },
-]
+export const SEED_APPROVALS: ApprovalRecord[] = []
 
 export function loadApprovals(): ApprovalRecord[] {
+  if (typeof window === "undefined") return []
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed)) return parsed
-    }
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item: any) =>
+        !item.id?.startsWith("appr-sched-") &&
+        !item.id?.startsWith("appr-curr-") &&
+        !item.id?.startsWith("appr-rec-") &&
+        !item.id?.startsWith("appr-grade-"),
+    )
   } catch {
-    // fall back to the seed queue
+    return []
   }
-  return SEED_APPROVALS
 }
 
-export function formatDecidedAt(iso?: string): string {
-  if (!iso) return ""
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })
+export function formatClassDate(date?: string, time?: string): string {
+  if (!date) return "Date not specified"
+  try {
+    const d = new Date(date)
+    const formatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    return time ? `${formatted} · ${time}` : formatted
+  } catch {
+    return date
+  }
 }
 
-export function formatClassDate(date?: string): string {
-  if (!date) return ""
-  const d = new Date(`${date}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return date
-  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+export function formatDecidedAt(decidedAt?: string): string {
+  if (!decidedAt) return ""
+  try {
+    const d = new Date(decidedAt)
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  } catch {
+    return decidedAt
+  }
 }
 

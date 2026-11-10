@@ -16,20 +16,6 @@ import type {
   StudentItem,
   TeachingSuggestionItem,
 } from "@/types"
-import {
-  initialAIMonitoringData,
-  initialAttendanceRecords,
-  initialCalendarEvents,
-  initialCourses,
-  initialDoubts,
-  initialLiveSessions,
-  initialRecordingReviews,
-  initialRecordings,
-  initialReports,
-  initialStudents,
-  initialTeachingSuggestions,
-} from "@/data/mockData"
-import { getModuleAssignment } from "@/data/courseAssignmentsData"
 import { useSession } from "@/app/session"
 import { minutesOf } from "./teacherUtils"
 
@@ -39,12 +25,22 @@ const KEYS = {
   events: "quantum_teacher_events_v2",
 } as const
 
+const isLegacyMockId = (id: string) =>
+  /^(c[0-9]+|s[0-9]+|m[0-9]+|d-[0-9]+|tt-[0-9]+|asg_m[0-9]+|ses-[0-9]+|ev-[0-9]+)$/.test(id)
+
 function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((item: any) => !isLegacyMockId(item?.id || ""))
+        return cleaned as T
+      }
+      return parsed as T
+    }
   } catch {
-    // ignore and use the seed data
+    // ignore
   }
   return fallback
 }
@@ -79,16 +75,23 @@ function recompute(c: CourseItem): CourseItem {
   return { ...c, modules, lessonsCount: lessons.length, progress }
 }
 
-/** Seed assignments per course module. The seed helper keys by module id only, so other courses get theirs by prefix. */
-function seedAssignments(courses: CourseItem[]): Record<string, ModuleAssignmentItem> {
-  const out: Record<string, ModuleAssignmentItem> = {}
-  for (const c of courses) {
-    for (const m of c.modules) {
-      const a = c.id === "c1" ? getModuleAssignment(c.id, m.id) : getModuleAssignment(c.id, `${c.id}_${m.id}`)
-      if (a) out[assignmentKey(c.id, m.id)] = { ...a, courseId: c.id, moduleId: m.id, moduleTitle: m.title }
-    }
-  }
-  return out
+/** Seed assignments per course module (empty by default). */
+function seedAssignments(_courses: CourseItem[]): Record<string, ModuleAssignmentItem> {
+  return {}
+}
+
+const EMPTY_MONITORING: AIMonitoringData = {
+  lastUpdated: "",
+  overallStatus: "Optimal",
+  engagementScore: 0,
+  activeParticipants: 0,
+  totalEnrolled: 0,
+  questionsCount: 0,
+  participationTrend: "Stable",
+  lectureProgressPercent: 0,
+  currentSegmentTitle: "",
+  attentionFlags: [],
+  suggestions: [],
 }
 
 export interface NewSessionInput {
@@ -166,17 +169,17 @@ const TeacherDataContext = createContext<TeacherData | null>(null)
 
 export function TeacherDataProvider({ onToast, children }: { onToast: (msg: string) => void; children: ReactNode }) {
   const { user } = useSession()
-  const [courses, setCourses] = useState<CourseItem[]>(() => initialCourses.map(recompute))
-  const [students, setStudents] = useState<StudentItem[]>(initialStudents)
-  const [sessions, setSessions] = useState<LiveSessionItem[]>(() => load(KEYS.sessions, initialLiveSessions))
-  const [doubts, setDoubts] = useState<DoubtItem[]>(() => load(KEYS.doubts, initialDoubts))
-  const [events, setEvents] = useState<CalendarEventItem[]>(() => load(KEYS.events, initialCalendarEvents))
-  const [recordings, setRecordings] = useState<SessionRecordingItem[]>(initialRecordings)
-  const [reviews, setReviews] = useState<Record<string, RecordingReviewDataset>>(initialRecordingReviews)
-  const [published, setPublished] = useState<Set<string>>(() => new Set(initialRecordings.filter((r) => r.status === "Available").map((r) => r.id)))
-  const [reports, setReports] = useState<ReportItem[]>(initialReports)
-  const [suggestions, setSuggestions] = useState<TeachingSuggestionItem[]>(initialTeachingSuggestions)
-  const [assignments, setAssignments] = useState<Record<string, ModuleAssignmentItem>>(() => seedAssignments(initialCourses))
+  const [courses, setCourses] = useState<CourseItem[]>([])
+  const [students, setStudents] = useState<StudentItem[]>([])
+  const [sessions, setSessions] = useState<LiveSessionItem[]>(() => load(KEYS.sessions, []))
+  const [doubts, setDoubts] = useState<DoubtItem[]>(() => load(KEYS.doubts, []))
+  const [events, setEvents] = useState<CalendarEventItem[]>(() => load(KEYS.events, []))
+  const [recordings, setRecordings] = useState<SessionRecordingItem[]>([])
+  const [reviews, setReviews] = useState<Record<string, RecordingReviewDataset>>({})
+  const [published, setPublished] = useState<Set<string>>(() => new Set())
+  const [reports, setReports] = useState<ReportItem[]>([])
+  const [suggestions, setSuggestions] = useState<TeachingSuggestionItem[]>([])
+  const [assignments, setAssignments] = useState<Record<string, ModuleAssignmentItem>>({})
 
   useEffect(() => save(KEYS.sessions, sessions), [sessions])
   useEffect(() => save(KEYS.doubts, doubts), [doubts])
@@ -187,7 +190,8 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
     let cancelled = false
     async function fetchTeacherData() {
       try {
-        const [cRes, dRes, eRes, sRes] = await Promise.allSettled([
+        const [courseRes, cRes, dRes, eRes, sRes] = await Promise.allSettled([
+          api.get<{ courses: CourseItem[] }>("/teacher/courses"),
           api.get<{ classes: any[] }>("/teacher/classes"),
           api.get<{ doubts: any[] }>("/teacher/doubts"),
           api.get<{ events: any[] }>("/teacher/calendar"),
@@ -195,121 +199,97 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         ])
         if (cancelled) return
 
-        if (cRes.status === "fulfilled" && cRes.value?.classes?.length) {
-          setSessions((prev) => {
-            const apiSessions: LiveSessionItem[] = cRes.value.classes.map((c: any) => ({
-              id: c.id,
-              title: c.title,
-              courseId: c.course_id || "c1",
-              courseName: c.course_title || "GenAI Engineering",
-              courseCode: c.course_code || "AI-101",
-              batchName: "Cohort 14 (Evening)",
-              scheduledDate: "2026-11-10",
-              startTime: c.starts?.slice(0, 5) || "10:00",
-              endTime: c.ends?.slice(0, 5) || "11:30",
-              durationMinutes: 90,
-              status: "Upcoming",
-              platform: "Zoom",
-              meetingUrl: `https://classroom.quantumschool.ai/live/${c.id}`,
-              instructorName: c.instructor || "Instructor",
-              enrolledCount: 38,
-              topicsCovered: [],
-              isReadOnly: false,
-            }))
-            const apiMap = new Map(apiSessions.map((s) => [s.id, s]))
-            const merged = [...apiSessions]
-            for (const p of prev) {
-              if (!apiMap.has(p.id)) merged.push(p)
-            }
-            return merged
-          })
+        if (courseRes.status === "fulfilled" && Array.isArray(courseRes.value?.courses)) {
+          setCourses(courseRes.value.courses.map(recompute))
         }
 
-        if (dRes.status === "fulfilled" && dRes.value?.doubts?.length) {
-          setDoubts((prev) => {
-            const apiDoubts: DoubtItem[] = dRes.value.doubts.map((d: any) => ({
-              id: d.id,
-              studentId: d.student_id || "s-1",
-              studentName: d.student_name || "Student",
-              studentAvatar: d.student_avatar || undefined,
-              studentRoll: "QAI-104",
-              courseId: d.course_id || "c1",
-              courseName: d.course_title || "Course",
-              courseCode: "AI-101",
-              questionTitle: d.body.slice(0, 50),
-              questionText: d.body,
-              submittedAt: new Date(d.created_at).toLocaleDateString(),
-              priority: "Medium",
-              status: d.answer ? "Resolved" : "Pending",
-              responses: d.answer
-                ? [
-                    {
-                      id: `ans-${d.id}`,
-                      author: d.answer_author || "Teacher",
-                      authorRole: "Teacher",
-                      text: d.answer,
-                      createdAt: "Recently",
-                    },
-                  ]
-                : [],
-            }))
-            const apiMap = new Map(apiDoubts.map((d) => [d.id, d]))
-            const merged = [...apiDoubts]
-            for (const p of prev) {
-              if (!apiMap.has(p.id)) merged.push(p)
-            }
-            return merged
-          })
+        if (cRes.status === "fulfilled" && Array.isArray(cRes.value?.classes)) {
+          const apiSessions: LiveSessionItem[] = cRes.value.classes.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            courseId: c.course_id || "",
+            courseName: c.course_title || "Course",
+            courseCode: c.course_code || "",
+            batchName: "Cohort 14 (Evening)",
+            scheduledDate: "2026-11-10",
+            startTime: c.starts?.slice(0, 5) || "10:00",
+            endTime: c.ends?.slice(0, 5) || "11:30",
+            durationMinutes: 90,
+            status: "Upcoming",
+            platform: "Zoom",
+            meetingUrl: `https://classroom.quantumschool.ai/live/${c.id}`,
+            instructorName: c.instructor || "Instructor",
+            enrolledCount: 0,
+            topicsCovered: [],
+            isReadOnly: false,
+          }))
+          setSessions(apiSessions)
         }
 
-        if (eRes.status === "fulfilled" && eRes.value?.events?.length) {
-          setEvents((prev) => {
-            const apiEvents: CalendarEventItem[] = eRes.value.events.map((e: any) => ({
-              id: e.id,
-              title: e.title,
-              category: "Meeting",
-              startDate: new Date(e.starts_at).toISOString().split("T")[0],
-              startTime: e.time_label?.split("-")[0]?.trim() || "10:00",
-              endTime: e.time_label?.split("-")[1]?.trim() || "11:30",
-              location: e.location || "Online Lab",
-              description: e.description || "",
-              isReadOnly: false,
-            }))
-            const apiMap = new Map(apiEvents.map((ev) => [ev.id, ev]))
-            const merged = [...apiEvents]
-            for (const p of prev) {
-              if (!apiMap.has(p.id)) merged.push(p)
-            }
-            return merged
-          })
+        if (dRes.status === "fulfilled" && Array.isArray(dRes.value?.doubts)) {
+          const apiDoubts: DoubtItem[] = dRes.value.doubts.map((d: any) => ({
+            id: d.id,
+            studentId: d.student_id || "",
+            studentName: d.student_name || "Student",
+            studentAvatar: d.student_avatar || undefined,
+            studentRoll: "QAI-104",
+            courseId: d.course_id || "",
+            courseName: d.course_title || "Course",
+            courseCode: "",
+            questionTitle: d.body?.slice(0, 50) || "",
+            questionText: d.body || "",
+            submittedAt: d.created_at ? new Date(d.created_at).toLocaleDateString() : "Recently",
+            priority: "Medium",
+            status: d.answer ? "Resolved" : "Pending",
+            responses: d.answer
+              ? [
+                  {
+                    id: `ans-${d.id}`,
+                    author: d.answer_author || "Teacher",
+                    authorRole: "Teacher",
+                    text: d.answer,
+                    createdAt: "Recently",
+                  },
+                ]
+              : [],
+          }))
+          setDoubts(apiDoubts)
         }
 
-        if (sRes.status === "fulfilled" && sRes.value?.students?.length) {
-          setStudents((prev) => {
-            const apiStudents: StudentItem[] = sRes.value.students.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              rollNumber: s.roll_number || "QAI-104",
-              image: s.avatar_url || undefined,
-              email: s.email,
-              completion: 78,
-              average: 91,
-              attendance: s.attendance_rate || 92,
-              status: "On Track",
-              tone: "purple",
-              subjects: { english: 90, math: 92, science: 91, art: 88 },
-              tags: ["GenAI", "Cohort 14"],
-              assignedCourse: "c1",
-              grade: "A",
-              pendingAssignments: 2,
-            }))
-            const apiMap = new Map(apiStudents.map((st) => [st.id, st]))
-            const merged = [...apiStudents]
-            for (const p of prev) {
-              if (!apiMap.has(p.id)) merged.push(p)
-            }
-            return merged
-          })
+        if (eRes.status === "fulfilled" && Array.isArray(eRes.value?.events)) {
+          const apiEvents: CalendarEventItem[] = eRes.value.events.map((e: any) => ({
+            id: e.id,
+            title: e.title,
+            category: "Meeting",
+            startDate: e.starts_at ? new Date(e.starts_at).toISOString().split("T")[0] : "",
+            startTime: e.time_label?.split("-")[0]?.trim() || "10:00",
+            endTime: e.time_label?.split("-")[1]?.trim() || "11:30",
+            location: e.location || "Online Lab",
+            description: e.description || "",
+            isReadOnly: false,
+          }))
+          setEvents(apiEvents)
+        }
+
+        if (sRes.status === "fulfilled" && Array.isArray(sRes.value?.students)) {
+          const apiStudents: StudentItem[] = sRes.value.students.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            rollNumber: s.roll_number || "",
+            image: s.avatar_url || undefined,
+            email: s.email,
+            completion: 0,
+            average: 0,
+            attendance: s.attendance_rate || 100,
+            status: "On Track",
+            tone: "purple",
+            subjects: { english: 0, math: 0, science: 0, art: 0 },
+            tags: [],
+            assignedCourse: "",
+            grade: "A",
+            pendingAssignments: 0,
+          }))
+          setStudents(apiStudents)
         }
       } catch {
         // Safe offline fallback
@@ -714,8 +694,8 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       published,
       reports,
       suggestions,
-      attendance: initialAttendanceRecords,
-      monitoring: initialAIMonitoringData,
+      attendance: [],
+      monitoring: EMPTY_MONITORING,
       assignments,
       addCourse,
       addModule,

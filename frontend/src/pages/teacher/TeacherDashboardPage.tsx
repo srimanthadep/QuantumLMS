@@ -30,7 +30,6 @@ import IconTile, { type IconTone } from "@/components/teacher/IconTile"
 import LiveSessionHero from "@/components/teacher/LiveSessionHero"
 import ScheduleSessionDialog from "@/components/teacher/ScheduleSessionDialog"
 import StudentDrawer from "@/components/teacher/StudentDrawer"
-import { initialAnalyticsMetrics } from "@/data/mockData"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import type { StudentItem } from "@/types"
@@ -228,7 +227,7 @@ export default function TeacherDashboardPage() {
 
   const avgAttendance = Math.round(average(students.map((s) => s.attendance)))
   const classAverage = Math.round(average(students.map((s) => s.average)))
-  const mastery = initialAnalyticsMetrics[0]
+  const mastery = { label: "Class average", value: `${classAverage}%`, trend: "+0%" }
   const highDoubts = openDoubts.filter((d) => d.priority === "High").length
   const pulse = PULSE[range]
   const today = DEMO_NOW.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })

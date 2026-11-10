@@ -48,7 +48,6 @@ export function NavItem({
   active,
   onClick,
   pill,
-  description,
 }: {
   icon: LucideIcon
   label: string
@@ -56,7 +55,6 @@ export function NavItem({
   active: boolean
   onClick: () => void
   pill?: boolean
-  description?: string
 }) {
   return (
     <button
@@ -64,29 +62,20 @@ export function NavItem({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-3 whitespace-nowrap text-sm font-semibold transition-all select-none text-left",
-        pill
-          ? "rounded-full px-3.5 py-1.5 text-xs"
-          : "w-full rounded-2xl px-4 py-3",
+        "flex items-center gap-2.5 whitespace-nowrap text-sm font-semibold transition-all",
+        pill ? "rounded-full px-3.5 py-1.5" : "w-full rounded-xl px-3.5 py-2.5",
         active
-          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground active:scale-[0.99]",
+          ? "bg-primary text-primary-foreground shadow-xs"
+          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
       )}
     >
-      <Icon className={cn("shrink-0", pill ? "h-4 w-4" : "h-5 w-5")} aria-hidden="true" />
-      <div className={cn("flex-1 min-w-0", pill && "hidden sm:block")}>
-        <div className="truncate text-sm font-semibold leading-tight">{label}</div>
-        {description && !pill && (
-          <div className={cn("text-[11px] font-normal truncate mt-0.5", active ? "text-primary-foreground/85" : "text-muted-foreground")}>
-            {description}
-          </div>
-        )}
-      </div>
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className={cn(!pill && "flex-1 text-left")}>{label}</span>
       {count !== undefined && (
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums shrink-0",
-            active ? "bg-white/25 text-white" : "bg-surface-2 text-muted-foreground border border-border/50",
+            "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
+            active ? "bg-white/20 text-white" : "bg-surface-2 text-muted-foreground",
           )}
         >
           {count}

@@ -7,8 +7,10 @@ import {
   attendance_records,
   campus_events,
   courses,
+  course_modules,
   course_questions,
   enrollments,
+  lessons,
   profiles,
   timetable_slots,
   users,
@@ -23,6 +25,77 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
   await app.register(
     async (scope) => {
       scope.addHook("preHandler", authenticate(ctx, ["Teacher", "Admin", "Super Admin"]))
+
+      // 0. List teacher courses with full curriculum
+      scope.get("/courses", async () => {
+        const [courseRows, modulesRows, lessonsRows, enrolledCounts] = await Promise.all([
+          db.select().from(courses).orderBy(asc(courses.position), asc(courses.title)),
+          db.select().from(course_modules).orderBy(asc(course_modules.position)),
+          db.select().from(lessons).orderBy(asc(lessons.position)),
+          db.select({ course_id: enrollments.course_id, n: sql<number>`count(*)::int` }).from(enrollments).groupBy(enrollments.course_id),
+        ])
+
+        const countMap = new Map(enrolledCounts.map((e) => [e.course_id, e.n]))
+        const lessonsByModule = new Map<string, typeof lessonsRows>()
+        for (const l of lessonsRows) {
+          const arr = lessonsByModule.get(l.module_id) || []
+          arr.push(l)
+          lessonsByModule.set(l.module_id, arr)
+        }
+
+        const modulesByCourse = new Map<string, any[]>()
+        for (const m of modulesRows) {
+          const arr = modulesByCourse.get(m.course_id) || []
+          const modLessons = lessonsByModule.get(m.id) || []
+          arr.push({
+            id: m.id,
+            title: m.title,
+            description: "",
+            objectives: [],
+            completed: false,
+            progress: 0,
+            lessons: modLessons.map((l) => ({
+              id: l.id,
+              title: l.title,
+              duration: l.duration,
+              completed: false,
+              type: l.type === "video" ? "Video Lecture" : l.type === "lab" ? "Lab / Project" : "Reading",
+              description: l.summary || "",
+              objectives: [],
+              contentSummary: l.summary || "",
+              materials: [],
+              resourceType: l.type,
+              videoUrl: l.video_url || undefined,
+            })),
+          })
+          modulesByCourse.set(m.course_id, arr)
+        }
+
+        const result = courseRows.map((c) => {
+          const cModules = modulesByCourse.get(c.id) || []
+          const totalLessons = cModules.reduce((acc, m) => acc + m.lessons.length, 0)
+          return {
+            id: c.id,
+            code: c.code,
+            name: c.title,
+            thumbnail: c.image || "/assets/course_genai.jpg",
+            description: c.description,
+            enrolledStudentsCount: countMap.get(c.id) || 0,
+            modulesCount: cModules.length,
+            lessonsCount: totalLessons,
+            progress: 0,
+            status: "Active" as const,
+            tone: "purple" as const,
+            assignedClass: "Cohort · " + c.category,
+            term: "Term 1 (2026)",
+            instructor: c.instructor,
+            enrolledStudentIds: [],
+            modules: cModules,
+          }
+        })
+
+        return { courses: result }
+      })
 
       // 1. List teacher classes / live sessions
       scope.get("/classes", async () => {

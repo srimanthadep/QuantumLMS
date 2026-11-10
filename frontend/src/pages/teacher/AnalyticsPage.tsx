@@ -58,7 +58,6 @@ import DonutChart from "@/components/charts/DonutChart"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import IconTile, { type IconTone } from "@/components/teacher/IconTile"
 import SendReportDialog from "@/components/teacher/SendReportDialog"
-import { initialAnalyticsMetrics } from "@/data/mockData"
 import { cn } from "@/lib/utils"
 import { ease, transition } from "@/lib/motion"
 import type { ReportItem, StudentItem } from "@/types"
@@ -220,6 +219,17 @@ export default function AnalyticsPage() {
   const sent = reports.filter((r) => r.status === "Sent")
   const readRate = Math.round(average(sent.map((r) => r.readRate)))
 
+  const analyticsMetrics = useMemo(() => {
+    const avgScore = cohort.length ? Math.round(cohort.reduce((acc, s) => acc + (s.average || 0), 0) / cohort.length) : 0
+    const avgAtt = cohort.length ? Math.round(cohort.reduce((acc, s) => acc + (s.attendance || 0), 0) / cohort.length) : 0
+    return [
+      { label: "Class average", value: `${avgScore}%`, trend: "+0%" },
+      { label: "Active learners", value: String(cohort.length), trend: `${courses.length} courses` },
+      { label: "Attendance rate", value: `${avgAtt}%`, trend: "Real-time" },
+      { label: "Total courses", value: String(courses.length), trend: "Catalog" },
+    ]
+  }, [cohort, courses])
+
   const exportCsv = () => {
     const lines = [
       ["Learner", "Roll", "Course", "Completion", "Average", "Attendance", "GenAI & LLMs", "Deep Learning", "MLOps & Infra", "Agentic Systems", "Status"],
@@ -293,7 +303,7 @@ export default function AnalyticsPage() {
 
             <StaggerItem>
               <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                {initialAnalyticsMetrics.map((m, i) => (
+                {analyticsMetrics.map((m, i) => (
                   <StatCard
                     key={m.label}
                     title={m.label}
