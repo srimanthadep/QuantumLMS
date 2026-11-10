@@ -417,10 +417,36 @@ function paintDetails(ctx: CanvasRenderingContext2D, kind: number, fam: string) 
     }
 }
 
-function paintCard(ctx: CanvasRenderingContext2D, kind: number, fam: string, titleWeight: any, pic: HTMLImageElement | null, offsetY = 0) {
+function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    if ((ctx as any).roundRect) {
+        ;(ctx as any).roundRect(x, y, w, h, r)
+    } else {
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.lineTo(x + w - r, y)
+        ctx.arcTo(x + w, y, x + w, y + r, r)
+        ctx.lineTo(x + w, y + h - r)
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+        ctx.lineTo(x + r, y + h)
+        ctx.arcTo(x, y + h, x, y + h - r, r)
+        ctx.lineTo(x, y + r)
+        ctx.arcTo(x, y, x + r, y, r)
+        ctx.closePath()
+    }
+}
+
+function paintCard(
+    ctx: CanvasRenderingContext2D,
+    kind: number,
+    fam: string,
+    titleWeight: any,
+    pic: HTMLImageElement | null,
+    offsetY = 0,
+    face?: any
+) {
     ctx.save()
     ctx.clearRect(0, 0, TW, TH)
-    const b = BODIES[kind]
+    const b = BODIES[kind % BODIES.length]
     if (b.grad) {
         const g = ctx.createLinearGradient(0, 0, 0, TH)
         b.grad.forEach((s: any) => g.addColorStop(s[0], s[1]))
@@ -437,17 +463,107 @@ function paintCard(ctx: CanvasRenderingContext2D, kind: number, fam: string, tit
         // Y Offset picks which band of the cover overflow shows, as a share of it (objectPosition
         // 50% - offset/5 %): 0 is centred, 250 puts the top edge flush, -250 the bottom.
         ctx.drawImage(pic, (TW - w) / 2, (TH - h) * (0.5 - offsetY / 500), w, h)
+    } else if (face?.name) {
+        // Draw centered avatar initials circle when no photo is loaded
+        const initials = String(face.name).trim().split(/\s+/).map((p: string) => p[0]).slice(0, 2).join("").toUpperCase() || "ST"
+        const avY = TH * 0.36
+        const avR = TH * 0.13
+        ctx.save()
+        ctx.fillStyle = face.color || "rgba(255, 255, 255, 0.22)"
+        ctx.beginPath()
+        ctx.arc(TW * 0.5, avY, avR, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.45)"
+        ctx.lineWidth = 4
+        ctx.stroke()
+        ctx.font = fnt(fam, 700, TH * 0.08)
+        ctx.fillStyle = "#FFFFFF"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(initials, TW * 0.5, avY)
+        ctx.restore()
+    } else {
+        const padX = TW * 0.062
+        ctx.textBaseline = "alphabetic"
+        ctx.textAlign = "left"
+        ctx.fillStyle = "rgba(255,255,255,0.92)"
+        ctx.font = fnt(fam, titleWeight, TH * 0.031)
+        b.title.forEach((l: string, k: number) => ctx.fillText(l, padX, TH * 0.1 + TH * 0.024 + k * TH * 0.0426))
+        ctx.fillText(b.footer, padX, TH * (1 - 0.085))
+        paintDetails(ctx, kind, fam)
         ctx.restore()
         return
     }
-    const padX = TW * 0.062
-    ctx.textBaseline = "alphabetic"
-    ctx.textAlign = "left"
-    ctx.fillStyle = "rgba(255,255,255,0.92)"
-    ctx.font = fnt(fam, titleWeight, TH * 0.031)
-    b.title.forEach((l: string, k: number) => ctx.fillText(l, padX, TH * 0.1 + TH * 0.024 + k * TH * 0.0426))
-    ctx.fillText(b.footer, padX, TH * (1 - 0.085))
-    paintDetails(ctx, kind, fam)
+
+    // Render Student & Company Details on the bottom of the card
+    if (face?.name || face?.company) {
+        // Scrim gradient across the bottom half of the card for maximum readability
+        const scrim = ctx.createLinearGradient(0, TH * 0.48, 0, TH)
+        scrim.addColorStop(0, "rgba(0, 0, 0, 0)")
+        scrim.addColorStop(0.28, "rgba(8, 10, 16, 0.52)")
+        scrim.addColorStop(0.65, "rgba(8, 10, 16, 0.88)")
+        scrim.addColorStop(1, "rgba(6, 8, 14, 0.98)")
+        ctx.fillStyle = scrim
+        ctx.fillRect(0, TH * 0.48, TW, TH * 0.52)
+
+        const padX = TW * 0.085
+
+        // 1. Company Pill Badge
+        if (face.company) {
+            const pillY = TH * 0.715
+            const pillH = TH * 0.056
+            ctx.font = fnt(fam, 700, TH * 0.027)
+            const compText = String(face.company).toUpperCase()
+            const compW = ctx.measureText(compText).width
+            const pillW = compW + pillH * 1.1
+
+            // Frosted glass background pill
+            ctx.fillStyle = "rgba(255, 255, 255, 0.18)"
+            drawRoundRect(ctx, padX, pillY, pillW, pillH, pillH / 2)
+            ctx.fill()
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.32)"
+            ctx.lineWidth = 1.5
+            ctx.stroke()
+
+            // Glowing Company Dot
+            const dotX = padX + pillH * 0.42
+            const dotY = pillY + pillH * 0.5
+            const dotR = pillH * 0.16
+            ctx.fillStyle = face.color || "#38bdf8"
+            ctx.beginPath()
+            ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2)
+            ctx.fill()
+
+            // Company Text
+            ctx.fillStyle = "#FFFFFF"
+            ctx.textBaseline = "middle"
+            ctx.textAlign = "left"
+            ctx.fillText(compText, dotX + pillH * 0.35, dotY)
+        }
+
+        // 2. Student Name
+        if (face.name) {
+            const nameY = TH * 0.86
+            ctx.font = fnt(fam, 700, TH * 0.054)
+            ctx.fillStyle = "#FFFFFF"
+            ctx.textAlign = "left"
+            ctx.textBaseline = "alphabetic"
+            ctx.shadowColor = "rgba(0, 0, 0, 0.65)"
+            ctx.shadowBlur = 8
+            ctx.fillText(face.name, padX, nameY)
+            ctx.shadowBlur = 0
+        }
+
+        // 3. Role / Subtitle
+        const roleY = TH * 0.932
+        const subtitle = face.role ? `${face.role} · Placed` : `Placed at ${face.company || "Leading Tech"}`
+        ctx.font = fnt(fam, 500, TH * 0.032)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.78)"
+        ctx.textAlign = "left"
+        ctx.textBaseline = "alphabetic"
+        ctx.fillText(subtitle, padX, roleY)
+    }
+
     ctx.restore()
 }
 
@@ -495,15 +611,23 @@ function __OriginkitBase_MirrorFlipCarousel(props: any) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
     const faces = (Array.isArray(images) ? images : [])
-        .map((v: any) => ({ src: imageOf(v), offsetY: offsetOf(v) }))
-        .filter((f) => f.src)
+        .map((v: any) => ({
+            src: imageOf(v),
+            offsetY: offsetOf(v),
+            name: typeof v === "object" ? v?.name : undefined,
+            company: typeof v === "object" ? v?.company : undefined,
+            role: typeof v === "object" ? v?.role : undefined,
+            color: typeof v === "object" ? v?.color : undefined,
+            alt: typeof v === "object" ? v?.alt : undefined,
+        }))
+        .filter((f) => f.src || f.name)
     const srcs = faces.map((f) => f.src)
     const fontFamily: string = props.font?.fontFamily || DEFAULT_FONT.fontFamily
     const fontWeight: any = props.font?.fontWeight || DEFAULT_FONT.fontWeight
-    const bakeKey = faces.map((f) => f.src + "@" + f.offsetY).join("\n") + "|" + fontFamily + "|" + fontWeight
-    // Cards on the track (as baked) and items in the pagination: one per image, the built-in four without.
-    const cards = Math.max(4, Math.min(8, srcs.length))
-    const items = srcs.length ? Math.min(8, srcs.length) : 4
+    const bakeKey = faces.map((f) => `${f.src}@${f.offsetY}@${f.name || ""}@${f.company || ""}`).join("\n") + "|" + fontFamily + "|" + fontWeight
+    // Cards on the track (as baked) and items in the pagination: one per item, the built-in four without.
+    const cards = Math.max(4, Math.min(8, faces.length))
+    const items = faces.length ? Math.min(8, faces.length) : 4
 
     const propsRef = useRef<any>({})
     propsRef.current = {
@@ -701,7 +825,7 @@ function __OriginkitBase_MirrorFlipCarousel(props: any) {
         const bake = () => {
             if (!gl) return
             const p = propsRef.current
-            const list: { src: string; offsetY: number }[] = p.faces || []
+            const list: any[] = p.faces || []
             const N = Math.max(4, Math.min(8, list.length))
             while (textures.length < N) {
                 const t = gl.createTexture()!
@@ -721,10 +845,10 @@ function __OriginkitBase_MirrorFlipCarousel(props: any) {
                 const src = face ? face.src : ""
                 const pic = src ? getPic(src) : null
                 // A load or font change (dirty) repaints everything; otherwise only cards whose face changed.
-                const key = src + "@" + (face ? face.offsetY : 0) + "|" + (pic ? 1 : 0) + "|" + fam + "|" + p.fontWeight
+                const key = src + "@" + (face ? `${face.offsetY}-${face.name}-${face.company}-${face.role}` : "") + "|" + (pic ? 1 : 0) + "|" + fam + "|" + p.fontWeight
                 if (!s.dirty && texKeys[i] === key) continue
                 texKeys[i] = key
-                paintCard(octx, i % 4, fam, p.fontWeight, pic, face ? face.offsetY : 0)
+                paintCard(octx, i % 4, fam, p.fontWeight, pic, face ? face.offsetY : 0, face)
                 gl.bindTexture(gl.TEXTURE_2D, textures[i])
                 try {
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off)
@@ -733,7 +857,7 @@ function __OriginkitBase_MirrorFlipCarousel(props: any) {
                         const e = pics.get(src)
                         if (e) e.state = 2
                     }
-                    paintCard(octx, i % 4, fam, p.fontWeight, null)
+                    paintCard(octx, i % 4, fam, p.fontWeight, null, 0, face)
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off)
                 }
                 gl.generateMipmap(gl.TEXTURE_2D)
