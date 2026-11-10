@@ -106,8 +106,8 @@ export default function RecentPlacementsCard({
       <div className="relative flex-1 w-full min-h-0">
         <MirrorFlipCarousel
           images={items}
-          scale={90}
-          arrows={true}
+          scale={122}
+          arrows={false}
           style={{ width: "100%", height: "100%" }}
         />
       </div>

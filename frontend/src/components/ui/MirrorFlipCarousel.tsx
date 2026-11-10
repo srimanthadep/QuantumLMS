@@ -510,25 +510,25 @@ function paintCard(
 
         // 1. Company Pill Badge
         if (face.company) {
-            const pillY = TH * 0.715
-            const pillH = TH * 0.056
-            ctx.font = fnt(fam, 700, TH * 0.027)
+            const pillY = TH * 0.695
+            const pillH = TH * 0.06
+            ctx.font = fnt(fam, 700, TH * 0.029)
             const compText = String(face.company).toUpperCase()
             const compW = ctx.measureText(compText).width
-            const pillW = compW + pillH * 1.1
+            const pillW = compW + pillH * 1.15
 
             // Frosted glass background pill
-            ctx.fillStyle = "rgba(255, 255, 255, 0.18)"
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)"
             drawRoundRect(ctx, padX, pillY, pillW, pillH, pillH / 2)
             ctx.fill()
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.32)"
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.35)"
             ctx.lineWidth = 1.5
             ctx.stroke()
 
             // Glowing Company Dot
             const dotX = padX + pillH * 0.42
             const dotY = pillY + pillH * 0.5
-            const dotR = pillH * 0.16
+            const dotR = pillH * 0.17
             ctx.fillStyle = face.color || "#38bdf8"
             ctx.beginPath()
             ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2)
@@ -543,22 +543,22 @@ function paintCard(
 
         // 2. Student Name
         if (face.name) {
-            const nameY = TH * 0.86
-            ctx.font = fnt(fam, 700, TH * 0.054)
+            const nameY = TH * 0.855
+            ctx.font = fnt(fam, 700, TH * 0.058)
             ctx.fillStyle = "#FFFFFF"
             ctx.textAlign = "left"
             ctx.textBaseline = "alphabetic"
-            ctx.shadowColor = "rgba(0, 0, 0, 0.65)"
-            ctx.shadowBlur = 8
+            ctx.shadowColor = "rgba(0, 0, 0, 0.7)"
+            ctx.shadowBlur = 10
             ctx.fillText(face.name, padX, nameY)
             ctx.shadowBlur = 0
         }
 
         // 3. Role / Subtitle
-        const roleY = TH * 0.932
+        const roleY = TH * 0.925
         const subtitle = face.role ? `${face.role} · Placed` : `Placed at ${face.company || "Leading Tech"}`
-        ctx.font = fnt(fam, 500, TH * 0.032)
-        ctx.fillStyle = "rgba(255, 255, 255, 0.78)"
+        ctx.font = fnt(fam, 500, TH * 0.034)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.82)"
         ctx.textAlign = "left"
         ctx.textBaseline = "alphabetic"
         ctx.fillText(subtitle, padX, roleY)
@@ -1116,7 +1116,7 @@ function __OriginkitBase_MirrorFlipCarousel(props: any) {
                top of that row instead of on the whole stage, so they never sit on the buttons.
                In clip space that is (row top − hidden top) / height; eased so toggling glides. */
             const dockTop = p.dock ? (p.dockBottom ?? 0.05 * ch) + p.dockH : 0
-            const shiftT = p.dock ? Math.max(0, dockTop - (s.cutTop || 0)) / ch : 0
+            const shiftT = p.dock && (p.arrows || p.pagination !== "none") ? Math.min(0.06, (Math.max(0, dockTop - (s.cutTop || 0)) / ch) * 0.25) : 0
             s.shiftY = s.shiftY == null || reduced || isStatic ? shiftT : s.shiftY + (shiftT - s.shiftY) * ek
             gl.uniform1f(U.uShiftY, s.shiftY)
             gl.uniform1i(U.uTex, 0)
