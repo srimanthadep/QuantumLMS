@@ -38,10 +38,6 @@ const preferencesInput = z
  * evaluator once that screen exists.) The shared demo evaluator gets the demo marking history instead.
  */
 export async function onboardEvaluator(tx: Tx, user: AuthUser, ctx: Pick<AppContext, "config"> & { storage?: Storage }) {
-  if (isDemoEvaluator(ctx, user)) {
-    await seedEvaluatorDemo(tx, { evaluatorId: user.id, anchor: new Date(), tz: ctx.config.CAMPUS_TZ, storage: ctx.storage, demoStudentEmail: ctx.config.DEMO_STUDENT_EMAIL })
-    return
-  }
   await tx.insert(evaluator_profiles).values({ id: user.id }).onConflictDoNothing()
   const marked = await tx.select({ id: rubrics.assignment_id }).from(rubrics)
   if (marked.length) await tx.insert(evaluator_assignments).values(marked.map((m) => ({ evaluator_id: user.id, assignment_id: m.id }))).onConflictDoNothing()

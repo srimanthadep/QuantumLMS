@@ -20,14 +20,11 @@ import { supportRoutes } from "./support.js"
 
 const onboardedStudents = new Set<string>()
 
-const isDemoStudent = (ctx: AppContext, u: AuthUser) => ctx.config.DEMO_MODE && u.is_demo && u.email.toLowerCase() === ctx.config.DEMO_STUDENT_EMAIL.toLowerCase()
+const isDemoStudent = (ctx: AppContext, u: AuthUser) =>
+  ctx.config.DEMO_MODE && u.is_demo && u.email.toLowerCase() === ctx.config.DEMO_STUDENT_EMAIL.toLowerCase()
 
-/** A new student: profile with a roll number, the starter courses and a welcome note. */
+/** A new student: profile with a roll number, the starter courses (if any) and a welcome note. */
 export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContext, "config">) {
-  if (isDemoStudent(ctx as AppContext, user)) {
-    await seedStudentDemo(tx, user.id, new Date(), ctx.config.CAMPUS_TZ)
-    return
-  }
   const [{ n }] = (await tx.execute(sql`select nextval(${sql.raw(`'lms.${roll_number_seq.seqName}'`)}) as n`)).rows as { n: string }[]
   const [created] = await tx
     .insert(profiles)
@@ -40,7 +37,6 @@ export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContex
     await tx.insert(enrollments).values(starters.map((c) => ({ student_id: user.id, course_id: c.id }))).onConflictDoNothing()
     await openCertificates(tx, user.id, starters.map((c) => c.id))
   }
-  await notify(tx, user.id, "system", "Welcome to Quantum School", "Your courses for this term are ready. Start with the first lesson in My Courses.", "courses")
 }
 
 export async function studentModule(app: FastifyInstance, ctx: AppContext) {

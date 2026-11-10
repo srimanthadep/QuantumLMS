@@ -24,7 +24,7 @@ import {
   Layers3,
   CirclePlay,
 } from "lucide-react"
-import { demoAccounts } from "@/data/demoAccounts"
+import { demoAccounts, ALL_DEMO_ACCOUNTS } from "@/data/demoAccounts"
 import type { UserRole } from "@/types"
 import {
   accountConfirmEmail,
@@ -174,7 +174,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
       setCodeStep(null)
       void cancelAccountSignIn()
     }
-    const account = demoAccounts.find((d) => d.role === targetRole)
+    const account = demoAccounts.find((d) => d.role === targetRole) || ALL_DEMO_ACCOUNTS[targetRole]
     if (account) {
       setEmail(account.email)
       setPassword(account.password)
@@ -206,7 +206,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
       onLogin(result)
     } catch (e) {
       if (fallbackDemoRole) {
-        const account = demoAccounts.find((d) => d.role === fallbackDemoRole)
+        const account = ALL_DEMO_ACCOUNTS[fallbackDemoRole] || demoAccounts.find((d) => d.role === fallbackDemoRole)
         if (account) {
           onLogin({
             id: account.role.toLowerCase(),
@@ -230,7 +230,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
   /** Direct 1-click launch for a demo account */
   const handleQuickLaunch = (targetRole: UserRole) => {
-    const account = demoAccounts.find((d) => d.role === targetRole)
+    const account = demoAccounts.find((d) => d.role === targetRole) || ALL_DEMO_ACCOUNTS[targetRole]
     if (!account) return
 
     setRole(targetRole)
@@ -282,9 +282,10 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }
 
     if (mode === "signin") {
-      const matchedDemo = demoAccounts.find(
-        (d) => d.email.toLowerCase() === email.trim().toLowerCase(),
-      )
+      const trimmedEmail = email.trim().toLowerCase()
+      const matchedDemo =
+        demoAccounts.find((d) => d.email.toLowerCase() === trimmedEmail) ||
+        Object.values(ALL_DEMO_ACCOUNTS).find((d) => d.email.toLowerCase() === trimmedEmail)
       const effectiveRole = matchedDemo ? matchedDemo.role : role
 
       if (!usesAccounts(effectiveRole) && matchedDemo) {
@@ -301,9 +302,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
       void runAccount(
         () => accountSignIn(email, password),
-        matchedDemo && password === matchedDemo.password
-          ? matchedDemo.role
-          : undefined,
+        effectiveRole,
       )
       return
     }
@@ -542,7 +541,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   {demoAccounts.map((acc) => {
                     const RoleIcon = ROLE_ICONS[acc.role]
                     const isSelected = role === acc.role
