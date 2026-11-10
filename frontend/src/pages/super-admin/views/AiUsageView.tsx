@@ -32,7 +32,7 @@ import {
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import DonutChart from "@/components/charts/DonutChart"
 import type { MetricItem } from "@/types"
-import type { useSuperAdminStore } from "@/data/adminStore"
+import { INITIAL_AI_USAGE, type useSuperAdminStore } from "@/data/adminStore"
 import { cn } from "@/lib/utils"
 
 interface AiUsageViewProps {
@@ -43,17 +43,27 @@ interface AiUsageViewProps {
 export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
   const { aiUsage, updateAiModelSettings } = store
 
-  const [primaryModel, setPrimaryModel] = useState(aiUsage.primaryModel)
-  const [fallbackModel, setFallbackModel] = useState(aiUsage.fallbackModel)
-  const [temperature, setTemperature] = useState(aiUsage.temperature)
-  const [strictnessScore, setStrictnessScore] = useState(aiUsage.strictnessScore)
-  const [monthlyBudgetCapInr, setMonthlyBudgetCapInr] = useState(aiUsage.monthlyBudgetCapInr)
+  // Safe defaults guarding against incomplete localStorage or partial API responses
+  const safeAiUsage = {
+    ...INITIAL_AI_USAGE,
+    ...(aiUsage || {}),
+    tokensByFeature: {
+      ...INITIAL_AI_USAGE.tokensByFeature,
+      ...(aiUsage?.tokensByFeature || {}),
+    },
+  }
+
+  const [primaryModel, setPrimaryModel] = useState(safeAiUsage.primaryModel || "Claude 3.5 Sonnet")
+  const [fallbackModel, setFallbackModel] = useState(safeAiUsage.fallbackModel || "GPT-4o")
+  const [temperature, setTemperature] = useState(safeAiUsage.temperature ?? 0.2)
+  const [strictnessScore, setStrictnessScore] = useState(safeAiUsage.strictnessScore ?? 0.85)
+  const [monthlyBudgetCapInr, setMonthlyBudgetCapInr] = useState(safeAiUsage.monthlyBudgetCapInr || 500000)
 
   const donutData = [
-    { label: "AI Tutor (Clover)", value: aiUsage.tokensByFeature.aiTutor, color: "var(--primary)" },
-    { label: "Whisper Transcription", value: aiUsage.tokensByFeature.transcription, color: "var(--secondary)" },
-    { label: "Video Chaptering", value: aiUsage.tokensByFeature.videoChaptering, color: "var(--success)" },
-    { label: "Grading Assist", value: aiUsage.tokensByFeature.evaluatorAssist, color: "var(--warning)" },
+    { label: "AI Tutor (Clover)", value: safeAiUsage.tokensByFeature.aiTutor ?? 0, color: "var(--primary)" },
+    { label: "Whisper Transcription", value: safeAiUsage.tokensByFeature.transcription ?? 0, color: "var(--secondary)" },
+    { label: "Video Chaptering", value: safeAiUsage.tokensByFeature.videoChaptering ?? 0, color: "var(--success)" },
+    { label: "Grading Assist", value: safeAiUsage.tokensByFeature.evaluatorAssist ?? 0, color: "var(--warning)" },
   ]
 
   const handleSave = (e: React.FormEvent) => {
@@ -68,27 +78,28 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
     onToast("AI engine parameters and model allocations saved")
   }
 
-  const budgetUsedPct = Math.round((aiUsage.totalCostInr / aiUsage.monthlyBudgetCapInr) * 100)
+  const budgetCap = safeAiUsage.monthlyBudgetCapInr || 1
+  const budgetUsedPct = Math.min(100, Math.round(((safeAiUsage.totalCostInr || 0) / budgetCap) * 100))
 
   const kpis: MetricItem[] = [
     {
       icon: "trend",
       label: "Monthly AI Spend",
-      value: `₹${aiUsage.totalCostInr.toLocaleString("en-IN")}`,
-      trend: `${budgetUsedPct}% of ₹${(aiUsage.monthlyBudgetCapInr / 1000).toFixed(0)}k budget`,
+      value: `₹${(safeAiUsage.totalCostInr || 0).toLocaleString("en-IN")}`,
+      trend: `${budgetUsedPct}% of ₹${(budgetCap / 1000).toFixed(0)}k budget`,
       tone: "lime",
     },
     {
       icon: "fire",
       label: "Total Tokens",
-      value: `${(aiUsage.totalTokensMonth / 1_000_000).toFixed(1)}M`,
+      value: `${((safeAiUsage.totalTokensMonth || 0) / 1_000_000).toFixed(1)}M`,
       trend: "Current billing cycle",
       tone: "lavender",
     },
     {
       icon: "star",
       label: "Primary LLM",
-      value: primaryModel.split(" ")[0],
+      value: (primaryModel || "Claude").split(" ")[0],
       trend: "Fast streaming token tier",
       tone: "yellow",
     },
@@ -96,7 +107,7 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
       icon: "users",
       label: "Fallback Ladder",
       value: "Ready",
-      trend: fallbackModel.split(" ")[0],
+      trend: (fallbackModel || "GPT-4o").split(" ")[0],
       tone: "pink",
     },
   ]
@@ -212,23 +223,23 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
               {[
                 {
                   label: "AI Student Tutor (Clover Assistant)",
-                  tokens: aiUsage.tokensByFeature.aiTutor,
-                  pct: Math.round((aiUsage.tokensByFeature.aiTutor / aiUsage.totalTokensMonth) * 100),
+                  tokens: safeAiUsage.tokensByFeature.aiTutor ?? 0,
+                  pct: safeAiUsage.totalTokensMonth ? Math.round(((safeAiUsage.tokensByFeature.aiTutor ?? 0) / safeAiUsage.totalTokensMonth) * 100) : 0,
                 },
                 {
                   label: "Whisper Audio & Lecture Transcription",
-                  tokens: aiUsage.tokensByFeature.transcription,
-                  pct: Math.round((aiUsage.tokensByFeature.transcription / aiUsage.totalTokensMonth) * 100),
+                  tokens: safeAiUsage.tokensByFeature.transcription ?? 0,
+                  pct: safeAiUsage.totalTokensMonth ? Math.round(((safeAiUsage.tokensByFeature.transcription ?? 0) / safeAiUsage.totalTokensMonth) * 100) : 0,
                 },
                 {
                   label: "Video Chaptering & Automated Summary",
-                  tokens: aiUsage.tokensByFeature.videoChaptering,
-                  pct: Math.round((aiUsage.tokensByFeature.videoChaptering / aiUsage.totalTokensMonth) * 100),
+                  tokens: safeAiUsage.tokensByFeature.videoChaptering ?? 0,
+                  pct: safeAiUsage.totalTokensMonth ? Math.round(((safeAiUsage.tokensByFeature.videoChaptering ?? 0) / safeAiUsage.totalTokensMonth) * 100) : 0,
                 },
                 {
                   label: "Rubric Grading Assist & Plagiarism Check",
-                  tokens: aiUsage.tokensByFeature.evaluatorAssist,
-                  pct: Math.round((aiUsage.tokensByFeature.evaluatorAssist / aiUsage.totalTokensMonth) * 100),
+                  tokens: safeAiUsage.tokensByFeature.evaluatorAssist ?? 0,
+                  pct: safeAiUsage.totalTokensMonth ? Math.round(((safeAiUsage.tokensByFeature.evaluatorAssist ?? 0) / safeAiUsage.totalTokensMonth) * 100) : 0,
                 },
               ].map((feat) => (
                 <div key={feat.label} className="space-y-1.5 text-xs">
@@ -271,14 +282,14 @@ export default function AiUsageView({ store, onToast }: AiUsageViewProps) {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Spent this month</span>
                 <span className="font-bold text-foreground text-sm">
-                  ₹{aiUsage.totalCostInr.toLocaleString("en-IN")}
+                  ₹{(safeAiUsage.totalCostInr || 0).toLocaleString("en-IN")}
                 </span>
               </div>
               <Progress value={budgetUsedPct} className="h-2" />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                 <span>0%</span>
                 <span className="font-semibold text-primary-text">{budgetUsedPct}% Allocated</span>
-                <span>₹{(aiUsage.monthlyBudgetCapInr / 1000).toFixed(0)}k Cap</span>
+                <span>₹{((safeAiUsage.monthlyBudgetCapInr || 500000) / 1000).toFixed(0)}k Cap</span>
               </div>
             </CardContent>
           </Card>

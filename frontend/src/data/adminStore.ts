@@ -1290,7 +1290,17 @@ export function useSuperAdminStore() {
   const [services, setServices] = useState<PlatformServiceHealth[]>(() => loadStorage(KEYS.services, INITIAL_SERVICES_HEALTH))
   const [rbac, setRbac] = useState<RbacPermissionRow[]>(() => loadStorage(KEYS.rbac, INITIAL_RBAC))
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(() => loadStorage(KEYS.audit, INITIAL_AUDIT_LOGS))
-  const [aiUsage, setAiUsage] = useState<AiUsageMetrics>(() => loadStorage(KEYS.aiUsage, INITIAL_AI_USAGE))
+  const [aiUsage, setAiUsage] = useState<AiUsageMetrics>(() => {
+    const loaded = loadStorage(KEYS.aiUsage, INITIAL_AI_USAGE)
+    return {
+      ...INITIAL_AI_USAGE,
+      ...(loaded || {}),
+      tokensByFeature: {
+        ...INITIAL_AI_USAGE.tokensByFeature,
+        ...(loaded?.tokensByFeature || {}),
+      },
+    }
+  })
 
   useEffect(() => saveStorage(KEYS.services, services), [services])
   useEffect(() => saveStorage(KEYS.rbac, rbac), [rbac])
@@ -1320,7 +1330,14 @@ export function useSuperAdminStore() {
           setAuditLogs(aRes.value.logs)
         }
         if (aiRes.status === "fulfilled" && aiRes.value?.totalTokensMonth) {
-          setAiUsage(aiRes.value)
+          setAiUsage({
+            ...INITIAL_AI_USAGE,
+            ...aiRes.value,
+            tokensByFeature: {
+              ...INITIAL_AI_USAGE.tokensByFeature,
+              ...(aiRes.value.tokensByFeature || {}),
+            },
+          })
         }
       } catch {
         // Safe offline fallback
