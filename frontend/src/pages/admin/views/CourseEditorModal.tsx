@@ -29,6 +29,7 @@ import {
   ChevronsUpDown,
   Settings2,
   Star,
+  Copy,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -604,11 +605,11 @@ export default function CourseEditorModal({
       return next
     })
 
-  const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
-    { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
-    { id: "materials", label: "Materials", icon: FileText, count: materials.length },
-    { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
-    { id: "settings", label: "Course Settings", icon: Settings2 },
+  const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number; description?: string }[] = [
+    { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length, description: "Curriculum & transcripts" },
+    { id: "materials", label: "Materials", icon: FileText, count: materials.length, description: "Downloadable notes & slides" },
+    { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length, description: "Projects & deadlines" },
+    { id: "settings", label: "Course Settings", icon: Settings2, description: "Pricing, capacity & metadata" },
   ]
 
   const statusDot = course.status === "Published" ? "bg-emerald-300" : course.status === "Draft" ? "bg-amber-300" : "bg-slate-300"
@@ -629,59 +630,63 @@ export default function CourseEditorModal({
         containerClassName="p-0 sm:p-0"
         className="w-screen h-dvh max-w-none max-h-dvh flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-none border-0 bg-background text-foreground shadow-none"
       >
-        {/* ===== Hero Header (Back to courses, title, category, published ALL on ONE LINE) ===== */}
+        {/* ===== Hero Header (Back to courses, title, category, published ALL on ONE LINE - Spacious & Executive) ===== */}
         <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-r text-white", gradient)}>
-          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-48 w-48 rotate-[-10deg] text-white/10" aria-hidden="true" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden="true" />
-          <div className="relative px-4 py-3 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-56 w-56 rotate-[-10deg] text-white/10" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent" aria-hidden="true" />
+          <div className="relative px-6 py-5 sm:px-8 sm:py-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               {/* Left: Back to courses, title, category, published in one row */}
-              <div className="flex flex-wrap items-center gap-3 min-w-0">
+              <div className="flex flex-wrap items-center gap-3.5 min-w-0">
                 <Button
                   variant="glass"
-                  size="sm"
+                  size="default"
                   onClick={() => onOpenChange(false)}
                   leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
-                  className="shrink-0"
+                  className="shrink-0 h-10 px-4 rounded-xl text-sm font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 shadow-xs backdrop-blur"
                 >
                   Back to Courses
                 </Button>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white shadow-xs">
-                    <BookOpen className="h-4 w-4" aria-hidden="true" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm ring-1 ring-white/30 backdrop-blur">
+                    <BookOpen className="h-5 w-5" aria-hidden="true" />
                   </span>
-                  <DialogTitle className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
-                    {course.title}
-                  </DialogTitle>
-                  <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
-                    {course.category}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
-                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} aria-hidden="true" />
-                    {course.status}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <DialogTitle className="truncate text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-xs">
+                        {course.title}
+                      </DialogTitle>
+                      <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs font-bold tracking-wide backdrop-blur ring-1 ring-white/25">
+                        {course.category}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur ring-1 ring-white/25">
+                        <span className={cn("h-2 w-2 rounded-full", statusDot)} aria-hidden="true" />
+                        {course.status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Right: Quick telemetry pills + close X */}
-              <div className="flex items-center gap-2 shrink-0">
-                <dl className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <dl className="hidden md:flex items-center gap-2.5">
                   {[
                     { label: "Chapters", value: String(modules.length) },
                     { label: "Lessons", value: String(lessons.length) },
                     { label: "Runtime", value: runtimeLabel },
                     { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
                   ].map((s) => (
-                    <div key={s.label} className="min-w-[76px] rounded-lg bg-white/15 px-2.5 py-1 text-center backdrop-blur">
-                      <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{s.label}</dt>
-                      <dd className="text-sm font-bold tabular-nums leading-tight">{s.value}</dd>
+                    <div key={s.label} className="min-w-[92px] rounded-xl bg-white/15 px-3.5 py-1.5 text-center backdrop-blur ring-1 ring-white/20 shadow-xs">
+                      <dt className="text-[10px] font-bold uppercase tracking-wider text-white/80">{s.label}</dt>
+                      <dd className="text-base font-extrabold tabular-nums leading-tight text-white">{s.value}</dd>
                     </div>
                   ))}
                 </dl>
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all ring-1 ring-white/20 shadow-xs"
                   aria-label="Close workspace"
                 >
                   <X className="h-5 w-5" />
@@ -694,55 +699,94 @@ export default function CourseEditorModal({
         {/* ===== Body: sidebar on the left + panel on the right ===== */}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           {/* Desktop & Tablet Left Sidebar */}
-          <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-surface p-4 md:flex">
-            <nav aria-label="Workspace sections" className="flex flex-col gap-1.5">
-              {tabs.map((t) => (
-                <NavItem
-                  key={t.id}
-                  icon={t.icon}
-                  label={t.label}
-                  count={t.count}
-                  active={activeTab === t.id}
-                  onClick={() => setActiveTab(t.id)}
-                />
-              ))}
-            </nav>
+          <aside className="hidden w-72 lg:w-80 shrink-0 flex-col gap-6 overflow-y-auto border-r border-border bg-surface p-5 md:flex">
+            <div className="space-y-2">
+              <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Workspace Navigation</p>
+              <nav aria-label="Workspace sections" className="flex flex-col gap-1.5">
+                {tabs.map((t) => (
+                  <NavItem
+                    key={t.id}
+                    icon={t.icon}
+                    label={t.label}
+                    description={t.description}
+                    count={t.count}
+                    active={activeTab === t.id}
+                    onClick={() => setActiveTab(t.id)}
+                  />
+                ))}
+              </nav>
+            </div>
 
-            <div className="space-y-3 rounded-2xl border border-border bg-surface-2/50 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
-              <div className="space-y-1.5">
+            {/* Course Snapshot Card */}
+            <div className="space-y-4 rounded-2xl border border-border/80 bg-surface-2/60 p-4.5 shadow-2xs backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                  <span>Course Snapshot</span>
+                </div>
+                <Badge variant={course.status === "Published" ? "default" : "outline"} className="text-[10px] uppercase font-bold py-0.5 px-2">
+                  {course.status}
+                </Badge>
+              </div>
+
+              {/* Seat occupancy */}
+              <div className="space-y-2 rounded-xl bg-surface/80 p-3 border border-border/60">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Seats</span>
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {course.enrolledStudents} / {course.capacity}
+                  <span className="font-medium text-muted-foreground">Seats Filled</span>
+                  <span className="font-bold tabular-nums text-foreground">
+                    {course.enrolledStudents} <span className="text-muted-foreground font-normal">/ {course.capacity}</span>
                   </span>
                 </div>
-                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
+                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} className="h-2" />
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{seatPct}% enrolled</span>
+                  <span>{Math.max(0, course.capacity - course.enrolledStudents)} seats left</span>
+                </div>
               </div>
-              <dl className="space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Tuition</dt>
-                  <dd className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</dd>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="rounded-xl bg-surface/80 p-2.5 border border-border/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tuition</p>
+                  <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">{formatINR(course.price)}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Revenue</dt>
-                  <dd className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</dd>
+                <div className="rounded-xl bg-surface/80 p-2.5 border border-border/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Revenue</p>
+                  <p className="mt-0.5 text-sm font-bold tabular-nums text-primary-text">{formatINR(course.revenue)}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Rating</dt>
-                  <dd className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
+                <div className="rounded-xl bg-surface/80 p-2.5 border border-border/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums text-foreground">
                     <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
                     {course.rating}
-                  </dd>
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Completion</dt>
-                  <dd className="font-semibold tabular-nums text-foreground">{course.completionRate}%</dd>
+                <div className="rounded-xl bg-surface/80 p-2.5 border border-border/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Completion</p>
+                  <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">{course.completionRate}%</p>
                 </div>
-              </dl>
-              <p className="truncate border-t border-border pt-3 text-[11px] font-mono tabular-nums text-subtle-foreground" title={course.id}>
-                ID · {course.id}
-              </p>
+              </div>
+
+              {/* Copyable ID */}
+              <div className="flex items-center justify-between rounded-xl bg-surface/80 px-3 py-2 border border-border/60 text-xs">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase">ID</span>
+                  <span className="font-mono text-[11px] text-foreground truncate" title={course.id}>
+                    {course.id}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(course.id)
+                    onToast("Course ID copied to clipboard")
+                  }}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors shrink-0"
+                  title="Copy Course ID"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </aside>
 
