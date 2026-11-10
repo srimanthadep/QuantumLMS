@@ -340,7 +340,6 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
       </div>
 
       <PageHeader
-        eyebrow={today}
         title={`${greeting()}, ${firstName}`}
         description="Your learning command center for the day ahead."
         className="relative z-10 lg:pl-[164px] xl:pl-[176px]"
