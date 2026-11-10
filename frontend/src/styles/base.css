@@ -29,12 +29,17 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-optical-sizing: auto;
-    font-variation-settings: "GRAD" 0;
     font-size: 14px;
     line-height: 22px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums lining-nums !important;
+    font-feature-settings: "tnum" 1, "lnum" 1 !important;
+    font-family: var(--font-sans);
   }
 
   #root {

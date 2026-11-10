@@ -238,7 +238,7 @@ export const timetable_slots = lms.table("timetable_slots", {
       name: "timetable_slots_course_id_fkey"
     }).onDelete("set null"),
   check("timetable_slots_check", sql`ends > starts`),
-  check("timetable_slots_day_check", sql`day = ANY (ARRAY['Monday'::text, 'Tuesday'::text, 'Wednesday'::text, 'Thursday'::text, 'Friday'::text])`),
+  check("timetable_slots_day_check", sql`day = ANY (ARRAY['Monday'::text, 'Tuesday'::text, 'Wednesday'::text, 'Thursday'::text, 'Friday'::text, 'Saturday'::text])`),
 ]);
 
 export const campus_events = lms.table("campus_events", {

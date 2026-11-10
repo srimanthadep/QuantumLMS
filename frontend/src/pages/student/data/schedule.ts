@@ -20,7 +20,7 @@ export { rkey as reminderKey }
 
 /* -------------------------------- Timetable ------------------------------- */
 
-const WEEKDAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const WEEKDAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 const toMin = (t: string) => {
   const [h, m] = t.split(":").map(Number)
   return h * 60 + m
@@ -38,15 +38,15 @@ export async function loadTimetable(): Promise<SlotRow[]> {
 }
 
 /**
- * The week shown on the timetable: this week on weekdays, next week at the weekend. Each slot gets its status and the
+ * The week shown on the timetable: this week on weekdays (Mon-Sat), next week on Sunday. Each slot gets its status and the
  * start of its next (or current, when live) occurrence, both in this device's clock.
  */
 export function timetableWeek(rows: SlotRow[], now = Date.now()): { slots: TimetableSlot[]; today: TimetableSlot["day"] | null; weekStart: Date } {
   const c = campusParts(now)
-  // Monday of the campus week (next week's Monday at the weekend).
-  const mondayOffset = -c.dow + (c.dow > 4 ? 7 : 0)
+  // Monday of the campus week (next week's Monday on Sunday).
+  const mondayOffset = -c.dow + (c.dow > 5 ? 7 : 0)
   const weekStart = campusTime(c.y, c.m, c.d + mondayOffset, 0)
-  const today = c.dow <= 4 ? WEEKDAYS[c.dow] : null
+  const today = c.dow <= 5 ? WEEKDAYS[c.dow] : null
   const at = (dayIndex: number, min: number) => campusTime(c.y, c.m, c.d + mondayOffset + dayIndex, min)
   const slots = rows.map((r) => {
     const day = r.day as TimetableSlot["day"]

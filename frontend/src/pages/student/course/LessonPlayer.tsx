@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Captions, Check, FileText, FlaskConical, Maximize2, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
+import { Captions, Check, FileText, FlaskConical, Maximize2, Minimize2, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui"
@@ -132,6 +132,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const [speed, setSpeed] = useState("1")
   const [captions, setCaptions] = useState(true)
   const [muted, setMuted] = useState(false)
+  const [isCompact, setIsCompact] = useState(false)
 
   const stage = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
@@ -299,6 +300,46 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     }
   }
 
+  // Global video keyboard shortcuts (Space / k = play/pause, Left / j = -10s, Right / l = +10s, f = fullscreen, m = mute)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable ||
+          target.tagName === "SELECT")
+      ) {
+        return
+      }
+
+      if (e.code === "Space" || e.key === "k" || e.key === "K") {
+        e.preventDefault()
+        togglePlay()
+      } else if (e.key === "ArrowLeft" || e.key === "j" || e.key === "J") {
+        e.preventDefault()
+        skip(-10)
+      } else if (e.key === "ArrowRight" || e.key === "l" || e.key === "L") {
+        e.preventDefault()
+        skip(10)
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault()
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        } else {
+          stage.current?.requestFullscreen?.().catch(() => {})
+        }
+      } else if (e.key === "m" || e.key === "M") {
+        e.preventDefault()
+        toggleMute()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [togglePlay, skip, toggleMute])
+
   const pct = duration > 0 ? position / duration : 0
   const hasHours = duration >= 3600
 
@@ -338,13 +379,15 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   }
 
   return (
-    <div
-      ref={stage}
-      className={cn(
-        "group/player relative isolate aspect-video w-full overflow-hidden rounded-xl border border-border bg-black transition-shadow duration-300",
-        playing && "shadow-[var(--glow-primary)]",
-      )}
-    >
+    <div className={cn("w-full transition-all duration-300 ease-out", isCompact ? "max-w-2xl mx-auto" : "w-full")}>
+      <div
+        ref={stage}
+        className={cn(
+          "group/player relative isolate aspect-video w-full overflow-hidden rounded-xl border border-border bg-black transition-all duration-300",
+          playing && "shadow-[var(--glow-primary)]",
+          isCompact && "shadow-2xl ring-1 ring-border/50",
+        )}
+      >
       {activeVideoSrc ? (
         <video
           ref={videoRef}
@@ -553,12 +596,22 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Small Ratio / Expand Ratio Collapse Button */}
+          <PlayerButton
+            label={isCompact ? "Expand video ratio" : "Small video ratio"}
+            onClick={() => setIsCompact((c) => !c)}
+            pressed={isCompact}
+          >
+            {isCompact ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          </PlayerButton>
+
           <PlayerButton label="Full screen" onClick={() => stage.current?.requestFullscreen?.().catch(() => undefined)}>
             <Maximize2 className="h-4 w-4" />
           </PlayerButton>
         </div>
       </div>
     </div>
+  </div>
   )
 }
 

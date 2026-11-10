@@ -139,7 +139,7 @@ export interface ResourceMaterial {
 
 export interface TimetableSlot {
   id: string
-  day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday"
+  day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday"
   /** Minutes after midnight (campus time). */
   startsMin?: number
   endsMin?: number

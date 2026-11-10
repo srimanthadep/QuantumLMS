@@ -58,22 +58,27 @@ function NavButton({
       aria-current={active ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(
-        "group relative flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors",
+        "group relative flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         collapsed && "justify-center px-0",
-        active ? "text-foreground" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+        active ? "text-foreground font-semibold" : "text-muted-foreground hover:bg-surface-2/70 hover:text-foreground",
       )}
     >
       {active && (
-        <motion.span layoutId={layoutId} transition={spring.snappy} aria-hidden="true" className="absolute inset-0 rounded-md border border-border bg-surface-2">
-          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-x-[1px] -translate-y-1/2 rounded-full bg-primary" />
+        <motion.span
+          layoutId={layoutId}
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+          aria-hidden="true"
+          className="absolute inset-0 z-0 rounded-md border border-border bg-surface-2 shadow-2xs"
+        >
+          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
         </motion.span>
       )}
-      <Icon className={cn("relative h-4 w-4 shrink-0 transition-colors", active ? "text-primary-text" : "group-hover:text-foreground")} aria-hidden="true" />
-      {!collapsed && <span className="relative min-w-0 flex-1 truncate text-left">{item.label}</span>}
+      <Icon className={cn("relative z-10 h-4 w-4 shrink-0 transition-colors", active ? "text-primary-text" : "group-hover:text-foreground")} aria-hidden="true" />
+      {!collapsed && <span className="relative z-10 min-w-0 flex-1 truncate text-left">{item.label}</span>}
       {badge !== undefined && badge !== 0 && (
         <span
           className={cn(
-            "relative rounded-full bg-primary-soft px-1.5 text-[10px] font-semibold leading-4 tabular-nums text-primary-text",
+            "relative z-10 rounded-full bg-primary-soft px-1.5 text-[10px] font-semibold leading-4 tabular-nums text-primary-text",
             collapsed && "absolute right-1 top-1 h-2 w-2 p-0 text-[0px] ring-2 ring-surface",
           )}
         >

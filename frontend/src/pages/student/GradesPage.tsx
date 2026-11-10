@@ -323,6 +323,7 @@ export default function GradesPage({ onToast, initialView = "grades", onNavigate
                         <BarChart
                           key={term}
                           height={180}
+                          colorScheme="score"
                           data={rows.map((g) => ({ label: g.courseCode, value: g.totalScore, highlight: g.totalScore === Math.max(...rows.map((r) => r.totalScore)) }))}
                           formatValue={(v) => `${v}%`}
                           label="Total score per course"

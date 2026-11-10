@@ -407,7 +407,7 @@ export default function AnalyticsPage() {
                   tone="info"
                   description={weakest ? `${weakest.label} is the lowest at ${weakest.value}%. Worth a revision warm-up.` : undefined}
                 >
-                  <BarChart data={subjects.map((s) => ({ ...s, highlight: s.label === weakest?.label }))} height={250} formatValue={(v) => `${v}%`} label="Average score by subject" />
+                  <BarChart data={subjects.map((s) => ({ ...s, highlight: s.label === weakest?.label }))} height={250} colorScheme="score" formatValue={(v) => `${v}%`} label="Average score by subject" />
                   <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
                     {subjects.map((s) => {
                       const low = s.label === weakest?.label

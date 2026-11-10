@@ -529,10 +529,10 @@ export default function CourseEditorModal({
     })
 
   const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
-    { id: "curriculum", label: "Curriculum", icon: Layers, count: modules.length },
+    { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
     { id: "materials", label: "Materials", icon: FileText, count: materials.length },
     { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
-    { id: "settings", label: "Settings", icon: Settings2 },
+    { id: "settings", label: "Course Settings", icon: Settings2 },
   ]
 
   const statusDot = course.status === "Published" ? "bg-emerald-300" : course.status === "Draft" ? "bg-amber-300" : "bg-slate-300"
@@ -553,133 +553,176 @@ export default function CourseEditorModal({
         containerClassName="p-0 sm:p-0"
         className="w-screen h-dvh max-w-none max-h-dvh flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-none border-0 bg-background text-foreground shadow-none"
       >
-        {/* ===== Hero header ===== */}
-        <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-br text-white", gradient)}>
-          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-56 w-56 rotate-[-10deg] text-white/10" aria-hidden="true" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" aria-hidden="true" />
-          <div className="relative px-4 py-4 sm:px-8 sm:py-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2.5 text-[11px] font-medium">
-                  <Button variant="glass" size="sm" onClick={() => onOpenChange(false)} leftIcon={<ArrowLeft aria-hidden="true" />}>
-                    Back to courses
-                  </Button>
-                  <span className="rounded-full bg-white/20 px-2.5 py-1 backdrop-blur">{course.category}</span>
-                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 backdrop-blur">
+        {/* ===== Hero Header (Back to courses, title, category, published ALL on ONE LINE) ===== */}
+        <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-r text-white", gradient)}>
+          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-48 w-48 rotate-[-10deg] text-white/10" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden="true" />
+          <div className="relative px-4 py-3 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Left: Back to courses, title, category, published in one row */}
+              <div className="flex flex-wrap items-center gap-3 min-w-0">
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
+                  className="shrink-0"
+                >
+                  Back to Courses
+                </Button>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white shadow-xs">
+                    <BookOpen className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <DialogTitle className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
+                    {course.title}
+                  </DialogTitle>
+                  <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
+                    {course.category}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
                     <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} aria-hidden="true" />
                     {course.status}
                   </span>
                 </div>
-                <DialogTitle className="mt-3 truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">{course.title}</DialogTitle>
-                <DialogDescription className="mt-1 text-sm text-white/80">
-                  Led by {course.instructor}. Build the curriculum, attach materials and set assignments.
-                </DialogDescription>
               </div>
 
-              <dl className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { label: "Chapters", value: String(modules.length) },
-                  { label: "Lessons", value: String(lessons.length) },
-                  { label: "Runtime", value: runtimeLabel },
-                  { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
-                ].map((s) => (
-                  <div key={s.label} className="min-w-[96px] rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{s.label}</dt>
-                    <dd className="text-lg font-bold tabular-nums">{s.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              {/* Right: Quick telemetry pills + close X */}
+              <div className="flex items-center gap-2 shrink-0">
+                <dl className="hidden md:flex items-center gap-2">
+                  {[
+                    { label: "Chapters", value: String(modules.length) },
+                    { label: "Lessons", value: String(lessons.length) },
+                    { label: "Runtime", value: runtimeLabel },
+                    { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
+                  ].map((s) => (
+                    <div key={s.label} className="min-w-[76px] rounded-lg bg-white/15 px-2.5 py-1 text-center backdrop-blur">
+                      <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{s.label}</dt>
+                      <dd className="text-sm font-bold tabular-nums leading-tight">{s.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+                  aria-label="Close workspace"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* ===== Body: sidebar + panel ===== */}
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          {/* Desktop sidebar */}
-          <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-surface p-4 lg:flex">
-            <nav aria-label="Workspace sections" className="flex flex-col gap-1">
-              {tabs.map((t) => (
-                <NavItem key={t.id} icon={t.icon} label={t.label} count={t.count} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} />
-              ))}
+        {/* ===== Horizontal Tabs Bar (Full Width) ===== */}
+        <div className="shrink-0 border-b border-border bg-surface px-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <nav aria-label="Workspace sections" className="flex gap-1 overflow-x-auto no-scrollbar py-2">
+              {tabs.map((t) => {
+                const active = activeTab === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setActiveTab(t.id)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap",
+                      active
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                    )}
+                  >
+                    <t.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>{t.label}</span>
+                    {t.count !== undefined && (
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
+                          active ? "bg-white/20 text-white" : "bg-surface-2 text-muted-foreground"
+                        )}
+                      >
+                        {t.count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </nav>
 
-            <div className="space-y-3 rounded-2xl border border-border bg-surface-2/50 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Seats</span>
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {course.enrolledStudents} / {course.capacity}
-                  </span>
-                </div>
-                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
+            {/* Course Snapshot telemetry on right of tabs */}
+            <div className="hidden lg:flex items-center gap-3.5 text-xs font-medium text-muted-foreground py-2 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span>Seats:</span>
+                <span className="font-semibold tabular-nums text-foreground">{course.enrolledStudents} / {course.capacity}</span>
               </div>
-              <dl className="space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Tuition</dt>
-                  <dd className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Revenue</dt>
-                  <dd className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Rating</dt>
-                  <dd className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
-                    <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
-                    {course.rating}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Completion</dt>
-                  <dd className="font-semibold tabular-nums text-foreground">{course.completionRate}%</dd>
-                </div>
-              </dl>
-              <p className="truncate border-t border-border pt-3 text-[11px] tabular-nums text-subtle-foreground" title={course.id}>
-                ID · {course.id}
-              </p>
+              <div className="h-3 w-px bg-border" />
+              <div className="flex items-center gap-1.5">
+                <span>Tuition:</span>
+                <span className="font-semibold tabular-nums text-foreground">{formatINR(course.price)}</span>
+              </div>
+              <div className="h-3 w-px bg-border" />
+              <div className="flex items-center gap-1.5">
+                <span>Revenue:</span>
+                <span className="font-semibold tabular-nums text-primary-text">{formatINR(course.revenue)}</span>
+              </div>
+              <div className="h-3 w-px bg-border" />
+              <div className="flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
+                <span className="font-semibold tabular-nums text-foreground">{course.rating}</span>
+              </div>
             </div>
-          </aside>
+          </div>
+        </div>
 
-          {/* Mobile section pills */}
-          <nav aria-label="Workspace sections" className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:hidden">
-            {tabs.map((t) => (
-              <NavItem key={t.id} pill icon={t.icon} label={t.label} count={t.count} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} />
-            ))}
-          </nav>
-
-          {/* Panel */}
-          <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-            <div className="w-full space-y-5 px-5 py-6 sm:px-8">
-              {loading ? (
-                <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface-2/60" />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  {/* ---------- CURRICULUM ---------- */}
-                  {activeTab === "curriculum" && (
-                    <div className="space-y-5">
-                      <PanelHeader title="Curriculum" description="Organise chapters and lessons. Upload video lectures to get transcripts and multi-quality streaming.">
-                        {modules.length > 1 && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            leftIcon={<ChevronsUpDown aria-hidden="true" />}
-                            onClick={() => setOpenModules(allOpen ? new Set() : new Set(modules.map((m) => m.id)))}
-                          >
-                            {allOpen ? "Collapse all" : "Expand all"}
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" leftIcon={<Plus aria-hidden="true" />} onClick={() => setIsAddModuleOpen(true)}>
-                          New chapter
+        {/* ===== Full Width Workspace Panel ===== */}
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+          <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-6 sm:px-8">
+            {loading ? (
+              <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface-2/60" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* ---------- CURRICULUM ---------- */}
+                {activeTab === "curriculum" && (
+                  <div className="space-y-5">
+                    <PanelHeader
+                      title="Course Curriculum"
+                      description="Organize chapters and upload video lectures with neural transcripts."
+                    >
+                      {modules.length > 1 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          leftIcon={<ChevronsUpDown aria-hidden="true" />}
+                          onClick={() => setOpenModules(allOpen ? new Set() : new Set(modules.map((m) => m.id)))}
+                          className="shrink-0"
+                        >
+                          {allOpen ? "Collapse all" : "Expand all"}
                         </Button>
-                        <Button size="sm" leftIcon={<Video aria-hidden="true" />} onClick={() => onOpenVideoUpload(course.id)}>
-                          Upload video
-                        </Button>
-                      </PanelHeader>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        leftIcon={<Plus aria-hidden="true" />}
+                        onClick={() => setIsAddModuleOpen(true)}
+                        className="shrink-0"
+                      >
+                        + New Chapter
+                      </Button>
+                      <Button
+                        size="sm"
+                        leftIcon={<Video aria-hidden="true" />}
+                        onClick={() => onOpenVideoUpload(course.id)}
+                        className="shrink-0 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+                      >
+                        Upload Video Chapter
+                      </Button>
+                    </PanelHeader>
 
                       {modules.length === 0 ? (
                         <WorkspaceEmpty icon={Layers} title="No chapters yet" description="Add a chapter to group lessons, or upload a video lecture to get started.">
@@ -1082,7 +1125,14 @@ export default function CourseEditorModal({
               )}
             </div>
           </main>
-        </div>
+
+        {/* ===== Workspace Footer ===== */}
+        <footer className="shrink-0 border-t border-border bg-surface px-4 py-3 sm:px-8 flex items-center justify-between text-xs text-muted-foreground">
+          <span>Course ID: <span className="font-mono text-foreground font-semibold tabular-nums">{course.id}</span></span>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+            Close Workspace
+          </Button>
+        </footer>
       </DialogContent>
 
       {/* --- SUB-DIALOG 1: ADD CHAPTER (MODULE) --- */}

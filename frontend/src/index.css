@@ -9,10 +9,9 @@
 
 /* Semantic tokens exposed to Tailwind utilities (bg-surface, text-muted-foreground, ...). */
 @theme inline {
-  /* Google Sans, loaded from Google Fonts in index.html (weights 400–700, roman and italic). */
-  --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-sans--font-variation-settings: "GRAD" 0;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  /* Inter and Plus Jakarta Sans loaded from Google Fonts in index.html */
+  --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
   --color-background: var(--background);
   --color-surface: var(--surface);

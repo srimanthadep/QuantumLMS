@@ -836,7 +836,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                 <CardContent>
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={range} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: transition.fast }} transition={transition.base}>
-                      <BarChart data={chart.bars} height={172} formatValue={(value) => `${value}%`} label={`${range} learning rhythm score`} />
+                      <BarChart data={chart.bars} height={172} colorScheme="score" formatValue={(value) => `${value}%`} label={`${range} learning rhythm score`} />
                     </motion.div>
                   </AnimatePresence>
                   <div className="mt-4 flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5">

@@ -295,6 +295,8 @@ export const contentRows = ({ at, past, ago, later, day, anchor, minus }: SeedTi
     { id: "tt-12", day: "Thursday", starts: "16:00", ends: "17:30", course_code: "ETH-30", course_id: null, title: "AI Ethics & Safety Governance", instructor: "Dr. Elena Vance", room: "Hall B", is_online: false },
     { id: "tt-13", day: "Friday", starts: "10:00", ends: "12:00", course_code: "CAP-01", course_id: null, title: "AI Capstone Project Workshop", instructor: "Srimanth", room: "Project Hub", is_online: false },
     { id: "tt-14", day: "Friday", starts: "15:00", ends: "16:30", course_code: "HACK-2", course_id: null, title: "Hackathon Prep & Team Sync", instructor: "Srimanth", room: "Virtual Room 1", is_online: true },
+    { id: "tt-15", day: "Saturday", starts: "10:00", ends: "11:30", course_code: "LAB-60", course_id: "c-1", title: "Weekend AI Hackathon & Mentorship", instructor: "Srimanth", room: "AI Lab 1", is_online: false },
+    { id: "tt-16", day: "Saturday", starts: "14:00", ends: "15:30", course_code: "AG-501", course_id: "c-4", title: "Autonomous Agents Masterclass", instructor: "Srimanth", room: "Virtual Room 1", is_online: true },
   ],
   campus_events: [
     { id: "ev-1", title: "Quantum AI Hackathon 2026: Autonomous Multi-Agent Systems", category: "Hackathons", starts_at: at(9, "17:00"), ends_at: at(11, "17:00"), time_label: "48 Hours · Kickoff 5:00 PM", location: "Hybrid · Quantum AI Innovation Lab & Virtual", speaker: "Judged by AI Leaders from DeepMind & Anthropic", is_featured: true, description: "48-hour competitive sprint to build production-grade autonomous agent systems. $15,000 cash prizes, compute credits, and incubation support." },

@@ -6,10 +6,10 @@ export function PanelHeader({ title, description, children }: { title: string; d
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
+        <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
-      {children && <div className="flex shrink-0 flex-nowrap items-center gap-2">{children}</div>}
+      {children && <div className="flex shrink-0 flex-nowrap items-center gap-2.5 overflow-x-auto">{children}</div>}
     </div>
   )
 }

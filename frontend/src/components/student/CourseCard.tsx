@@ -39,7 +39,7 @@ export default function CourseCard({ course, onOpen, variant = "enrolled", onEnr
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === "Enter" || e.key === " " || e.key === "v" || e.key === "V" || e.key === "k" || e.key === "K") {
           e.preventDefault()
           onOpen()
         }

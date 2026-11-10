@@ -77,7 +77,7 @@ interface SchedulePageProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
 }
 
-const DAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const DAYS: TimetableSlot["day"][] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 const slotRange = (s: TimetableSlot) => {
   const [a, b] = s.time.split(" - ").map((x) => x.trim())
@@ -281,7 +281,7 @@ function Timetable({ onToast, onNavigate }: { onToast: (m: string) => void; onNa
 
         {viewMode === "weekly" ? (
           <>
-            <div role="radiogroup" aria-label="Day" className="grid grid-cols-5 gap-2">
+            <div role="radiogroup" aria-label="Day" className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {DAYS.map((d) => {
             const active = d === day
             const count = all.filter((s) => s.day === d).length
