@@ -14,55 +14,95 @@ const COURSE_ART: Record<string, CourseCategoryName> = {
 }
 export const courseArt = (courseId: string): CourseCategoryName => COURSE_ART[courseId] ?? "Generative AI"
 
-/** "2026-10-22" + "11:30" -> local Date. */
-export function toDate(iso: string, time = "00:00"): Date {
-  const [y, m, d] = iso.split("-").map(Number)
-  const [h, min] = time.split(":").map(Number)
-  return new Date(y, (m || 1) - 1, d || 1, h || 0, min || 0)
+/** "2026-10-22" + "11:30" -> local Date. Safely handles missing/invalid strings. */
+export function toDate(iso?: string, time = "00:00"): Date {
+  if (!iso || typeof iso !== "string") {
+    return new Date(DEMO_NOW)
+  }
+  const cleanIso = iso.split("T")[0] || ""
+  const [y, m, d] = cleanIso.split("-").map(Number)
+  
+  let h = 0
+  let min = 0
+  if (time && typeof time === "string") {
+    // Check if time is in "11:30 AM" or "11:30:00" format
+    const ampmMatch = /(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i.exec(time)
+    if (ampmMatch) {
+      let rawH = Number(ampmMatch[1])
+      min = Number(ampmMatch[2]) || 0
+      const ampm = ampmMatch[3]?.toUpperCase()
+      if (ampm === "PM" && rawH < 12) rawH += 12
+      if (ampm === "AM" && rawH === 12) rawH = 0
+      h = rawH
+    } else {
+      const parts = time.split(":").map(Number)
+      h = parts[0] || 0
+      min = parts[1] || 0
+    }
+  }
+
+  return new Date(y || 2026, (m || 1) - 1, d || 1, h, min)
 }
 
 export function isoDate(d: Date): string {
+  if (!d || isNaN(d.getTime())) return DEMO_DATE
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
 export function addDays(d: Date, n: number): Date {
-  const x = new Date(d)
+  const x = new Date(d || DEMO_NOW)
   x.setDate(x.getDate() + n)
   return x
 }
 
 /** Monday of the week containing `d`. */
 export function startOfWeek(d: Date): Date {
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const base = d && !isNaN(d.getTime()) ? d : DEMO_NOW
+  const x = new Date(base.getFullYear(), base.getMonth(), base.getDate())
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7))
   return x
 }
 
-export const minutesOf = (t: string): number => {
+export const minutesOf = (t?: string): number => {
+  if (!t || typeof t !== "string") return 0
+  const ampmMatch = /(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(t)
+  if (ampmMatch) {
+    let h = Number(ampmMatch[1])
+    const m = Number(ampmMatch[2]) || 0
+    const ampm = ampmMatch[3]?.toUpperCase()
+    if (ampm === "PM" && h < 12) h += 12
+    if (ampm === "AM" && h === 12) h = 0
+    return h * 60 + m
+  }
   const [h, m] = t.split(":").map(Number)
   return (h || 0) * 60 + (m || 0)
 }
 
 /** "14:30" -> "2:30 PM". */
-export function formatTime(t: string): string {
+export function formatTime(t?: string): string {
+  if (!t || typeof t !== "string") return "10:00 AM"
   const mins = minutesOf(t)
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`
 }
 
-export const formatTimeRange = (a: string, b: string) => `${formatTime(a)} – ${formatTime(b)}`
+export const formatTimeRange = (a?: string, b?: string) => `${formatTime(a)} – ${formatTime(b)}`
 
 /** "Today", "Tomorrow", "Yesterday", or "Fri, 24 Oct". */
-export function dayLabel(iso: string, now = DEMO_NOW): string {
-  const diff = Math.round((toDate(iso).getTime() - toDate(isoDate(now)).getTime()) / 86_400_000)
+export function dayLabel(iso?: string, now = DEMO_NOW): string {
+  if (!iso || typeof iso !== "string") return "Today"
+  const targetDate = toDate(iso)
+  const nowDate = toDate(isoDate(now))
+  const diff = Math.round((targetDate.getTime() - nowDate.getTime()) / 86_400_000)
   if (diff === 0) return "Today"
   if (diff === 1) return "Tomorrow"
   if (diff === -1) return "Yesterday"
-  return toDate(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+  return targetDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
 }
 
-export function monthDay(iso: string): { month: string; day: string } {
+export function monthDay(iso?: string): { month: string; day: string } {
+  if (!iso || typeof iso !== "string") return { month: "Oct", day: "22" }
   const d = toDate(iso)
   return { month: d.toLocaleDateString("en-US", { month: "short" }), day: String(d.getDate()) }
 }
@@ -75,7 +115,8 @@ export function greeting(d = DEMO_NOW): string {
 }
 
 /** "in 2h 13m" / "47m ago" relative to DEMO_NOW. */
-export function relativeTo(iso: string, time: string, now = DEMO_NOW): string {
+export function relativeTo(iso?: string, time?: string, now = DEMO_NOW): string {
+  if (!iso) return "soon"
   const diff = Math.round((toDate(iso, time).getTime() - now.getTime()) / 60_000)
   const abs = Math.abs(diff)
   const text = abs >= 1440 ? `${Math.round(abs / 1440)}d` : abs >= 60 ? `${Math.floor(abs / 60)}h ${abs % 60}m` : `${abs}m`
@@ -141,10 +182,12 @@ export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
 export const courseByCode = (courses: CourseItem[], code: string) => courses.find((c) => c.code === code)
 
 /** Minutes from the start of a session to DEMO_NOW, clamped to the session length. */
-export function sessionElapsed(s: LiveSessionItem, now = DEMO_NOW): { elapsed: number; total: number; pct: number } {
+export function sessionElapsed(s?: LiveSessionItem, now = DEMO_NOW): { elapsed: number; total: number; pct: number } {
+  if (!s) return { elapsed: 0, total: 60, pct: 0 }
   const total = Math.max(1, minutesOf(s.endTime) - minutesOf(s.startTime))
-  const elapsed = Math.max(0, Math.min(total, Math.round((now.getTime() - toDate(s.scheduledDate, s.startTime).getTime()) / 60_000)))
-  return { elapsed, total, pct: elapsed / total }
+  const startD = toDate(s.scheduledDate, s.startTime)
+  const elapsed = Math.max(0, Math.min(total, Math.round((now.getTime() - startD.getTime()) / 60_000)))
+  return { elapsed, total, pct: total > 0 ? elapsed / total : 0 }
 }
 
 export const ATTENDANCE_TONE: Record<AttendanceStatus, BadgeTone> = {
@@ -170,17 +213,22 @@ export interface RosterEntry {
 }
 
 /** "10:14 AM" -> minutes since midnight. */
-function clockMinutes(t: string): number | null {
-  const m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(t)
+function clockMinutes(t?: string): number | null {
+  if (!t || typeof t !== "string") return null
+  const m = /(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(t)
   if (!m) return null
-  return ((Number(m[1]) % 12) + (m[3].toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m[2])
+  const isPM = m[3]?.toUpperCase() === "PM"
+  return ((Number(m[1]) % 12) + (isPM ? 12 : 0)) * 60 + Number(m[2])
 }
 
 /** Live roster: attendance records joined with the learner records they belong to (names and photos come from the learner). */
-export function buildRoster(records: LiveAttendanceRecord[], students: StudentItem[]): RosterEntry[] {
-  const first = Math.min(...records.map((r) => clockMinutes(r.joinTime) ?? Infinity))
+export function buildRoster(records?: LiveAttendanceRecord[], students?: StudentItem[]): RosterEntry[] {
+  if (!records || !records.length) return []
+  const safeStudents = students || []
+  const validTimes = records.map((r) => clockMinutes(r?.joinTime)).filter((n): n is number => n !== null)
+  const first = validTimes.length ? Math.min(...validTimes) : 0
   return records.map((r) => {
-    const s = students.find((x) => x.id === r.studentId)
+    const s = safeStudents.find((x) => x.id === r.studentId)
     const join = clockMinutes(r.joinTime)
     return {
       id: r.id,
@@ -189,7 +237,7 @@ export function buildRoster(records: LiveAttendanceRecord[], students: StudentIt
       roll: s?.rollNumber ?? r.studentRoll,
       avatar: s?.image || r.studentAvatar,
       status: r.status,
-      minutes: r.durationMinutes,
+      minutes: r.durationMinutes || 0,
       handRaises: r.handRaisesCount ?? 0,
       device: r.deviceUsed && r.deviceUsed !== "N/A" ? r.deviceUsed : undefined,
       joinedAfter: join === null || !Number.isFinite(first) ? 0 : Math.max(0, join - first),
@@ -199,6 +247,7 @@ export function buildRoster(records: LiveAttendanceRecord[], students: StudentIt
 }
 
 /** Date label for recordings: relative for past days ("Today", "Yesterday"), absolute otherwise. */
-export function recordedLabel(iso: string): string {
+export function recordedLabel(iso?: string): string {
+  if (!iso || typeof iso !== "string") return "Today"
   return iso > DEMO_DATE ? toDate(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : dayLabel(iso)
 }

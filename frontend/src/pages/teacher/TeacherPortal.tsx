@@ -153,6 +153,7 @@ function TeacherShell() {
             <Route index element={<TeacherDashboardPage />} />
             <Route path="courses" element={<CoursesPage />} />
             <Route path="courses/:courseId" element={<CourseWorkspacePage />} />
+            <Route path="live" element={<Navigate to="/teacher/live-class" replace />} />
             <Route path="live-class" element={<LiveClassesPage />} />
             <Route path="live-class/studio/:sessionId" element={<LiveStudioPage />} />
             <Route path="recordings" element={<RecordingsPage />} />

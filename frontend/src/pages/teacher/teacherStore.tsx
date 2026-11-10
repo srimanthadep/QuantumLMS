@@ -134,8 +134,8 @@ interface TeacherData {
   moveModule: (courseId: string, moduleId: string, dir: -1 | 1) => void
   addLesson: (courseId: string, moduleId: string, lesson: Pick<LessonItem, "title" | "type" | "duration">) => void
   toggleLessonDelivered: (courseId: string, moduleId: string, lessonId: string) => void
-  addAssignment: (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number }) => void
-  addQuiz: (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number }) => void
+  addAssignment: (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number; attachments?: { name: string; size: string; type: string; url?: string }[] }) => void
+  addQuiz: (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number; attachments?: { name: string; size: string; type: string; url?: string }[]; questionsCount?: number }) => void
   addMaterial: (courseId: string, moduleId: string, lessonId: string, material: { title: string; type: LessonMaterial["type"]; sizeOrDuration: string; url?: string }) => void
   submitGradesForApproval: (key: string) => void
   requestRecordingPublish: (recordingId: string, targetModuleId?: string, targetLessonId?: string) => void
@@ -571,7 +571,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   )
 
   const addAssignment = useCallback(
-    (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number }) => {
+    (courseId: string, moduleId: string, input: { title: string; type: ModuleAssignmentItem["type"]; description: string; instructions: string; dueDate: string; maxMarks: number; attachments?: { name: string; size: string; type: string; url?: string }[] }) => {
       const key = assignmentKey(courseId, moduleId)
       const course = courses.find((c) => c.id === courseId)
       const mod = course?.modules.find((m) => m.id === moduleId)
@@ -588,6 +588,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         maxMarks: input.maxMarks,
         status: "Assigned",
         approvalStatus: "Pending Approval",
+        attachments: input.attachments || [],
         submissionsCount: 0,
         totalEnrolled: course?.enrolledStudentsCount ?? 25,
         submissions: (students || []).slice(0, 5).map((s) => ({
@@ -607,7 +608,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   )
 
   const addQuiz = useCallback(
-    (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number }) => {
+    (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number; attachments?: { name: string; size: string; type: string; url?: string }[]; questionsCount?: number }) => {
       const key = assignmentKey(courseId, moduleId)
       const course = courses.find((c) => c.id === courseId)
       const mod = course?.modules.find((m) => m.id === moduleId)
@@ -618,12 +619,13 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         moduleTitle: mod?.title ?? "Module",
         title: input.title,
         type: "Quiz Assessment",
-        description: `Timed Knowledge Assessment (${input.timeLimitMins} mins, pass mark: ${input.passingMarks}/${input.maxMarks}).`,
+        description: `Timed Knowledge Assessment (${input.timeLimitMins} mins, pass mark: ${input.passingMarks}/${input.maxMarks})${input.questionsCount ? ` · ${input.questionsCount} questions` : ""}.`,
         instructions: "Answer all multiple choice and conceptual questions within the allocated time.",
         dueDate: input.dueDate,
         maxMarks: input.maxMarks,
         status: "Assigned",
         approvalStatus: "Pending Approval",
+        attachments: input.attachments || [],
         submissionsCount: 0,
         totalEnrolled: course?.enrolledStudentsCount ?? 25,
         submissions: (students || []).slice(0, 5).map((s) => ({

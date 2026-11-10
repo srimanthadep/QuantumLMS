@@ -11,17 +11,27 @@ import {
   ChevronDown,
   ClipboardCheck,
   Code2,
+  Download,
   ExternalLink,
+  Eye,
+  FileCheck,
+  FileSpreadsheet,
   FileText,
   FlaskConical,
   Flag,
+  FolderArchive,
   Headphones,
   ListChecks,
+  MessageCircleQuestion,
+  Paperclip,
   PenLine,
   PlayCircle,
   Plus,
   Presentation,
   Radio,
+  Send,
+  Sparkles,
+  Trash2,
   Upload,
   Users,
   Video,
@@ -47,6 +57,7 @@ import {
   DatePicker,
   PageHeader,
   Progress,
+  SegmentedControl,
   Select,
   SelectContent,
   SelectItem,
@@ -76,10 +87,10 @@ import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import type { CourseItem, CourseModuleItem, LessonItem, LessonMaterial, ModuleAssignmentItem, StudentItem } from "@/types"
 import { assignmentKey, useTeacherData } from "../teacherStore"
-import { courseArt, dayLabel, DEMO_DATE, formatTimeRange, monthDay, SESSION_STATUS_TONE, STUDENT_STATUS_TONE } from "../teacherUtils"
+import { courseArt, dayLabel, DEMO_DATE, DOUBT_PRIORITY_TONE, DOUBT_STATUS_TONE, formatTimeRange, monthDay, SESSION_STATUS_TONE, STUDENT_STATUS_TONE } from "../teacherUtils"
 
-type Tab = "curriculum" | "assignments" | "learners" | "classes"
-const TABS: Tab[] = ["curriculum", "assignments", "learners", "classes"]
+type Tab = "curriculum" | "assignments" | "learners" | "classes" | "doubts"
+const TABS: Tab[] = ["curriculum", "assignments", "learners", "classes", "doubts"]
 
 const LESSON_ICON: Record<LessonItem["type"], LucideIcon> = {
   "Video Lecture": Video,
@@ -156,6 +167,109 @@ function AddModuleDialog({ open, onOpenChange, course }: { open: boolean; onOpen
   )
 }
 
+interface PreviewMaterialItem {
+  id?: string
+  title: string
+  type: string
+  sizeOrDuration?: string
+  url?: string
+  approvalStatus?: string
+}
+
+function MaterialPreviewDialog({
+  material,
+  open,
+  onOpenChange,
+  onToast,
+}: {
+  material: PreviewMaterialItem | null
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onToast: (msg: string) => void
+}) {
+  if (!material) return null
+
+  const handleDownload = () => {
+    const content = `QuantumLMS Resource: ${material.title}\nCategory: ${material.type}\nStatus: ${material.approvalStatus || "Approved"}\nSize: ${material.sizeOrDuration || "Standard"}\nGenerated: ${new Date().toLocaleString()}\n\nOfficial verified curriculum material for offline access.`
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${material.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "material"}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    onToast(`Downloading “${material.title}”`)
+  }
+
+  const Icon = MATERIAL_ICON[material.type as LessonMaterial["type"]] ?? FileText
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl overflow-hidden p-0">
+        <div className="border-b border-border bg-surface-2 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <IconTile icon={Icon} tone="primary" size="lg" />
+              <div className="min-w-0">
+                <DialogTitle className="text-base font-bold text-foreground sm:text-lg truncate">
+                  {material.title}
+                </DialogTitle>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge tone="neutral" size="sm">{material.type}</Badge>
+                  {material.sizeOrDuration && <span>· {material.sizeOrDuration}</span>}
+                  {material.approvalStatus && (
+                    <Badge tone={material.approvalStatus === "Approved" ? "success" : "warning"} size="sm">
+                      {material.approvalStatus}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="rounded-xl border border-border bg-surface-2/40 p-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary-text border border-primary-border shadow-inner">
+              <Icon className="h-8 w-8" />
+            </div>
+            <h4 className="mt-4 font-semibold text-foreground text-sm sm:text-base">
+              {material.title}
+            </h4>
+            <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
+              Verified curriculum document ready for review and student download. Fully synced with Quantum offline cache.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button leftIcon={<Download className="h-4 w-4" />} onClick={handleDownload}>
+                Download File
+              </Button>
+              {material.url && material.url.startsWith("http") && (
+                <a
+                  href={material.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-xs font-semibold text-foreground hover:bg-surface-2 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" /> Open External Link
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="bg-surface-2 px-6 py-3 border-t border-border">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function AddAssignmentDialog({
   open,
   onOpenChange,
@@ -174,11 +288,31 @@ function AddAssignmentDialog({
   const [instructions, setInstructions] = useState("")
   const [dueDate, setDueDate] = useState("2026-11-20")
   const [maxMarks, setMaxMarks] = useState("100")
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; size: string; type: string }[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || !files.length) return
+    const newItems = Array.from(files).map((f) => {
+      const sizeKb = Math.round(f.size / 1024)
+      const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`
+      return {
+        name: f.name,
+        size: sizeFormatted,
+        type: f.name.split(".").pop()?.toUpperCase() || "FILE",
+      }
+    })
+    setAttachedFiles((prev) => [...prev, ...newItems])
+  }
+
+  const removeFile = (idx: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <form
           noValidate
           className="grid gap-3"
@@ -192,6 +326,7 @@ function AddAssignmentDialog({
               instructions: instructions.trim() || "Complete the problem statement and submit solution before deadline.",
               dueDate: dueDate.trim() || "2026-11-20",
               maxMarks: Number(maxMarks) || 100,
+              attachments: attachedFiles,
             })
             onOpenChange(false)
           }}
@@ -231,6 +366,55 @@ function AddAssignmentDialog({
           <Field label="Instructions & Rubric">
             <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Task instructions..." rows={3} />
           </Field>
+
+          {/* Assignment Files / Starter Code Upload */}
+          <div className="space-y-2 rounded-lg border border-border bg-surface-2/40 p-3.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5 text-primary" />
+                Upload Assignment Brief & Starter Code
+              </label>
+              <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-primary-hover transition-colors">
+                <Upload className="h-3 w-3" />
+                Browse
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.docx,.doc,.zip,.py,.ipynb,.csv,.txt"
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Attach PDFs, starter notebooks (.ipynb, .py), data files, or project ZIP archives for learners.
+            </p>
+
+            {attachedFiles.length > 0 && (
+              <ul className="mt-2 divide-y divide-border rounded-md border border-border bg-surface">
+                {attachedFiles.map((file, idx) => (
+                  <li key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileCheck className="h-4 w-4 text-success shrink-0" />
+                      <span className="font-medium text-foreground truncate">{file.name}</span>
+                      <span className="text-muted-foreground shrink-0 font-mono">({file.size})</span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => removeFile(idx)}
+                      className="text-muted-foreground hover:text-danger"
+                      aria-label="Remove file"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
@@ -262,11 +446,33 @@ function AddQuizDialog({
   const [maxMarks, setMaxMarks] = useState("100")
   const [timeLimitMins, setTimeLimitMins] = useState("30")
   const [passingMarks, setPassingMarks] = useState("60")
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; size: string; type: string }[]>([])
+  const [questionsCount, setQuestionsCount] = useState(10)
   const [error, setError] = useState<string | null>(null)
+
+  const handleQuizFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || !files.length) return
+    const newItems = Array.from(files).map((f) => {
+      const sizeKb = Math.round(f.size / 1024)
+      const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`
+      return {
+        name: f.name,
+        size: sizeFormatted,
+        type: f.name.split(".").pop()?.toUpperCase() || "CSV",
+      }
+    })
+    setAttachedFiles((prev) => [...prev, ...newItems])
+    setQuestionsCount((prev) => Math.max(prev, 15))
+  }
+
+  const removeFile = (idx: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <form
           noValidate
           className="grid gap-3"
@@ -279,6 +485,8 @@ function AddQuizDialog({
               maxMarks: Number(maxMarks) || 100,
               timeLimitMins: Number(timeLimitMins) || 30,
               passingMarks: Number(passingMarks) || 60,
+              attachments: attachedFiles,
+              questionsCount,
             })
             onOpenChange(false)
           }}
@@ -306,6 +514,77 @@ function AddQuizDialog({
           <Field label="Due date">
             <DatePicker value={dueDate} onChange={setDueDate} placeholder="Select due date" />
           </Field>
+
+          {/* Question Bank File Upload */}
+          <div className="space-y-2 rounded-lg border border-border bg-surface-2/40 p-3.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
+                Upload Questions / Question Bank
+              </label>
+              <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-primary-hover transition-colors">
+                <Upload className="h-3 w-3" />
+                Upload Questions
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleQuizFileUpload}
+                  accept=".csv,.json,.xlsx,.txt,.docx,.pdf"
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Upload questions via CSV, JSON, Excel sheet, or question bank document.
+            </p>
+
+            {attachedFiles.length > 0 ? (
+              <div className="space-y-2">
+                <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+                  {attachedFiles.map((file, idx) => (
+                    <li key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileCheck className="h-4 w-4 text-success shrink-0" />
+                        <span className="font-medium text-foreground truncate">{file.name}</span>
+                        <Badge tone="success" size="sm" className="shrink-0">{questionsCount} Questions</Badge>
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => removeFile(idx)}
+                        className="text-muted-foreground hover:text-danger"
+                        aria-label="Remove question file"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-between rounded bg-success-soft px-3 py-1.5 text-xs text-success">
+                  <span className="font-medium">Question bank loaded successfully</span>
+                  <span className="font-mono font-semibold">{questionsCount} Questions Ready</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-muted-foreground">Questions in quiz</span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={questionsCount}
+                    onChange={(e) => setQuestionsCount(Number(e.target.value) || 1)}
+                    wrapperClassName="w-20"
+                    className="text-right h-8 text-xs"
+                  />
+                  <span className="text-xs text-muted-foreground">items</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
@@ -557,6 +836,7 @@ function AssignmentCard({
   onGrade,
   onAddAssignment,
   onAddQuiz,
+  onPreviewAttachment,
 }: {
   course: CourseItem
   module: CourseModuleItem
@@ -564,6 +844,7 @@ function AssignmentCard({
   onGrade: (key: string) => void
   onAddAssignment: (moduleId: string) => void
   onAddQuiz: (moduleId: string) => void
+  onPreviewAttachment: (f: { name: string; size: string; type: string; url?: string }) => void
 }) {
   const { assignments } = useTeacherData()
   const [brief, setBrief] = useState(false)
@@ -670,16 +951,15 @@ function AssignmentCard({
               <ul className="flex flex-wrap gap-2">
                 {a.attachments.map((f) => (
                   <li key={f.name}>
-                    <a
-                      href={f.url ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-border-strong/60"
+                    <button
+                      type="button"
+                      onClick={() => onPreviewAttachment(f)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-border-strong/60 hover:bg-surface-2"
                     >
                       <FileText className="h-3.5 w-3.5 text-primary-text" aria-hidden="true" />
                       {f.name}
                       <span className="text-muted-foreground">{f.size}</span>
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -696,7 +976,7 @@ export default function CourseWorkspacePage() {
   const { courseId = "" } = useParams()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const { courses, students, sessions, recordings, assignments, toggleLessonDelivered, startSession, notify } = useTeacherData()
+  const { courses, students, sessions, recordings, assignments, doubts = [], replyToDoubt, setDoubtStatus, toggleLessonDelivered, startSession, notify } = useTeacherData()
   const course = courses.find((c) => c.id === courseId)
   const tabParam = params.get("tab") as Tab | null
   const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "curriculum"
@@ -707,6 +987,7 @@ export default function CourseWorkspacePage() {
     return new Set(current ? [current.id] : [])
   })
   const [preview, setPreview] = useState<{ lessonId: string; moduleId: string } | null>(null)
+  const [previewMaterial, setPreviewMaterial] = useState<PreviewMaterialItem | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [gradingKey, setGradingKey] = useState<string | null>(null)
@@ -714,6 +995,8 @@ export default function CourseWorkspacePage() {
   const [addAssignmentModuleId, setAddAssignmentModuleId] = useState<string | null>(null)
   const [addQuizModuleId, setAddQuizModuleId] = useState<string | null>(null)
   const [uploadMaterialTarget, setUploadMaterialTarget] = useState<{ moduleId: string; lessonId: string } | null>(null)
+  const [doubtFilter, setDoubtFilter] = useState<"all" | "pending" | "resolved">("all")
+  const [doubtDrafts, setDoubtDrafts] = useState<Record<string, string>>({})
 
   const learners = useMemo(
     () => (course ? course.enrolledStudentIds.map((id) => students.find((s) => s.id === id)).filter((s): s is StudentItem => Boolean(s)) : []),
@@ -723,6 +1006,17 @@ export default function CourseWorkspacePage() {
     () => sessions.filter((s) => s.courseId === courseId).sort((a, b) => `${a.scheduledDate}${a.startTime}`.localeCompare(`${b.scheduledDate}${b.startTime}`)),
     [sessions, courseId],
   )
+
+  const courseDoubts = useMemo(
+    () => doubts.filter((d) => d.courseId === courseId || d.courseCode === course?.code),
+    [doubts, courseId, course],
+  )
+
+  const filteredCourseDoubts = useMemo(() => {
+    if (doubtFilter === "pending") return courseDoubts.filter((d) => d.status !== "Resolved")
+    if (doubtFilter === "resolved") return courseDoubts.filter((d) => d.status === "Resolved")
+    return courseDoubts
+  }, [courseDoubts, doubtFilter])
 
   if (!course) {
     return (
@@ -857,6 +1151,14 @@ export default function CourseWorkspacePage() {
               </TabsTrigger>
               <TabsTrigger value="learners">Learners</TabsTrigger>
               <TabsTrigger value="classes">Classes</TabsTrigger>
+              <TabsTrigger value="doubts" className="gap-2">
+                Doubts
+                {courseDoubts.filter((d) => d.status !== "Resolved").length > 0 && (
+                  <Badge tone="warning" size="sm">
+                    {courseDoubts.filter((d) => d.status !== "Resolved").length}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="curriculum">
@@ -922,6 +1224,15 @@ export default function CourseWorkspacePage() {
                       onGrade={setGradingKey}
                       onAddAssignment={(modId) => setAddAssignmentModuleId(modId)}
                       onAddQuiz={(modId) => setAddQuizModuleId(modId)}
+                      onPreviewAttachment={(f) =>
+                        setPreviewMaterial({
+                          title: f.name,
+                          type: f.type || "Document",
+                          sizeOrDuration: f.size,
+                          url: f.url,
+                          approvalStatus: "Approved",
+                        })
+                      }
                     />
                   ))}
                 </ul>
@@ -935,7 +1246,7 @@ export default function CourseWorkspacePage() {
                 rowKey={(s) => s.id}
                 onRowClick={(s) => setDrawerId(s.id)}
                 initialSort={{ id: "progress", dir: "desc" }}
-                empty={<EmptyState icon={<Users aria-hidden="true" />} title="No learners yet" description="Share the invite link from the courses page to enrol your class." />}
+                empty={<EmptyState icon={<Users aria-hidden="true" />} title="No learners yet" description="Enrolled learners in this course will appear here." />}
                 columns={[
                   {
                     id: "name",
@@ -1030,6 +1341,167 @@ export default function CourseWorkspacePage() {
                 ))}
               </div>
             </TabsContent>
+
+            <TabsContent value="doubts">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <SegmentedControl
+                    size="sm"
+                    aria-label="Filter doubts by status"
+                    options={[
+                      { value: "all", label: `All (${courseDoubts.length})` },
+                      { value: "pending", label: `Pending (${courseDoubts.filter((d) => d.status !== "Resolved").length})` },
+                      { value: "resolved", label: `Resolved (${courseDoubts.filter((d) => d.status === "Resolved").length})` },
+                    ]}
+                    value={doubtFilter}
+                    onChange={(v) => setDoubtFilter(v as any)}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  rightIcon={<ExternalLink className="h-3.5 w-3.5" />}
+                  onClick={() => navigate("/teacher/doubts")}
+                >
+                  Full Doubts Desk
+                </Button>
+              </div>
+
+              {filteredCourseDoubts.length === 0 ? (
+                <EmptyState
+                  icon={<MessageCircleQuestion aria-hidden="true" />}
+                  title="No doubts in this section"
+                  description="Learners can ask questions while watching video lessons or working on assignments. Their questions will appear here."
+                />
+              ) : (
+                <ul className="flex flex-col gap-4">
+                  {filteredCourseDoubts.map((d) => {
+                    const draft = doubtDrafts[d.id] ?? ""
+                    const isResolved = d.status === "Resolved"
+                    return (
+                      <li
+                        key={d.id}
+                        className="rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-[var(--elev-xs)] transition-all hover:border-border-strong/60"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar src={d.studentAvatar} name={d.studentName} size="md" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-foreground text-sm">{d.studentName}</h4>
+                                <span className="font-mono text-caption text-muted-foreground">{d.studentRoll}</span>
+                              </div>
+                              <p className="text-caption text-muted-foreground">{d.submittedAt} · {d.courseCode}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge tone={DOUBT_PRIORITY_TONE[d.priority]} size="sm">
+                              {d.priority} Priority
+                            </Badge>
+                            <Badge tone={DOUBT_STATUS_TONE[d.status]} size="sm">
+                              {d.status}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-1">
+                          <h5 className="text-sm font-bold text-foreground">{d.questionTitle}</h5>
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{d.questionText}</p>
+                        </div>
+
+                        {/* Answer / Responses section */}
+                        {d.responses && d.responses.length > 0 && (
+                          <div className="mt-3.5 rounded-lg border border-border bg-surface-2/60 p-3 text-xs space-y-2">
+                            <span className="font-semibold text-foreground text-[11px] uppercase tracking-wider block">Responses</span>
+                            {d.responses.map((resp) => (
+                              <div key={resp.id} className="rounded-md border border-border/60 bg-surface p-2.5">
+                                <div className="flex items-center justify-between text-caption font-medium text-foreground mb-1">
+                                  <span>{resp.author} ({resp.authorRole})</span>
+                                  <span className="text-muted-foreground">{resp.createdAt}</span>
+                                </div>
+                                <p className="text-xs text-foreground/90">{resp.text}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reply interface */}
+                        {!isResolved ? (
+                          <div className="mt-4 pt-3 border-t border-border space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] text-muted-foreground font-medium">Quick suggestions:</span>
+                              {[
+                                "Great question! Let's review this in the upcoming live workshop.",
+                                "Review module notes on page 3 and check your environment setup.",
+                                "Verify your Python version and ensure dependencies are installed.",
+                              ].map((preset, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => setDoubtDrafts((prev) => ({ ...prev, [d.id]: preset }))}
+                                  className="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-[10px] text-muted-foreground hover:bg-surface-3 hover:text-foreground transition-colors"
+                                >
+                                  {preset.slice(0, 32)}...
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <Textarea
+                                rows={2}
+                                placeholder="Write a clear, helpful reply to learner..."
+                                value={draft}
+                                onChange={(e) => setDoubtDrafts((prev) => ({ ...prev, [d.id]: e.target.value }))}
+                                className="text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (!draft.trim()) return
+                                  replyToDoubt(d.id, draft.trim(), false)
+                                  setDoubtDrafts((prev) => ({ ...prev, [d.id]: "" }))
+                                }}
+                                disabled={!draft.trim()}
+                              >
+                                Reply
+                              </Button>
+                              <Button
+                                size="sm"
+                                leftIcon={<Send className="h-3 w-3" />}
+                                onClick={() => {
+                                  if (!draft.trim()) return
+                                  replyToDoubt(d.id, draft.trim(), true)
+                                  setDoubtDrafts((prev) => ({ ...prev, [d.id]: "" }))
+                                }}
+                                disabled={!draft.trim()}
+                              >
+                                Reply & Resolve
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex items-center justify-between text-xs text-success">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <Check className="h-3.5 w-3.5" /> Resolved with answer
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDoubtStatus(d.id, "Pending")}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              Reopen
+                            </Button>
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </TabsContent>
           </Tabs>
         </StaggerItem>
       </Stagger>
@@ -1093,22 +1565,20 @@ export default function CourseWorkspacePage() {
                       const Icon = MATERIAL_ICON[mat.type] ?? FileText
                       return (
                         <li key={mat.id} className="flex items-center justify-between">
-                          <a
-                            href={mat.url ?? "#"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="group flex flex-1 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2"
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMaterial(mat)}
+                            className="group flex flex-1 items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-2"
                           >
                             <IconTile icon={Icon} tone="primary" size="sm" />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm text-foreground">{mat.title}</span>
+                              <span className="block truncate text-sm font-medium text-foreground group-hover:text-primary-text">{mat.title}</span>
                               <span className="block text-caption text-muted-foreground">
                                 {mat.type} · {mat.sizeOrDuration}
                               </span>
                             </span>
-                            <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-                            <span className="sr-only">(opens in a new tab)</span>
-                          </a>
+                            <Eye className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:scale-110" aria-hidden="true" />
+                          </button>
                           {mat.approvalStatus && (
                             <div className="pr-3">
                               <Badge tone={mat.approvalStatus === "Approved" ? "success" : "warning"} size="sm">
@@ -1149,6 +1619,12 @@ export default function CourseWorkspacePage() {
         onOpenChange={(o) => !o && setUploadMaterialTarget(null)}
         courseId={course.id}
         target={uploadMaterialTarget}
+      />
+      <MaterialPreviewDialog
+        material={previewMaterial}
+        open={previewMaterial !== null}
+        onOpenChange={(o) => !o && setPreviewMaterial(null)}
+        onToast={notify}
       />
     </div>
   )

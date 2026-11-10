@@ -39,50 +39,54 @@ import { addDays, courseByCode, courseArt, dayLabel, DEMO_DATE, DEMO_NOW, format
 
 type Filter = "upcoming" | "past" | "all"
 
-const isUpcoming = (s: LiveSessionItem) => s.status === "Live Now" || s.status === "Upcoming" || s.status === "Scheduled"
-const sortKey = (s: LiveSessionItem) => `${s.scheduledDate} ${s.startTime}`
+const isUpcoming = (s: LiveSessionItem) => s && (s.status === "Live Now" || s.status === "Upcoming" || s.status === "Scheduled")
+const sortKey = (s: LiveSessionItem) => `${s?.scheduledDate || ""} ${s?.startTime || ""}`
 
 /** Run, schedule and review live classes. */
 export default function LiveClassesPage() {
   const navigate = useNavigate()
-  const { sessions, recordings, courses, published, startSession, updateSession, notify } = useTeacherData()
+  const { sessions = [], recordings = [], courses = [], published, startSession, updateSession, notify } = useTeacherData()
   const [filter, setFilter] = useState<Filter>("upcoming")
   const [day, setDay] = useState<string | null>(null)
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [editing, setEditing] = useState<LiveSessionItem | null>(null)
   const [cancelling, setCancelling] = useState<LiveSessionItem | null>(null)
 
-  const live = sessions.find((s) => s.status === "Live Now")
-  const next = useMemo(() => sessions.filter((s) => s.status === "Upcoming" || s.status === "Scheduled").sort((a, b) => sortKey(a).localeCompare(sortKey(b)))[0], [sessions])
+  const safeSessions = useMemo(() => (Array.isArray(sessions) ? sessions.filter(Boolean) : []), [sessions])
+  const live = safeSessions.find((s) => s.status === "Live Now")
+  const next = useMemo(() => safeSessions.filter((s) => s.status === "Upcoming" || s.status === "Scheduled").sort((a, b) => sortKey(a).localeCompare(sortKey(b)))[0], [safeSessions])
   const focus = live ?? next
 
   const week = useMemo(() => {
     const start = startOfWeek(DEMO_NOW)
     return Array.from({ length: 7 }, (_, i) => {
       const date = isoDate(addDays(start, i))
-      const list = sessions.filter((s) => s.scheduledDate === date && s.status !== "Cancelled")
-      return { date, list, minutes: list.reduce((m, s) => m + s.durationMinutes, 0) }
+      const list = safeSessions.filter((s) => (s.scheduledDate || DEMO_DATE) === date && s.status !== "Cancelled")
+      return { date, list, minutes: list.reduce((m, s) => m + (s.durationMinutes || 60), 0) }
     })
-  }, [sessions])
+  }, [safeSessions])
   const weekMax = Math.max(1, ...week.map((d) => d.list.length))
   const weekCount = week.reduce((n, d) => n + d.list.length, 0)
   const weekHours = week.reduce((n, d) => n + d.minutes, 0) / 60
 
   const counts = {
-    upcoming: sessions.filter(isUpcoming).length,
-    past: sessions.filter((s) => !isUpcoming(s)).length,
-    all: sessions.length,
+    upcoming: safeSessions.filter(isUpcoming).length,
+    past: safeSessions.filter((s) => !isUpcoming(s)).length,
+    all: safeSessions.length,
   }
 
   const groups = useMemo(() => {
-    const list = sessions
+    const list = safeSessions
       .filter((s) => (filter === "upcoming" ? isUpcoming(s) : filter === "past" ? !isUpcoming(s) : true))
-      .filter((s) => !day || s.scheduledDate === day)
+      .filter((s) => !day || (s.scheduledDate || DEMO_DATE) === day)
       .sort((a, b) => (filter === "past" ? sortKey(b).localeCompare(sortKey(a)) : sortKey(a).localeCompare(sortKey(b))))
     const map = new Map<string, LiveSessionItem[]>()
-    for (const s of list) map.set(s.scheduledDate, [...(map.get(s.scheduledDate) ?? []), s])
+    for (const s of list) {
+      const d = s.scheduledDate || DEMO_DATE
+      map.set(d, [...(map.get(d) ?? []), s])
+    }
     return [...map.entries()]
-  }, [sessions, filter, day])
+  }, [safeSessions, filter, day])
 
   const recent = useMemo(
     () =>
