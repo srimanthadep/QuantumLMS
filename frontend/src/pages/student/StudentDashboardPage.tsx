@@ -320,23 +320,23 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
 
   return (
     <div className="relative flex w-full min-w-0 flex-col">
-      {/* Interactive Swinging Lanyard Badge hanging from the top border line on the left */}
-      <div className="hidden lg:block pointer-events-none absolute -left-3 xl:-left-4 -top-5 sm:-top-5 lg:-top-6 z-20 w-[176px] xl:w-[190px] h-[400px] xl:h-[420px]">
-        <div className="w-full h-full pointer-events-auto select-none">
-          <SwingingLanyardBadge
-            size={188}
-            ropeLength={33}
-            anchorY={0}
-            strapSpread={105}
-            strapColor="var(--primary)"
-            image={{
-              src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
-              alt: firstName,
-            }}
-            name={user?.name || firstName}
-            style={{ width: "100%", height: "100%" }}
-          />
-        </div>
+      {/* Interactive Swinging Lanyard Badge hanging from the top border line on the left, unclipped across full width */}
+      <div className="hidden lg:block pointer-events-none absolute -left-3 xl:-left-4 -right-3 xl:-right-4 -top-5 sm:-top-5 lg:-top-6 z-20 h-[500px] xl:h-[520px]">
+        <SwingingLanyardBadge
+          size={188}
+          ropeLength={27}
+          anchorX={92}
+          anchorY={0}
+          strapSpread={105}
+          stretch={350}
+          strapColor="var(--primary)"
+          image={{
+            src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+            alt: firstName,
+          }}
+          name={user?.name || firstName}
+          style={{ width: "100%", height: "100%" }}
+        />
       </div>
 
       <PageHeader

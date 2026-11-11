@@ -159,6 +159,7 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
 
     const rootRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
+    const grabRef = useRef<HTMLDivElement>(null)
     const valsRef = useRef<any>(null)
     valsRef.current = {
         background,
@@ -172,10 +173,12 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         damping,
         speed,
         name: props.name,
+        anchorX: props.anchorX,
         advanced: {
             ...props.advanced,
             ...(props.anchorY !== undefined ? { anchorY: props.anchorY } : {}),
             ...(props.strapSpread !== undefined ? { strapSpread: props.strapSpread } : {}),
+            ...(props.stretch !== undefined ? { stretch: props.stretch } : {}),
         },
     }
 
@@ -292,7 +295,7 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         const geom = (v: any, adv: any) => {
             const sz = Math.max(50, v.size)
             const s = sz / 400
-            const cx = W / 2
+            const cx = typeof v.anchorX === "number" && isFinite(v.anchorX) ? v.anchorX : W / 2
             const ay = (adv.anchorY / 100) * H
             const jy = (v.ropeLength / 100) * H
             const spread = adv.strapSpread * s
@@ -469,10 +472,12 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             }
 
             const iters = Math.max(1, Math.min(40, Math.round(adv.iterations)))
-            const give = Math.max(0, Math.min(1, adv.stretch / 100))
-            const kStep = 1 - 0.12 * give
-            const kIter = give <= 0 ? 1 : 1 - Math.pow(1 - kStep, 1 / iters)
-            const reach = 1 + 0.5 * give
+            const rawStretch = Math.max(0, adv.stretch / 100)
+            const restGive = Math.min(1, rawStretch)
+            const effGive = grab ? Math.min(3.5, Math.max(restGive, rawStretch * 0.7)) : restGive * 0.5
+            const kStep = 1 - Math.min(0.75, 0.12 * effGive)
+            const kIter = effGive <= 0 ? 1 : 1 - Math.pow(1 - kStep, 1 / iters)
+            const reach = 1 + (rawStretch > 1 ? 2.5 * rawStretch : 0.5 * rawStretch)
             for (let it = 0; it < iters; it++) {
                 for (let k = 0; k < N; k++) {
                     soft(pts[leftIdx[k]], pts[leftIdx[k + 1]], G.segL, kIter)
@@ -507,26 +512,6 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         }
 
         // ── drawing ──
-        const SHADOW_OFF = 20000
-
-        const withShadow = (adv: any, s: number, draw: () => void) => {
-            ctx.save()
-            ctx.shadowColor = rgba(adv.shadowColor, adv.shadowOpacity / 100)
-            ctx.shadowBlur = adv.shadowBlur * s * dpr
-            ctx.shadowOffsetX = (SHADOW_OFF + adv.shadowX * s) * dpr
-            ctx.shadowOffsetY = adv.shadowY * s * dpr
-            ctx.translate(-SHADOW_OFF, 0)
-            ctx.fillStyle = "#000"
-            ctx.strokeStyle = "#000"
-            draw()
-            ctx.restore()
-        }
-
-        const polyline = (list: Pt[]) => {
-            ctx.beginPath()
-            ctx.moveTo(list[0].x, list[0].y)
-            for (let i = 1; i < list.length; i++) ctx.lineTo(list[i].x, list[i].y)
-        }
 
         const angDiff = (a: number, b: number) => {
             let d = a - b
@@ -925,8 +910,9 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
         }
 
         const draw = (v: any, adv: any, G: any, hoverAmt: number) => {
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-            ctx.clearRect(0, 0, W, H)
             const s = G.s
             const P = pts[iP]
             const B = pts[iB]
@@ -936,23 +922,6 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             const strapW = adv.strapWidth * s
             const baseL = Math.atan2(G.jy - G.ay, G.spread)
             const baseR = Math.atan2(G.jy - G.ay, -G.spread)
-
-            if (adv.shadowOpacity > 0) {
-                withShadow(adv, s, () => {
-                    ctx.lineWidth = strapW
-                    ctx.lineJoin = "round"
-                    polyline(left)
-                    ctx.stroke()
-                    polyline(right)
-                    ctx.stroke()
-                })
-                withShadow(adv, s, () => {
-                    ctx.translate(P.x, P.y)
-                    ctx.rotate(ang)
-                    rr(ctx, -G.hW / 2, -G.slotY, G.hW, G.hH, adv.holderRadius * s)
-                    ctx.fill()
-                })
-            }
 
             const sheen = adv.strapSheen / 100
             const rv = {
@@ -964,6 +933,14 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             drawClip(rv, adv, G, ang, false)
             drawCard(rv, adv, G, ang, hoverAmt)
             drawClip(rv, adv, G, ang, true)
+
+            const grabEl = grabRef.current
+            if (grabEl) {
+                grabEl.style.width = `${G.hW}px`
+                grabEl.style.height = `${G.hH}px`
+                grabEl.style.transformOrigin = `${G.hW / 2}px ${G.slotY}px`
+                grabEl.style.transform = `translate3d(${P.x - G.hW / 2}px, ${P.y - G.slotY}px, 0) rotate(${ang}rad)`
+            }
 
             const vig = adv.vignette / 100
             if (vig > 0) {
@@ -1057,47 +1034,54 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             return null
         }
 
+        const toLocal = (e: PointerEvent) => {
+            const r = root.getBoundingClientRect()
+            const k = r.width / (root.offsetWidth || 1) || 1
+            return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }
+        }
+
+        const grabEl = grabRef.current || root
+
         const onDown = (e: PointerEvent) => {
             if (reduced || isStatic) return
             const adv = advOf(valsRef.current)
             if (adv.hover <= 0) return
-            const x = e.offsetX
-            const y = e.offsetY
-            const hit = hitCard(x, y)
+            const { x, y } = toLocal(e)
+            const hit = hitCard(x, y) ?? (e.target === grabEl ? { t: 0.5, lx: 0 } : null)
             if (!hit) return
             userDrag = { t: hit.t, lx: hit.lx, tx: x, ty: y }
             try {
-                root.setPointerCapture(e.pointerId)
+                grabEl.setPointerCapture(e.pointerId)
             } catch {}
-            root.style.cursor = "grabbing"
+            grabEl.style.cursor = "grabbing"
             e.preventDefault()
         }
         const onMove = (e: PointerEvent) => {
-            ptrX = e.offsetX
-            ptrY = e.offsetY
-            overTarget = 1
+            const { x, y } = toLocal(e)
+            ptrX = x
+            ptrY = y
             if (userDrag) {
                 userDrag.tx = ptrX
                 userDrag.ty = ptrY
+                overTarget = 1
                 return
             }
-            if (!reduced) root.style.cursor = hitCard(ptrX, ptrY) ? "grab" : "default"
-        }
-        const onLeave = () => {
-            if (!userDrag) overTarget = 0
+            const hit = hitCard(ptrX, ptrY)
+            overTarget = hit ? 1 : 0
+            if (!reduced) grabEl.style.cursor = hit ? "grab" : "default"
         }
         const onUp = (e: PointerEvent) => {
             if (!userDrag) return
             userDrag = null
+            overTarget = 0
             try {
-                root.releasePointerCapture(e.pointerId)
+                grabEl.releasePointerCapture(e.pointerId)
             } catch {}
-            root.style.cursor = "grab"
+            grabEl.style.cursor = "grab"
         }
 
-        root.addEventListener("pointerdown", onDown)
-        root.addEventListener("pointermove", onMove)
-        root.addEventListener("pointerleave", onLeave)
+        grabEl.addEventListener("pointerdown", onDown)
+        window.addEventListener("pointermove", onMove)
         window.addEventListener("pointerup", onUp)
         window.addEventListener("pointercancel", onUp)
 
@@ -1119,13 +1103,14 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             cancelAnimationFrame(raf)
             ro.disconnect()
             io.disconnect()
-            root.removeEventListener("pointerdown", onDown)
-            root.removeEventListener("pointermove", onMove)
-            root.removeEventListener("pointerleave", onLeave)
+            grabEl.removeEventListener("pointerdown", onDown)
+            window.removeEventListener("pointermove", onMove)
             window.removeEventListener("pointerup", onUp)
             window.removeEventListener("pointercancel", onUp)
         }
     }, [])
+
+    const bgStyle = background && background !== "#00000000" ? background : undefined
 
     return (
         <div
@@ -1135,16 +1120,36 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                overflow: "hidden",
-                touchAction: "none",
+                overflow: "visible",
+                pointerEvents: "none",
                 userSelect: "none",
-                background,
+                ...(bgStyle ? { background: bgStyle } : {}),
                 ...style,
             }}
         >
             <canvas
                 ref={canvasRef}
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
+                style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                    pointerEvents: "none",
+                    filter: "drop-shadow(6px 8px 7px rgba(0, 0, 0, 0.28))",
+                }}
+            />
+            <div
+                ref={grabRef}
+                aria-label="Interactive swinging lanyard badge"
+                style={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    pointerEvents: "auto",
+                    touchAction: "none",
+                    cursor: "grab",
+                }}
             />
         </div>
     )
