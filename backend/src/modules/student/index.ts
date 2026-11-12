@@ -37,6 +37,7 @@ export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContex
     await tx.insert(enrollments).values(starters.map((c) => ({ student_id: user.id, course_id: c.id }))).onConflictDoNothing()
     await openCertificates(tx, user.id, starters.map((c) => c.id))
   }
+  await notify(tx, user.id, "system", "Welcome to Quantum School", "Your learning account is ready.", "courses")
 }
 
 export async function studentModule(app: FastifyInstance, ctx: AppContext) {

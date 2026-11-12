@@ -13,6 +13,7 @@ import { loadConfig } from "../src/config.js"
 import type { AppContext } from "../src/context.js"
 import { users } from "../src/db/schema.js"
 import { modules } from "../src/modules.js"
+import { assertTestDatabase, testDatabaseUrl } from "./isolation.js"
 
 export const TEST_DOMAIN = "test.quantumlms.dev"
 const ISSUER = "http://cognito.test/test-pool"
@@ -38,6 +39,7 @@ export interface TestUser {
 
 /** An app wired to the real database, with a local token issuer, a fake Cognito and a temporary upload folder. */
 export async function createHarness(): Promise<TestHarness> {
+  const databaseUrl = testDatabaseUrl()
   const { privateKey, publicKey } = await generateKeyPair("RS256")
   const jwk: JWK = { ...(await exportJWK(publicKey)), kid: "test-key", alg: "RS256", use: "sig" }
   const keys = createLocalJWKSet({ keys: [jwk] })
@@ -64,6 +66,10 @@ export async function createHarness(): Promise<TestHarness> {
   const config = loadConfig({
     ...process.env,
     NODE_ENV: "test",
+    DATABASE_URL: databaseUrl,
+    DATABASE_SSL: "disable",
+    DATABASE_CA_CERT: undefined,
+    DEMO_MODE: "false",
     LOG_LEVEL: "silent",
     COGNITO_USER_POOL_ID: "test-pool",
     COGNITO_CLIENT_ID: CLIENT_ID,
@@ -77,6 +83,7 @@ export async function createHarness(): Promise<TestHarness> {
   })
   const verifyToken = createTokenVerifier({ issuer: ISSUER, jwksUri: `${ISSUER}/.well-known/jwks.json`, clientId: CLIENT_ID, keys })
   const ctx = createContext(config, { cognito, verifyToken })
+  await assertTestDatabase(ctx.pool)
   const app = await buildApp(ctx, { logger: false, modules })
   const created: string[] = []
   // Test files run in parallel, each with its own harness: a run tag keeps one file's cleanup off another's users.

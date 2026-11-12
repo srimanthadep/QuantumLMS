@@ -10,6 +10,10 @@ before(async () => {
   h = await createHarness()
   student = await h.user({ name: "Support Test Student" })
   await student.call("GET", "/api/student/profile")
+  const ticket = await student.call("POST", "/api/student/support/tickets", {
+    category: "General", subject: "Isolated support fixture", description: "A ticket created by this test suite.", priority: "Low",
+  })
+  assert.equal(ticket.status, 200)
   support = await h.user({ name: "Support Agent Neha", groups: ["support"] })
 })
 

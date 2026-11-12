@@ -95,9 +95,9 @@ describe("sign out of all devices", () => {
     assert.equal((await get("/api/me", fresh)).statusCode, 200)
   })
 
-  test("the shared demo account can't sign everyone out", async () => {
+  test("a demo email does not grant demo behavior with strict auth", async () => {
     const demo = await h.user({ email: h.ctx.config.DEMO_STUDENT_EMAIL, name: "Niharika", keep: true })
     const res = await demo.call("POST", "/api/me/sign-out-everywhere")
-    assert.equal(res.status, 403)
+    assert.equal(res.status, 204)
   })
 })

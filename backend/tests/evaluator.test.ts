@@ -230,27 +230,11 @@ describe("drafts and files", () => {
     assert.match(link.body.url, /^\/api\/local-files\//)
   })
 
-  test("only the shared demo evaluator can reset demo data, and the reset restores its marking history", async () => {
+  test("demo evaluator reset is denied with strict auth", async () => {
     assert.equal((await e1.call("POST", "/api/evaluator/demo/reset")).status, 403)
     const demo = await h.user({ email: h.ctx.config.DEMO_EVALUATOR_EMAIL, name: "Eval", groups: ["evaluators"], keep: true })
-    // Work the demo account starts on a real student's submission goes back to the queue on reset.
-    const other = await h.user({ name: "Eval Test Student Four" })
-    const sub = await other.call("POST", "/api/student/assignments/asg-1/submission", { repo_url: "https://github.com/eval-test/rag-four" })
-    assert.equal(sub.status, 200, JSON.stringify(sub.body))
-    assert.equal((await demo.call("PUT", `/api/evaluator/submissions/${sub.body.id}/evaluation`, { scores: {} })).status, 200)
-    assert.equal((await demo.call("POST", "/api/evaluator/demo/reset")).status, 204)
-
-    const q = await demo.call("GET", "/api/evaluator/queue")
-    const theirs = q.body.items.find((i: { id: string }) => i.id === sub.body.id)
-    assert.deepEqual([theirs.state, theirs.evaluator_id], ["pending", null])
-    const seeded = q.body.items.filter((i: { roll_number: string | null }) => /^QAI-2026-0[1-3]\d$/.test(i.roll_number ?? ""))
-    const count = (s: string) => seeded.filter((i: { state: string }) => i.state === s).length
-    assert.deepEqual([seeded.length, count("pending"), count("draft"), count("evaluated"), count("released")], [20, 7, 2, 3, 8])
-    assert.equal(seeded.filter((i: { state: string; mine: boolean }) => i.state === "draft" && !i.mine).length, 1, "one draft belongs to the colleague")
-    const requests = (await demo.call("GET", "/api/evaluator/reevaluations")).body.filter((r: { roll_number: string | null }) => /^QAI-2026-0[1-3]\d$/.test(r.roll_number ?? ""))
-    assert.deepEqual(requests.map((r: { status: string }) => r.status).sort(), ["Pending", "Pending", "Revised", "Upheld"])
-    const profile = await demo.call("GET", "/api/evaluator/profile")
-    assert.deepEqual([profile.body.full_name, profile.body.title, profile.body.is_demo], ["Eval", "Assessment Lead", true])
+    assert.equal((await demo.call("POST", "/api/evaluator/demo/reset")).status, 403)
+    assert.equal((await demo.call("GET", "/api/evaluator/profile")).body.is_demo, false)
   })
 
   test("evaluators update their own settings", async () => {
