@@ -1345,7 +1345,8 @@ export const batch_registrations = lms.table("batch_registrations", {
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, t => [unique("registration_batch_student_key").on(t.batch_id, t.student_id), check("registration_state", sql`${t.state} in ('confirmed','waitlisted','paused','cancelled')`)]);
 export const seat_reservations = lms.table("seat_reservations", {
-  id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id),
+  id: text().primaryKey(), batch_id: text().references(() => cohort_batches.id),
+  course_id: text().references(() => courses.id), offer_id: text().references(() => course_offers.id),
   student_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }), order_id: text().unique(),
   state: text().notNull().default("active"), expires_at: timestamp({ withTimezone: true }).notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -1360,3 +1361,29 @@ export const live_sessions = lms.table("live_sessions", {
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, t => [index("sessions_batch_start_idx").on(t.batch_id, t.starts_at), check("session_dates", sql`${t.ends_at} > ${t.starts_at}`),
   check("session_status", sql`${t.status} in ('Scheduled','Live','Ended','Cancelled')`), check("session_provider", sql`${t.provider} in ('zoom_link','meet_link','own_stream')`)]);
+
+export const orders = lms.table("orders", {
+  id: text().primaryKey(), student_id: uuid().notNull().references(() => users.id), offer_id: text().notNull().references(() => course_offers.id),
+  course_id: text().notNull().references(() => courses.id), batch_id: text().references(() => cohort_batches.id),
+  idempotency_key: text().notNull(), provider: text().notNull().default("razorpay"), provider_order_id: text().unique(),
+  amount: integer().notNull(), currency: text().notNull().default("INR"), offer_title: text().notNull(), mode: text().notNull(),
+  status: text().notNull().default("creating"), fulfilled_payment_id: text(), error: text(),
+  expires_at: timestamp({ withTimezone: true }).notNull(), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [unique("checkout_idempotency_key").on(t.student_id, t.idempotency_key), index("orders_reconcile_idx").on(t.status, t.updated_at), check("order_amount", sql`${t.amount} > 0`)]);
+export const payments = lms.table("payments", {
+  id: text().primaryKey(), order_id: text().notNull().references(() => orders.id), provider_payment_id: text().notNull().unique(),
+  amount: integer().notNull(), currency: text().notNull(), status: text().notNull(), method: text(), captured_at: timestamp({ withTimezone: true }),
+  refunded_amount: integer().notNull().default(0), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+export const payment_events = lms.table("payment_events", {
+  id: text().primaryKey(), provider: text().notNull().default("razorpay"), event_id: text().notNull(), body_hash: text().notNull(), kind: text().notNull(),
+  payment_id: text(), refund_id: text(), state: text().notNull().default("pending"), attempts: integer().notNull().default(0),
+  available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
+  error: text(), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), processed_at: timestamp({ withTimezone: true }),
+}, t => [unique("payment_event_identity").on(t.provider, t.event_id), index("payment_event_queue_idx").on(t.state, t.available_at)]);
+export const refunds = lms.table("refunds", {
+  id: text().primaryKey(), payment_id: text().notNull().unique().references(() => payments.id), order_id: text().notNull().references(() => orders.id),
+  provider_refund_id: text().unique(), amount: integer().notNull(), currency: text().notNull(), reason: text().notNull(), actor_id: uuid().references(() => users.id),
+  status: text().notNull().default("pending"), attempts: integer().notNull().default(0), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
+  available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), confirmed_at: timestamp({ withTimezone: true }),
+}, t => [index("refund_queue_idx").on(t.status, t.available_at)]);

@@ -49,7 +49,7 @@ describe("admin operations workflow", () => {
   })
 
   test("unconfigured refunds cannot report success", async () => {
-    const res = await admin.call("POST", "/api/admin/orders/ord-123/refund")
+    const res = await admin.call("POST", "/api/admin/orders/ord-123/refund", { reason: "Requested refund" })
     assert.equal(res.status, 503)
     assert.equal(res.body.error.code, "payments_unavailable")
   })

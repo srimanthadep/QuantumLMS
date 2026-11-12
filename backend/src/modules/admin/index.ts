@@ -1,3 +1,4 @@
+import { paymentAdminRoutes } from "../../payments/routes.js"
 import { learningAdminRoutes } from "../../learning/routes.js"
 import { mediaRoutes } from "../../media/routes.js"
 import type { FastifyInstance } from "fastify"
@@ -18,6 +19,7 @@ export async function adminModule(app: FastifyInstance, ctx: AppContext) {
       await learningAdminRoutes(scope, ctx)
       await adminBatchRoutes(scope, ctx)
       await adminOperationsRoutes(scope, ctx)
+      await paymentAdminRoutes(scope, ctx)
       await adminAlumniRoutes(scope, ctx)
     },
     { prefix: "/api/admin" }

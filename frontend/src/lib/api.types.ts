@@ -456,6 +456,55 @@ export interface Rows {
     read_at: string | null
     created_at: string
   }
+  orders: {
+    id: string
+    student_id: string
+    offer_id: string
+    course_id: string
+    batch_id: string | null
+    idempotency_key: string
+    provider: string
+    provider_order_id: string | null
+    amount: number
+    currency: string
+    offer_title: string
+    mode: string
+    status: string
+    fulfilled_payment_id: string | null
+    error: string | null
+    expires_at: string
+    created_at: string
+    updated_at: string
+  }
+  payment_events: {
+    id: string
+    provider: string
+    event_id: string
+    body_hash: string
+    kind: string
+    payment_id: string | null
+    refund_id: string | null
+    state: string
+    attempts: number
+    available_at: string
+    lease_token: string | null
+    lease_until: string | null
+    error: string | null
+    created_at: string
+    processed_at: string | null
+  }
+  payments: {
+    id: string
+    order_id: string
+    provider_payment_id: string
+    amount: number
+    currency: string
+    status: string
+    method: string | null
+    captured_at: string | null
+    refunded_amount: number
+    created_at: string
+  }
   placement_stories: {
     id: string
     first_name: string
@@ -590,6 +639,24 @@ export interface Rows {
     updated_at: string
     resolved_at: string | null
   }
+  refunds: {
+    id: string
+    payment_id: string
+    order_id: string
+    provider_refund_id: string | null
+    amount: number
+    currency: string
+    reason: string
+    actor_id: string | null
+    status: string
+    attempts: number
+    lease_token: string | null
+    lease_until: string | null
+    available_at: string
+    error: string | null
+    created_at: string
+    confirmed_at: string | null
+  }
   reminders: {
     student_id: string
     target_type: string
@@ -619,7 +686,9 @@ export interface Rows {
   }
   seat_reservations: {
     id: string
-    batch_id: string
+    batch_id: string | null
+    course_id: string | null
+    offer_id: string | null
     student_id: string
     order_id: string | null
     state: string

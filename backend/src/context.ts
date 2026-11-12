@@ -1,3 +1,4 @@
+import type { PaymentProvider } from "./payments/provider.js"
 import type pg from "pg"
 import type { CognitoGateway } from "./auth/cognito.js"
 import type { VerifyToken, TokenClaims } from "./auth/tokens.js"
@@ -9,6 +10,7 @@ import type { LocalStorage } from "./storage/local.js"
 
 /** Everything a route needs. Built once at startup; tests build it with fakes for Cognito and storage. */
 export interface AppContext {
+  payments?: PaymentProvider
   config: Config
   pool: pg.Pool
   db: Db

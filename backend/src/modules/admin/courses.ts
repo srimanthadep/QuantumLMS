@@ -58,8 +58,11 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     )
     const cohortMap = new Map<string, number>(cohortCounts.map((r) => [r.course_id, r.count]))
 
+    const financial = await db.execute(sql`select o.course_id, coalesce(sum(p.amount-p.refunded_amount) filter(where p.captured_at is not null),0)::bigint as net from lms.orders o left join lms.payments p on p.order_id=o.id group by o.course_id`)
+    const revenue = new Map(financial.rows.map(r => [String(r.course_id), Number(r.net) / 100]))
     const detailedCourses = courseRows.map((c) => ({
       ...c,
+      revenue: revenue.get(c.id) ?? 0,
       enrolled_students: enrolledMap.get(c.id) ?? 0,
       modules_count: moduleMap.get(c.id) ?? 0,
       lessons_count: lessonMap.get(c.id) ?? 0,

@@ -1,10 +1,11 @@
+import { provider, queueRefund } from "../payments/service.js"
 import { localDay } from "../lib/time.js"
 import { randomUUID } from "node:crypto"
 import { and, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../context.js"
-import { audit_events, batch_registrations, batch_teachers, cohort_batches, course_offers, course_teachers, courses, users } from "../db/schema.js"
+import { audit_events, batch_registrations, batch_teachers, cohort_batches, course_offers, course_teachers, courses, orders, payments, users } from "../db/schema.js"
 import { badRequest, conflict, notFound } from "../errors.js"
 import { parse, me } from "../http.js"
 import { assertPublishable } from "../media/publication.js"
@@ -93,12 +94,22 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
   })
   app.post<{ Params: { id: string } }>("/batches/:id/underfilled", async req => {
     const input = parse(z.object({ action: z.enum(["extend", "merge", "refund", "cancel"]), deadline: z.string().datetime({ offset: true }).optional(), target_batch_id: z.string().optional() }), req.body)
-    if (input.action === "refund") throw conflict("Refund processing requires the payment provider integration. No refund was issued.")
+    if (input.action === "refund") provider(ctx)
     return db.transaction(async tx => {
+      // Payment paths lock order before batch; maintain that order for bulk refund requests.
+      const relatedOrders = input.action === "refund" ? await tx.select().from(orders).where(sql`${orders.batch_id}=${req.params.id} or ${orders.id} in (select order_id from lms.batch_registrations where batch_id=${req.params.id} and state<>'cancelled')`).orderBy(orders.id).for("update") : []
       for (const id of [...new Set([req.params.id, ...(input.target_batch_id ? [input.target_batch_id] : [])])].sort()) await lockBatch(tx, id)
       const batch = await lockBatch(tx, req.params.id)
       if (["Running", "Completed", "Cancelled"].includes(batch.lifecycle)) throw conflict("Underfilled decisions apply before a batch begins")
-      if (input.action === "extend") {
+      if (input.action === "refund") {
+        let requested = 0
+        for (const order of relatedOrders) {
+          const captured = await tx.select().from(payments).where(and(eq(payments.order_id, order.id), sql`${payments.captured_at} is not null`))
+          for (const payment of captured) { await queueRefund(tx, payment, "Underfilled batch refund", me(req).id); requested++ }
+        }
+        if (!requested) throw conflict("No verified captured payments exist for this batch. Legacy registrations require manual reconciliation.")
+        await tx.update(cohort_batches).set({ underfilled_action: "refund", registration_deadline: new Date() }).where(eq(cohort_batches.id, batch.id))
+      } else if (input.action === "extend") {
         if (!input.deadline || new Date(input.deadline) <= new Date()) throw badRequest("Choose a future deadline")
         if (batch.starts_at && new Date(input.deadline) > batch.starts_at && !batch.allow_late_join) throw badRequest("Move the start date before extending registration beyond it")
         await tx.update(cohort_batches).set({ registration_deadline: new Date(input.deadline), underfilled_action: "extend", lifecycle: "Recruiting" }).where(eq(cohort_batches.id, batch.id))

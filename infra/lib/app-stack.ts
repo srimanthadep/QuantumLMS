@@ -23,6 +23,11 @@ export interface AppStackProps extends StackProps {
   userPoolClient: cognito.IUserPoolClient
   /** Complete ARN of the Secrets Manager secret that holds DATABASE_URL. */
   databaseSecretArn: string
+  /** JSON secret containing test key ID, API secret and webhook secret. */
+  paymentsSecretArn?: string
+  paymentReservationMinutes?: number
+  paymentSweepSeconds?: number
+  paymentHttpTimeoutMs?: number
   /** Optional PEM CA for a database with a private certificate chain. */
   databaseCaCert?: string
   /** API tasks to run. Each keeps up to DATABASE_POOL_MAX (5) database connections. */
@@ -69,6 +74,7 @@ export class AppStack extends Stack {
     // The API. Its container applies pending migrations, then starts the server (see backend/Dockerfile).
     const cluster = new ecs.Cluster(this, "Cluster", { vpc })
     const databaseUrl = secretsmanager.Secret.fromSecretCompleteArn(this, "DatabaseUrl", props.databaseSecretArn)
+    const paymentSecret = props.paymentsSecretArn ? secretsmanager.Secret.fromSecretCompleteArn(this, "PaymentKeys", props.paymentsSecretArn) : undefined
     const apiLogs = new logs.LogGroup(this, "ApiLogs", { retention: logs.RetentionDays.ONE_MONTH, removalPolicy: RemovalPolicy.DESTROY })
     const api = new ecsPatterns.ApplicationLoadBalancedFargateService(this, "Api", {
       cluster,
@@ -90,6 +96,9 @@ export class AppStack extends Stack {
         environment: {
           NODE_ENV: "production",
           PORT: "4000",
+          PAYMENT_RESERVATION_MINUTES: String(props.paymentReservationMinutes ?? 15),
+          PAYMENT_SWEEP_SECONDS: String(props.paymentSweepSeconds ?? 30),
+          PAYMENT_HTTP_TIMEOUT_MS: String(props.paymentHttpTimeoutMs ?? 15000),
           LOG_LEVEL: "info",
           // CloudFront serves the site and /api on one origin, so no other origin needs CORS.
           CORS_ORIGINS: "",
@@ -106,7 +115,11 @@ export class AppStack extends Stack {
           DEMO_MODE: String(props.demoMode),
           CAMPUS_TZ: props.campusTz,
         },
-        secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl) },
+        secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl), ...(paymentSecret ? {
+          RAZORPAY_KEY_ID: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_KEY_ID"),
+          RAZORPAY_KEY_SECRET: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_KEY_SECRET"),
+          RAZORPAY_WEBHOOK_SECRET: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_WEBHOOK_SECRET"),
+        } : {}) },
         logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: "api", logGroup: apiLogs }),
       },
     })

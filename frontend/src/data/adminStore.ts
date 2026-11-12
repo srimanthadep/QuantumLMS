@@ -120,9 +120,12 @@ export interface AdminOrder {
   courseTitle: string
   amount: number
   currency: "INR"
-  method: "Razorpay (UPI)" | "Razorpay (Card)" | "Razorpay (NetBanking)" | "Stripe (Card)" | "Corporate Wire"
+  method: string
+  capturedAmount: number
+  refundedAmount: number
+  capturedPayments: { amount: number; date: string }[]
   date: string
-  status: "Paid" | "Refunded" | "Pending"
+  status: "Paid" | "Refunded" | "Pending" | "Refund pending"
   refundReason?: string
   invoiceUrl?: string
 }
@@ -469,7 +472,7 @@ function mapApiCourse(c: any): AdminCourse {
     enrolledStudents: enrolled,
     capacity: Number(c.capacity ?? 250),
     price,
-    revenue: enrolled * price,
+    revenue: Number(c.revenue ?? 0),
     rating: Number(c.rating) || 0,
     completionRate: 88,
     status: (c.status as AdminCourse["status"]) || "Draft",
@@ -509,6 +512,16 @@ function mapApiBatch(b: any): AdminBatch {
     lifecycle: b.lifecycle,
     notes: String(b.notes ?? ""),
   }
+}
+
+function mapApiOrder(o: any): AdminOrder {
+  const captured = (o.payments ?? []).filter((p: any) => p.captured_at)
+  return { id: o.id, orderNumber: o.id, studentId: o.student_id, studentName: o.student_name, studentEmail: o.student_email,
+    courseTitle: o.offer_title, amount: Number(o.amount) / 100, currency: "INR", method: captured[0]?.method ? `Razorpay (${captured[0].method})` : "Not confirmed",
+    date: new Date(o.created_at).toLocaleString(), status: o.status === "paid" ? "Paid" : o.status === "refunded" ? "Refunded" : o.status === "refund_pending" ? "Refund pending" : "Pending",
+    capturedAmount: captured.reduce((sum: number, p: any) => sum + Number(p.amount), 0) / 100,
+    refundedAmount: captured.reduce((sum: number, p: any) => sum + Number(p.refunded_amount), 0) / 100,
+    capturedPayments: captured.map((p: any) => ({ amount: Number(p.amount) / 100, date: p.captured_at })) }
 }
 
 // Custom Hook for Admin Data
@@ -588,21 +601,7 @@ export function useAdminStore() {
     }
 
     if (oRes.status === "fulfilled" && Array.isArray(oRes.value?.orders)) {
-      setOrders(
-        oRes.value.orders.map((o: any) => ({
-          id: o.id,
-          orderNumber: o.order_number,
-          studentId: o.student_id || "stu-1",
-          studentName: o.student_name,
-          studentEmail: o.student_email,
-          courseTitle: o.course_title,
-          amount: o.amount || 44999,
-          currency: "INR" as const,
-          method: (o.method as any) || "Razorpay (UPI)",
-          date: o.date,
-          status: (o.status as any) || "Paid",
-        })),
-      )
+      setOrders(oRes.value.orders.map(mapApiOrder))
     }
 
     if (setRes.status === "fulfilled" && setRes.value?.settings) {
@@ -691,11 +690,10 @@ export function useAdminStore() {
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id !== courseId) return c
-        const nextPrice = patch.price ?? c.price
         return {
           ...c,
           ...patch,
-          revenue: (patch.enrolledStudents ?? c.enrolledStudents) * nextPrice,
+          revenue: c.revenue,
           updatedAt: today,
         }
       }),
@@ -1012,7 +1010,7 @@ export function useAdminStore() {
     await api.post(`/admin/orders/${orderId}/refund`, { reason })
     // The provider must confirm a refund before the UI can show Refunded.
     const result = await api.get<{ orders: AdminOrder[] }>("/admin/orders", { bypassCache: true })
-    setOrders(result.orders)
+    setOrders(result.orders.map(mapApiOrder))
   }, [])
 
   const deleteOrder = useCallback(async (orderId: string) => {

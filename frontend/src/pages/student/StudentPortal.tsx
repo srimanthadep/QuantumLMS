@@ -1,3 +1,4 @@
+import EnrollmentDialog from "@/components/student/EnrollmentDialog"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
 import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
@@ -229,6 +230,7 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
   const toast = useToast()
   const { courses, catalog, assignments, quizzes } = data.view
   const [activeTab, setActiveTabState] = useState<StudentNavPage>(() => parseInitialTab())
+  const [enrollmentCourse, setEnrollmentCourse] = useState<CourseItem | null>(null)
   const [selectedCourseId, setSelectedCourseId] = useState<string>(() => courseFromUrl() ?? courses[0]?.id ?? catalog[0]?.id ?? "")
 
   // Navigate helper that updates URL history cleanly
@@ -258,15 +260,7 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  const handleEnrollCourse = async (course: CourseItem) => {
-    try {
-      await data.enroll(course)
-      onToast(`Enrolled in "${course.title}". Your first lesson is ready.`)
-      navigateTo("Course Details", course.id)
-    } catch (e) {
-      toast.error((e as Error).message)
-    }
-  }
+  const handleEnrollCourse = (course: CourseItem) => setEnrollmentCourse(course)
 
   const handleSubmitAssignment = async (id: string, input: SubmissionInput) => {
     await data.submitAssignment(id, input)
@@ -390,6 +384,7 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
 
   return (
     <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")} notifications={notifications}>
+      {enrollmentCourse && <EnrollmentDialog key={enrollmentCourse.id} course={enrollmentCourse} onClose={() => setEnrollmentCourse(null)} onEnrolled={async () => { await data.reloadCore(); onToast("Your enrollment is confirmed."); navigateTo("Course Details", enrollmentCourse.id) }} />}
       <PageTransition transitionKey={activeTab === "Course Details" ? `course-${selectedCourseId}` : activeTab} className="w-full">
         <Suspense fallback={<StudentPageFallback />}>{renderPage()}</Suspense>
       </PageTransition>

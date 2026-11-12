@@ -1,3 +1,5 @@
+import { createRazorpay } from "./payments/razorpay.js"
+import type { PaymentProvider } from "./payments/provider.js"
 import { createCognitoGateway, type CognitoGateway } from "./auth/cognito.js"
 import { createTokenVerifier, type VerifyToken } from "./auth/tokens.js"
 import { resolveUser, type Onboard } from "./auth/users.js"
@@ -40,7 +42,7 @@ export function createStorage(config: Config): { storage: Storage; localStorage?
 }
 
 /** Wires the real dependencies. Tests pass overrides for Cognito, token verification and storage. */
-export function createContext(config: Config, overrides: { cognito?: CognitoGateway; verifyToken?: VerifyToken; storage?: Storage } = {}): AppContext {
+export function createContext(config: Config, overrides: { payments?: PaymentProvider; cognito?: CognitoGateway; verifyToken?: VerifyToken; storage?: Storage } = {}): AppContext {
   const pool = createPool(config)
   const db = createDb(pool)
   const cognito = overrides.cognito ?? createCognitoGateway(config)
@@ -51,6 +53,7 @@ export function createContext(config: Config, overrides: { cognito?: CognitoGate
     : []
   return {
     config,
+    payments: overrides.payments ?? createRazorpay(config),
     pool,
     db,
     cognito,

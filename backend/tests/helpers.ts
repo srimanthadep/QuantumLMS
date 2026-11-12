@@ -80,6 +80,8 @@ export async function createHarness(): Promise<TestHarness> {
     LOCAL_STORAGE_DIR: uploads,
     UPLOAD_SIGNING_SECRET: "test-upload-signing-secret",
     QUIZ_SWEEP_SECONDS: "0",
+    PAYMENT_SWEEP_SECONDS: "0",
+    RAZORPAY_KEY_ID: undefined, RAZORPAY_KEY_SECRET: undefined, RAZORPAY_WEBHOOK_SECRET: undefined,
     // Two test files run at once next to the dev server; Supabase's session pooler allows 15 clients in total.
     DATABASE_POOL_MAX: "4",
   })

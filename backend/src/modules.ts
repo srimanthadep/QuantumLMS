@@ -1,3 +1,5 @@
+import { paymentModule } from "./payments/routes.js"
+import { startPaymentSweep } from "./payments/jobs.js"
 import type { FastifyBaseLogger, FastifyInstance } from "fastify"
 import type { AppContext } from "./context.js"
 import { adminModule } from "./modules/admin/index.js"
@@ -10,6 +12,7 @@ import { startQuizSweep } from "./modules/student/quizzes.js"
 
 /** Route modules registered by the server (and by tests through buildApp). */
 export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [
+  paymentModule,
   studentModule,
   evaluatorModule,
   supportModule,
@@ -20,6 +23,6 @@ export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)
 
 /** Background jobs. Returns a function that stops them. */
 export function startJobs(ctx: AppContext, log: FastifyBaseLogger): () => void {
-  const stops = [startQuizSweep(ctx, log)]
+  const stops = [startQuizSweep(ctx, log), startPaymentSweep(ctx, log)]
   return () => stops.forEach((stop) => stop())
 }

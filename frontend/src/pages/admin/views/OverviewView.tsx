@@ -34,21 +34,17 @@ export default function OverviewView({
 }: OverviewViewProps) {
   const { courses, batches, students, orders } = store
 
-  const totalRevenue = orders
-    .filter((o) => o.status === "Paid")
-    .reduce((sum, o) => sum + o.amount, 0)
+  const totalRevenue = orders.reduce((sum, o) => sum + o.capturedAmount, 0)
+  const refunded = orders.reduce((sum, o) => sum + o.refundedAmount, 0)
+  const captured = orders.flatMap(o => o.capturedPayments)
   const activeStudents = students.filter((s) => s.status === "Active").length
   const totalEnrolments = students.length
-
-  // Trajectory sample data for AreaChart
-  const revenueHistory = [
-    { label: "Jun", value: 12.4 },
-    { label: "Jul", value: 14.8 },
-    { label: "Aug", value: 13.9 },
-    { label: "Sep", value: 16.5 },
-    { label: "Oct", value: 18.2 },
-    { label: "Nov", value: 24.3 },
-  ]
+  const revenueHistory = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date(); date.setDate(1); date.setMonth(date.getMonth() - 5 + i)
+    return { label: date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }), value: captured.filter(p => {
+      const at = new Date(p.date); return at.getFullYear() === date.getFullYear() && at.getMonth() === date.getMonth()
+    }).reduce((sum, p) => sum + p.amount, 0) / 100000 }
+  })
 
   return (
     <div className="space-y-6">
@@ -79,11 +75,10 @@ export default function OverviewView({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon="trend"
-          title="Tuition Revenue (Nov)"
-          value="₹18,45,000"
-          trend="+18.4% vs last month"
+          title="Captured test payments"
+          value={`₹${totalRevenue.toLocaleString("en-IN")}`}
           tone="lime"
-          subtitle="Gross collected via Razorpay & Stripe"
+          subtitle="Provider-confirmed Razorpay test payments"
         />
         <StatCard
           icon="users"
@@ -122,7 +117,7 @@ export default function OverviewView({
             </div>
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-semibold text-success">+34% YoY Growth</span>
+              <span className="text-xs font-semibold text-success">Test transactions</span>
             </div>
           </div>
 
@@ -142,11 +137,11 @@ export default function OverviewView({
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Avg. Order Value</div>
-              <div className="text-lg font-bold text-primary-text font-mono">₹41,800</div>
+              <div className="text-lg font-bold text-primary-text font-mono">₹{(captured.length ? totalRevenue / captured.length : 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Refund Rate</div>
-              <div className="text-lg font-bold text-success font-mono">0.8%</div>
+              <div className="text-lg font-bold text-success font-mono">{totalRevenue ? `${(refunded / totalRevenue * 100).toFixed(1)}%` : "—"}</div>
             </div>
           </div>
         </div>

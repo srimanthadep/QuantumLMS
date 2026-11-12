@@ -227,9 +227,9 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         />
         <Stat
           icon={Wallet}
-          label="Total revenue"
+          label="Net test receipts"
           value={compactINR(summary.revenue)}
-          hint="Across all courses"
+          hint="Confirmed test payments, less refunds"
           tone="bg-success-soft text-success ring-success/20"
         />
         <Stat
@@ -351,7 +351,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
                   <th className="px-4 py-3">Instructor</th>
                   <th className="px-4 py-3">Seats</th>
                   <th className="px-4 py-3">Price</th>
-                  <th className="px-4 py-3">Revenue</th>
+                  <th className="px-4 py-3">Net test receipts</th>
                   <th className="px-4 py-3">Rating</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="w-12 px-2 py-3">

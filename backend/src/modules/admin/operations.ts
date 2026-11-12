@@ -228,9 +228,6 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
   })
 
   // Financial history must never be inferred from an enrollment. Phase 4 supplies persisted provider records.
-  app.get("/orders", async () => ({ orders: [], configured: false }))
-  app.post("/orders/:id/refund", async () => { throw new AppError(503, "payments_unavailable", "Payments are not configured. No refund was issued.") })
-  app.delete("/orders/:id", async () => { throw new AppError(409, "financial_history", "Financial records cannot be deleted.") })
 
   // 8. Academy Settings
   app.get("/settings", async () => {

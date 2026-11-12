@@ -65,6 +65,6 @@ export async function reserveSeat(tx: Tx, input: { batchId: string; student: str
   const [existing] = await tx.select().from(seat_reservations).where(and(eq(seat_reservations.batch_id, batch.id), eq(seat_reservations.student_id, input.student), eq(seat_reservations.state, "active"), sql`${seat_reservations.expires_at} > now()`))
   if (existing) { if (existing.order_id === input.orderId) return existing; throw conflict("You already have a pending reservation") }
   if (await availableSeats(tx, batch) === 0) throw conflict("This batch is full")
-  const [row] = await tx.insert(seat_reservations).values({ id: randomUUID(), batch_id: batch.id, student_id: input.student, order_id: input.orderId, expires_at: new Date(Date.now() + (input.minutes ?? 15) * 60_000) }).returning()
+  const [row] = await tx.insert(seat_reservations).values({ id: randomUUID(), batch_id: batch.id, course_id: batch.course_id, offer_id: batch.offer_id, student_id: input.student, order_id: input.orderId, expires_at: new Date(Date.now() + (input.minutes ?? 15) * 60_000) }).returning()
   return row
 }

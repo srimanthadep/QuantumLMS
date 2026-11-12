@@ -11,7 +11,8 @@ This is a living report. **The full implementation is not complete.** Statuses b
 - Phase 1: strict authentication and role checks, protected enrollment-based legacy media, authenticated/channel-scoped WebSockets, teacher assignment tables and scoped queries, verified-user cache boundaries, private response headers, fixed read-only RBAC, durable request audit records, validated learner upload intents, verifying TLS defaults, and removal of implicit read-time seeding. Validation: 111 tests passed; lint (inherited warnings), all typechecks and builds passed. Migration 0006 applied in every disposable suite.
 - Phase 2: unique media assets/variants/jobs, streaming worker with leased retries, direct upload/review/attach UI, video container checks, module/course constraint, serialized position allocation and draft-first courses. Validation: 116 tests passed, including real FFmpeg encode + missing-transcriber failure, stale lease fencing, separate lesson assets and publication checks; lint (inherited warnings), all typechecks/builds passed. Migration 0007 applied in disposable databases. Docker image/full model inference not run because Docker is unavailable.
 - Phase 3: offers, source-specific entitlements, one locked admission service, capacity/reservation handling, lifecycle prerequisites and underfilled decisions, durable teacher provisioning/disable, and batch admission UI. Migration 0008 preserves legacy grants without payment history; exact-name instructor reconciliation is conservative. Validation: 124 tests passed, lint (inherited warnings), all typechecks/builds passed. Refund action awaits phase 4; schedule authoring awaits phase 6.
-- Phases 4-10: pending.
+- Phase 4: persisted Razorpay test-mode orders/payments/events/refunds, idempotent signed ingress, seat reservations, provider reconciliation, refund confirmation, checkout UI and truthful ledgers/revenue. Migration 0009 tested from zero. Validation: 136 tests passed, lint (inherited warnings), all typechecks/builds passed. Real Razorpay account/browser integration remains a documented manual sandbox check.
+- Phases 5-10: pending.
 
 ## Finding status
 
@@ -31,7 +32,7 @@ This is a living report. **The full implementation is not complete.** Statuses b
 | 12 - Mismatched batch/waitlist grant | Fixed | Generic admin enrollment checks batch/course consistency and returns waitlist admission without a course grant; admission.test.ts. |
 | 13 - Entitlement provenance | Fixed | entitlement_grants retains source identity; removal, transfer and waitlist demotion revoke only their own registration source. admission.test.ts verifies independent access survives and original batch access is removed. Legacy unknown provenance remains explicit manual access for review. |
 | 14 - Replay release/expiry | Not fixed | Pending implementation and verification in the approved phase. |
-| 15 - Payment/refund stubs | Partially fixed | Fabricated order history removed; refund returns unavailable and UI awaits server confirmation. admin-ops.test.ts. Real provider integration remains phase 4. |
+| 15 - Payments and refunds | Fixed | payments/service.ts, jobs.ts, routes.ts and razorpay.ts; payments.test.ts covers duplicate/out-of-order events, signatures, lost responses, last-seat races, delayed captures, source-specific refunds and persisted ledger totals. PaymentLedger replaces fabricated financial data; real Razorpay sandbox check remains manual. |
 | 16 - Certificate criteria | Not fixed | Pending implementation and verification in the approved phase. |
 | 17 - Assessment authoring/allocation | Not fixed | Pending implementation and verification in the approved phase. |
 | 18 - Media worker dependencies | Partially fixed | Dedicated Dockerfile.worker pins FFmpeg, Python, faster-whisper and model revision; missing transcription is explicit failure (media-processor.test.ts). Docker image build/full model inference require an environment with Docker. |
@@ -61,7 +62,7 @@ This is a living report. **The full implementation is not complete.** Statuses b
 
 Phase 0 needs local PostgreSQL binaries (PG_BIN if not detected) or a disposable loopback CI PostgreSQL service (TEST_ADMIN_DATABASE_URL). Do not point these at a real application database. npm test does not load backend/.env or use DATABASE_URL.
 
-No production/development data was migrated, dropped, copied or rewritten. No storage inventory or historical recovery was performed. Existing video recovery, instructor mapping and legacy grant reconciliation remain unverified. Existing enrollments must not be classified as paid without actual payment records.
+No production/development data was migrated, dropped, copied or rewritten. Read-only source-object and instructor reconciliation was performed in phases 2–3; the results and limits are documented below. No historical lesson identity or unknown grant provenance was guessed. Existing enrollments must not be classified as paid without actual payment records.
 
 Razorpay test credentials, provider configuration, worker deployment, later migrations and business settings will be documented as their phases are implemented. Do not deploy this intermediate branch as a completed remediation.
 
@@ -71,3 +72,5 @@ Phase 1 manual steps: apply reviewed migration 0006 through the normal migration
 Phase 2 deployment/recovery details: [MEDIA_PROCESSING.md](docs/audit/MEDIA_PROCESSING.md). The read-only development reconciliation found all three source objects present, but did not infer lesson identity from filenames or alter existing data. No current source was proven unrecoverable. Review and reprocess legacy sources after migration; do not reuse course-wide variants.
 
 Phase 3 manual steps and nine unresolved instructor assignments: [ADMISSION_MIGRATION.md](docs/audit/ADMISSION_MIGRATION.md). No development or production migration was applied and no real invitations were sent. Phase totals above were corrected by parsing test-runner output, rather than manually adding suite counts.
+
+Phase 4 setup and provider recovery: [PAYMENTS.md](docs/audit/PAYMENTS.md). Configure test keys and a separate signed webhook secret, automatic test capture, and the optional Secrets Manager ARN before sandbox verification. No real payment or refund was sent. Test credentials are never supplied to the frontend or media worker; only the public checkout key is exposed.

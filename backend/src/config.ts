@@ -43,6 +43,12 @@ const schema = z.object({
   /** Signs local upload and download links. Required with STORAGE_DRIVER=local outside tests. */
   UPLOAD_SIGNING_SECRET: z.string().min(16).optional(),
 
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  PAYMENT_RESERVATION_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+  PAYMENT_SWEEP_SECONDS: z.coerce.number().int().min(0).default(30),
+  PAYMENT_HTTP_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(15000),
   MEDIA_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().max(5 * 1024 ** 3).default(5 * 1024 ** 3),
   MEDIA_MAX_DURATION_SECONDS: z.coerce.number().int().positive().default(8 * 3600),
   MEDIA_TEMP_BUDGET_BYTES: z.coerce.number().int().positive().default(16 * 1024 ** 3),
@@ -79,6 +85,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration:\n${lines.join("\n")}`)
   }
   const c = parsed.data
+  if (c.RAZORPAY_KEY_ID && !c.RAZORPAY_KEY_ID.startsWith("rzp_test_")) throw new Error("Only Razorpay test-mode keys are supported.")
+  if (Boolean(c.RAZORPAY_KEY_ID) !== Boolean(c.RAZORPAY_KEY_SECRET)) throw new Error("Set both Razorpay test key ID and secret.")
   if (c.NODE_ENV === "production" && c.DEMO_MODE) throw new Error("DEMO_MODE is forbidden in production.")
   if (c.NODE_ENV === "production" && c.DATABASE_SSL !== "verify") throw new Error("Production requires certificate-verifying database TLS.")
   if (c.STORAGE_DRIVER === "s3" && !c.S3_BUCKET) throw new Error("Invalid configuration:\n  S3_BUCKET is required with STORAGE_DRIVER=s3")
