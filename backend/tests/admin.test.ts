@@ -108,15 +108,13 @@ describe("admin course management and stats workflow", () => {
     assert.equal(res.body.course.duration, "12 Weeks")
   })
 
-  test("course is immediately visible in student courses catalog", async () => {
-    assert.ok(createdCourseId)
-    // Student can access /api/student/core
+  test("unenrolled content is excluded from the learner workspace", async () => {
     const res = await student.call("GET", "/api/student/core")
     assert.equal(res.status, 200)
-    assert.ok(Array.isArray(res.body.courses))
-    const found = res.body.courses.find((c: any) => c.id === createdCourseId)
-    assert.ok(found, "Newly created admin course must be visible in student catalog")
-    assert.equal(found.title, "Advanced Quantum ML & Variational Optimization")
+    assert.ok(!res.body.courses.some((c: { id: string }) => c.id === createdCourseId))
+    const catalog = await h.app.inject({ method: "GET", url: "/api/catalog/courses" })
+    assert.equal(catalog.statusCode, 200)
+    assert.ok(catalog.json().courses.every((c: Record<string, unknown>) => !("video_url" in c) && !("lessons" in c)))
   })
 
   test("admin can delete the created course", async () => {

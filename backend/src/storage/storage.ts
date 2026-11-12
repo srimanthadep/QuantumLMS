@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 /**
  * Uploaded files (submissions, ticket attachments, profile photos). Keys look like "<bucket>/<user id>/<folder>/<name>".
  * Browsers upload straight to the returned URL with PUT, then send the key to the API, which checks the object
@@ -25,7 +26,7 @@ export interface StoredObject {
 }
 
 export interface Storage {
-  createUpload(input: { key: string; contentType: string; maxBytes: number }): Promise<UploadTarget>
+  createUpload(input: { key: string; contentType: string; maxBytes: number; expectedBytes?: number }): Promise<UploadTarget>
   createDownloadUrl(key: string, opts?: { filename?: string; expiresInSeconds?: number }): Promise<string>
   head(key: string): Promise<StoredObject | null>
   remove(keys: string[]): Promise<void>
@@ -53,7 +54,7 @@ const SAFE = /[^a-zA-Z0-9._-]+/g
 export function objectKey(bucket: Bucket, ownerId: string, folder: string, filename: string, now = Date.now()): string {
   const name = filename.replace(SAFE, "_").replace(/^_+|_+$/g, "").slice(-120) || "file"
   const dir = folder.replace(SAFE, "_").slice(0, 60) || "files"
-  return `${bucket}/${ownerId}/${dir}/${now.toString(36)}-${name}`
+  return `${bucket}/${ownerId}/${dir}/${now.toString(36)}-${randomUUID()}-${name}`
 }
 
 export function keyOwner(key: string): { bucket: string; owner: string } | null {

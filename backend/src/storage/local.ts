@@ -33,7 +33,7 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
 
   const storage: Storage & {
     verify(token: string): LocalToken | null
-    write(key: string, data: Buffer): Promise<void>
+    write(key: string, data: Buffer, contentType?: string): Promise<void>
     pathOf(key: string): string
   } = {
     async createUpload({ key, contentType, maxBytes }) {
@@ -47,7 +47,8 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
     async head(key) {
       try {
         const s = await stat(fileFor(key))
-        return s.isFile() ? { size: s.size } : null
+        const contentType = await readFile(fileFor(key) + ".content-type", "utf8").catch(() => undefined)
+        return s.isFile() ? { size: s.size, contentType } : null
       } catch {
         return null
       }
@@ -68,7 +69,7 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
         for (const e of entries) {
           const p = path.join(d, e.name)
           if (e.isDirectory()) await walk(p)
-          else out.push(path.relative(root, p).split(path.sep).join("/"))
+          else if (!e.name.endsWith(".content-type")) out.push(path.relative(root, p).split(path.sep).join("/"))
         }
       }
       await walk(dir)
@@ -90,10 +91,11 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
         await handle.close()
       }
     },
-    async put(key, data) {
+    async put(key, data, contentType) {
       const p = fileFor(key)
       await mkdir(path.dirname(p), { recursive: true })
       await writeFile(p, data)
+      if (contentType) await writeFile(p + ".content-type", contentType)
     },
     async getBuffer(key) {
       try {
@@ -152,10 +154,11 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
         return null
       }
     },
-    async write(key, data) {
+    async write(key, data, contentType) {
       const p = fileFor(key)
       await mkdir(path.dirname(p), { recursive: true })
       await writeFile(p, data)
+      if (contentType) await writeFile(p + ".content-type", contentType)
     },
     pathOf: fileFor,
   }

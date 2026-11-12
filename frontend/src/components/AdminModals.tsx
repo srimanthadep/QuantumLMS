@@ -399,15 +399,20 @@ export function RefundConfirmDialog({
   order: AdminOrder | null
   isOpen: boolean
   onClose: () => void
-  onConfirmRefund: (orderId: string, reason: string) => void
+  onConfirmRefund: (orderId: string, reason: string) => Promise<void>
 }) {
   const [reason, setReason] = useState("Customer requested cancellation before cohort start date")
 
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   if (!order) return null
 
-  const handleRefund = () => {
-    onConfirmRefund(order.id, reason)
-    onClose()
+  const handleRefund = async () => {
+    if (pending) return
+    setPending(true); setError(null)
+    try { await onConfirmRefund(order.id, reason); onClose() }
+    catch (e) { setError((e as Error).message) }
+    finally { setPending(false) }
   }
 
   return (
@@ -449,11 +454,12 @@ export function RefundConfirmDialog({
           </div>
         </div>
 
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleRefund}>
+          <Button variant="destructive" onClick={handleRefund} disabled={pending}>
             Approve & Refund ₹{order.amount.toLocaleString("en-IN")}
           </Button>
         </DialogFooter>

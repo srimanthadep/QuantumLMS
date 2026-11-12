@@ -3,6 +3,8 @@ import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import { invalidateUserCache } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
+import { audit_events, users } from "../../db/schema.js"
+import { forbidden } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { invalidateCatalogCache } from "../student/courses.js"
 
@@ -12,7 +14,7 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
   await app.register(
     async (scope) => {
       // Allow Admin and Super Admin in single-tenant architecture
-      scope.addHook("preHandler", authenticate(ctx, ["Admin", "Super Admin"]))
+      scope.addHook("preHandler", authenticate(ctx, ["Super Admin"]))
 
       // 1. Platform Health & Telemetry
       scope.get("/health", async () => {
@@ -117,150 +119,40 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
 
       // 5. RBAC Permission Matrix
       scope.get("/rbac", async () => {
-        const rows = [
-          {
-            id: "perm-1",
-            permission: "Manage Course Curriculum",
-            description: "Create, edit, reorder modules and publish lessons",
-            category: "Curriculum",
-            superAdmin: true,
-            admin: true,
-            teacher: true,
-            evaluator: false,
-            support: false,
-            student: false,
-          },
-          {
-            id: "perm-2",
-            permission: "Broadcast Live Classes",
-            description: "Host live classrooms, start WebRTC streams, and control studio tools",
-            category: "Classes & Video",
-            superAdmin: true,
-            admin: true,
-            teacher: true,
-            evaluator: false,
-            support: false,
-            student: false,
-          },
-          {
-            id: "perm-3",
-            permission: "Evaluate Rubrics & Finalise Grades",
-            description: "Score code submissions, draft feedback, and release marks to students",
-            category: "Evaluations",
-            superAdmin: true,
-            admin: true,
-            teacher: true,
-            evaluator: true,
-            support: false,
-            student: false,
-          },
-          {
-            id: "perm-4",
-            permission: "Support Desk & Ticket Triage",
-            description: "Reply to tickets, resolve chat sessions, and manage learner inquiries",
-            category: "Administration",
-            superAdmin: true,
-            admin: true,
-            teacher: false,
-            evaluator: false,
-            support: true,
-            student: false,
-          },
-          {
-            id: "perm-5",
-            permission: "Manage Cohorts & Enrolments",
-            description: "Create cohort batches, assign instructors, and transfer students",
-            category: "Administration",
-            superAdmin: true,
-            admin: true,
-            teacher: false,
-            evaluator: false,
-            support: false,
-            student: false,
-          },
-          {
-            id: "perm-6",
-            permission: "Configure AI Model Inference",
-            description: "Adjust LLM temperature, fallback ladders, and quota limits",
-            category: "AI & Models",
-            superAdmin: true,
-            admin: false,
-            teacher: false,
-            evaluator: false,
-            support: false,
-            student: false,
-          },
-        ]
+        const policies = [
+          ["courses", "Manage course curriculum", "Admin course APIs", ["Admin", "Super Admin"]],
+          ["teaching", "Assigned teaching workspace", "Assigned courses, learners and questions", ["Teacher", "Admin", "Super Admin"]],
+          ["evaluation", "Evaluate assigned submissions", "Evaluator assignments and grading locks apply", ["Evaluator"]],
+          ["support", "Support desk", "Ticket administration", ["Support", "Admin", "Super Admin"]],
+          ["learning", "Own learning records", "Enrollment and record ownership required", ["Student"]],
+          ["platform", "Platform administration", "Audit trail and fixed permission policy", ["Super Admin"]],
+        ] as const
+        const rows = policies.map(([id, permission, description, roles]) => {
+          const allowed: readonly string[] = roles
+          return { id, permission, description, category: "Fixed policy", superAdmin: allowed.includes("Super Admin"),
+            admin: allowed.includes("Admin"), teacher: allowed.includes("Teacher"), evaluator: allowed.includes("Evaluator"),
+            support: allowed.includes("Support"), student: allowed.includes("Student") }
+        })
         return {
           rbac: rows,
           matrix: rows,
         }
       })
 
-      scope.patch<{ Params: { id: string } }>("/rbac/:id", async (req) => {
-        const b = parse(
-          z.object({
-            role: z.enum(["superAdmin", "admin", "teacher", "evaluator", "support", "student"]),
-            enabled: z.boolean(),
-          }),
-          req.body,
-        )
-
-        return {
-          id: req.params.id,
-          role: b.role,
-          enabled: b.enabled,
-          message: `Permission updated for role ${b.role}`,
-        }
+      scope.patch("/rbac/:id", async () => {
+        throw forbidden("Permissions are a fixed server policy and cannot be edited here.")
       })
 
-      // 6. Security Audit Logs
       scope.get("/audit", async () => {
-        const list = [
-          {
-            id: "log-1",
-            timestamp: "2026-11-03 12:45:10 IST",
-            actorName: "Super Admin",
-            actorRole: "Super Admin",
-            actorEmail: "superadmin@lms.com",
-            action: "AUTH_USER_RESET",
-            category: "Security",
-            target: "Cognito User Pool (local_4aQHxE7e)",
-            ip: "127.0.0.1",
-            status: "Success",
-            details: "Purged prior demo users and created 6 fresh role accounts.",
-          },
-          {
-            id: "log-2",
-            timestamp: "2026-11-03 11:20:04 IST",
-            actorName: "Admin",
-            actorRole: "Admin",
-            actorEmail: "admin@lms.com",
-            action: "COURSE_PUBLISHED",
-            category: "Course",
-            target: "LLM Engineering in Production",
-            ip: "49.37.142.88",
-            status: "Success",
-            details: "Released 4 modules and 12 lessons to active students.",
-          },
-          {
-            id: "log-3",
-            timestamp: "2026-11-03 09:14:22 IST",
-            actorName: "System Sentinel",
-            actorRole: "Security",
-            actorEmail: "system@internal",
-            action: "SKEW_WINDOW_VERIFIED",
-            category: "Auth",
-            target: "Fastify Gateway Middleware",
-            ip: "10.0.4.12",
-            status: "Success",
-            details: "Cognito JWT token clock skew tolerance validated at 5s.",
-          },
-        ]
-        return {
-          auditLogs: list,
-          logs: list,
-        }
+        const rows = await db.select({ event: audit_events, name: users.full_name, email: users.email })
+          .from(audit_events).leftJoin(users, eq(users.id, audit_events.actor_id))
+          .orderBy(desc(audit_events.created_at)).limit(200)
+        const logs = rows.map(({ event, name, email }) => ({
+          id: event.id, timestamp: event.created_at.toISOString(), actorName: name ?? "Deleted account",
+          actorRole: event.actor_role, actorEmail: email ?? "", action: event.action, category: "Admin",
+          target: event.target, ip: "", status: event.outcome, details: "Persisted API request outcome; financial confirmation is tracked separately.",
+        }))
+        return { logs }
       })
 
       // 7. AI Usage Metrics

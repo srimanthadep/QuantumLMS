@@ -454,7 +454,6 @@ export async function addStudentsToBatchTx(tx: Tx, input: AddStudentsTxInput) {
 }
 
 async function queryBatches(db: Db, filters?: { courseId?: string; status?: string; q?: string; batchId?: string }) {
-  await ensureBatchesSeeded(db)
 
   const whereClauses = []
   if (filters?.batchId) whereClauses.push(sql`cb.id = ${filters.batchId}`)

@@ -43,6 +43,13 @@
       "when": 1794460704659,
       "tag": "0005_batches_and_course_crud",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794477402659,
+      "tag": "0006_security_assignments_uploads",
+      "breakpoints": true
     }
   ]
 }

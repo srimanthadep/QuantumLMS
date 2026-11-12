@@ -1,14 +1,15 @@
-import { asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import { invalidateUserCache, type AuthUser } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
-import { courses, enrollments, profiles, roll_number_seq } from "../../db/schema.js"
+import { courses, enrollments, profiles, roll_number_seq, upload_intents } from "../../db/schema.js"
 import { openCertificates, seedContent, seedStudentDemo } from "../../db/seed/index.js"
 import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
 import { badRequest, forbidden } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
+import { beginUpload, verifyUpload } from "../../storage/uploads.js"
 import { BUCKETS, objectKey, keyOwner, type Bucket } from "../../storage/storage.js"
 import { campusRoutes, publicCertificateRoutes } from "./campus.js"
 import { courseRoutes, invalidateCatalogCache } from "./courses.js"
@@ -32,7 +33,7 @@ export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContex
     .onConflictDoNothing()
     .returning()
   if (!created) return
-  const starters = await tx.select({ id: courses.id }).from(courses).where(eq(courses.is_starter, true))
+  const starters = await tx.select({ id: courses.id }).from(courses).where(and(eq(courses.is_starter, true), eq(courses.price, 0), eq(courses.status, "Published")))
   if (starters.length) {
     await tx.insert(enrollments).values(starters.map((c) => ({ student_id: user.id, course_id: c.id }))).onConflictDoNothing()
     await openCertificates(tx, user.id, starters.map((c) => c.id))
@@ -65,7 +66,7 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
       const s = me(req)
       const b = parse(
         z.object({
-          bucket: z.enum(Object.keys(BUCKETS) as [Bucket, ...Bucket[]]),
+          bucket: z.enum(["submissions", "ticket-attachments", "avatars"]),
           folder: z.string().max(80).default("files"),
           filename: z.string().min(1).max(400),
           content_type: z.string().max(200).default("application/octet-stream"),
@@ -76,7 +77,12 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
       const rule = BUCKETS[b.bucket]
       if (b.size > rule.maxBytes) throw badRequest(`Files here can be up to ${Math.round(rule.maxBytes / 1024 / 1024)} MB.`, "too_large")
       if (rule.types && !(rule.types as readonly string[]).includes(b.content_type)) throw badRequest("Use a PNG, JPG, WebP or GIF image.")
-      return ctx.storage.createUpload({ key: objectKey(b.bucket, s.id, b.folder, b.filename), contentType: b.content_type, maxBytes: rule.maxBytes })
+      return beginUpload(ctx, s.id, { key: objectKey(b.bucket, s.id, b.folder, b.filename), bucket: b.bucket, type: b.content_type, size: b.size })
+    })
+
+    scope.post("/api/student/uploads/finalize", async (req) => {
+      const b = parse(z.object({ key: z.string().max(500), bucket: z.enum(["submissions", "ticket-attachments", "avatars"]) }), req.body)
+      return { key: await verifyUpload(ctx, me(req).id, b.key, b.bucket) }
     })
 
     // A short-lived link to one of the student's own files.
@@ -86,6 +92,8 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
       const o = keyOwner(key)
       if (!o || o.owner !== s.id || !(o.bucket in BUCKETS)) throw forbidden("That file isn't yours.")
       if (!(await ctx.storage.head(key))) throw badRequest("The file is no longer available.", "missing_file")
+      const intent = await ctx.db.query.upload_intents.findFirst({ where: eq(upload_intents.key, key) })
+      if (intent && intent.state !== "verified") throw forbidden("This upload is not ready for use.")
       return { url: await ctx.storage.createDownloadUrl(key, { filename: req.query.name?.slice(0, 200) }) }
     })
 

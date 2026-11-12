@@ -1,3 +1,4 @@
+import { assertCurrentSession, onSessionReset, sessionGeneration } from "./sessionBoundary"
 import { accessToken } from "./auth"
 
 /**
@@ -9,12 +10,12 @@ const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replac
 export type { Json, StudentProfile, Tables } from "./api.types"
 
 /** The shared demo accounts behind the quick-launch buttons. */
-export const DEMO_STUDENT = { email: "niharika@lms.com", password: "123456" } as const
-export const DEMO_EVALUATOR = { email: "eval@lms.com", password: "123456" } as const
-export const DEMO_SUPPORT = { email: "maheshwar@lms.com", password: "123456" } as const
-export const DEMO_ADMIN = { email: "admin@lms.com", password: "123456" } as const
-export const DEMO_SUPER_ADMIN = { email: "superadmin@lms.com", password: "123456" } as const
-export const DEMO_TEACHER = { email: "shanmuk@lms.com", password: "123456" } as const
+export const DEMO_STUDENT = import.meta.env.DEV ? { email: "niharika@lms.com", password: "123456" } : { email: "", password: "" }
+export const DEMO_EVALUATOR = import.meta.env.DEV ? { email: "eval@lms.com", password: "123456" } : { email: "", password: "" }
+export const DEMO_SUPPORT = import.meta.env.DEV ? { email: "maheshwar@lms.com", password: "123456" } : { email: "", password: "" }
+export const DEMO_ADMIN = import.meta.env.DEV ? { email: "admin@lms.com", password: "123456" } : { email: "", password: "" }
+export const DEMO_SUPER_ADMIN = import.meta.env.DEV ? { email: "superadmin@lms.com", password: "123456" } : { email: "", password: "" }
+export const DEMO_TEACHER = import.meta.env.DEV ? { email: "shanmuk@lms.com", password: "123456" } : { email: "", password: "" }
 export const isDemoStudentEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_STUDENT.email
 export const isDemoEvaluatorEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_EVALUATOR.email
 export const isDemoSupportEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_SUPPORT.email
@@ -145,6 +146,27 @@ function invalidateCacheForMutation(method: Method, path: string) {
   }
 }
 
+let verifiedSession: { token: string; id: string } | null = null
+onSessionReset(() => {
+  verifiedSession = null
+  invalidateCache()
+  inFlightGet.clear()
+})
+
+async function verifiedIdentity(token: string | null, generation: number): Promise<string> {
+  if (!token) throw new ApiError("Sign in to continue.", "unauthorized", 401)
+  if (verifiedSession?.token === token) return verifiedSession.id
+  const response = await fetch(`${BASE}/me`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+  assertCurrentSession(generation)
+  if (!response.ok) throw new ApiError("Your session expired. Sign in again.", "unauthorized", 401)
+  const user = await response.json() as { id?: string }
+  assertCurrentSession(generation)
+  if (!user.id) throw new ApiError("Your account could not be verified.")
+  if (verifiedSession?.id !== user.id) { invalidateCache(); inFlightGet.clear() }
+  verifiedSession = { token, id: user.id }
+  return user.id
+}
+
 export async function request<T>(
   method: Method,
   path: string,
@@ -155,25 +177,31 @@ export async function request<T>(
     typeof fallbackOrOpts === "string" ? { fallback: fallbackOrOpts } : (fallbackOrOpts ?? {})
   const fallback = options.fallback
 
+  const generation = sessionGeneration()
+  const token = await accessToken()
+  assertCurrentSession(generation)
+  const identity = path.startsWith("/verify/") || path.startsWith("/catalog/") ? "public" : await verifiedIdentity(token, generation)
+  const key = `${identity}:${path}`
+  assertCurrentSession(generation)
+
   // Check in-memory and persistent browser storage cache for GET requests
   if (method === "GET" && !options.bypassCache) {
-    const cached = memoryCache.get(path)
+    const cached = memoryCache.get(key)
     if (cached && Date.now() < cached.expiresAt) {
       return cached.data as T
     }
-    const sessionCached = readStorageCache<T>(path)
+    const sessionCached = readStorageCache<T>(key)
     if (sessionCached) {
-      memoryCache.set(path, { data: sessionCached, expiresAt: Date.now() + (options.ttl ?? 30_000) })
+      memoryCache.set(key, { data: sessionCached, expiresAt: Date.now() + (options.ttl ?? 30_000) })
       return sessionCached
     }
-    const inflight = inFlightGet.get(path)
+    const inflight = inFlightGet.get(key)
     if (inflight) {
       return inflight as Promise<T>
     }
   }
 
   const exec = async (): Promise<T> => {
-    const token = await accessToken()
     let res: Response
     try {
       const headers: Record<string, string> = {
@@ -183,8 +211,8 @@ export async function request<T>(
       }
 
       // Attach conditional ETag header if available in browser cache
-      if (method === "GET" && etagCache.has(path)) {
-        headers["If-None-Match"] = etagCache.get(path)!
+      if (method === "GET" && etagCache.has(key)) {
+        headers["If-None-Match"] = etagCache.get(key)!
       }
 
       res = await fetch(`${BASE}${path}`, {
@@ -196,17 +224,19 @@ export async function request<T>(
       throw new ApiError("Can't reach the server. Check your connection and try again.", "network")
     }
 
+    assertCurrentSession(generation)
+
     // 304 Not Modified: Reuse cached data and extend TTL
     if (res.status === 304) {
-      const cached = memoryCache.get(path)?.data ?? readStorageCache<T>(path)
+      const cached = memoryCache.get(key)?.data ?? readStorageCache<T>(key)
       if (cached) {
         const ttl = options.ttl ?? 30_000
-        memoryCache.set(path, {
+        memoryCache.set(key, {
           data: cached,
-          etag: etagCache.get(path),
+          etag: etagCache.get(key),
           expiresAt: Date.now() + ttl,
         })
-        writeStorageCache(path, cached, ttl)
+        writeStorageCache(key, cached, ttl)
         return cached as T
       }
     }
@@ -217,6 +247,7 @@ export async function request<T>(
     }
 
     const data = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
+    assertCurrentSession(generation)
     if (!res.ok) {
       const message = data?.error?.message
       if (res.status === 401) throw new ApiError(message ?? "Your session expired. Sign in again.", "unauthorized", 401)
@@ -232,16 +263,16 @@ export async function request<T>(
     // Store in browser cache on successful GET
     if (method === "GET") {
       const etag = res.headers.get("etag")
-      if (etag) etagCache.set(path, etag)
+      if (etag) etagCache.set(key, etag)
 
       const ttl = options.ttl ?? 30_000
       if (ttl > 0) {
-        memoryCache.set(path, {
+        memoryCache.set(key, {
           data,
           etag: etag ?? undefined,
           expiresAt: Date.now() + ttl,
         })
-        writeStorageCache(path, data, ttl)
+        writeStorageCache(key, data, ttl)
       }
     } else {
       // Automatically purge stale cached entries on mutations
@@ -253,9 +284,9 @@ export async function request<T>(
 
   if (method === "GET") {
     const p = exec().finally(() => {
-      inFlightGet.delete(path)
+      inFlightGet.delete(key)
     })
-    inFlightGet.set(path, p)
+    inFlightGet.set(key, p)
     return p
   }
 
@@ -328,6 +359,7 @@ export async function uploadFile(bucket: UploadBucket, folder: string, file: Fil
     throw new ApiError("The upload didn't finish. Check your connection and try again.")
   }
   if (!res.ok) throw new ApiError(res.status === 413 || res.status === 400 ? "That file is too large." : "The upload failed. Try again.")
+  await api.post("/student/uploads/finalize", { key: target.key, bucket })
   return target.key
 }
 

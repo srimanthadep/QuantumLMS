@@ -21,10 +21,10 @@ const schema = z.object({
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required (postgres://user:password@host:5432/db)"),
   /** require: TLS without certificate checks; verify: TLS checked against DATABASE_CA_CERT; disable: no TLS. */
-  DATABASE_SSL: z.enum(["require", "verify", "disable"]).default("require"),
+  DATABASE_SSL: z.enum(["require", "verify", "disable"]).default("verify"),
   /** PEM text or a path to a PEM file (Supabase: Database settings > SSL certificate). */
   DATABASE_CA_CERT: z.string().optional(),
-  DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
+  DATABASE_POOL_MAX: z.coerce.number().int().positive().default(5),
 
   COGNITO_REGION: z.string().default("eu-north-1"),
   COGNITO_USER_POOL_ID: z.string().min(1, "COGNITO_USER_POOL_ID is required"),
@@ -45,7 +45,7 @@ const schema = z.object({
 
   CAMPUS_TZ: z.string().default("Asia/Kolkata"),
   /** Demo accounts, quick-launch sign-in and "Reset demo data". */
-  DEMO_MODE: bool.default(true),
+  DEMO_MODE: bool.default(false),
   DEMO_STUDENT_EMAIL: z.string().email().default("niharika@lms.com"),
   DEMO_EVALUATOR_EMAIL: z.string().email().default("eval@lms.com"),
   DEMO_SUPPORT_EMAIL: z.string().email().default("maheshwar@lms.com"),
@@ -69,6 +69,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration:\n${lines.join("\n")}`)
   }
   const c = parsed.data
+  if (c.NODE_ENV === "production" && c.DEMO_MODE) throw new Error("DEMO_MODE is forbidden in production.")
+  if (c.NODE_ENV === "production" && c.DATABASE_SSL !== "verify") throw new Error("Production requires certificate-verifying database TLS.")
   if (c.STORAGE_DRIVER === "s3" && !c.S3_BUCKET) throw new Error("Invalid configuration:\n  S3_BUCKET is required with STORAGE_DRIVER=s3")
   if (c.STORAGE_DRIVER === "local" && !c.UPLOAD_SIGNING_SECRET && c.NODE_ENV !== "test") {
     throw new Error("Invalid configuration:\n  UPLOAD_SIGNING_SECRET (16+ characters) is required with STORAGE_DRIVER=local")
@@ -79,7 +81,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     : `https://cognito-idp.${c.COGNITO_REGION}.amazonaws.com/${c.COGNITO_USER_POOL_ID}`
   let databaseCa: string | undefined
   if (c.DATABASE_CA_CERT) databaseCa = c.DATABASE_CA_CERT.includes("BEGIN CERTIFICATE") ? c.DATABASE_CA_CERT : readFileSync(c.DATABASE_CA_CERT, "utf8")
-  if (c.DATABASE_SSL === "verify" && !databaseCa) throw new Error("Invalid configuration:\n  DATABASE_CA_CERT is required with DATABASE_SSL=verify")
+
   return {
     ...c,
     corsOrigins: c.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean),

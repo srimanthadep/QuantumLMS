@@ -1,3 +1,5 @@
+import { resetPrivateSession } from "@/lib/sessionBoundary"
+import { clearAll } from "@/lib/resource"
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 import type { CurrentUser, UserRole } from "@/types"
 import { getDemoAccount } from "@/data/demoAccounts"
@@ -92,6 +94,8 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   }
 
   const login = useCallback((input: LoginInput) => {
+    resetPrivateSession()
+    clearAll()
     const user: CurrentUser = {
       id: input.id ?? `u-${Date.now()}`,
       name: input.name,
@@ -105,6 +109,8 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    resetPrivateSession()
+    clearAll()
     setState((s) => {
       persist(false, s.user)
       return { ...s, isAuthenticated: false }
@@ -116,6 +122,9 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const switchRole = useCallback((role: UserRole) => {
+    if (!import.meta.env.DEV) return "/auth"
+    resetPrivateSession()
+    clearAll()
     setState((s) => {
       if (s.user.role === role && s.isAuthenticated) return s
       const user = userFromAccount(role)

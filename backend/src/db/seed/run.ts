@@ -10,6 +10,7 @@ import { seedEvaluatorDemo } from "./evaluator.js"
 import { seedContent, seedStudentDemo } from "./index.js"
 
 const config = loadConfig({ ...process.env, COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID || "-", COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID || "-", UPLOAD_SIGNING_SECRET: process.env.UPLOAD_SIGNING_SECRET || "seed-only-secret-value" })
+if (config.NODE_ENV !== "development" || !config.DEMO_MODE) throw new Error("Demo seeding requires NODE_ENV=development and DEMO_MODE=true.")
 const pool = createPool({ ...config, DATABASE_POOL_MAX: 2 })
 const db = createDb(pool)
 const started = Date.now()

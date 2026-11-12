@@ -16,9 +16,9 @@ export function createS3Storage(opts: {
   })
   const Bucket = opts.bucket
   return {
-    async createUpload({ key, contentType }) {
+    async createUpload({ key, contentType, expectedBytes }) {
       const expiresIn = 600
-      const url = await getSignedUrl(client, new PutObjectCommand({ Bucket, Key: key, ContentType: contentType }), { expiresIn })
+      const url = await getSignedUrl(client, new PutObjectCommand({ Bucket, Key: key, ContentType: contentType, ContentLength: expectedBytes }), { expiresIn, signableHeaders: new Set(["content-type", "content-length"]) })
       return { key, url, method: "PUT", headers: { "Content-Type": contentType }, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() }
     },
     async createDownloadUrl(key, o = {}) {

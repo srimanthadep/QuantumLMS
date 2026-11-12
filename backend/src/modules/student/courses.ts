@@ -14,6 +14,8 @@ import { me, parse } from "../../http.js"
 import { localDay } from "../../lib/time.js"
 import { notify } from "./notify.js"
 import { finalizeExpired } from "./quizzes.js"
+import { assertCourseAccess } from "../../auth/access.js"
+import { mediaKey, signedMedia } from "../../storage/protected.js"
 import { ownObject, studentProfile, trimmed } from "./shared.js"
 import { broadcastToChannel } from "../../ws.js"
 
@@ -116,17 +118,18 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         from lms.reevaluation_requests r join lms.assignment_submissions s on s.id = r.submission_id
         where r.student_id = ${s.id}::uuid`),
     ])
+    const allowed = new Set(enrolled.map((e) => e.course_id))
     const reevaluations = requests.rows
     return {
       profile,
-      courses: catalog.courseRows,
-      modules: catalog.modules,
-      lessons: catalog.lessonRows,
+      courses: catalog.courseRows.filter((c) => allowed.has(c.id)),
+      modules: catalog.modules.filter((m) => allowed.has(m.course_id)),
+      lessons: catalog.lessonRows.filter((l) => allowed.has(l.course_id)).map((l) => ({ ...l, video_url: null, video_qualities: {} })),
       enrollments: enrolled,
       progress,
-      assignments: catalog.assignmentRows,
+      assignments: catalog.assignmentRows.filter((a) => allowed.has(a.course_id)),
       submissions,
-      quizzes: catalog.quizRows,
+      quizzes: catalog.quizRows.filter((q) => allowed.has(q.course_id)),
       attempts,
       reevaluations,
     }
@@ -176,6 +179,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     return db.transaction(async (tx) => {
       const c = await tx.query.courses.findFirst({ where: eq(courses.id, course_id) })
       if (!c) throw notFound("Course not found.")
+      if (c.status !== "Published" || c.price !== 0) throw forbidden("This course requires an approved enrollment or checkout.")
       const [row] = await tx.insert(enrollments).values({ student_id: s.id, course_id }).onConflictDoNothing().returning({ enrolled_at: enrollments.enrolled_at })
       if (row) await openCertificates(tx, s.id, [course_id])
       const enrolledAt = row?.enrolled_at ?? (await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, course_id)) }))!.enrolled_at
@@ -280,14 +284,35 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     })
   })
 
-  app.get<{ Params: { id: string } }>("/api/student/courses/:id/materials", async (req) =>
-    db.select().from(course_materials).where(eq(course_materials.course_id, req.params.id)).orderBy(asc(course_materials.position)),
-  )
+  app.post<{ Params: { id: string } }>("/api/student/lessons/:id/playback", async (req) => {
+    const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, req.params.id) })
+    if (!lesson) throw notFound("Lesson not found.")
+    await assertCourseAccess(db, me(req), lesson.course_id)
+    const key = mediaKey(lesson.video_url, "videos")
+    if (!key) throw notFound("A private video is not available for this lesson.")
+    const qualities: Record<string, { url: string }> = {}
+    for (const [name, entry] of Object.entries((lesson.video_qualities ?? {}) as Record<string, { url?: string } | string>)) {
+      const k = mediaKey(typeof entry === "string" ? entry : entry.url, "videos")
+      if (k) qualities[name] = { url: await signedMedia(ctx, k) }
+    }
+    return { url: await signedMedia(ctx, key), qualities, expires_in: 300 }
+  })
+
+  app.get<{ Params: { id: string } }>("/api/student/courses/:id/materials", async (req) => {
+    await assertCourseAccess(db, me(req), req.params.id)
+    const rows = await db.select().from(course_materials).where(eq(course_materials.course_id, req.params.id)).orderBy(asc(course_materials.position))
+    return Promise.all(rows.map(async (row) => {
+      if (!row.url?.startsWith("/api/files/materials/")) return row
+      const key = mediaKey(row.url, "materials")
+      return { ...row, url: key && row.is_available ? await signedMedia(ctx, key) : null }
+    }))
+  })
 
   /* -------------------------------- Course Q&A -------------------------------- */
 
   app.get<{ Params: { id: string } }>("/api/student/courses/:id/questions", async (req) => {
     const s = me(req)
+    await assertCourseAccess(db, s, req.params.id)
     const [questions, votes] = await Promise.all([
       db.select().from(course_questions).where(eq(course_questions.course_id, req.params.id)).orderBy(desc(course_questions.created_at)),
       db
@@ -304,6 +329,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     const { body } = parse(z.object({ body: z.string().trim().min(1, "Write your question.").max(2000) }), req.body)
     const c = await db.query.courses.findFirst({ where: eq(courses.id, req.params.id) })
     if (!c) throw notFound("Course not found.")
+    await assertCourseAccess(db, s, c.id)
     const [row] = await db.insert(course_questions).values({ course_id: c.id, body, author_id: s.id, author_name: s.full_name, author_avatar: s.avatar_url }).returning()
     return row
   })
@@ -314,6 +340,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     return db.transaction(async (tx) => {
       const q = await tx.query.course_questions.findFirst({ where: eq(course_questions.id, req.params.id) })
       if (!q) throw notFound("Question not found.")
+      await assertCourseAccess(tx, s, q.course_id)
       if (on) {
         const [added] = await tx.insert(course_question_votes).values({ question_id: q.id, student_id: s.id }).onConflictDoNothing().returning()
         if (added) await tx.update(course_questions).set({ vote_count: sql`${course_questions.vote_count} + 1` }).where(eq(course_questions.id, q.id))

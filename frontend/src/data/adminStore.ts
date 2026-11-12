@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
-import { ApiError, api } from "@/lib/api"
+import { api } from "@/lib/api"
 
-const isOfflineError = (err: unknown) => err instanceof ApiError && (!err.status || err.code === "network")
+const isOfflineError = (_err: unknown) => false // Server failures must not create local success records.
 
 export interface AdminCourse {
   id: string
@@ -515,7 +515,7 @@ export function useAdminStore() {
   const [batches, setBatches] = useState<AdminBatch[]>(() => loadStorage(KEYS.batches, INITIAL_BATCHES))
   const [teachers, setTeachers] = useState<AdminTeacher[]>(() => loadStorage(KEYS.teachers, INITIAL_TEACHERS))
   const [students, setStudents] = useState<AdminStudent[]>(() => loadStorage(KEYS.students, INITIAL_STUDENTS))
-  const [orders, setOrders] = useState<AdminOrder[]>(() => loadStorage(KEYS.orders, INITIAL_ORDERS))
+  const [orders, setOrders] = useState<AdminOrder[]>([])
   const [settings, setSettings] = useState<AcademySettings>(() => loadStorage(KEYS.settings, INITIAL_ACADEMY_SETTINGS))
 
   useEffect(() => saveStorage(KEYS.courses, courses), [courses])
@@ -1031,16 +1031,16 @@ export function useAdminStore() {
     api.delete(`/admin/students/${studentId}`).catch(() => {})
   }, [])
 
-  const refundOrder = useCallback((orderId: string, reason: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: "Refunded", refundReason: reason } : o))
-    )
-    api.post(`/admin/orders/${orderId}/refund`, { reason }).catch(() => {})
+  const refundOrder = useCallback(async (orderId: string, reason: string) => {
+    await api.post(`/admin/orders/${orderId}/refund`, { reason })
+    // The provider must confirm a refund before the UI can show Refunded.
+    const result = await api.get<{ orders: AdminOrder[] }>("/admin/orders", { bypassCache: true })
+    setOrders(result.orders)
   }, [])
 
-  const deleteOrder = useCallback((orderId: string) => {
+  const deleteOrder = useCallback(async (orderId: string) => {
+    await api.delete(`/admin/orders/${orderId}`)
     setOrders((prev) => prev.filter((o) => o.id !== orderId))
-    api.delete(`/admin/orders/${orderId}`).catch(() => {})
   }, [])
 
   const updateSettings = useCallback((newSettings: Partial<AcademySettings>) => {

@@ -14,7 +14,7 @@ export interface DemoAccount {
   accentColor: string
 }
 
-export const ALL_DEMO_ACCOUNTS: Record<UserRole, DemoAccount> = {
+export const ALL_DEMO_ACCOUNTS: Record<UserRole, DemoAccount> = import.meta.env.DEV ? {
   Teacher: {
     role: "Teacher",
     name: "Shanmuk",
@@ -81,7 +81,9 @@ export const ALL_DEMO_ACCOUNTS: Record<UserRole, DemoAccount> = {
     tagline: "Ticket inbox, live chat, student 360 and knowledge base",
     accentColor: "#0e7490",
   },
-}
+} : Object.fromEntries((["Teacher", "Student", "Admin", "Super Admin", "Evaluator", "Support"] as UserRole[]).map((role) => [role, {
+  role, name: "", email: "", password: "", title: "", badge: role, tagline: "", accentColor: "#555555",
+}])) as Record<UserRole, DemoAccount>
 
 /** Demo accounts surfaced on the auth screen: 1 teacher and 1 student */
 export const demoAccounts: DemoAccount[] = [

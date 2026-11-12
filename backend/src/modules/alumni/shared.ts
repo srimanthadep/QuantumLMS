@@ -204,7 +204,6 @@ export async function ensureAlumniSeeded(db: Db) {
 }
 
 export async function getAlumniNetwork(db: Db): Promise<AlumniNetworkResponse> {
-  await ensureAlumniSeeded(db)
 
   const [profileRows, storyRows, placementRows, [metricsRow]] = await Promise.all([
     db.select().from(alumni_profiles).orderBy(asc(alumni_profiles.position), desc(alumni_profiles.created_at)),
@@ -227,7 +226,6 @@ export async function nextTopPosition(db: Db, table: typeof alumni_profiles | ty
 }
 
 export async function updateAlumniMetrics(db: Db, patch: Partial<AlumniMetricsData>): Promise<AlumniMetricsData> {
-  await ensureAlumniSeeded(db)
   const [existing] = await db.select().from(app_state).where(eq(app_state.key, ALUMNI_METRICS_KEY)).limit(1)
   const merged = normalizeMetrics({ ...normalizeMetrics(existing?.value), ...patch })
   await db

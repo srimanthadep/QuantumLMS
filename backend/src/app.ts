@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib"
 import { eq, sql } from "drizzle-orm"
 import type { AppContext } from "./context.js"
 import { invalidateUserCache } from "./auth/users.js"
-import { users } from "./db/schema.js"
+import { audit_events, courses, users } from "./db/schema.js"
 import { AppError, forbidden, fromPgError } from "./errors.js"
 import { authenticate, me } from "./http.js"
 import { fileRoutes } from "./routes/files.js"
@@ -22,7 +22,7 @@ export interface AppOptions {
 
 export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: opts.logger === false ? false : { level: ctx.config.LOG_LEVEL, redact: ["req.headers.authorization"] },
+    logger: opts.logger === false ? false : { level: ctx.config.LOG_LEVEL, redact: ["req.headers.authorization", "req.headers.sec-websocket-protocol"] },
     trustProxy: true,
     bodyLimit: 500 * 1024 * 1024,
     // Signed local upload links carry their token in the path.
@@ -62,30 +62,10 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
 
   // HTTP Browser Caching, Conditional Request Revalidation (ETag / If-None-Match) & Gzip Compression
   app.addHook("onSend", async (req, reply, payload) => {
+    reply.header("Cache-Control", "private, no-store")
     if (req.method !== "GET" || typeof payload !== "string") return payload
 
-    // Generate SHA-1 digest ETag
-    const etag = `"${createHash("sha1").update(payload).digest("base64url").slice(0, 16)}"`
-    reply.header("ETag", etag)
-
-    // Conditional HTTP 304 Not Modified check
-    const ifNoneMatch = req.headers["if-none-match"]
-    if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === "*")) {
-      reply.code(304)
-      return ""
-    }
-
-    // Set resource-appropriate Cache-Control directives
-    const url = req.url
-    if (url.startsWith("/api/health") || url.startsWith("/api/me")) {
-      reply.header("Cache-Control", "private, no-cache, must-revalidate")
-    } else if (url.startsWith("/api/student/courses") || url.startsWith("/api/verify/")) {
-      reply.header("Cache-Control", "public, max-age=120, stale-while-revalidate=300")
-    } else if (url.startsWith("/api/files/")) {
-      reply.header("Cache-Control", "public, max-age=31536000, immutable")
-    } else {
-      reply.header("Cache-Control", "private, no-cache, must-revalidate")
-    }
+    reply.header("Cache-Control", "private, no-store")
 
     // Compress JSON payloads > 1 KB when the client supports gzip
     if (payload.length > 1024 && !reply.getHeader("content-encoding")) {
@@ -98,6 +78,13 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     }
 
     return payload
+  })
+
+  app.addHook("onResponse", async (req, reply) => {
+    if (!req.user || ["GET", "HEAD", "OPTIONS"].includes(req.method)) return
+    await ctx.db.insert(audit_events).values({ actor_id: req.user.id, actor_role: req.user.role,
+      action: `${req.method} ${req.routeOptions.url ?? "unknown"}`, target: req.url.split("?")[0].slice(0, 500),
+      outcome: `HTTP ${reply.statusCode}` }).catch((err) => req.log.error({ err }, "audit event write failed"))
   })
 
   app.setErrorHandler((err, req, reply) => {
@@ -117,6 +104,10 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     await ctx.db.execute(sql`select 1`)
     return { ok: true, time: new Date().toISOString() }
   })
+
+  app.get("/api/catalog/courses", async () => ({ courses: await ctx.db.select({ id: courses.id, code: courses.code, title: courses.title,
+    category: courses.category, image: courses.image, description: courses.description, instructor: courses.instructor,
+    level: courses.level, duration: courses.duration, price: courses.price }).from(courses).where(eq(courses.status, "Published")) }))
 
   app.get("/api/me", { preHandler: authenticate(ctx) }, async (req) => {
     const u = me(req)

@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
 import { alumni_profiles, placement_stories, recent_placements } from "../../db/schema.js"
-import { notFound } from "../../errors.js"
+import { forbidden, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
 import {
   getAlumniNetwork,
@@ -296,6 +296,7 @@ export async function adminAlumniRoutes(app: FastifyInstance, ctx: AppContext) {
 
   // --- Restore Default Alumni Showcase ---
   app.post("/alumni/reset", async () => {
+    if (ctx.config.NODE_ENV !== "development" || !ctx.config.DEMO_MODE) throw forbidden("Demo reset is disabled.")
     await db.transaction((tx) => seedAlumniDefaults(tx, { force: true }))
     return { ok: true, ...(await getAlumniNetwork(db)) }
   })

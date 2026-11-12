@@ -12,6 +12,6 @@ export function sslOptions(mode: SslMode, ca?: string): pg.PoolConfig["ssl"] {
 /** The connection string without sslmode, so the ssl option decides how TLS is used. */
 export function withoutSslMode(url: string): string {
   const u = new URL(url)
-  u.searchParams.delete("sslmode")
+  for (const key of ["sslmode", "sslcert", "sslkey", "sslrootcert", "ssl", "uselibpqcompat"]) u.searchParams.delete(key)
   return u.toString()
 }

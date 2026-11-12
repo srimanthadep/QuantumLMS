@@ -23,23 +23,14 @@ interface RbacViewProps {
 }
 
 export default function RbacView({ store, onToast }: RbacViewProps) {
-  const { rbac, toggleRbacPermission } = store
-
-  const handleToggle = (
-    id: string,
-    roleKey: "superAdmin" | "admin" | "teacher" | "evaluator" | "support" | "student",
-    permName: string,
-  ) => {
-    toggleRbacPermission(id, roleKey)
-    onToast(`Updated permission "${permName}" for role ${roleKey}`)
-  }
+  const { rbac } = store
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
         title="Role-Based Access Control (RBAC)"
-        description="Granular capability matrix across the 6 system roles with automated security audit logging."
+        description="Fixed server permissions across the six roles."
         breadcrumb={[{ label: "Platform Console", href: "/super-admin" }, { label: "Access Control" }]}
       />
 
@@ -47,7 +38,7 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
       <div className="rounded-lg border border-primary-border bg-primary-soft p-3.5 text-xs text-primary-text flex items-center gap-2.5">
         <Info className="h-4 w-4 shrink-0" />
         <span>
-          Policy changes made here take immediate effect across Cognito token claims, API middleware, and route gates.
+          This policy is read-only. Access is enforced by the API and explicit course or batch assignments.
         </span>
       </div>
 
@@ -56,7 +47,7 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
         <CardHeader className="pb-3 border-b border-border">
           <CardTitle className="text-base sm:text-lg">Permission Entitlement Matrix</CardTitle>
           <CardDescription>
-            Configure read, write, and execute capabilities per user role
+            Review the fixed role policy. Assignment and ownership checks also apply.
           </CardDescription>
         </CardHeader>
 
@@ -97,7 +88,8 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
                       <div className="flex items-center justify-center">
                         <Switch
                           checked={row.admin}
-                          onCheckedChange={() => handleToggle(row.id, "admin", row.permission)}
+                          disabled
+                          onCheckedChange={() => undefined}
                         />
                       </div>
                     </td>
@@ -107,7 +99,8 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
                       <div className="flex items-center justify-center">
                         <Switch
                           checked={row.teacher}
-                          onCheckedChange={() => handleToggle(row.id, "teacher", row.permission)}
+                          disabled
+                          onCheckedChange={() => undefined}
                         />
                       </div>
                     </td>
@@ -117,7 +110,8 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
                       <div className="flex items-center justify-center">
                         <Switch
                           checked={row.evaluator}
-                          onCheckedChange={() => handleToggle(row.id, "evaluator", row.permission)}
+                          disabled
+                          onCheckedChange={() => undefined}
                         />
                       </div>
                     </td>
@@ -127,7 +121,8 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
                       <div className="flex items-center justify-center">
                         <Switch
                           checked={row.support}
-                          onCheckedChange={() => handleToggle(row.id, "support", row.permission)}
+                          disabled
+                          onCheckedChange={() => undefined}
                         />
                       </div>
                     </td>
@@ -137,7 +132,8 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
                       <div className="flex items-center justify-center">
                         <Switch
                           checked={row.student}
-                          onCheckedChange={() => handleToggle(row.id, "student", row.permission)}
+                          disabled
+                          onCheckedChange={() => undefined}
                         />
                       </div>
                     </td>

@@ -81,6 +81,15 @@ export interface Rows {
     class_date: string
     status: string
   }
+  audit_events: {
+    id: string
+    actor_id: string | null
+    actor_role: string
+    action: string
+    target: string
+    outcome: string
+    created_at: string
+  }
   batch_students: {
     batch_id: string
     student_id: string
@@ -88,6 +97,11 @@ export interface Rows {
     notes: string
     enrolled_at: string
     updated_at: string
+  }
+  batch_teachers: {
+    batch_id: string
+    teacher_id: string
+    assigned_at: string
   }
   campus_events: {
     id: string
@@ -193,6 +207,11 @@ export interface Rows {
     answer_author: string | null
     answer_text: string | null
     created_at: string
+  }
+  course_teachers: {
+    course_id: string
+    teacher_id: string
+    assigned_at: string
   }
   courses: {
     id: string
@@ -566,6 +585,17 @@ export interface Rows {
     instructor: string
     room: string
     is_online: boolean
+  }
+  upload_intents: {
+    key: string
+    owner_id: string
+    bucket: string
+    content_type: string
+    expected_bytes: number
+    max_bytes: number
+    state: string
+    expires_at: string
+    created_at: string
   }
   users: {
     id: string

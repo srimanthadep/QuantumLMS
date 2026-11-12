@@ -56,9 +56,9 @@ export default function OrdersView({ store, onToast }: OrdersViewProps) {
     .filter((o) => o.status === "Refunded")
     .reduce((sum, o) => sum + o.amount, 0)
 
-  const handleRefundConfirmed = (orderId: string, reason: string) => {
-    refundOrder(orderId, reason)
-    onToast(`Refund approved and initiated for ${orderId}`)
+  const handleRefundConfirmed = async (orderId: string, reason: string) => {
+    await refundOrder(orderId, reason)
+    onToast(`Refund request recorded for ${orderId}`)
   }
 
   return (
@@ -82,7 +82,7 @@ export default function OrdersView({ store, onToast }: OrdersViewProps) {
           <div className="text-2xl font-bold text-foreground font-mono">
             ₹{totalPaid.toLocaleString("en-IN")}
           </div>
-          <div className="text-[11px] text-success font-medium">Settled via Razorpay & Stripe</div>
+          <div className="text-[11px] text-success font-medium">Confirmed payment records only</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-surface p-4 space-y-1 shadow-xs">
@@ -279,11 +279,13 @@ export default function OrdersView({ store, onToast }: OrdersViewProps) {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
                 if (deletingOrder) {
-                  deleteOrder(deletingOrder.id)
-                  onToast(`Order ${deletingOrder.orderNumber} deleted.`)
-                  setDeletingOrder(null)
+                  try {
+                    await deleteOrder(deletingOrder.id)
+                    onToast(`Order ${deletingOrder.orderNumber} deleted.`)
+                    setDeletingOrder(null)
+                  } catch (error) { onToast((error as Error).message) }
                 }
               }}
             >

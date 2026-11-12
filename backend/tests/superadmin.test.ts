@@ -29,10 +29,9 @@ describe("super admin API access control", () => {
     assert.equal(res.status, 403)
   })
 
-  test("admins can access platform health endpoints in single-tenant architecture", async () => {
+  test("admins cannot access super admin endpoints", async () => {
     const res = await admin.call("GET", "/api/super-admin/health")
-    assert.equal(res.status, 200)
-    assert.ok(res.body.services)
+    assert.equal(res.status, 403)
   })
 })
 

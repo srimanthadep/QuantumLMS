@@ -1239,3 +1239,38 @@ export const batch_students = lms.table("batch_students", {
   }).onDelete("cascade"),
   check("batch_students_status_check", sql`status = ANY (ARRAY['Active'::text, 'Waitlisted'::text, 'Completed'::text, 'Paused'::text, 'At Risk'::text])`),
 ]);
+
+/** Explicit assignments replace authorization based on display names. */
+export const course_teachers = lms.table("course_teachers", {
+  course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  teacher_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }),
+  assigned_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.course_id, t.teacher_id] }), index("course_teachers_teacher_idx").on(t.teacher_id)]);
+
+export const batch_teachers = lms.table("batch_teachers", {
+  batch_id: text().notNull().references(() => cohort_batches.id, { onDelete: "cascade" }),
+  teacher_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }),
+  assigned_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.batch_id, t.teacher_id] }), index("batch_teachers_teacher_idx").on(t.teacher_id)]);
+
+export const audit_events = lms.table("audit_events", {
+  id: uuid().defaultRandom().primaryKey(),
+  actor_id: uuid().references(() => users.id, { onDelete: "set null" }),
+  actor_role: text().notNull(),
+  action: text().notNull(),
+  target: text().notNull(),
+  outcome: text().notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (t) => [index("audit_events_time_idx").on(t.created_at)]);
+
+export const upload_intents = lms.table("upload_intents", {
+  key: text().primaryKey(),
+  owner_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }),
+  bucket: text().notNull(),
+  content_type: text().notNull(),
+  expected_bytes: bigint({ mode: "number" }).notNull(),
+  max_bytes: bigint({ mode: "number" }).notNull(),
+  state: text().default("pending").notNull(),
+  expires_at: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (t) => [check("upload_intent_state", sql`${t.state} in ('pending','verified','quarantined')`)]);

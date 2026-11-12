@@ -85,9 +85,10 @@ try {
       await migrate(drizzle(pool), { migrationsFolder: path.join(root, "drizzle"), migrationsSchema: "lms", migrationsTable: "__drizzle_migrations" })
       // Explicit known fixtures, never implicit production seeding or production-data copies.
       await createDb(pool).transaction((tx) => seedContent(tx, new Date(), "Asia/Kolkata"))
+      await pool.query("update lms.courses set price = 0 where is_starter = true or id = 'cat-1'")
       await pool.end()
       console.log(`\nIsolated suite: ${file}`)
-      await run(process.execPath, ["--import", "tsx", "--test", `tests/${file}`], {
+      await run(process.execPath, ["--import", "tsx", "--test", "--test-timeout=60000", `tests/${file}`], {
         ...cleanEnv, TEST_DATABASE_URL: target.toString(), TEST_RUN_ID: nonce,
       })
     } catch (error) {

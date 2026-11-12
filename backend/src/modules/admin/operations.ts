@@ -11,7 +11,7 @@ import {
   timetable_slots,
   users,
 } from "../../db/schema.js"
-import { badRequest, notFound } from "../../errors.js"
+import { AppError, badRequest, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
 import { addStudentsToBatchTx, findOrCreateStudentInTx } from "./batches.js"
 
@@ -225,47 +225,10 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
     return result
   })
 
-  // 6. List orders
-  app.get("/orders", async () => {
-    const orders = (
-      await db.execute(sql`
-        select
-          concat(e.student_id, ':', e.course_id) as id,
-          concat('ORD-', upper(substring(replace(e.student_id::text, '-', '') from 1 for 8))) as order_number,
-          u.id as student_id,
-          u.full_name as student_name,
-          u.email as student_email,
-          c.title as course_title,
-          44999 as amount,
-          'INR' as currency,
-          'Razorpay (UPI)' as method,
-          to_char(e.enrolled_at, 'YYYY-MM-DD') as date,
-          'Paid' as status
-        from lms.enrollments e
-        join lms.users u on u.id = e.student_id
-        join lms.courses c on c.id = e.course_id
-        order by e.enrolled_at desc
-        limit 50
-      `)
-    ).rows
-
-    return { orders }
-  })
-
-  // 7. Refund an order
-  app.post<{ Params: { id: string } }>("/orders/:id/refund", async (req) => {
-    return {
-      orderId: req.params.id,
-      status: "Refunded",
-      refundedAt: new Date().toISOString(),
-      message: "Refund processed via payment gateway.",
-    }
-  })
-
-  // 7b. Delete an order
-  app.delete<{ Params: { id: string } }>("/orders/:id", async (req) => {
-    return { ok: true, deleted: req.params.id }
-  })
+  // Financial history must never be inferred from an enrollment. Phase 4 supplies persisted provider records.
+  app.get("/orders", async () => ({ orders: [], configured: false }))
+  app.post("/orders/:id/refund", async () => { throw new AppError(503, "payments_unavailable", "Payments are not configured. No refund was issued.") })
+  app.delete("/orders/:id", async () => { throw new AppError(409, "financial_history", "Financial records cannot be deleted.") })
 
   // 8. Academy Settings
   app.get("/settings", async () => {

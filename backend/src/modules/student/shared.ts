@@ -4,6 +4,7 @@ import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
 import { profiles, users } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
+import { verifyUpload } from "../../storage/uploads.js"
 import { keyOwner, type Bucket } from "../../storage/storage.js"
 
 /** The student profile the pages read: account fields (name, email, photo) merged with the student details. */
@@ -38,7 +39,7 @@ export async function ownObject(ctx: AppContext, user: AuthUser, bucket: Bucket,
   if (!o || o.bucket !== bucket || o.owner !== user.id || !(await ctx.storage.head(key))) {
     throw badRequest("The attached file was not found. Upload it again.", "missing_file")
   }
-  return key
+  return verifyUpload(ctx, user.id, key, bucket)
 }
 
 export const trimmed = (s: string | null | undefined) => {

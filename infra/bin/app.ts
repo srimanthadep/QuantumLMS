@@ -33,8 +33,9 @@ if (context("authOnly") !== "true") {
     userPool: auth.userPool,
     userPoolClient: auth.client,
     databaseSecretArn,
+    databaseCaCert: process.env.DATABASE_CA_CERT,
     apiTasks: tasks,
-    demoMode: (context("demoMode") ?? "true") === "true",
+    demoMode: (context("demoMode") ?? "false") === "true",
     campusTz: context("campusTz") ?? "Asia/Kolkata",
     cloudFrontPrefixListId: context("cloudFrontPrefixListId"),
   })

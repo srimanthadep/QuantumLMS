@@ -105,7 +105,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const paramRole = searchParams.get("role") as UserRole | null
   const defaultAccount =
     demoAccounts.find((d) => d.role === (paramRole || "Student")) ??
-    demoAccounts[3]
+    ALL_DEMO_ACCOUNTS.Student
 
   const [mode, setMode] = useState<"signin" | "signup">(initialMode)
   const [role, setRole] = useState<UserRole>(defaultAccount.role)
@@ -205,20 +205,6 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
       setInfoMessage(null)
       onLogin(result)
     } catch (e) {
-      if (fallbackDemoRole) {
-        const account = ALL_DEMO_ACCOUNTS[fallbackDemoRole] || demoAccounts.find((d) => d.role === fallbackDemoRole)
-        if (account) {
-          onLogin({
-            id: account.role.toLowerCase(),
-            name: account.name,
-            role: account.role,
-            email: account.email,
-            avatar: account.avatar,
-            title: account.title,
-          })
-          return
-        }
-      }
       setErrorMessage(
         (e as Error).message ||
           "Authentication failed. Please check your credentials.",
@@ -488,7 +474,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                     } else {
                       const acc =
                         demoAccounts.find((d) => d.role === role) ??
-                        demoAccounts[3]
+                        ALL_DEMO_ACCOUNTS.Student
                       setEmail(acc.email)
                       setPassword(acc.password)
                       setFullName(acc.name)
@@ -523,13 +509,13 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                 {codeStep
                   ? CODE_COPY[codeStep].subtitle
                   : mode === "signin"
-                    ? "Sign in with your academy account or launch a demo portal."
+                    ? "Sign in with your academy account."
                     : "Start your learning journey with Quantum."}
               </p>
             </div>
 
             {/* 1-Click Instant Demo Portals */}
-            {!codeStep && mode === "signin" && (
+            {import.meta.env.DEV && !codeStep && mode === "signin" && (
               <div className="mb-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-[#626472]">

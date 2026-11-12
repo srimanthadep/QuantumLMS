@@ -1,3 +1,5 @@
+import { accessToken } from "./auth"
+import { onSessionReset, sessionGeneration } from "./sessionBoundary"
 import { useEffect, useRef, useState, useCallback } from "react"
 
 export interface WsEventMessage {
@@ -64,14 +66,17 @@ class WebSocketClient {
     return this.status
   }
 
-  public connect() {
+  public async connect() {
+    const generation = sessionGeneration()
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return
     }
 
     this.setStatus("connecting")
     try {
-      this.socket = new WebSocket(this.getUrl())
+      const token = await accessToken()
+      if (!token || generation !== sessionGeneration() || this.socket) { this.setStatus("disconnected"); return }
+      this.socket = new WebSocket(this.getUrl(), ["qlms", `bearer.${token}`])
 
       this.socket.onopen = () => {
         this.setStatus("connected")
@@ -195,6 +200,7 @@ class WebSocketClient {
 }
 
 export const ws = new WebSocketClient()
+onSessionReset(() => ws.disconnect())
 
 /**
  * React hook to subscribe to real-time events on a channel.

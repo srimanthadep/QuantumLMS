@@ -76,7 +76,7 @@ export default function CognitoGate({ demo, load, errorTitle, children }: Cognit
     }
     try {
       const want = sessionRef.current.user.email.trim().toLowerCase()
-      const isDemo = want === demo.email.toLowerCase()
+      const isDemo = import.meta.env.DEV && Boolean(want) && want === demo.email.toLowerCase()
       const signedIn = await currentSignIn()
       if (!signedIn || signedIn.email !== want) {
         if (!isDemo) {

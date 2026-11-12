@@ -1,5 +1,5 @@
 import crypto from "node:crypto"
-import { asc, desc, eq, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
@@ -15,8 +15,9 @@ import {
   timetable_slots,
   users,
 } from "../../db/schema.js"
-import { notFound } from "../../errors.js"
+import { forbidden, notFound } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
+import { assertCourseAccess, isAdmin, teacherCourseIds, teacherStudentPredicate } from "../../auth/access.js"
 import { broadcastToChannel } from "../../ws.js"
 
 export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
@@ -27,12 +28,13 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
       scope.addHook("preHandler", authenticate(ctx, ["Teacher", "Admin", "Super Admin"]))
 
       // 0. List teacher courses with full curriculum
-      scope.get("/courses", async () => {
+      scope.get("/courses", async (req) => {
+        const ids = await teacherCourseIds(db, me(req))
         const [courseRows, modulesRows, lessonsRows, enrolledCounts] = await Promise.all([
-          db.select().from(courses).orderBy(asc(courses.position), asc(courses.title)),
-          db.select().from(course_modules).orderBy(asc(course_modules.position)),
-          db.select().from(lessons).orderBy(asc(lessons.position)),
-          db.select({ course_id: enrollments.course_id, n: sql<number>`count(*)::int` }).from(enrollments).groupBy(enrollments.course_id),
+          db.select().from(courses).where(inArray(courses.id, ids)).orderBy(asc(courses.position), asc(courses.title)),
+          db.select().from(course_modules).where(inArray(course_modules.course_id, ids)).orderBy(asc(course_modules.position)),
+          db.select().from(lessons).where(inArray(lessons.course_id, ids)).orderBy(asc(lessons.position)),
+          db.select({ course_id: enrollments.course_id, n: sql<number>`count(*)::int` }).from(enrollments).where(and(inArray(enrollments.course_id, ids), teacherStudentPredicate(me(req), enrollments.student_id, enrollments.course_id))).groupBy(enrollments.course_id),
         ])
 
         const countMap = new Map(enrolledCounts.map((e) => [e.course_id, e.n]))
@@ -98,7 +100,8 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
       })
 
       // 1. List teacher classes / live sessions
-      scope.get("/classes", async () => {
+      scope.get("/classes", async (req) => {
+        const ids = await teacherCourseIds(db, me(req))
         const slots = await db
           .select({
             id: timetable_slots.id,
@@ -115,6 +118,7 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
           })
           .from(timetable_slots)
           .leftJoin(courses, eq(courses.id, timetable_slots.course_id))
+          .where(inArray(timetable_slots.course_id, ids))
           .orderBy(asc(timetable_slots.day), asc(timetable_slots.starts))
 
         return { classes: slots }
@@ -138,17 +142,12 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
           req.body,
         )
 
-        let courseId = b.course_id
-        let courseCode = b.course_code
-        if (!courseId) {
-          const [c] = await db.select({ id: courses.id, code: courses.code }).from(courses).limit(1)
-          if (c) {
-            courseId = c.id
-            courseCode = courseCode || c.code
-          } else {
-            courseCode = courseCode || "AI-101"
-          }
-        }
+        if (!b.course_id) throw forbidden("Choose an assigned course.")
+        await assertCourseAccess(db, u, b.course_id)
+        const [course] = await db.select().from(courses).where(eq(courses.id, b.course_id))
+        if (!course) throw notFound("Course not found.")
+        const courseId = course.id
+        const courseCode = course.code
 
         const [slot] = await db
           .insert(timetable_slots)
@@ -178,7 +177,8 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
       })
 
       // 3. List doubts / student questions
-      scope.get("/doubts", async () => {
+      scope.get("/doubts", async (req) => {
+        const ids = await teacherCourseIds(db, me(req))
         const questions = await db
           .select({
             id: course_questions.id,
@@ -195,6 +195,7 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
           })
           .from(course_questions)
           .leftJoin(courses, eq(courses.id, course_questions.course_id))
+          .where(and(inArray(course_questions.course_id, ids), teacherStudentPredicate(me(req), course_questions.author_id, course_questions.course_id)))
           .orderBy(desc(course_questions.created_at))
 
         return { doubts: questions }
@@ -210,6 +211,11 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
           req.body,
         )
 
+        const [question] = await db.select().from(course_questions).where(eq(course_questions.id, req.params.id))
+        if (!question) throw notFound("Question not found.")
+        await assertCourseAccess(db, u, question.course_id)
+        const allowed = await db.select({ id: course_questions.id }).from(course_questions).where(and(eq(course_questions.id, question.id), teacherStudentPredicate(u, course_questions.author_id, course_questions.course_id)))
+        if (!allowed.length) throw forbidden("This learner is not assigned to you.")
         const [updated] = await db
           .update(course_questions)
           .set({
@@ -235,6 +241,7 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
 
       // 6. Create calendar event
       scope.post("/calendar", async (req) => {
+        if (!isAdmin(me(req))) throw forbidden("Only admins can create campus-wide events.")
         const b = parse(
           z.object({
             title: z.string().min(3).max(200),
@@ -268,21 +275,22 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
       })
 
       // 7. List students enrolled across teacher courses
-      scope.get("/students", async () => {
+      scope.get("/students", async (req) => {
+        const ids = await teacherCourseIds(db, me(req))
         const rows = (
           await db.execute(sql`
             select
               u.id, u.full_name as name, u.email, u.avatar_url,
-              coalesce(p.batch, 'Cohort 7 (Evening)') as batch_name,
+              coalesce(p.batch, '') as batch_name,
               coalesce(p.roll_number, '') as roll_number,
               coalesce(p.program, 'Artificial Intelligence') as program,
               count(distinct e.course_id)::int as enrolled_courses,
-              case when count(a.id) > 0 then (count(case when a.status in ('Present', 'Late') then 1 end)::numeric / count(a.id) * 100)::int else 92 end as attendance_rate
+              null::int as attendance_rate
             from lms.users u
             left join lms.profiles p on p.id = u.id
-            left join lms.enrollments e on e.student_id = u.id
+            left join lms.enrollments e on e.student_id = u.id and e.course_id in (select jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb))
             left join lms.attendance_records a on a.student_id = u.id
-            where u.role = 'Student'
+            where u.role = 'Student' and ${teacherStudentPredicate(me(req))}
             group by u.id, u.full_name, u.email, u.avatar_url, p.batch, p.roll_number, p.program
             order by u.full_name asc
           `)
@@ -292,7 +300,8 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
       })
 
       // 8. Teacher analytics and performance KPIs
-      scope.get("/analytics", async () => {
+      scope.get("/analytics", async (req) => {
+        const ids = await teacherCourseIds(db, me(req))
         const [stats] = (
           await db.execute(sql`
             select
@@ -301,9 +310,10 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
               count(distinct s.id)::int as live_sessions_scheduled,
               count(distinct q.id) filter (where q.answer_text is null)::int as pending_doubts
             from lms.courses c
-            left join lms.enrollments e on e.course_id = c.id
+            left join lms.enrollments e on e.course_id = c.id and ${teacherStudentPredicate(me(req), sql`e.student_id`, sql`c.id`)}
             left join lms.timetable_slots s on s.course_id = c.id
-            left join lms.course_questions q on q.course_id = c.id
+            left join lms.course_questions q on q.course_id = c.id and ${teacherStudentPredicate(me(req), sql`q.author_id`, sql`c.id`)}
+            where c.id in (select jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb))
           `)
         ).rows as any[]
 
@@ -313,8 +323,8 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
             total_courses: stats?.total_courses || 0,
             live_sessions: stats?.live_sessions_scheduled || 0,
             pending_doubts: stats?.pending_doubts || 0,
-            attendance_average: 94,
-            csat_rating: 4.92,
+            attendance_average: null,
+            csat_rating: null,
           },
         }
       })

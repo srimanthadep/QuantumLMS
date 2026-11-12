@@ -1,3 +1,4 @@
+import { course_teachers } from "../src/db/schema.js"
 import assert from "node:assert/strict"
 import { after, before, describe, test } from "node:test"
 import { createHarness, type TestHarness, type TestUser } from "./helpers.js"
@@ -10,6 +11,8 @@ before(async () => {
   h = await createHarness()
   student = await h.user({ name: "Student Maya", groups: ["students"] })
   teacher = await h.user({ name: "Teacher Shanmuk", groups: ["teachers"] })
+  const profile = await teacher.call("GET", "/api/me")
+  await h.ctx.db.insert(course_teachers).values({ course_id: "c-1", teacher_id: profile.body.id })
 })
 
 after(async () => {
@@ -38,6 +41,7 @@ describe("teacher workflow", () => {
   test("teacher can schedule a live class", async () => {
     const res = await teacher.call("POST", "/api/teacher/classes", {
       title: "Advanced PyTorch & CUDA Tuning",
+      course_id: "c-1",
       day: "Monday",
       starts: "11:00",
       ends: "12:30",

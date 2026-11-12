@@ -143,7 +143,7 @@ interface TeacherData {
   submitGradesForApproval: (key: string) => void
   requestRecordingPublish: (recordingId: string, targetModuleId?: string, targetLessonId?: string) => void
 
-  scheduleSession: (input: NewSessionInput) => LiveSessionItem
+  scheduleSession: (input: NewSessionInput) => Promise<LiveSessionItem>
   updateSession: (id: string, patch: Partial<LiveSessionItem>) => void
   startSession: (id: string) => void
   endSession: (id: string) => string
@@ -379,7 +379,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   )
 
   const scheduleSession = useCallback(
-    (input: NewSessionInput) => {
+    async (input: NewSessionInput) => {
       const course = courses.find((c) => c.id === input.courseId)
       const session: LiveSessionItem = {
         id: `ls-${Date.now()}`,
@@ -403,9 +403,8 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         topicsCovered: [],
         isReadOnly: false,
       }
-      setSessions((list) => [...list, session])
-      api
-        .post("/teacher/classes", {
+      const saved = await api
+        .post<{ classSession: { id: string } }>("/teacher/classes", {
           title: input.title,
           course_id: input.courseId,
           starts: input.startTime,
@@ -413,7 +412,8 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
           room: "Online Studio 1",
           is_online: true,
         })
-        .catch(() => {})
+      session.id = saved.classSession.id
+      setSessions((list) => [...list, session])
       return session
     },
     [courses, user.name, user.avatar],

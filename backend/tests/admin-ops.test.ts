@@ -48,10 +48,10 @@ describe("admin operations workflow", () => {
     assert.ok(Array.isArray(res.body.orders))
   })
 
-  test("admin can refund an order", async () => {
+  test("unconfigured refunds cannot report success", async () => {
     const res = await admin.call("POST", "/api/admin/orders/ord-123/refund")
-    assert.equal(res.status, 200)
-    assert.equal(res.body.status, "Refunded")
+    assert.equal(res.status, 503)
+    assert.equal(res.body.error.code, "payments_unavailable")
   })
 
   test("admin can read and patch settings", async () => {

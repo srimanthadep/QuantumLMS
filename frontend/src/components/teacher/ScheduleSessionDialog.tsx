@@ -84,7 +84,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
     setErrors({})
   }, [open, session, defaultCourseId, courses])
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     const next = {
       title: title.trim().length < 4 ? "Give the class a title of at least 4 characters." : undefined,
@@ -92,6 +92,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
     }
     setErrors(next)
     if (next.title || next.time) return
+    try {
     if (session) {
       updateSession(session.id, {
         title: title.trim(),
@@ -109,7 +110,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
       })
       notify(`Rescheduled “${title.trim()}” to ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
     } else {
-      const s = scheduleSession({
+      const s = await scheduleSession({
         title: title.trim(),
         courseId,
         scheduledDate: date,
@@ -122,6 +123,7 @@ export default function ScheduleSessionDialog({ open, onOpenChange, defaultCours
       notify(`Scheduled “${s.title}” for ${dayLabel(date).toLowerCase()}, ${formatTimeRange(start, end)}`)
     }
     onOpenChange(false)
+    } catch (error) { notify((error as Error).message) }
   }
 
   return (

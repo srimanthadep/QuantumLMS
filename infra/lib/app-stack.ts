@@ -23,6 +23,8 @@ export interface AppStackProps extends StackProps {
   userPoolClient: cognito.IUserPoolClient
   /** Complete ARN of the Secrets Manager secret that holds DATABASE_URL. */
   databaseSecretArn: string
+  /** Optional PEM CA for a database with a private certificate chain. */
+  databaseCaCert?: string
   /** API tasks to run. Each keeps up to DATABASE_POOL_MAX (5) database connections. */
   apiTasks: number
   demoMode: boolean
@@ -89,7 +91,8 @@ export class AppStack extends Stack {
           LOG_LEVEL: "info",
           // CloudFront serves the site and /api on one origin, so no other origin needs CORS.
           CORS_ORIGINS: "",
-          DATABASE_SSL: "require",
+          DATABASE_SSL: "verify",
+          ...(props.databaseCaCert ? { DATABASE_CA_CERT: props.databaseCaCert } : {}),
           // Connections per task. Supabase's session pooler allows 15 clients in total on its smallest size.
           DATABASE_POOL_MAX: "5",
           COGNITO_REGION: this.region,

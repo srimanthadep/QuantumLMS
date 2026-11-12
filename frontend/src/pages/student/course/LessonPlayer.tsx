@@ -1,3 +1,4 @@
+import { api } from "@/lib/api"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Captions, Check, FileText, FlaskConical, Maximize2, Minimize2, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
@@ -139,12 +140,23 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const track = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Multi-Quality Profiles (1080p, 720p, 480p, 144p)
-  const qualities = useMemo(() => {
-    const raw = lesson.videoQualities || lesson.video_qualities
-    if (!raw || typeof raw !== "object" || Object.keys(raw).length === 0) return null
-    return raw as Record<string, { label: string; height?: number; url: string; size?: number } | string>
-  }, [lesson.videoQualities, lesson.video_qualities])
+  const [playback, setPlayback] = useState<{ url: string; qualities: Record<string, { url: string; label?: string; height?: number }> } | null>(null)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
+  const resumeAt = useRef(0)
+  useEffect(() => {
+    let disposed = false
+    setPlayback(null)
+    setPlaybackError(null)
+    resumeAt.current = 0
+    if (lesson.type !== "video") return
+    const load = () => api.post<{ url: string; qualities: Record<string, { url: string }> }>(`/student/lessons/${encodeURIComponent(lesson.id)}/playback`)
+      .then((result) => { if (!disposed) { resumeAt.current = videoRef.current?.currentTime ?? 0; setPlayback(result); setPlaybackError(null) } })
+      .catch((error) => { if (!disposed) { setPlayback(null); setPlaying(false); setPlaybackError((error as Error).message) } })
+    void load()
+    const renewal = setInterval(() => { void load() }, 240_000)
+    return () => { disposed = true; clearInterval(renewal) }
+  }, [lesson.id, lesson.type])
+  const qualities = playback?.qualities ?? null
 
   const [quality, setQuality] = useState<string>("auto")
 
@@ -163,8 +175,8 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
       const q = qualities["1080p"]
       return typeof q === "string" ? q : q.url
     }
-    return lesson.videoUrl || lesson.video_url || ""
-  }, [quality, qualities, lesson.videoUrl, lesson.video_url])
+    return playback?.url ?? ""
+  }, [quality, qualities, playback?.url])
 
   // Parse [mm:ss - mm:ss] or [mm:ss.ms - mm:ss.ms] transcript time stamps for live synchronized captions
   const transcriptSegments = useMemo(() => {
@@ -208,7 +220,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     setPosition(completed ? duration : 0)
     const v = videoRef.current
     if (v) {
-      v.currentTime = completed ? duration : 0
+      v.currentTime = resumeAt.current
       if (autoPlay && activeVideoSrc) {
         v.play().catch(() => {
           v.muted = true
@@ -220,18 +232,11 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
         v.pause()
       }
     } else {
-      setPlaying(Boolean(autoPlay && !activeVideoSrc))
+      setPlaying(false)
     }
     // reset only when the lesson changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id, autoPlay, activeVideoSrc])
-
-  // Simulated timer ticker fallback only when there is NO real video element loaded
-  useEffect(() => {
-    if (activeVideoSrc || !playing) return
-    const t = setInterval(() => setPosition((p) => Math.min(duration, p + Number(speed))), 1000)
-    return () => clearInterval(t)
-  }, [activeVideoSrc, playing, speed, duration])
 
   useEffect(() => {
     if (playing && position >= duration && duration > 0) {
@@ -251,8 +256,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
         videoRef.current.pause()
       }
     } else {
-      if (position >= duration) setPosition(0)
-      setPlaying((p) => !p)
+      setPlaying(false)
     }
   }
 
@@ -288,7 +292,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
 
     let targetSrc = ""
     if (newQuality === "auto") {
-      targetSrc = lesson.videoUrl || lesson.video_url || ""
+      targetSrc = playback?.url ?? ""
     } else if (qualities && qualities[newQuality]) {
       const q = qualities[newQuality]
       targetSrc = typeof q === "string" ? q : q.url
@@ -296,6 +300,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
 
     if (targetSrc && targetSrc !== video.src) {
       const currentTime = video.currentTime
+      resumeAt.current = currentTime
       const wasPlaying = !video.paused
       video.src = targetSrc
       video.currentTime = currentTime
@@ -400,6 +405,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           isCompact && "shadow-2xl ring-1 ring-border/50",
         )}
       >
+      {!activeVideoSrc && <p role="status" className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-white">{playbackError ?? "Preparing secure playback..."}</p>}
       {activeVideoSrc ? (
         <video
           ref={videoRef}
@@ -409,6 +415,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           playsInline
           preload="metadata"
           onLoadedMetadata={(e) => {
+            e.currentTarget.currentTime = resumeAt.current
             const d = e.currentTarget.duration
             if (d && !isNaN(d) && isFinite(d)) {
               setDuration(d)

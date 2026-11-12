@@ -1,51 +1,41 @@
 import assert from "node:assert/strict"
-import test, { describe } from "node:test"
-import { createHarness, type TestHarness } from "./helpers.js"
+import { test } from "node:test"
+import { once } from "node:events"
+import { createHarness } from "./helpers.js"
 
-describe("HTTP browser caching and ETags", () => {
-  let h: TestHarness
+test("personalized responses cannot be shared or revalidated across accounts", async () => {
+  const h = await createHarness()
+  try {
+    const u = await h.user()
+    const res = await h.app.inject({ method: "GET", url: "/api/student/core", headers: { authorization: `Bearer ${u.token}`, "if-none-match": "*" } })
+    assert.equal(res.statusCode, 200)
+    assert.equal(res.headers["cache-control"], "private, no-store")
+    assert.equal(res.headers.etag, undefined)
+    assert.equal((await h.app.inject({ method: "GET", url: "/api/ws/stats" })).statusCode, 401)
+    assert.equal((await u.call("GET", "/api/ws/stats")).status, 403)
+  } finally { await h.close() }
+})
 
-  test("GET endpoints return ETag and Cache-Control headers", async () => {
-    h = await createHarness()
-    try {
-      const res1 = await h.app.inject({
-        method: "GET",
-        url: "/api/ws/stats",
-      })
-      assert.equal(res1.statusCode, 200)
-      const etag = res1.headers["etag"]
-      assert.ok(etag, "Response must include an ETag header")
-      assert.ok(res1.headers["cache-control"], "Response must include Cache-Control header")
-
-      // Second request with If-None-Match should return 304 Not Modified
-      const res2 = await h.app.inject({
-        method: "GET",
-        url: "/api/ws/stats",
-        headers: {
-          "if-none-match": etag as string,
-        },
-      })
-      assert.equal(res2.statusCode, 304, "Server must reply with 304 Not Modified when ETag matches")
-      assert.equal(res2.payload, "", "304 response payload must be empty")
-    } finally {
-      await h.close()
+test("WebSocket upgrade and channel subscriptions enforce identity and membership", async () => {
+  const h = await createHarness()
+  try {
+    await h.app.ready()
+    await assert.rejects(h.app.injectWS("/api/ws", { socket: { remoteAddress: "127.0.0.1" } as never }), /401/)
+    const a = await h.user()
+    const b = await h.user()
+    const aid = (await a.call("GET", "/api/me")).body.id
+    const bid = (await b.call("GET", "/api/me")).body.id
+    const ws = await h.app.injectWS("/api/ws", { socket: { remoteAddress: "127.0.0.1" } as never, headers: { authorization: `Bearer ${a.token}` } })
+    const command = async (data: unknown) => {
+      const next = once(ws, "message")
+      ws.send(JSON.stringify(data))
+      return JSON.parse(String((await next)[0]))
     }
-  })
-
-  test("WebSocket gateway status and telemetry endpoint", async () => {
-    h = await createHarness()
     try {
-      const res = await h.app.inject({
-        method: "GET",
-        url: "/api/ws/stats",
-      })
-      assert.equal(res.statusCode, 200)
-      const body = JSON.parse(res.payload)
-      assert.ok(typeof body.activeSockets === "number")
-      assert.ok(typeof body.totalChannels === "number")
-      assert.ok(Array.isArray(body.channelList))
-    } finally {
-      await h.close()
-    }
-  })
+      assert.equal((await command({ action: "subscribe", channel: `user:${aid}` })).action, "subscribed")
+      assert.equal((await command({ action: "subscribe", channel: `user:${bid}` })).action, "error")
+      assert.equal((await command({ action: "publish", channel: `chat:${aid}`, event: "message", sender: { id: bid }, payload: "forged" })).action, "error")
+      assert.equal((await command({ action: "subscribe", channel: "notifications" })).action, "error")
+    } finally { ws.terminate() }
+  } finally { await h.close() }
 })

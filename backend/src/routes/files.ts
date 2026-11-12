@@ -3,6 +3,10 @@ import path from "node:path"
 import type { FastifyInstance } from "fastify"
 import type { AppContext } from "../context.js"
 import { badRequest, notFound } from "../errors.js"
+import { authenticate, me } from "../http.js"
+import { authorizeMediaKey, mediaKey, signedMedia } from "../storage/protected.js"
+import { eq } from "drizzle-orm"
+import { upload_intents } from "../db/schema.js"
 import { BUCKETS } from "../storage/storage.js"
 
 const TYPES: Record<string, string> = {
@@ -16,46 +20,23 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get<{ Params: { "*": string } }>("/api/files/avatars/*", async (req, reply) => {
     const key = `avatars/${req.params["*"]}`
     if (key.includes("..") || !(await ctx.storage.head(key))) throw notFound("Photo not found.")
-    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 3600 })
+    const intent = await ctx.db.query.upload_intents.findFirst({ where: eq(upload_intents.key, key) })
+    if (intent && intent.state !== "verified") throw notFound("Photo not available.")
+    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 300 })
     reply.header("Cache-Control", "public, max-age=3000")
     return reply.redirect(url, 302)
   })
 
-  // Video streaming with partial byte-range support (HTML5 video scrubbing/seeking)
-  app.get<{ Params: { "*": string } }>("/api/files/videos/*", async (req, reply) => {
-    const rawKey = req.params["*"]
-    const key = rawKey.startsWith("videos/") ? rawKey : `videos/${rawKey}`
-    if (key.includes("..")) throw notFound("Video not found.")
-
-    const range = req.headers.range
-    if (ctx.storage.stream) {
-      const res = await ctx.storage.stream(key, range)
-      if (res) {
-        reply.header("Content-Type", res.contentType || "video/mp4")
-        reply.header("Accept-Ranges", res.acceptRanges || "bytes")
-        if (res.contentRange) reply.header("Content-Range", res.contentRange)
-        if (res.contentLength !== undefined) reply.header("Content-Length", String(res.contentLength))
-        reply.code(res.statusCode || (range ? 206 : 200))
-        return reply.send(res.stream)
-      }
-    }
-
-    const head = await ctx.storage.head(key)
-    if (!head) throw notFound("Video not found.")
-    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 86400 })
-    return reply.redirect(url, 302)
-  })
-
-  // General material / file downloads (PDFs, slides, notebooks)
-  app.get<{ Params: { "*": string } }>("/api/files/materials/*", async (req, reply) => {
-    const rawKey = req.params["*"]
-    const key = rawKey.startsWith("materials/") ? rawKey : `materials/${rawKey}`
-    if (key.includes("..")) throw notFound("File not found.")
-    const head = await ctx.storage.head(key)
-    if (!head) throw notFound("Material file not found.")
-    const url = await ctx.storage.createDownloadUrl(key, { expiresInSeconds: 86400 })
-    return reply.redirect(url, 302)
-  })
+  for (const kind of ["videos", "materials"] as const) {
+    app.get<{ Params: { "*": string } }>(`/api/files/${kind}/*`, { preHandler: authenticate(ctx) }, async (req, reply) => {
+      const key = mediaKey(req.params["*"], kind)
+      if (!key) throw notFound("File not found.")
+      await authorizeMediaKey(ctx, me(req), key, kind)
+      const url = await signedMedia(ctx, key)
+      reply.header("Cache-Control", "private, no-store")
+      return req.headers.accept?.includes("application/json") ? { url } : reply.redirect(url, 302)
+    })
+  }
 
   const local = ctx.localStorage
   if (!local) return
@@ -71,7 +52,8 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
       const body = req.body as Buffer
       if (!Buffer.isBuffer(body)) throw badRequest("Send the file as the request body.")
       if (t.max && body.length > t.max) throw badRequest("That file is too large.", "too_large")
-      await local.write(t.key, body)
+      if (req.headers["content-type"]?.split(";")[0] !== t.type) throw badRequest("Upload content type mismatch.")
+      await local.write(t.key, body, t.type)
       return reply.code(200).send({ key: t.key, size: body.length })
     })
   })
