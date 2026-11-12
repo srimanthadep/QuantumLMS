@@ -1,3 +1,4 @@
+import { mediaRoutes } from "../../media/routes.js"
 import type { FastifyInstance } from "fastify"
 import type { AppContext } from "../../context.js"
 import { authenticate } from "../../http.js"
@@ -12,6 +13,7 @@ export async function adminModule(app: FastifyInstance, ctx: AppContext) {
       // Require Admin or Super Admin role for all /api/admin endpoints
       scope.addHook("preHandler", authenticate(ctx, ["Admin", "Super Admin"]))
       await adminCoursesRoutes(scope, ctx)
+      await mediaRoutes(scope, ctx)
       await adminBatchRoutes(scope, ctx)
       await adminOperationsRoutes(scope, ctx)
       await adminAlumniRoutes(scope, ctx)

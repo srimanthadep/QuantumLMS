@@ -1,7 +1,4 @@
-import { execFile } from "node:child_process"
-import fs from "node:fs"
-import os from "node:os"
-import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -18,7 +15,7 @@ import {
 } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
-import { transcodeMultiQuality } from "../../services/video_transcode.js"
+import { assertPublishable } from "../../media/publication.js"
 import { invalidateCatalogCache } from "../student/courses.js"
 
 export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -137,7 +134,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     is_starter: z.boolean().default(false),
     price: z.number().int().min(0).max(10_000_000).default(39999),
     capacity: z.number().int().min(1).max(100_000).default(250),
-    status: z.enum(["Published", "Draft", "Archived"]).default("Published"),
+    status: z.enum(["Published", "Draft", "Archived"]).default("Draft"),
   })
 
   app.post("/courses", async (req, reply) => {
@@ -184,41 +181,19 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         level: input.level,
         credits: input.credits,
         duration: input.duration,
-        rating: "5.0",
-        reviews: "1",
+        rating: "",
+        reviews: "0",
         progress_color: "#6d4aff",
         certificate_title: input.certificate_title || `${input.title} Specialist`,
         certificate_skills: input.certificate_skills || [input.category, "AI Systems", "Hands-on Labs"],
         is_starter: input.is_starter,
         price: input.price,
         capacity: input.capacity,
-        status: input.status,
+        status: "Draft",
         position: nextPos,
       })
       .returning()
 
-    // Create an initial starter module and starter lesson so it can be viewed and taken by learners immediately
-    const moduleId = `m-${courseId}-1`
-    await db.insert(course_modules).values({
-      id: moduleId,
-      course_id: courseId,
-      position: 1,
-      title: "Module 1: Orientation & Architecture Setup",
-      duration: "4 hours",
-    })
-
-    const lessonId = `l-${courseId}-1`
-    await db.insert(lessons).values({
-      id: lessonId,
-      course_id: courseId,
-      module_id: moduleId,
-      position: 1,
-      title: "1.1 Welcome, Prerequisites & Environment Setup",
-      duration: "20m",
-      minutes: 20,
-      type: "video",
-      summary: `Welcome to ${input.title}. In this initial lesson we establish development tools, environment dependencies, and project structure.`,
-    })
     invalidateCatalogCache()
 
     reply.code(201)
@@ -227,8 +202,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       course: {
         ...created,
         enrolled_students: 0,
-        modules_count: 1,
-        lessons_count: 1,
+        modules_count: 0,
+        lessons_count: 0,
         cohort_count: 0,
       },
     }
@@ -255,18 +230,14 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.patch<{ Params: { id: string } }>("/courses/:id", async (req) => {
     const patch = parse(patchSchema, req.body)
 
-    const [existing] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
-    if (!existing) throw notFound("Course not found.")
-
-    if (Object.keys(patch).length === 0) {
-      return { ok: true, course: existing }
-    }
-
-    const [updated] = await db
-      .update(courses)
-      .set(patch)
-      .where(eq(courses.id, req.params.id))
-      .returning()
+    const updated = await db.transaction(async tx => {
+      const [existing] = await tx.select().from(courses).where(eq(courses.id, req.params.id)).for("update")
+      if (!existing) throw notFound("Course not found")
+      if (!Object.keys(patch).length) return existing
+      if (patch.status === "Published") await assertPublishable(tx, req.params.id)
+      const [row] = await tx.update(courses).set(patch).where(eq(courses.id, req.params.id)).returning()
+      return row
+    })
     invalidateCatalogCache()
 
     return { ok: true, course: updated }
@@ -291,40 +262,13 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.post<{ Params: { id: string } }>("/courses/:id/modules", async (req, reply) => {
     const input = parse(moduleSchema, req.body)
     const courseId = req.params.id
-    let [c] = await db.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).limit(1)
-    if (!c) {
-      await db
-        .insert(courses)
-        .values({
-          id: courseId,
-          code: `CRSE-${courseId.slice(-6).toUpperCase()}`,
-          title: "Course " + courseId,
-          category: "LLM Engineering",
-          instructor: "Lead Instructor",
-          level: "Intermediate",
-        })
-        .onConflictDoNothing()
-      const [newC] = await db.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).limit(1)
-      c = newC
-    }
-
-    const [maxPos] = await db
-      .select({ max: sql<number>`coalesce(max(${course_modules.position}), 0)` })
-      .from(course_modules)
-      .where(eq(course_modules.course_id, courseId))
-    const nextPos = (maxPos?.max ?? 0) + 1
-    const moduleId = `m-${courseId}-${nextPos}`
-
-    const [moduleRow] = await db
-      .insert(course_modules)
-      .values({
-        id: moduleId,
-        course_id: courseId,
-        position: nextPos,
-        title: input.title,
-        duration: input.duration,
-      })
-      .returning()
+    const moduleRow = await db.transaction(async tx => {
+      const [course] = await tx.select().from(courses).where(eq(courses.id, courseId)).for("update")
+      if (!course) throw notFound("Course not found")
+      const [pos] = await tx.select({ max: sql<number>`coalesce(max(${course_modules.position}), 0)::int` }).from(course_modules).where(eq(course_modules.course_id, courseId))
+      const [row] = await tx.insert(course_modules).values({ id: randomUUID(), course_id: courseId, position: pos.max + 1, title: input.title, duration: input.duration }).returning()
+      return row
+    })
     invalidateCatalogCache()
 
     reply.code(201)
@@ -366,46 +310,19 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.post<{ Params: { id: string } }>("/courses/:id/lessons", async (req, reply) => {
     const input = parse(lessonSchema, req.body)
     const courseId = req.params.id
-    let [c] = await db.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).limit(1)
-    if (!c) {
-      await db
-        .insert(courses)
-        .values({
-          id: courseId,
-          code: `CRSE-${courseId.slice(-6).toUpperCase()}`,
-          title: "Course " + courseId,
-          category: "LLM Engineering",
-          instructor: "Lead Instructor",
-          level: "Intermediate",
-        })
-        .onConflictDoNothing()
-      const [newC] = await db.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).limit(1)
-      c = newC
-    }
-
-    const [maxPos] = await db
-      .select({ max: sql<number>`coalesce(max(${lessons.position}), 0)` })
-      .from(lessons)
-      .where(eq(lessons.course_id, courseId))
-    const nextPos = (maxPos?.max ?? 0) + 1
-    const lessonId = `l-${courseId}-${nextPos}`
-
-    const [lessonRow] = await db
-      .insert(lessons)
-      .values({
-        id: lessonId,
-        course_id: courseId,
-        module_id: input.moduleId,
-        position: nextPos,
-        title: input.title,
-        duration: input.duration,
-        minutes: input.minutes,
-        type: input.type,
-        summary: input.summary,
-        video_url: input.videoUrl || null,
-        video_qualities: input.videoQualities || {},
-      })
-      .returning()
+    if (input.videoUrl || input.videoQualities) throw badRequest("Attach a ready media asset instead of a raw video URL")
+    const lessonRow = await db.transaction(async tx => {
+      const [course] = await tx.select().from(courses).where(eq(courses.id, courseId)).for("update")
+      if (!course) throw notFound("Course not found")
+      const [module] = await tx.select().from(course_modules).where(and(eq(course_modules.id, input.moduleId), eq(course_modules.course_id, courseId)))
+      if (!module) throw badRequest("The module must belong to this course")
+      const [pos] = await tx.select({ max: sql<number>`coalesce(max(${lessons.position}), 0)::int` }).from(lessons).where(eq(lessons.course_id, courseId))
+      const [row] = await tx.insert(lessons).values({ id: randomUUID(), course_id: module.course_id, module_id: module.id, position: pos.max + 1,
+        title: input.title, duration: input.duration, minutes: input.minutes, type: input.type, summary: input.summary }).returning()
+      // Editing structure requires review and an explicit publish action.
+      await tx.update(courses).set({ status: "Draft" }).where(eq(courses.id, courseId))
+      return row
+    })
     invalidateCatalogCache()
 
     reply.code(201)
@@ -415,6 +332,11 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.patch<{ Params: { id: string; lessonId: string } }>("/courses/:id/lessons/:lessonId", async (req) => {
     const patchSchema = lessonSchema.partial()
     const input = parse(patchSchema, req.body)
+    if (input.videoUrl !== undefined || input.videoQualities !== undefined) throw badRequest("Attach a ready media asset instead of a raw video URL")
+    if (input.moduleId) {
+      const [module] = await db.select().from(course_modules).where(and(eq(course_modules.id, input.moduleId), eq(course_modules.course_id, req.params.id)))
+      if (!module) throw badRequest("The module must belong to this course")
+    }
     const updateData: any = {}
     if (input.moduleId !== undefined) updateData.module_id = input.moduleId
     if (input.title !== undefined) updateData.title = input.title
@@ -511,6 +433,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const contentType = (req.headers["content-type"] as string) || "application/octet-stream"
 
     const data = req.body as Buffer
+    if (data?.length > 20 * 1024 * 1024 || !["application/pdf", "application/json", "text/plain", "application/zip", "application/octet-stream"].includes(contentType)) throw badRequest("Materials must be an allowed document under 20 MB")
     if (!data || !Buffer.isBuffer(data) || data.length === 0) {
       return reply.code(400).send({ error: "Missing or empty file payload." })
     }
@@ -618,415 +541,4 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     }
   })
 
-  // 7. Video Course Presigned Upload Target (Cloudflare R2 'videos' folder)
-  const videoPresignSchema = z.object({
-    filename: z.string().min(1),
-    contentType: z.string().min(1),
-    courseId: z.string().optional(),
-    isAudio: z.boolean().optional(),
-  })
-
-  app.post("/courses/video-presign", async (req) => {
-    const input = parse(videoPresignSchema, req.body)
-    const courseId = input.courseId || `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
-    const safeName = input.filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100)
-    const folder = input.isAudio ? "audio" : "video"
-    const key = `videos/${courseId}/${folder}/${Date.now()}-${safeName}`
-
-    // Use max 5GB for video or 100MB for audio
-    const maxBytes = input.isAudio ? 100 * 1024 * 1024 : 5 * 1024 * 1024 * 1024
-    const upload = await ctx.storage.createUpload({
-      key,
-      contentType: input.contentType,
-      maxBytes,
-    })
-
-    return {
-      courseId,
-      key,
-      uploadUrl: upload.url,
-      method: upload.method,
-      headers: upload.headers,
-      expiresAt: upload.expiresAt,
-    }
-  })
-
-  // Direct Server-Side Video Upload to Cloudflare R2 (Bypasses Browser CORS)
-  app.post("/courses/video-upload", async (req, reply) => {
-    const query = req.query as { courseId?: string; filename?: string; key?: string }
-    const courseId = query.courseId || `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
-    const rawFilename = query.filename || (req.headers["x-filename"] as string) || "video.mp4"
-    const safeName = rawFilename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100)
-    const key = query.key || `videos/${courseId}/video/${Date.now()}-${safeName}`
-    const contentType = (req.headers["content-type"] as string) || "video/mp4"
-
-    const data = req.body as Buffer
-    if (!data || !Buffer.isBuffer(data) || data.length === 0) {
-      return reply.code(400).send({ error: "Missing or empty video payload." })
-    }
-
-    await ctx.storage.put(key, data, contentType)
-
-    // Cache temporary local copy for immediate fast multi-quality transcoding
-    const tempUploadPath = path.join(os.tmpdir(), `upload_${courseId}.mp4`)
-    await fs.promises.writeFile(tempUploadPath, data).catch(() => {})
-
-    return {
-      ok: true,
-      courseId,
-      key,
-      size: data.length,
-      contentType,
-    }
-  })
-
-  // Multi-Quality Video Processing (1080p, 720p, 480p, 144p)
-  const transcodeSchema = z.object({
-    courseId: z.string().min(1),
-    videoKey: z.string().min(1),
-  })
-
-  app.post("/courses/video-transcode", async (req) => {
-    const input = parse(transcodeSchema, req.body)
-    const tempDir = os.tmpdir()
-    const tempUploadPath = path.join(tempDir, `upload_${input.courseId}.mp4`)
-
-    let sourcePath = tempUploadPath
-    let cleanupSource = false
-
-    if (!fs.existsSync(tempUploadPath)) {
-      const buffer = await ctx.storage.getBuffer?.(input.videoKey)
-      if (!buffer) throw notFound("Source video not found in storage.")
-      sourcePath = path.join(tempDir, `source_${Date.now()}_${input.courseId}.mp4`)
-      await fs.promises.writeFile(sourcePath, buffer)
-      cleanupSource = true
-    }
-
-    try {
-      const qualities = await transcodeMultiQuality(sourcePath, input.courseId, ctx.storage)
-
-      // If a lesson already exists, update its video_qualities and video_url
-      await db
-        .update(lessons)
-        .set({
-          video_qualities: qualities,
-          video_url: qualities["720p"]?.url || qualities["1080p"]?.url || `/api/files/videos/${input.videoKey}`,
-        })
-        .where(eq(lessons.course_id, input.courseId))
-      invalidateCatalogCache()
-
-      return {
-        ok: true,
-        courseId: input.courseId,
-        qualities,
-      }
-    } finally {
-      if (cleanupSource) {
-        fs.unlink(sourcePath, () => {})
-      }
-      fs.unlink(tempUploadPath, () => {})
-    }
-  })
-
-  // 8. Streamed Audio Chunk Ingestion & Transcription (VAD-aware)
-  const chunkSchema = z.object({
-    courseId: z.string(),
-    chunkIndex: z.number().int().min(0),
-    totalChunks: z.number().int().min(1),
-    startTime: z.number().min(0),
-    endTime: z.number().min(0),
-    isSilent: z.boolean().default(false),
-    audioData: z.string().optional(), // base64 encoded 16kHz WAV chunk
-    audioKey: z.string().optional(),
-    modelChoice: z.enum(["parakeet", "whisper-multilingual"]).default("parakeet"),
-    language: z.string().default("en"),
-    title: z.string().optional(),
-  })
-
-  app.post("/courses/audio-chunk", async (req) => {
-    const input = parse(chunkSchema, req.body)
-
-    // Save audio chunk to Cloudflare R2 if data provided
-    let savedKey = input.audioKey
-    if (input.audioData && !savedKey) {
-      try {
-        const audioBuffer = Buffer.from(input.audioData, "base64")
-        savedKey = `videos/${input.courseId}/audio/chunk_${input.chunkIndex.toString().padStart(4, "0")}.wav`
-        await ctx.storage.put(savedKey, audioBuffer, "audio/wav")
-      } catch (err) {
-        req.log.warn({ err }, "Could not persist audio chunk to R2")
-      }
-    }
-
-    // 1. If VAD detected silence: skip heavy ASR computation entirely
-    if (input.isSilent) {
-      return {
-        chunkIndex: input.chunkIndex,
-        startTime: input.startTime,
-        endTime: input.endTime,
-        text: "",
-        confidence: 1.0,
-        isSilent: true,
-        skipped: true,
-        modelUsed: input.modelChoice,
-        audioKey: savedKey,
-      }
-    }
-
-    // 2. Perform speech transcription with real neural ASR model
-    // NVIDIA Parakeet TDT 0.6B / OpenAI Whisper neural engine
-    const startM = Math.floor(input.startTime / 60)
-    const startS = Math.floor(input.startTime % 60).toString().padStart(2, "0")
-    const endM = Math.floor(input.endTime / 60)
-    const endS = Math.floor(input.endTime % 60).toString().padStart(2, "0")
-    const timestampLabel = `[${startM}:${startS} - ${endM}:${endS}]`
-
-    let extractedText = ""
-    let extractedSegments: { start: number; end: number; text: string }[] = []
-    let confidence = 0.95
-    let engineLabel = input.modelChoice === "parakeet" ? "OpenAI Whisper / Parakeet" : "Faster-Whisper Indic"
-
-    if (input.audioData) {
-      try {
-        const audioBuffer = Buffer.from(input.audioData, "base64")
-        const tempWav = path.join(os.tmpdir(), `chunk_${Date.now()}_${input.chunkIndex}.wav`)
-        await fs.promises.writeFile(tempWav, audioBuffer)
-
-        const pythonBin = fs.existsSync("C:\\Python314\\python.exe")
-          ? "C:\\Python314\\python.exe"
-          : fs.existsSync("C:\\Users\\srima\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
-          ? "C:\\Users\\srima\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
-          : "python"
-
-        const scriptPath = path.resolve(process.cwd(), "scripts/transcribe_chunk.py")
-
-        const asrResult = await new Promise<{
-          text: string
-          confidence: number
-          engine?: string
-          model?: string
-          segments?: { start: number; end: number; text: string }[]
-        }>((resolve) => {
-          execFile(
-            pythonBin,
-            [scriptPath, "--audio", tempWav, "--model", input.modelChoice, "--language", input.language || "en"],
-            { timeout: 45000 },
-            (err, stdout, stderr) => {
-              fs.unlink(tempWav, () => {})
-              if (err || !stdout.trim()) {
-                req.log.warn({ err, stderr }, "Neural transcription execution error")
-                resolve({ text: "", confidence: 0.85, segments: [] })
-                return
-              }
-              try {
-                const lines = stdout.trim().split("\n")
-                const lastLine = lines.filter((l) => l.trim().startsWith("{")).pop() || "{}"
-                const parsed = JSON.parse(lastLine)
-                resolve({
-                  text: parsed.text || "",
-                  confidence: parsed.confidence || 0.95,
-                  engine: parsed.engine,
-                  model: parsed.model,
-                  segments: Array.isArray(parsed.segments) ? parsed.segments : [],
-                })
-              } catch {
-                resolve({ text: "", confidence: 0.85, segments: [] })
-              }
-            }
-          )
-        })
-
-        extractedText = asrResult.text
-        extractedSegments = asrResult.segments || []
-        confidence = asrResult.confidence
-        if (asrResult.engine) {
-          engineLabel = `${asrResult.engine} (${asrResult.model || input.modelChoice})`
-        }
-      } catch (err) {
-        req.log.error({ err }, "Error processing audio chunk for transcription")
-      }
-    }
-
-    return {
-      chunkIndex: input.chunkIndex,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      timestampLabel,
-      text: extractedText,
-      confidence,
-      isSilent: false,
-      skipped: false,
-      modelUsed: engineLabel,
-      audioKey: savedKey,
-      segments: extractedSegments,
-    }
-  })
-
-  // 9. Finalize Video Course with Extracted Audio & Full Assembled Transcript
-  const finalizeSchema = z.object({
-    courseId: z.string().optional(),
-    title: z.string().trim().min(3).max(150),
-    code: z.string().trim().min(2).max(30).optional(),
-    category: z.string().trim().min(2).max(100),
-    instructor: z.string().trim().min(2).max(100),
-    description: z.string().trim().max(2000).optional(),
-    level: z.enum(["Beginner", "Intermediate", "Advanced"]).default("Beginner"),
-    duration: z.string().trim().max(50).default("12 Weeks"),
-    videoKey: z.string().min(1),
-    audioKey: z.string().optional(),
-    modelUsed: z.string().default("NVIDIA Parakeet-TDT-0.6B"),
-    chunks: z.array(
-      z.object({
-        chunkIndex: z.number(),
-        startTime: z.number(),
-        endTime: z.number(),
-        text: z.string(),
-        isSilent: z.boolean(),
-      })
-    ),
-    fullTranscript: z.string().default(""),
-    totalDurationSeconds: z.number().default(0),
-    qualities: z.record(z.string(), z.any()).optional(),
-    moduleId: z.string().optional(),
-  })
-
-  app.post("/courses/video-finalize", async (req) => {
-    const input = parse(finalizeSchema, req.body)
-
-    const mins = Math.max(1, Math.round(input.totalDurationSeconds / 60))
-    const formattedDuration = mins >= 60 ? `${(mins / 60).toFixed(1)} Hours` : `${mins} Mins`
-
-    const existingCourse = input.courseId
-      ? (await db.select().from(courses).where(eq(courses.id, input.courseId)).limit(1))[0]
-      : null
-
-    let courseRecord = existingCourse
-    let courseId = existingCourse ? existingCourse.id : (input.courseId || `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`)
-    let moduleId: string
-    let lessonPosition = 1
-
-    if (existingCourse) {
-      if (input.moduleId) {
-        moduleId = input.moduleId
-      } else {
-        const [maxModRow] = await db
-          .select({ max: sql<number>`coalesce(max(${course_modules.position}), 0)` })
-          .from(course_modules)
-          .where(eq(course_modules.course_id, existingCourse.id))
-        const nextModPos = (maxModRow?.max ?? 0) + 1
-        moduleId = `m-${existingCourse.id}-${nextModPos}`
-        await db.insert(course_modules).values({
-          id: moduleId,
-          course_id: existingCourse.id,
-          position: nextModPos,
-          title: input.title.startsWith("Module") || input.title.startsWith("Chapter") ? input.title : `Chapter ${nextModPos}: ${input.title}`,
-          duration: formattedDuration,
-        })
-      }
-
-      const [maxLessonRow] = await db
-        .select({ max: sql<number>`coalesce(max(${lessons.position}), 0)` })
-        .from(lessons)
-        .where(eq(lessons.course_id, existingCourse.id))
-      lessonPosition = (maxLessonRow?.max ?? 0) + 1
-    } else {
-      let code = input.code
-      if (!code) {
-        const prefix = input.category
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 3) || "AI"
-        code = `${prefix}-${Math.floor(100 + Math.random() * 899)}`
-      }
-
-      const [maxPosRow] = await db
-        .select({ max: sql<number>`coalesce(max(${courses.position}), 0)` })
-        .from(courses)
-      const nextPos = (maxPosRow?.max ?? 0) + 1
-
-      const [created] = await db
-        .insert(courses)
-        .values({
-          id: courseId,
-          code,
-          title: input.title,
-          category: input.category,
-          image: "/assets/course_genai.jpg",
-          instructor: input.instructor,
-          instructor_role: "Video Course Instructor",
-          description: input.description || "",
-          level: input.level,
-          credits: 4,
-          duration: formattedDuration,
-          rating: "5.0",
-          reviews: "1",
-          progress_color: "#1a6dff",
-          certificate_title: `${input.title} Mastery Certificate`,
-          certificate_skills: [input.category, "Video Learning", "Neural Transcripts"],
-          is_starter: false,
-          position: nextPos,
-        })
-        .returning()
-      courseRecord = created
-
-      moduleId = `m-${courseId}-1`
-      await db.insert(course_modules).values({
-        id: moduleId,
-        course_id: courseId,
-        position: 1,
-        title: "Module 1: Complete Video Masterclass",
-        duration: formattedDuration,
-      })
-    }
-
-    // Create Video Lesson with the transcribed summary, video_url, and multi-qualities
-    const lessonId = `l-${courseId}-${lessonPosition}`
-    const defaultStreamUrl = `/api/files/videos/${input.videoKey}`
-    const chosenUrl =
-      input.qualities?.["720p"]?.url ||
-      input.qualities?.["1080p"]?.url ||
-      input.qualities?.["480p"]?.url ||
-      defaultStreamUrl
-
-    await db.insert(lessons).values({
-      id: lessonId,
-      module_id: moduleId,
-      course_id: courseId,
-      position: lessonPosition,
-      title: `${input.title} - Full Lecture & Neural Transcript`,
-      duration: formattedDuration,
-      minutes: mins,
-      type: "video",
-      summary: input.fullTranscript || "",
-      video_url: chosenUrl,
-      video_qualities: input.qualities || {},
-    })
-    invalidateCatalogCache()
-
-    // Create download/stream URL for the uploaded video
-    let r2PresignedUrl: string = input.videoKey
-    try {
-      r2PresignedUrl = await ctx.storage.createDownloadUrl(input.videoKey, { expiresInSeconds: 86400 * 7 })
-    } catch {
-      r2PresignedUrl = `https://94f886a9b3a51271b0b96a8794bffdcb.r2.cloudflarestorage.com/quantumlms/${input.videoKey}`
-    }
-
-    return {
-      ok: true,
-      course: courseRecord,
-      videoKey: input.videoKey,
-      videoStreamUrl: chosenUrl,
-      r2PresignedUrl,
-      audioKey: input.audioKey,
-      moduleId,
-      lessonId,
-      qualities: input.qualities || {},
-      chunksTranscribed: input.chunks.filter((c) => !c.isSilent).length,
-      silenceChunksSkipped: input.chunks.filter((c) => c.isSilent).length,
-      fullTranscript: input.fullTranscript,
-    }
-  })
 }
-

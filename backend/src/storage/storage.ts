@@ -36,6 +36,7 @@ export interface Storage {
   read(key: string, maxBytes: number): Promise<{ data: Buffer; size: number } | null>
   /** Writes an object from the server (seeded demo files). Uploads from browsers use createUpload. */
   put(key: string, data: Buffer, contentType: string): Promise<void>
+  putStream?(key: string, data: NodeJS.ReadableStream, size: number, contentType: string): Promise<void>
   /** Retrieves the full raw byte buffer of an object from storage. */
   getBuffer?(key: string): Promise<Buffer | null>
   /** Streams a file with partial byte range support for video and audio playback. */

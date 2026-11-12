@@ -26,7 +26,7 @@ if (context("authOnly") !== "true") {
     throw new Error("Set the database secret: -c databaseSecretArn=arn:aws:secretsmanager:... (see infra/README.md, step 2).")
   }
   const tasks = Number(context("apiTasks") ?? "1")
-  if (!Number.isInteger(tasks) || tasks < 1 || tasks > 4) throw new Error("apiTasks must be a whole number from 1 to 4.")
+  if (!Number.isInteger(tasks) || tasks < 1 || tasks > 2) throw new Error("apiTasks must be a whole number from 1 to 2 (15-connection pooler budget including rollout and worker).")
   new AppStack(app, `${prefix}App`, {
     env,
     description: "Quantum LMS: API on ECS Fargate behind CloudFront, uploads in S3, the web app in S3 + CloudFront",
@@ -35,6 +35,8 @@ if (context("authOnly") !== "true") {
     databaseSecretArn,
     databaseCaCert: process.env.DATABASE_CA_CERT,
     apiTasks: tasks,
+    mediaWorkerEnabled: context("mediaWorker") === "true",
+    whisperModelRevision: process.env.WHISPER_MODEL_REVISION ?? "536b0662742c02347bc0e980a01041f333bce120",
     demoMode: (context("demoMode") ?? "false") === "true",
     campusTz: context("campusTz") ?? "Asia/Kolkata",
     cloudFrontPrefixListId: context("cloudFrontPrefixListId"),

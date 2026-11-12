@@ -57,7 +57,7 @@ describe("admin course management and stats workflow", () => {
     assert.ok(Array.isArray(res.body.courses))
   })
 
-  test("admin can create a new course with initial module and lesson", async () => {
+  test("admin can create a new course as an empty draft without fabricated ratings", async () => {
     const res = await admin.call("POST", "/api/admin/courses", {
       title: "Advanced Quantum Machine Learning",
       category: "Quantum Computing",
@@ -77,8 +77,8 @@ describe("admin course management and stats workflow", () => {
     assert.equal(res.body.course.title, "Advanced Quantum Machine Learning")
     assert.equal(res.body.course.category, "Quantum Computing")
     assert.equal(res.body.course.instructor, "Dr. Vikram Seth")
-    assert.equal(res.body.course.modules_count, 1)
-    assert.equal(res.body.course.lessons_count, 1)
+    assert.equal(res.body.course.modules_count, 0)
+    assert.equal(res.body.course.lessons_count, 0)
 
     createdCourseId = res.body.course.id
   })
@@ -90,10 +90,12 @@ describe("admin course management and stats workflow", () => {
     assert.equal(res.body.course.id, createdCourseId)
     assert.equal(res.body.course.title, "Advanced Quantum Machine Learning")
     assert.ok(Array.isArray(res.body.modules))
-    assert.equal(res.body.modules.length, 1)
+    assert.equal(res.body.modules.length, 0)
     assert.ok(Array.isArray(res.body.lessons))
-    assert.equal(res.body.lessons.length, 1)
-    assert.equal(res.body.lessons[0].course_id, createdCourseId)
+    assert.equal(res.body.lessons.length, 0)
+    assert.equal(res.body.course.status, "Draft")
+    assert.equal(res.body.course.rating, "")
+    assert.equal(res.body.course.reviews, "0")
   })
 
   test("super admin can update a course", async () => {

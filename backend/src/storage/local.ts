@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
-import { createReadStream } from "node:fs"
+import { pipeline } from "node:stream/promises"
+import { Transform } from "node:stream"
+import { createReadStream, createWriteStream } from "node:fs"
 import { mkdir, open, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { Storage } from "./storage.js"
@@ -97,6 +99,17 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
       await writeFile(p, data)
       if (contentType) await writeFile(p + ".content-type", contentType)
     },
+    async putStream(key, data, size, contentType) {
+      const p = fileFor(key)
+      await mkdir(path.dirname(p), { recursive: true })
+      let bytes = 0
+      const limit = new Transform({ transform(chunk, _enc, cb) { bytes += chunk.length; cb(bytes > size ? new Error("Upload too large") : null, chunk) } })
+      try {
+        await pipeline(data, limit, createWriteStream(p))
+        if (bytes !== size) throw new Error("Incomplete upload")
+        await writeFile(p + ".content-type", contentType)
+      } catch (error) { await rm(p, { force: true }); throw error }
+    },
     async getBuffer(key) {
       try {
         return await readFile(fileFor(key))
@@ -120,15 +133,13 @@ export function createLocalStorage(opts: { dir: string; secret: string; basePath
       let contentRange: string | undefined = undefined
 
       if (range) {
-        const parts = range.replace(/bytes=/, "").split("-")
-        const partialStart = parts[0]
-        const partialEnd = parts[1]
-        start = parseInt(partialStart, 10)
-        end = partialEnd ? parseInt(partialEnd, 10) : totalSize - 1
-        if (!isNaN(start) && !isNaN(end)) {
-          statusCode = 206
-          contentRange = `bytes ${start}-${end}/${totalSize}`
-        }
+        const match = /^bytes=(\d*)-(\d*)$/.exec(range)
+        if (!match || (!match[1] && !match[2])) throw new Error("Invalid byte range")
+        start = match[1] ? Number(match[1]) : Math.max(0, totalSize - Number(match[2]))
+        end = match[1] && match[2] ? Math.min(Number(match[2]), totalSize - 1) : totalSize - 1
+        if (start < 0 || start > end || start >= totalSize) throw new Error("Invalid byte range")
+        statusCode = 206
+        contentRange = `bytes ${start}-${end}/${totalSize}`
       }
 
       const stream = createReadStream(p, { start, end })

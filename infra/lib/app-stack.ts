@@ -27,6 +27,8 @@ export interface AppStackProps extends StackProps {
   databaseCaCert?: string
   /** API tasks to run. Each keeps up to DATABASE_POOL_MAX (5) database connections. */
   apiTasks: number
+  mediaWorkerEnabled?: boolean
+  whisperModelRevision?: string
   demoMode: boolean
   campusTz: string
   /** Id of the com.amazonaws.global.cloudfront.origin-facing prefix list; looked up in the region when omitted. */
@@ -94,7 +96,7 @@ export class AppStack extends Stack {
           DATABASE_SSL: "verify",
           ...(props.databaseCaCert ? { DATABASE_CA_CERT: props.databaseCaCert } : {}),
           // Connections per task. Supabase's session pooler allows 15 clients in total on its smallest size.
-          DATABASE_POOL_MAX: "5",
+          DATABASE_POOL_MAX: "3",
           COGNITO_REGION: this.region,
           COGNITO_USER_POOL_ID: props.userPool.userPoolId,
           COGNITO_CLIENT_ID: props.userPoolClient.userPoolClientId,
@@ -108,6 +110,28 @@ export class AppStack extends Stack {
         logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: "api", logGroup: apiLogs }),
       },
     })
+    // Worker resources are separate: the API never buffers or transcodes large videos.
+    if (props.mediaWorkerEnabled) {
+      if (!props.whisperModelRevision || !/^[0-9a-f]{40}$/.test(props.whisperModelRevision)) throw new Error("A reviewed WHISPER_MODEL_REVISION commit SHA is required")
+      const task = new ecs.FargateTaskDefinition(this, "MediaWorkerTask", { cpu: 2048, memoryLimitMiB: 4096, ephemeralStorageGiB: 30 })
+      task.addContainer("media-worker", {
+        image: ecs.ContainerImage.fromAsset(path.join(REPO, "backend"), { file: "Dockerfile.worker", platform: Platform.LINUX_AMD64,
+          buildArgs: { WHISPER_MODEL_REVISION: props.whisperModelRevision } }),
+        environment: { NODE_ENV: "production", DEMO_MODE: "false", DATABASE_SSL: "verify", DATABASE_POOL_MAX: "2",
+          ...(props.databaseCaCert ? { DATABASE_CA_CERT: props.databaseCaCert } : {}),
+          STORAGE_DRIVER: "s3", S3_BUCKET: uploads.bucketName, S3_REGION: this.region,
+          COGNITO_REGION: this.region, COGNITO_USER_POOL_ID: props.userPool.userPoolId, COGNITO_CLIENT_ID: props.userPoolClient.userPoolClientId,
+          MEDIA_MAX_UPLOAD_BYTES: "5368709120", MEDIA_MAX_DURATION_SECONDS: "28800", MEDIA_TEMP_BUDGET_BYTES: "17179869184",
+          MEDIA_JOB_TIMEOUT_SECONDS: "21600", MEDIA_LEASE_SECONDS: "120", MEDIA_POLL_SECONDS: "5",
+          MEDIA_PYTHON: "python3", MEDIA_MODEL_PATH: "/opt/models/whisper-small", MEDIA_FFMPEG: "ffmpeg", MEDIA_FFPROBE: "ffprobe" },
+        secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl) },
+        logging: ecs.LogDrivers.awsLogs({ streamPrefix: "media-worker" }),
+        stopTimeout: Duration.seconds(120),
+      })
+      uploads.grantReadWrite(task.taskRole)
+      new ecs.FargateService(this, "MediaWorker", { cluster, taskDefinition: task, desiredCount: 1,
+        minHealthyPercent: 0, maxHealthyPercent: 100, vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }, circuitBreaker: { rollback: true } })
+    }
     api.targetGroup.configureHealthCheck({ path: "/api/health", healthyHttpCodes: "200", interval: Duration.seconds(15), timeout: Duration.seconds(5), healthyThresholdCount: 2, unhealthyThresholdCount: 3 })
     api.targetGroup.setAttribute("deregistration_delay.timeout_seconds", "30")
 

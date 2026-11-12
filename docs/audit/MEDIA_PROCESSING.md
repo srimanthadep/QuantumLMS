@@ -1,0 +1,17 @@
+# Media processing and recovery
+
+The API creates a unique media asset and direct upload target, verifies storage size/type/container, then queues one durable job. A dedicated worker streams its input, encodes variants sequentially, transcribes with a local pinned model, and saves reviewable chapter drafts. An author explicitly attaches a ready asset to one lesson. An upload never changes all lessons in a course.
+
+Run `npm --prefix backend run worker:media` locally after migration 0007. Install FFmpeg/FFprobe and the Python dependencies from `backend/worker/requirements.txt`, and set `MEDIA_MODEL_PATH` to the downloaded model directory. The worker runs from the backend directory. A missing model/dependency fails the job; no transcript or confidence is fabricated.
+
+The separate `backend/Dockerfile.worker` pins the encoder image, Python runtime, transcription library, and model revision. Sources: [static FFmpeg image](https://github.com/wader/static-ffmpeg), [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [model revision](https://huggingface.co/Systran/faster-whisper-small/tree/536b0662742c02347bc0e980a01041f333bce120). Docker was unavailable in this workspace, so image construction and a complete model inference remain required deployment checks.
+
+Infra supports `-c mediaWorker=true`. The worker has 2 vCPU, 4 GB RAM and 30 GB ephemeral disk, one concurrent job, two DB connections, and a 16 GB job disk budget. The API remains 512 CPU units / 1 GB and accepts only small material payloads; large video bodies go directly to storage. Each lease is renewed and fenced by a unique token. Expired processing is reclaimed; retries back off and eventually become failed. Stop/start recovery is covered at the database service layer.
+
+Review `.env.example` media limits before deployment. Processing is limited to 5 GB / 8 hours by default. The supplied CPU worker is a correctness baseline; benchmark long recordings before choosing throughput or replica counts. The connection budget limits API replicas to two with three connections each: overlapping API rollout (12), worker (2), and migration (1) consume all 15 session-pooler slots. Do not run additional scripts against that pool during rollout.
+
+Migration 0007 adds a composite module/course constraint as `NOT VALID`: it enforces new writes without rewriting or rejecting pre-existing inconsistent rows. Drizzle's generated statements were reordered so the referenced unique constraint exists first. Run the reconciliation report and resolve historical mismatches before `VALIDATE CONSTRAINT lessons_module_course_fkey`.
+
+`npm --prefix backend run media:reconcile -- <output.json>` is read-only and works against the old schema. The 12 Nov 2026 development check found three lesson source objects present at distinct keys (about 6 MB, 18 MB, 18 MB). None requires re-upload based on object existence. Content identity was not inferred from filenames. Review the videos, process them as separate assets, and attach them deliberately; do not backfill all lessons to a course-wide quality key. No historical object versions were available to establish overwritten variant contents.
+
+Legacy lesson IDs checked: `l-c-mwamc4yg-343-1`, `l-c-mwamc4yg-343-2`, `l-c-mwamjvw5-543-1`. Detailed local inventory: `backend/.data/media-reconciliation.json` (ignored). No development rows or storage objects were modified. Existing legacy playback remains entitlement-protected while migration is reviewed.

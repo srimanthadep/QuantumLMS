@@ -77,6 +77,10 @@ describe("admin courses full CRUD persistence", () => {
     assert.equal(createRes.body.course.capacity, 120)
     assert.equal(createRes.body.course.status, "Draft")
 
+    const module = await admin.call("POST", `/api/admin/courses/${cid}/modules`, { title: "Introduction" })
+    assert.equal(module.status, 201)
+    const lesson = await admin.call("POST", `/api/admin/courses/${cid}/lessons`, { moduleId: module.body.module.id, title: "Read the introduction", type: "reading", summary: "Course learning objectives and practice instructions." })
+    assert.equal(lesson.status, 201)
     const patchRes = await superAdmin.call("PATCH", `/api/admin/courses/${cid}`, {
       price: 54999,
       capacity: 150,

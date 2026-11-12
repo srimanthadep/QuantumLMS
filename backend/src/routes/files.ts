@@ -45,27 +45,37 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
   app.register(async (scope) => {
     // Every content type arrives as raw bytes here (the default parsers would turn text/plain into a string).
     scope.removeAllContentTypeParsers()
-    scope.addContentTypeParser("*", { parseAs: "buffer", bodyLimit: BUCKETS.submissions.maxBytes + 1024 }, (_req, body, done) => done(null, body))
-    scope.put<{ Params: { token: string } }>("/api/local-files/:token", async (req, reply) => {
-      const t = local.verify(req.params.token)
-      if (!t || t.op !== "put") throw badRequest("This upload link expired. Try again.", "expired")
-      const body = req.body as Buffer
-      if (!Buffer.isBuffer(body)) throw badRequest("Send the file as the request body.")
-      if (t.max && body.length > t.max) throw badRequest("That file is too large.", "too_large")
-      if (req.headers["content-type"]?.split(";")[0] !== t.type) throw badRequest("Upload content type mismatch.")
-      await local.write(t.key, body, t.type)
-      return reply.code(200).send({ key: t.key, size: body.length })
+    scope.addContentTypeParser("*", (_req, payload, done) => done(null, payload))
+    scope.put<{ Params: { token: string } }>("/api/local-files/:token", { bodyLimit: ctx.config.MEDIA_MAX_UPLOAD_BYTES }, async (req, reply) => {
+      const token = local.verify(req.params.token)
+      if (!token || token.op !== "put") throw badRequest("Upload link expired or invalid")
+      const size = Number(req.headers["content-length"])
+      if (!Number.isInteger(size) || size <= 0 || size > (token.max ?? 0) || req.headers["content-type"] !== token.type) throw badRequest("Upload size or type does not match")
+      await local.putStream!(token.key, req.body as NodeJS.ReadableStream, size, token.type!)
+      return reply.code(200).send({ ok: true })
     })
   })
+
   app.get<{ Params: { token: string } }>("/api/local-files/:token", async (req, reply) => {
     const t = local.verify(req.params.token)
     if (!t || t.op !== "get") throw notFound("This link expired.")
     const info = await local.head(t.key)
     if (!info) throw notFound("File not found.")
     const ext = path.extname(t.key).toLowerCase()
-    reply.header("Content-Type", TYPES[ext] ?? "application/octet-stream")
+    if (req.headers.range) {
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range)
+      const size = info.size
+      if (!range || (!range[1] && !range[2]) || (range[1] && Number(range[1]) >= size) || (range[1] && range[2] && Number(range[2]) < Number(range[1]))) return reply.code(416).header("Content-Range", `bytes */${size}`).send()
+    }
+    reply.header("Content-Type", info.contentType ?? TYPES[ext] ?? "application/octet-stream")
     reply.header("Content-Length", String(info.size))
     if (t.name) reply.header("Content-Disposition", `inline; filename="${t.name.replace(/["\\\r\n]/g, "_")}"`)
-    return reply.send(createReadStream(local.pathOf(t.key)))
+    if (info.size === 0) return reply.send(Buffer.alloc(0))
+    const result = await local.stream!(t.key, req.headers.range)
+    if (!result) throw notFound("File not found")
+    reply.header("Accept-Ranges", "bytes")
+    reply.header("Content-Length", String(result.contentLength))
+    if (result.contentRange) reply.header("Content-Range", result.contentRange)
+    return reply.code(result.statusCode ?? 200).send(result.stream)
   })
 }

@@ -104,7 +104,7 @@ export const courses = lms.table("courses", {
   position: integer().default(0).notNull(),
   price: integer().default(39999).notNull(),
   capacity: integer().default(250).notNull(),
-  status: text().default("Published").notNull(),
+  status: text().default("Draft").notNull(),
 }, (table) => [
   unique("courses_code_key").on(table.code),
   check("courses_credits_check", sql`credits >= 0`),
@@ -126,6 +126,7 @@ export const course_modules = lms.table("course_modules", {
       foreignColumns: [courses.id],
       name: "course_modules_course_id_fkey"
     }).onDelete("cascade"),
+  unique("course_modules_id_course_key").on(table.id, table.course_id),
   unique("course_modules_course_id_position_key").on(table.course_id, table.position),
 ]);
 
@@ -139,9 +140,11 @@ export const lessons = lms.table("lessons", {
   minutes: integer().default(0).notNull(),
   type: text().notNull(),
   summary: text().default("").notNull(),
+  media_asset_id: text(),
   video_url: text(),
   video_qualities: jsonb().default({}),
 }, (table) => [
+  foreignKey({ columns: [table.module_id, table.course_id], foreignColumns: [course_modules.id, course_modules.course_id], name: "lessons_module_course_fkey" }).onDelete("cascade"),
   index("lessons_module_idx").using("btree", table.module_id),
   foreignKey({
       columns: [table.course_id],
@@ -1274,3 +1277,29 @@ export const upload_intents = lms.table("upload_intents", {
   expires_at: timestamp({ withTimezone: true, mode: "date" }).notNull(),
   created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
 }, (t) => [check("upload_intent_state", sql`${t.state} in ('pending','verified','quarantined')`)]);
+
+// Immutable upload identities. A lesson selects one ready asset; replacing it never rewrites another lesson.
+export const media_assets = lms.table("media_assets", {
+  id: text().primaryKey(),
+  course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  owner_id: uuid().notNull().references(() => users.id),
+  source_key: text().notNull().unique(),
+  state: text().notNull().default("uploading"),
+  duration_seconds: integer(),
+  transcript: jsonb().$type<{ start: number; end: number; text: string }[]>().notNull().default([]),
+  draft_chapters: jsonb().$type<{ start: number; title: string }[]>().notNull().default([]),
+  error: text(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [check("media_asset_state", sql`${t.state} in ('uploading','queued','processing','failed','ready')`)]);
+export const media_variants = lms.table("media_variants", {
+  asset_id: text().notNull().references(() => media_assets.id, { onDelete: "cascade" }),
+  quality: text().notNull(), key: text().notNull().unique(),
+  bytes: bigint({ mode: "number" }).notNull(), height: integer().notNull(),
+}, t => [primaryKey({ columns: [t.asset_id, t.quality] })]);
+export const processing_jobs = lms.table("processing_jobs", {
+  id: text().primaryKey(), asset_id: text().notNull().unique().references(() => media_assets.id, { onDelete: "cascade" }),
+  state: text().notNull().default("queued"), attempts: integer().notNull().default(0),
+  max_attempts: integer().notNull().default(3), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
+  available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), completed_at: timestamp({ withTimezone: true }),
+}, t => [index("processing_jobs_claim_idx").on(t.state, t.available_at), check("processing_job_state", sql`${t.state} in ('queued','processing','failed','ready')`)]);

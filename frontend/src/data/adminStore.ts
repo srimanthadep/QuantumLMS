@@ -469,9 +469,9 @@ function mapApiCourse(c: any): AdminCourse {
     capacity: Number(c.capacity ?? 250),
     price,
     revenue: enrolled * price,
-    rating: parseFloat(c.rating || "5.0") || 5.0,
+    rating: Number(c.rating) || 0,
     completionRate: 88,
-    status: (c.status as AdminCourse["status"]) || "Published",
+    status: (c.status as AdminCourse["status"]) || "Draft",
     cohortCount: Number(c.cohort_count ?? 0),
     updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   }
@@ -644,18 +644,7 @@ export function useAdminStore() {
         if (!isOfflineError(err)) throw err
       }
 
-      const fallbackCourse: AdminCourse = {
-        ...newCourse,
-        id: `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
-        enrolledStudents: 0,
-        revenue: 0,
-        rating: 5.0,
-        completionRate: 0,
-        cohortCount: 0,
-        updatedAt: new Date().toISOString().split("T")[0],
-      }
-      setCourses((prev) => [fallbackCourse, ...prev])
-      return fallbackCourse
+      throw new Error("The server did not confirm course creation. Refresh and try again.")
     },
     [],
   )

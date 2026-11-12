@@ -19,7 +19,9 @@
     "cognito:setup:aws": "tsx scripts/setup-cognito.ts --aws",
     "cognito:smoke": "tsx --env-file=.env scripts/cognito-smoke.ts",
     "test": "tsx scripts/test-isolated.ts",
-    "test:ci": "tsx scripts/test-isolated.ts"
+    "test:ci": "tsx scripts/test-isolated.ts",
+    "worker:media": "tsx --env-file=.env src/media/worker.ts",
+    "media:reconcile": "tsx --env-file=.env scripts/reconcile-media.ts"
   },
   "engines": {
     "node": ">=22"

@@ -69,6 +69,9 @@ export function createS3Storage(opts: {
     async put(key, data, contentType) {
       await client.send(new PutObjectCommand({ Bucket, Key: key, Body: data, ContentType: contentType }))
     },
+    async putStream(key, data, size, contentType) {
+      await client.send(new PutObjectCommand({ Bucket, Key: key, Body: data as import("node:stream").Readable, ContentLength: size, ContentType: contentType }))
+    },
     async getBuffer(key) {
       try {
         const r = await client.send(new GetObjectCommand({ Bucket, Key: key }))

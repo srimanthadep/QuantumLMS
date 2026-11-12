@@ -346,8 +346,28 @@ export interface Rows {
     minutes: number
     type: string
     summary: string
+    media_asset_id: string | null
     video_url: string | null
     video_qualities: Json | null
+  }
+  media_assets: {
+    id: string
+    course_id: string
+    owner_id: string
+    source_key: string
+    state: string
+    duration_seconds: number | null
+    transcript: Json
+    draft_chapters: Json
+    error: string | null
+    created_at: string
+  }
+  media_variants: {
+    asset_id: string
+    quality: string
+    key: string
+    bytes: number
+    height: number
   }
   notes: {
     id: string
@@ -408,6 +428,19 @@ export interface Rows {
     post_id: string
     student_id: string
     created_at: string
+  }
+  processing_jobs: {
+    id: string
+    asset_id: string
+    state: string
+    attempts: number
+    max_attempts: number
+    lease_token: string | null
+    lease_until: string | null
+    available_at: string
+    error: string | null
+    created_at: string
+    completed_at: string | null
   }
   profiles: {
     id: string

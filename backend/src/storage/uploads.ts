@@ -24,6 +24,14 @@ export async function verifyUpload(ctx: AppContext, owner: string, key: string, 
   let valid = object.size === intent.expected_bytes && object.size <= intent.max_bytes
     && object.contentType === intent.content_type
     && (intent.state === "verified" || intent.expires_at.getTime() > Date.now())
+  if (bucket === "videos") {
+    const sample = await ctx.storage.read(key, 16)
+    const data = sample?.data
+    const matches = data && (intent.content_type === "video/webm"
+      ? data.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))
+      : ["video/mp4", "video/quicktime"].includes(intent.content_type) && data.subarray(4, 8).toString() === "ftyp")
+    valid = valid && Boolean(matches)
+  }
   if (bucket === "avatars") {
     const sample = await ctx.storage.read(key, 16)
     const data = sample?.data

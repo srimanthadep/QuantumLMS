@@ -43,6 +43,16 @@ const schema = z.object({
   /** Signs local upload and download links. Required with STORAGE_DRIVER=local outside tests. */
   UPLOAD_SIGNING_SECRET: z.string().min(16).optional(),
 
+  MEDIA_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().max(5 * 1024 ** 3).default(5 * 1024 ** 3),
+  MEDIA_MAX_DURATION_SECONDS: z.coerce.number().int().positive().default(8 * 3600),
+  MEDIA_TEMP_BUDGET_BYTES: z.coerce.number().int().positive().default(16 * 1024 ** 3),
+  MEDIA_JOB_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(6 * 3600),
+  MEDIA_LEASE_SECONDS: z.coerce.number().int().min(30).default(120),
+  MEDIA_POLL_SECONDS: z.coerce.number().int().min(1).default(5),
+  MEDIA_PYTHON: z.string().default("python3"),
+  MEDIA_MODEL_PATH: z.string().default("/opt/models/whisper-small"),
+  MEDIA_FFMPEG: z.string().default("ffmpeg"),
+  MEDIA_FFPROBE: z.string().default("ffprobe"),
   CAMPUS_TZ: z.string().default("Asia/Kolkata"),
   /** Demo accounts, quick-launch sign-in and "Reset demo data". */
   DEMO_MODE: bool.default(false),

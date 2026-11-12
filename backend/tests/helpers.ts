@@ -132,13 +132,16 @@ export async function createHarness(): Promise<TestHarness> {
       }
     },
     async close() {
+      try {
       if (created.length) await ctx.db.delete(users).where(inArray(users.email, created))
       await ctx.db.delete(users).where(like(users.email, `t-${tag}-%@${TEST_DOMAIN}`))
       // Leftovers from runs that crashed before cleaning up.
       await ctx.db.delete(users).where(and(like(users.email, `%@${TEST_DOMAIN}`), lt(users.created_at, new Date(Date.now() - 2 * 3600_000))))
+      } finally {
       await app.close()
       await ctx.pool.end()
       rmSync(uploads, { recursive: true, force: true })
+      }
     },
   }
 }
