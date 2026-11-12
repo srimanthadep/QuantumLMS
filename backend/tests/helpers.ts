@@ -48,6 +48,8 @@ export async function createHarness(): Promise<TestHarness> {
   const attributes = new Map<string, CognitoAttributes>()
   const signedOut = new Set<string>()
   const cognito: CognitoGateway = {
+    async invite() { return { sub: randomUUID() } },
+    async setEnabled() {},
     async getAttributes(accessToken) {
       const sub = JSON.parse(Buffer.from(accessToken.split(".")[1], "base64url").toString()).sub as string
       const a = attributes.get(sub)

@@ -249,9 +249,9 @@ describe("admin cohort batches CRUD and student roster management", () => {
 
     // Delete batch -> subsequent GET returns 404
     const delBatch = await admin.call("DELETE", `/api/admin/batches/${primaryBatchId}`)
-    assert.equal(delBatch.status, 200)
+    assert.equal(delBatch.status, 409)
     const checkGone = await admin.call("GET", `/api/admin/batches/${primaryBatchId}`)
-    assert.equal(checkGone.status, 404)
+    assert.equal(checkGone.status, 200)
   })
 })
 

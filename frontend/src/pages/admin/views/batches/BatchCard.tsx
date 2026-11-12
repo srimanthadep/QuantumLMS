@@ -40,7 +40,7 @@ export default function BatchCard({
       <div className={cn("relative h-28 overflow-hidden bg-gradient-to-br", theme.gradient)}>
         <Icon className="absolute -bottom-4 -right-3 h-28 w-28 rotate-[-8deg] text-white/20 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" aria-hidden="true" />
-        <Badge tone={BATCH_STATUS_TONE[batch.status]} dot className="absolute left-3 top-3 bg-surface/95 backdrop-blur">{batch.status}</Badge>
+        <Badge tone={BATCH_STATUS_TONE[batch.status]} dot className="absolute left-3 top-3 bg-surface/95 backdrop-blur">{batch.lifecycle ?? batch.status}</Badge>
         <div className="absolute right-2 top-2 z-10 rounded-lg bg-surface/95 backdrop-blur">
           <BatchActionsMenu batch={batch} onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />
         </div>

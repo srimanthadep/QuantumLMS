@@ -1,3 +1,4 @@
+import { grantAccess } from "../src/learning/entitlements.js"
 import assert from "node:assert/strict"
 import { after, before, test } from "node:test"
 import { eq, sql } from "drizzle-orm"
@@ -46,7 +47,7 @@ test("media denies anonymous and unenrolled access, then signs authorized playba
   assert.ok(!core.body.lessons.some((l: { id: string }) => l.id === "private-video"))
   assert.ok(core.body.lessons.every((l: { video_url: string | null }) => l.video_url === null))
   const id = (await student.call("GET", "/api/me")).body.id
-  await h.ctx.db.insert(enrollments).values({ course_id: "private-course", student_id: id })
+  await h.ctx.db.transaction(tx => grantAccess(tx, { student: id, course: "private-course", sourceType: "manual", sourceId: "security-fixture" }))
   const playback = await student.call("POST", "/api/student/lessons/private-video/playback")
   assert.equal(playback.status, 200)
   assert.equal(playback.body.expires_in, 300)

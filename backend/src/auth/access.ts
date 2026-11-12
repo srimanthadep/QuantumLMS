@@ -1,3 +1,4 @@
+import { hasEntitlement } from "../learning/entitlements.js"
 import { and, eq, sql, type SQLWrapper } from "drizzle-orm"
 import type { AuthUser } from "./users.js"
 import type { Tx } from "../db/client.js"
@@ -20,9 +21,7 @@ export async function assertCourseAccess(db: Tx, u: AuthUser, courseId: string):
   if (isAdmin(u)) return
   if (u.role === "Teacher" && (await teacherCourseIds(db, u)).includes(courseId)) return
   if (u.role === "Student") {
-    const [grant] = await db.select({ id: enrollments.course_id }).from(enrollments)
-      .where(and(eq(enrollments.student_id, u.id), eq(enrollments.course_id, courseId))).limit(1)
-    if (grant) return
+    if (await hasEntitlement(db, u.id, courseId)) return
   }
   throw forbidden("You don't have access to this course.")
 }

@@ -33,6 +33,8 @@ interface TeachersViewProps {
 
 export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewProps) {
   const { teachers, updateTeacher, deleteTeacher } = store
+  const [operationError, setOperationError] = useState("")
+  const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("All")
 
@@ -61,22 +63,20 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
     setEditSpecialization(t.specialization)
   }
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingTeacher || !editName.trim()) return
-
-    updateTeacher(editingTeacher.id, {
-      name: editName,
-      role: editRole,
-      specialization: editSpecialization,
-    })
-    setEditingTeacher(null)
+    setSaving(true); setOperationError("")
+    try { await updateTeacher(editingTeacher.id, { name: editName }); setEditingTeacher(null) }
+    catch (error) { setOperationError(error instanceof Error ? error.message : "Could not update instructor") }
+    finally { setSaving(false) }
   }
-
-  const handleDeleteTeacher = () => {
+  const handleDeleteTeacher = async () => {
     if (!deletingTeacher) return
-    deleteTeacher(deletingTeacher.id)
-    setDeletingTeacher(null)
+    setSaving(true); setOperationError("")
+    try { await deleteTeacher(deletingTeacher.id); setDeletingTeacher(null) }
+    catch (error) { setOperationError(error instanceof Error ? error.message : "Could not disable instructor") }
+    finally { setSaving(false) }
   }
 
   return (
@@ -189,7 +189,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                     size="sm"
                     onClick={() => setDeletingTeacher(teacher)}
                     className="h-7 w-7 p-0 text-danger hover:text-danger hover:bg-danger/10"
-                    title="Delete Instructor"
+                    title="Disable Instructor"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -263,6 +263,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
 
           {editingTeacher && (
             <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+              {operationError && <p role="alert" className="text-sm text-destructive">{operationError}</p>}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Full Name</label>
                 <Input
@@ -277,7 +278,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                 <Input
                   required
                   value={editSpecialization}
-                  onChange={(e) => setEditSpecialization(e.target.value)}
+                  onChange={(e) => setEditSpecialization(e.target.value)} disabled
                 />
               </div>
 
@@ -285,7 +286,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                 <label className="text-xs font-semibold text-foreground">Role</label>
                 <CustomSelect
                   value={editRole}
-                  onChange={(val) => setEditRole(val as any)}
+                  onChange={() => {}} disabled
                   options={["Lead Instructor", "Teaching Assistant", "Evaluator"]}
                 />
               </div>
@@ -294,7 +295,7 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                 <Button type="button" variant="outline" onClick={() => setEditingTeacher(null)}>
                   Cancel
                 </Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" disabled={saving}>Save Changes</Button>
               </DialogFooter>
             </form>
           )}
@@ -310,9 +311,9 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle>Remove Faculty Member?</DialogTitle>
+                <DialogTitle>Disable faculty account?</DialogTitle>
                 <DialogDescription>
-                  This teacher will be removed from the active faculty roster.
+                  This teacher will lose sign-in access. Their teaching and registration history will be retained.
                 </DialogDescription>
               </div>
             </div>
@@ -329,8 +330,9 @@ export default function TeachersView({ store, onOpenAddTeacher }: TeachersViewPr
             <Button type="button" variant="outline" onClick={() => setDeletingTeacher(null)}>
               Cancel
             </Button>
-            <Button type="button" variant="destructive" onClick={handleDeleteTeacher}>
-              Confirm Remove
+            {operationError && <p role="alert" className="text-sm text-destructive">{operationError}</p>}
+            <Button type="button" variant="destructive" disabled={saving} onClick={handleDeleteTeacher}>
+              Disable account
             </Button>
           </DialogFooter>
         </DialogContent>

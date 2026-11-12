@@ -124,7 +124,7 @@ export default function BatchRow({
       </td>
       <td className="px-3 py-4">
         <Badge tone={BATCH_STATUS_TONE[batch.status]} dot>
-          {batch.status}
+          {batch.lifecycle ?? batch.status}
         </Badge>
       </td>
       <td

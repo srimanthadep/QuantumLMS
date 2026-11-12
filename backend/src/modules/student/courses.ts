@@ -1,3 +1,6 @@
+import { enrollFree } from "../../learning/offers.js"
+import { requireEntitlement } from "../../learning/entitlements.js"
+import { entitlement_grants } from "../../db/schema.js"
 import { and, asc, count, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -109,7 +112,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     const [catalog, profile, enrolled, progress, submissions, attempts, requests] = await Promise.all([
       getCatalogData(db),
       studentProfile(db, s.id),
-      db.select({ course_id: enrollments.course_id, enrolled_at: enrollments.enrolled_at }).from(enrollments).where(eq(enrollments.student_id, s.id)),
+      db.selectDistinct({ course_id: enrollments.course_id, enrolled_at: enrollments.enrolled_at }).from(enrollments).innerJoin(entitlement_grants, and(eq(entitlement_grants.student_id, enrollments.student_id), eq(entitlement_grants.course_id, enrollments.course_id))).where(and(eq(enrollments.student_id, s.id), sql`${entitlement_grants.revoked_at} is null and ${entitlement_grants.starts_at} <= now() and (${entitlement_grants.expires_at} is null or ${entitlement_grants.expires_at} > now())`)),
       db.select({ lesson_id: lesson_progress.lesson_id, completed_at: lesson_progress.completed_at }).from(lesson_progress).where(eq(lesson_progress.student_id, s.id)),
       db.select().from(assignment_submissions).where(eq(assignment_submissions.student_id, s.id)),
       db.select().from(quiz_attempts).where(eq(quiz_attempts.student_id, s.id)).orderBy(asc(quiz_attempts.started_at)),
@@ -175,15 +178,12 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.post("/api/student/enrollments", async (req) => {
     const s = me(req)
-    const { course_id } = parse(z.object({ course_id: z.string().min(1).max(64) }), req.body)
-    return db.transaction(async (tx) => {
-      const c = await tx.query.courses.findFirst({ where: eq(courses.id, course_id) })
-      if (!c) throw notFound("Course not found.")
-      if (c.status !== "Published" || c.price !== 0) throw forbidden("This course requires an approved enrollment or checkout.")
-      const [row] = await tx.insert(enrollments).values({ student_id: s.id, course_id }).onConflictDoNothing().returning({ enrolled_at: enrollments.enrolled_at })
-      if (row) await openCertificates(tx, s.id, [course_id])
-      const enrolledAt = row?.enrolled_at ?? (await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, course_id)) }))!.enrolled_at
-      return { enrolled_at: enrolledAt }
+    const input = parse(z.object({ course_id: z.string().min(1).max(100).optional(), offer_id: z.string().min(1).optional() }).refine(v => v.course_id || v.offer_id, "Choose an offer"), req.body)
+    return db.transaction(async tx => {
+      const offer = await enrollFree(tx, s.id, { courseId: input.course_id, offerId: input.offer_id })
+      await openCertificates(tx, s.id, [offer.course_id])
+      const [row] = await tx.select().from(enrollments).where(and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, offer.course_id)))
+      return { enrolled_at: row.enrolled_at, offer_id: offer.id }
     })
   })
 
@@ -196,7 +196,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       const l = await tx.query.lessons.findFirst({ where: eq(lessons.id, req.params.id) })
       if (!l) throw notFound("Lesson not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, l.course_id)) })
-      if (!enrolled) throw forbidden("Enroll in the course to track your progress.")
+      await requireEntitlement(tx, s.id, l.course_id)
       const today = localDay(new Date(), tz)
       if (done) {
         const [added] = await tx.insert(lesson_progress).values({ student_id: s.id, lesson_id: l.id, course_id: l.course_id }).onConflictDoNothing().returning()
@@ -244,7 +244,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       const a = await tx.query.assignments.findFirst({ where: eq(assignments.id, req.params.id) })
       if (!a) throw notFound("Assignment not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, a.course_id)) })
-      if (!enrolled) throw forbidden("Enroll in the course to submit this assignment.")
+      await requireEntitlement(tx, s.id, a.course_id)
       const prev = await tx.query.assignment_submissions.findFirst({ where: and(eq(assignment_submissions.student_id, s.id), eq(assignment_submissions.assignment_id, a.id)) })
       if (prev?.status === "Graded") throw badRequest("This assignment has already been graded.", "graded")
       if (prev?.status === "Under Review") throw badRequest("An evaluator is reviewing this submission, so it can't be changed now.", "under_review")

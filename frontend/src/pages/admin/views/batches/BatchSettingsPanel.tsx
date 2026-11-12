@@ -1,3 +1,4 @@
+import BatchAdmissionPanel from "./BatchAdmissionPanel"
 import { useEffect, useRef } from "react"
 import {
   BookOpen,
@@ -32,6 +33,7 @@ interface BatchSettingsPanelProps {
   onSave: (event: React.FormEvent) => void
   onReset: () => void
   onDelete: () => void
+  onAdmissionSaved?: () => Promise<unknown>
 }
 
 const SECTIONS = [
@@ -82,6 +84,7 @@ export default function BatchSettingsPanel({
   onSave,
   onReset,
   onDelete,
+  onAdmissionSaved,
 }: BatchSettingsPanelProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const dirty = Object.keys(values).some((key) =>
@@ -143,10 +146,12 @@ export default function BatchSettingsPanel({
             ))}
           </fieldset>
 
+          <BatchAdmissionPanel batchId={batch.id} courseId={batch.courseId} name={batch.name} onSaved={onAdmissionSaved} />
+
           <details className="mt-8 rounded-xl border border-border bg-surface">
             <summary className="cursor-pointer px-5 py-4 text-xs font-medium text-muted-foreground">Advanced actions</summary>
             <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border p-5">
-              <div><p className="text-sm font-medium text-foreground">Delete this batch</p><p className="mt-1 text-xs text-muted-foreground">Permanently remove this batch and its roster assignments.</p></div>
+              <div><p className="text-sm font-medium text-foreground">Delete this batch</p><p className="mt-1 text-xs text-muted-foreground">Only an empty batch can be deleted. Use cancellation to retain registration history.</p></div>
               <Button type="button" size="sm" variant="outline" disabled={saving} onClick={onDelete} leftIcon={<Trash2 />} className="border-danger/25 text-danger hover:bg-danger-soft">Delete batch</Button>
             </div>
           </details>

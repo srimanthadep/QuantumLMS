@@ -50,6 +50,7 @@ export interface AdminBatch {
     certificate: boolean
   }
   status: "Active" | "Upcoming" | "Completed" | "Archived"
+  lifecycle?: string
   notes?: string
 }
 
@@ -496,7 +497,7 @@ function mapApiBatch(b: any): AdminBatch {
     maxSeats: Number(b.max_seats ?? 100),
     deliveryMode: (b.delivery_mode as AdminBatch["deliveryMode"]) || "Live + Replay",
     replayDelayHours: Number(b.replay_delay_hours ?? 2),
-    accessExpiryMonths: Number(b.access_expiry_months ?? 24),
+    accessExpiryMonths: Number(b.access_expiry_months ?? 12),
     meetingUrl: b.meeting_url ? String(b.meeting_url) : null,
     features: {
       liveChat: rawFeatures.liveChat ?? true,
@@ -504,7 +505,8 @@ function mapApiBatch(b: any): AdminBatch {
       aiTutor: rawFeatures.aiTutor ?? true,
       certificate: rawFeatures.certificate ?? true,
     },
-    status: (b.status as AdminBatch["status"]) || "Active",
+    status: b.lifecycle ? (b.lifecycle === "Running" ? "Active" : b.lifecycle === "Completed" ? "Completed" : b.lifecycle === "Cancelled" ? "Archived" : "Upcoming") : (b.status as AdminBatch["status"]) || "Upcoming",
+    lifecycle: b.lifecycle,
     notes: String(b.notes ?? ""),
   }
 }
@@ -551,16 +553,16 @@ export function useAdminStore() {
           id: t.id,
           name: t.name,
           email: t.email,
-          title: "Senior AI Instructor",
-          specialization: "LLMs & Agentic Orchestration",
+          title: t.provisioning_state === "active" ? "Faculty" : `Provisioning ${t.provisioning_state}`,
+          specialization: "",
           role: (t.role as any) === "Teacher" ? "Lead Instructor" : ((t.role as any) === "Evaluator" ? "Evaluator" : "Teaching Assistant"),
-          assignedCourses: ["Agentic AI Systems"],
-          activeBatches: ["Cohort 14"],
-          studentCount: 142,
-          rating: 4.95,
-          status: "Available",
-          avatar: t.avatar || "/assets/shanmuk.png",
-          attendanceRate: 98,
+          assignedCourses: t.assigned_courses ?? [],
+          activeBatches: t.active_batches ?? [],
+          studentCount: Number(t.student_count ?? 0),
+          rating: 0,
+          status: t.disabled_at ? "Off-Duty" : t.provisioning_state !== "active" ? "In Review" : "Available",
+          avatar: t.avatar || "",
+          attendanceRate: 0,
         })),
       )
     }
@@ -931,34 +933,20 @@ export function useAdminStore() {
     [refreshCourses, refreshOperations],
   )
 
-  const addTeacher = useCallback((teacherData: Omit<AdminTeacher, "id" | "studentCount" | "rating" | "attendanceRate">) => {
-    const teacher: AdminTeacher = {
-      ...teacherData,
-      id: `teach-${Date.now()}`,
-      studentCount: 0,
-      rating: 5.0,
-      attendanceRate: 100,
-    }
-    setTeachers((prev) => [teacher, ...prev])
-    api.post("/admin/teachers", {
-      name: teacherData.name,
-      email: teacherData.email,
-      role: teacherData.role,
-    }).catch(() => {})
-    return teacher
-  }, [])
-
-  const updateTeacher = useCallback((teacherId: string, patch: Partial<AdminTeacher>) => {
-    setTeachers((prev) =>
-      prev.map((t) => (t.id === teacherId ? { ...t, ...patch } : t))
-    )
-    api.patch(`/admin/teachers/${teacherId}`, patch).catch(() => {})
-  }, [])
-
-  const deleteTeacher = useCallback((teacherId: string) => {
-    setTeachers((prev) => prev.filter((t) => t.id !== teacherId))
-    api.delete(`/admin/teachers/${teacherId}`).catch(() => {})
-  }, [])
+  const addTeacher = useCallback(async (teacherData: Omit<AdminTeacher, "id" | "studentCount" | "rating" | "attendanceRate">) => {
+    const response = await api.post<{ teacher: { id: string } }>("/admin/teachers", { name: teacherData.name, email: teacherData.email,
+      role: teacherData.role, course_ids: teacherData.assignedCourses })
+    await refreshOperations()
+    return response.teacher
+  }, [refreshOperations])
+  const updateTeacher = useCallback(async (teacherId: string, patch: Partial<AdminTeacher>) => {
+    await api.patch(`/admin/teachers/${teacherId}`, { name: patch.name })
+    await refreshOperations()
+  }, [refreshOperations])
+  const deleteTeacher = useCallback(async (teacherId: string) => {
+    await api.delete(`/admin/teachers/${teacherId}`)
+    await refreshOperations()
+  }, [refreshOperations])
 
   const enrolStudent = useCallback(
     async (studentData: { name: string; email: string; courseId: string; batchId: string }) => {

@@ -23,6 +23,8 @@ export const ticket_number_seq = lms.sequence("ticket_number_seq", { startWith: 
 export const users = lms.table("users", {
   id: uuid().primaryKey().defaultRandom().notNull(),
   cognito_sub: text(),
+  disabled_at: timestamp({ withTimezone: true }),
+  provisioning_state: text().notNull().default("active"),
   email: text().notNull(),
   full_name: text().notNull(),
   avatar_url: text(),
@@ -1179,11 +1181,29 @@ export const recent_placements = lms.table("recent_placements", {
   check("recent_placements_name_check", sql`(char_length(name) >= 1) AND (char_length(name) <= 120)`),
 ]);
 
+export const course_offers = lms.table("course_offers", {
+  id: text().primaryKey(), course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  mode: text().notNull(), title: text().notNull(), price: integer().notNull().default(0), currency: text().notNull().default("INR"),
+  status: text().notNull().default("Draft"),
+  completion_policy: jsonb().notNull().default({ requiredLessonsPercent: 100, requiredAssessments: true, passMark: 40, batchEnded: true, attendancePercent: 0 }),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [unique("offers_id_course_key").on(t.id, t.course_id), check("offer_mode", sql`${t.mode} in ('live','self_paced')`),
+  check("offer_status", sql`${t.status} in ('Draft','Published','Archived')`), check("offer_price", sql`${t.price} >= 0`)]);
+
 /** Cohort batches owned by admins and linked to courses. */
 export const cohort_batches = lms.table("cohort_batches", {
   id: text().primaryKey().notNull(),
   name: text().notNull(),
   course_id: text().notNull(),
+  offer_id: text().references(() => course_offers.id),
+  lifecycle: text().notNull().default("Draft"),
+  minimum_paid_registrations: integer(),
+  registration_deadline: timestamp({ withTimezone: true }),
+  starts_at: timestamp({ withTimezone: true }), ends_at: timestamp({ withTimezone: true }),
+  underfilled_action: text().notNull().default("admin_decides"),
+  allow_late_join: boolean().notNull().default(false),
+  live_provider: text().notNull().default("zoom_link"),
+  join_before_minutes: integer().notNull().default(15), join_after_minutes: integer().notNull().default(30),
   instructor: text().notNull(),
   instructor_avatar: text().default("").notNull(),
   start_date: text().notNull(),
@@ -1193,7 +1213,7 @@ export const cohort_batches = lms.table("cohort_batches", {
   max_seats: integer().default(100).notNull(),
   delivery_mode: text().default("Live + Replay").notNull(),
   replay_delay_hours: integer().default(2).notNull(),
-  access_expiry_months: integer().default(24).notNull(),
+  access_expiry_months: integer().default(12).notNull(),
   meeting_url: text(),
   features: jsonb().default({ liveChat: true, doubtClearing: true, aiTutor: true, certificate: true }).notNull(),
   status: text().default("Active").notNull(),
@@ -1202,6 +1222,10 @@ export const cohort_batches = lms.table("cohort_batches", {
   created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
 }, (table) => [
+  foreignKey({ columns: [table.offer_id, table.course_id], foreignColumns: [course_offers.id, course_offers.course_id], name: "batch_offer_course_fkey" }),
+  check("batch_lifecycle", sql`${table.lifecycle} in ('Draft','Recruiting','Ready','Scheduled','Running','Completed','Cancelled')`),
+  check("batch_provider", sql`${table.live_provider} in ('zoom_link','meet_link','own_stream')`),
+  check("batch_threshold", sql`${table.minimum_paid_registrations} is null or ${table.minimum_paid_registrations} between 0 and ${table.max_seats}`),
   index("cohort_batches_course_idx").using("btree", table.course_id),
   index("cohort_batches_position_idx").using("btree", table.position, table.created_at),
   foreignKey({
@@ -1303,3 +1327,36 @@ export const processing_jobs = lms.table("processing_jobs", {
   available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), completed_at: timestamp({ withTimezone: true }),
 }, t => [index("processing_jobs_claim_idx").on(t.state, t.available_at), check("processing_job_state", sql`${t.state} in ('queued','processing','failed','ready')`)]);
+
+// Source-aware grants are authoritative. enrollments is a compatibility projection, never payment history.
+export const entitlement_grants = lms.table("entitlement_grants", {
+  id: text().primaryKey(), student_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }),
+  course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  offer_id: text().references(() => course_offers.id), batch_id: text().references(() => cohort_batches.id),
+  source_type: text().notNull(), source_id: text().notNull(),
+  starts_at: timestamp({ withTimezone: true }).notNull().defaultNow(), expires_at: timestamp({ withTimezone: true }),
+  revoked_at: timestamp({ withTimezone: true }), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [unique("grant_source_key").on(t.student_id, t.course_id, t.source_type, t.source_id), index("grant_access_idx").on(t.student_id, t.course_id, t.batch_id)]);
+export const batch_registrations = lms.table("batch_registrations", {
+  id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id),
+  student_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }),
+  state: text().notNull(), source_type: text().notNull().default("manual"), order_id: text(),
+  paid_at: timestamp({ withTimezone: true }), confirmed_at: timestamp({ withTimezone: true }),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [unique("registration_batch_student_key").on(t.batch_id, t.student_id), check("registration_state", sql`${t.state} in ('confirmed','waitlisted','paused','cancelled')`)]);
+export const seat_reservations = lms.table("seat_reservations", {
+  id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id),
+  student_id: uuid().notNull().references(() => users.id, { onDelete: "cascade" }), order_id: text().unique(),
+  state: text().notNull().default("active"), expires_at: timestamp({ withTimezone: true }).notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [index("reservations_batch_idx").on(t.batch_id, t.state, t.expires_at), check("reservation_state", sql`${t.state} in ('active','converted','released')`)]);
+// Session persistence is introduced here so lifecycle prerequisites can be enforced before schedule authoring in phase 6.
+export const live_sessions = lms.table("live_sessions", {
+  id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id),
+  teacher_id: uuid().references(() => users.id), occurrence_key: text().notNull().unique(), title: text().notNull(),
+  starts_at: timestamp({ withTimezone: true }).notNull(), ends_at: timestamp({ withTimezone: true }).notNull(),
+  status: text().notNull().default("Scheduled"), provider: text().notNull().default("zoom_link"),
+  join_url: text(), host_url: text(), passcode: text(), actual_start: timestamp({ withTimezone: true }), actual_end: timestamp({ withTimezone: true }),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [index("sessions_batch_start_idx").on(t.batch_id, t.starts_at), check("session_dates", sql`${t.ends_at} > ${t.starts_at}`),
+  check("session_status", sql`${t.status} in ('Scheduled','Live','Ended','Cancelled')`), check("session_provider", sql`${t.provider} in ('zoom_link','meet_link','own_stream')`)]);

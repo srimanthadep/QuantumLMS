@@ -79,12 +79,10 @@ export async function resolveUser(
 
   const now = Date.now()
   const cachedEntry = userRowCache.get(claims.sub)
-  const existing =
-    cachedEntry && now < cachedEntry.expiresAt
-      ? cachedEntry.row
-      : (await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1))[0]
+  const existing = (await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1))[0]
 
   if (existing) {
+    if (existing.disabled_at || existing.provisioning_state !== "active") throw forbidden("This account is disabled or provisioning is incomplete.")
     // "Sign out of all devices" ends the access tokens Cognito already issued, not only the refresh tokens.
     if (existing.sessions_revoked_at && claims.issuedAt <= Math.floor(existing.sessions_revoked_at.getTime() / 1000)) {
       throw unauthorized("You were signed out. Sign in again.")
@@ -123,6 +121,7 @@ export async function resolveUser(
     // An existing row for this email (a re-created Cognito user, or a seeded demo account) is linked, not duplicated.
     const [byEmail] = await tx.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1)
     if (byEmail) {
+      if (byEmail.disabled_at || byEmail.provisioning_state !== "active") throw forbidden("This account is disabled or provisioning is incomplete.")
       if (byEmail.cognito_sub && byEmail.cognito_sub !== claims.sub && !isDemo) {
         throw forbidden("This email belongs to another account. Contact support.")
       }

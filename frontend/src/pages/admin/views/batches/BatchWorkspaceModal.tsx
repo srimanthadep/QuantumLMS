@@ -248,7 +248,7 @@ export default function BatchWorkspaceModal({
                   {currentBatch.name}
                 </DialogTitle>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white"><span className={cn("h-1.5 w-1.5 rounded-full", currentBatch.status === "Active" ? "bg-emerald-300" : "bg-white")} aria-hidden="true" />
-                  {currentBatch.status}
+                  {currentBatch.lifecycle ?? currentBatch.status}
                 </span>
               </div>
               <DialogDescription className="sr-only">
@@ -342,6 +342,7 @@ export default function BatchWorkspaceModal({
               errorAttempt={settingsErrorAttempt}
               onChange={patchFields}
               onSave={handleSaveSettings}
+              onAdmissionSaved={store.refreshOperations}
               onReset={() => {
                 setFields(savedFields)
                 setSettingsError(null)

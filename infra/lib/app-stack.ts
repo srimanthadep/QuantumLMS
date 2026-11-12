@@ -139,6 +139,10 @@ export class AppStack extends Stack {
     uploads.grantReadWrite(api.taskDefinition.taskRole)
     props.userPool.grant(
       api.taskDefinition.taskRole,
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminEnableUser",
       "cognito-idp:AdminSetUserPassword",
       "cognito-idp:AdminSetUserMFAPreference",
       "cognito-idp:AdminAddUserToGroup",

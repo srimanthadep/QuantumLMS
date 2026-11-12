@@ -32,7 +32,7 @@ export function createBatchFields(
       maxSeats: batch.maxSeats || 100,
       deliveryMode: batch.deliveryMode || "Live + Replay",
       replayDelayHours: batch.replayDelayHours ?? 2,
-      accessExpiryMonths: batch.accessExpiryMonths ?? 24,
+      accessExpiryMonths: batch.accessExpiryMonths ?? 12,
       meetingUrl: batch.meetingUrl || "",
       notes: batch.notes || "",
       liveChat: batch.features?.liveChat ?? true,
@@ -54,7 +54,7 @@ export function createBatchFields(
     maxSeats: 100,
     deliveryMode: "Live + Replay",
     replayDelayHours: 2,
-    accessExpiryMonths: 24,
+    accessExpiryMonths: 12,
     meetingUrl: "",
     notes: "",
     liveChat: true,
@@ -155,15 +155,7 @@ export default function BatchFormFields({
               >
                 Status
               </label>
-              <CustomSelect
-                id={`${datalistId}-status`}
-                aria-label="Status"
-                value={values.status}
-                onChange={(v) =>
-                  onChange({ status: v as AdminBatch["status"] })
-                }
-                options={BATCH_STATUS_OPTIONS}
-              />
+              <p className="rounded-lg bg-surface-2 p-3 text-xs text-muted-foreground">New batches start as drafts. Manage the stage under Admission &amp; launch.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -206,6 +198,7 @@ export default function BatchFormFields({
                 placeholder="e.g. Srimanth"
                 id={`${datalistId}-instructor`}
                 aria-label="Lead instructor"
+                readOnly={variant === "workspace"}
                 value={values.instructor}
                 onChange={(e) => onChange({ instructor: e.target.value })}
               />

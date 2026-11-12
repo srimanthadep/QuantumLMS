@@ -183,8 +183,8 @@ export default function AdminPortal({
     }
   }
 
-  const handleAddTeacher = (data: any) => {
-    store.addTeacher(data)
+  const handleAddTeacher = async (data: any) => {
+    await store.addTeacher(data)
     onToast(`Added instructor ${data.name}`)
   }
 

@@ -1,3 +1,4 @@
+import { requireEntitlement } from "../../learning/entitlements.js"
 import { and, asc, eq, isNull, lt, sql } from "drizzle-orm"
 import type { FastifyBaseLogger, FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -158,7 +159,7 @@ export async function quizRoutes(app: FastifyInstance, ctx: AppContext) {
       const q = await tx.query.quizzes.findFirst({ where: eq(quizzes.id, req.params.id) })
       if (!q) throw notFound("Quiz not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, q.course_id)) })
-      if (!enrolled) throw forbidden("Enroll in the course to take this quiz.")
+      await requireEntitlement(tx, s.id, q.course_id)
       // Serialise starts per student and quiz, so a double click can't open two attempts.
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${s.id} || ':' || ${q.id}))`)
       const [open] = await tx.select().from(quiz_attempts).where(and(eq(quiz_attempts.student_id, s.id), eq(quiz_attempts.quiz_id, q.id), isNull(quiz_attempts.submitted_at))).limit(1)

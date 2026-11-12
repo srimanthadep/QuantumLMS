@@ -90,6 +90,18 @@ export interface Rows {
     outcome: string
     created_at: string
   }
+  batch_registrations: {
+    id: string
+    batch_id: string
+    student_id: string
+    state: string
+    source_type: string
+    order_id: string | null
+    paid_at: string | null
+    confirmed_at: string | null
+    created_at: string
+    updated_at: string
+  }
   batch_students: {
     batch_id: string
     student_id: string
@@ -132,6 +144,17 @@ export interface Rows {
     id: string
     name: string
     course_id: string
+    offer_id: string | null
+    lifecycle: string
+    minimum_paid_registrations: number | null
+    registration_deadline: string | null
+    starts_at: string | null
+    ends_at: string | null
+    underfilled_action: string
+    allow_late_join: boolean
+    live_provider: string
+    join_before_minutes: number
+    join_after_minutes: number
     instructor: string
     instructor_avatar: string
     start_date: string
@@ -190,6 +213,17 @@ export interface Rows {
     title: string
     duration: string
   }
+  course_offers: {
+    id: string
+    course_id: string
+    mode: string
+    title: string
+    price: number
+    currency: string
+    status: string
+    completion_policy: Json
+    created_at: string
+  }
   course_question_votes: {
     question_id: string
     student_id: string
@@ -240,6 +274,19 @@ export interface Rows {
     student_id: string
     course_id: string
     enrolled_at: string
+  }
+  entitlement_grants: {
+    id: string
+    student_id: string
+    course_id: string
+    offer_id: string | null
+    batch_id: string | null
+    source_type: string
+    source_id: string
+    starts_at: string
+    expires_at: string | null
+    revoked_at: string | null
+    created_at: string
   }
   evaluations: {
     id: string
@@ -349,6 +396,23 @@ export interface Rows {
     media_asset_id: string | null
     video_url: string | null
     video_qualities: Json | null
+  }
+  live_sessions: {
+    id: string
+    batch_id: string
+    teacher_id: string | null
+    occurrence_key: string
+    title: string
+    starts_at: string
+    ends_at: string
+    status: string
+    provider: string
+    join_url: string | null
+    host_url: string | null
+    passcode: string | null
+    actual_start: string | null
+    actual_end: string | null
+    created_at: string
   }
   media_assets: {
     id: string
@@ -553,6 +617,15 @@ export interface Rows {
     version: string
     guidance: string
   }
+  seat_reservations: {
+    id: string
+    batch_id: string
+    student_id: string
+    order_id: string | null
+    state: string
+    expires_at: string
+    created_at: string
+  }
   squad_members: {
     squad_id: string
     student_id: string
@@ -633,6 +706,8 @@ export interface Rows {
   users: {
     id: string
     cognito_sub: string | null
+    disabled_at: string | null
+    provisioning_state: string
     email: string
     full_name: string
     avatar_url: string | null

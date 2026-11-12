@@ -1,3 +1,5 @@
+import { admit, cancelRegistration, lockBatch, availableSeats } from "../../learning/admission.js"
+import { batch_registrations, seat_reservations } from "../../db/schema.js"
 import { asc, eq, inArray, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -337,7 +339,7 @@ interface AddStudentsTxInput {
 }
 
 export async function addStudentsToBatchTx(tx: Tx, input: AddStudentsTxInput) {
-  const [batch] = await tx.select().from(cohort_batches).where(eq(cohort_batches.id, input.batchId)).limit(1)
+  const batch = await lockBatch(tx, input.batchId)
   if (!batch) throw notFound("Batch not found.")
 
   const uniqueIds = Array.from(new Set(input.studentIds))
@@ -376,81 +378,18 @@ export async function addStudentsToBatchTx(tx: Tx, input: AddStudentsTxInput) {
     }
   }
 
-  const existingRoster = await tx
-    .select({ student_id: batch_students.student_id, status: batch_students.status })
-    .from(batch_students)
-    .where(eq(batch_students.batch_id, batch.id))
-
-  const existingIds = new Set(existingRoster.map((r) => r.student_id))
-  const currentActiveSeats = existingRoster.filter((r) => r.status !== "Waitlisted").length
-  const netNewIds = uniqueIds.filter((id) => !existingIds.has(id))
-  const skippedCount = uniqueIds.length - netNewIds.length
-
-  if (netNewIds.length === 0) {
-    return { addedCount: 0, waitlistedCount: 0, skippedCount }
-  }
-
-  let availableSeats = Math.max(0, batch.max_seats - currentActiveSeats)
-  if (input.status !== "Waitlisted" && netNewIds.length > availableSeats && !input.allowOverCapacity && !input.autoWaitlistWhenFull) {
-    throw conflict(
-      `Batch capacity reached (${currentActiveSeats}/${batch.max_seats} seats filled). Increase seat limit, add to waitlist, or remove inactive students.`,
-    )
-  }
-
-  const valuesToInsert: Array<{
-    batch_id: string
-    student_id: string
-    status: RosterStatus
-    notes: string
-  }> = []
-  const activeAddedIds: string[] = []
-  let waitlistedCount = 0
-
-  for (const studentId of netNewIds) {
-    let assignedStatus: RosterStatus = input.status
-    if (assignedStatus !== "Waitlisted") {
-      if (availableSeats > 0 || input.allowOverCapacity) {
-        availableSeats = Math.max(0, availableSeats - 1)
-        activeAddedIds.push(studentId)
-      } else if (input.autoWaitlistWhenFull) {
-        assignedStatus = "Waitlisted"
-        waitlistedCount += 1
-      }
-    } else {
-      waitlistedCount += 1
-    }
-
-    valuesToInsert.push({
-      batch_id: batch.id,
-      student_id: studentId,
-      status: assignedStatus,
-      notes: input.notes ?? "",
-    })
-  }
-
-  await tx.insert(batch_students).values(valuesToInsert).onConflictDoNothing()
-
-  if (activeAddedIds.length > 0) {
-    await tx
-      .insert(enrollments)
-      .values(activeAddedIds.map((studentId) => ({ student_id: studentId, course_id: batch.course_id })))
-      .onConflictDoNothing()
-
-    await tx
-      .update(profiles)
-      .set({ batch: batch.name, updated_at: new Date() })
-      .where(inArray(profiles.id, activeAddedIds))
-
-    for (const studentId of activeAddedIds) {
+  let addedCount = 0, waitlistedCount = 0, skippedCount = 0
+  for (const studentId of [...uniqueIds].sort()) {
+    const result = await admit(tx, { batchId: batch.id, student: studentId, status: input.status, notes: input.notes, autoWaitlist: input.autoWaitlistWhenFull })
+    if (result.skipped) skippedCount++
+    else if (result.waitlisted) waitlistedCount++
+    else {
+      addedCount++
+      await tx.update(profiles).set({ batch: batch.name, updated_at: new Date() }).where(eq(profiles.id, studentId))
       await openCertificates(tx, studentId, [batch.course_id])
     }
   }
-
-  return {
-    addedCount: activeAddedIds.length,
-    waitlistedCount,
-    skippedCount,
-  }
+  return { addedCount, waitlistedCount, skippedCount }
 }
 
 async function queryBatches(db: Db, filters?: { courseId?: string; status?: string; q?: string; batchId?: string }) {
@@ -491,7 +430,7 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
       cb.access_expiry_months,
       cb.meeting_url,
       cb.features,
-      cb.status,
+      cb.status, cb.lifecycle, cb.offer_id, cb.minimum_paid_registrations,
       cb.notes,
       cb.position,
       cb.created_at,
@@ -507,6 +446,7 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
   return result.rows.map((row: any) => ({
     id: String(row.id),
     name: String(row.name),
+    lifecycle: row.lifecycle, offer_id: row.offer_id, minimum_paid_registrations: row.minimum_paid_registrations,
     course_id: String(row.course_id),
     course_code: String(row.course_code ?? ""),
     course_title: String(row.course_title ?? ""),
@@ -560,7 +500,7 @@ const createBatchSchema = z.object({
   max_seats: z.number().int().min(1, "Max seats must be at least 1.").max(5000).default(100),
   delivery_mode: z.enum(DELIVERY_MODES).default("Live + Replay"),
   replay_delay_hours: z.number().int().min(0).max(168).default(2),
-  access_expiry_months: z.number().int().min(0).max(120).default(24),
+  access_expiry_months: z.number().int().min(0).max(120).default(12),
   meeting_url: meetingUrlField,
   features: FEATURES_SCHEMA.optional(),
   status: z.enum(BATCH_STATUSES).default("Active"),
@@ -744,6 +684,13 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
     assertDateOrder(nextStart, nextEnd)
 
     await db.transaction(async (tx) => {
+      const locked = await lockBatch(tx, existing.id)
+      const available = await availableSeats(tx, locked)
+      if (b.max_seats !== undefined && (b.max_seats < locked.max_seats - available || b.max_seats < (locked.minimum_paid_registrations ?? 0))) throw conflict("Capacity cannot be below allocated seats or the configured minimum")
+      if (b.course_id && b.course_id !== locked.course_id) {
+        const history = await tx.select().from(batch_registrations).where(eq(batch_registrations.batch_id, locked.id)).limit(1)
+        if (history.length || locked.offer_id) throw conflict("A batch with an offer or registration history cannot change course")
+      }
       const updateSet: Record<string, unknown> = { updated_at: new Date() }
       if (b.name !== undefined) updateSet.name = b.name
       if (b.course_id !== undefined) updateSet.course_id = b.course_id
@@ -775,20 +722,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
           .where(eq(profiles.batch, existing.name))
       }
 
-      // If linked course changed, also enroll active batch students in the new course.
-      if (b.course_id !== undefined && b.course_id !== existing.course_id) {
-        const roster = await tx
-          .select({ student_id: batch_students.student_id, status: batch_students.status })
-          .from(batch_students)
-          .where(eq(batch_students.batch_id, existing.id))
-        const activeIds = roster.filter((r) => r.status !== "Waitlisted").map((r) => r.student_id)
-        if (activeIds.length > 0) {
-          await tx
-            .insert(enrollments)
-            .values(activeIds.map((studentId) => ({ student_id: studentId, course_id: b.course_id! })))
-            .onConflictDoNothing()
-        }
-      }
+
     })
 
     const updated = await getBatchDto(db, existing.id)
@@ -802,6 +736,8 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
 
   // 6. Delete cohort batch
   app.delete<{ Params: { id: string } }>("/batches/:id", async (req) => {
+    const history = await db.select({ id: batch_registrations.id }).from(batch_registrations).where(eq(batch_registrations.batch_id, req.params.id)).limit(1)
+    if (history.length) throw conflict("This batch has registration history. Cancel or archive it instead of deleting it.")
     const [deleted] = await db
       .delete(cohort_batches)
       .where(eq(cohort_batches.id, req.params.id))
@@ -956,69 +892,20 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
     if (!existing) throw notFound("Student is not enrolled in this batch.")
 
     if (b.target_batch_id && b.target_batch_id !== batchId) {
-      await db.transaction(async (tx) => {
-        const [target] = await tx
-          .select()
-          .from(cohort_batches)
-          .where(eq(cohort_batches.id, b.target_batch_id!))
-          .limit(1)
-        if (!target) throw notFound("Target batch not found.")
-
-        await addStudentsToBatchTx(tx, {
-          batchId: target.id,
-          studentIds: [studentId],
-          status: b.status ?? (existing.status as RosterStatus),
-          notes: b.notes ?? existing.notes,
-          allowOverCapacity: b.allow_over_capacity,
-        })
-
-        await tx
-          .delete(batch_students)
-          .where(sql`${batch_students.batch_id} = ${batchId} and ${batch_students.student_id} = ${studentId}::uuid`)
+      await db.transaction(async tx => {
+        for (const id of [batchId, b.target_batch_id!].sort()) await lockBatch(tx, id)
+        const [sourceRegistration] = await tx.select().from(batch_registrations).where(sql`${batch_registrations.batch_id} = ${batchId} and ${batch_registrations.student_id} = ${studentId}::uuid`)
+        const source = await lockBatch(tx, batchId), target = await lockBatch(tx, b.target_batch_id!)
+        if (sourceRegistration?.paid_at && source.course_id !== target.course_id) throw conflict("Refund the original offer before moving a paid registration to another course")
+        const result = await admit(tx, { batchId: target.id, student: studentId, status: b.status ?? existing.status,
+          notes: b.notes ?? existing.notes, orderId: sourceRegistration?.order_id ?? undefined, paidAt: sourceRegistration?.paid_at ?? undefined, source: sourceRegistration?.source_type })
+        if (result.skipped) throw conflict("This student is already registered in the target batch")
+        await cancelRegistration(tx, batchId, studentId)
       })
-
-      const [sourceBatch, targetBatch] = await Promise.all([
-        getBatchDto(db, batchId),
-        getBatchDto(db, b.target_batch_id),
-      ])
-      return { ok: true, transferred: true, batch: sourceBatch, target_batch: targetBatch }
+      return { ok: true, transferred: true, batch: await getBatchDto(db, batchId), target_batch: await getBatchDto(db, b.target_batch_id) }
     }
-
-    const [sourceBatchRow] = await db.select().from(cohort_batches).where(eq(cohort_batches.id, batchId)).limit(1)
-    if (!sourceBatchRow) throw notFound("Batch not found.")
-
-    await db.transaction(async (tx) => {
-      if (existing.status === "Waitlisted" && b.status && b.status !== "Waitlisted" && !b.allow_over_capacity) {
-        const [{ filled }] = (
-          await tx.execute(sql`
-            select count(*)::int as filled from lms.batch_students
-            where batch_id = ${batchId} and status <> 'Waitlisted'
-          `)
-        ).rows as { filled: number }[]
-        if ((filled ?? 0) >= sourceBatchRow.max_seats) {
-          throw conflict(`Batch capacity reached (${filled}/${sourceBatchRow.max_seats} seats filled).`)
-        }
-      }
-
-      const updateSet: Record<string, unknown> = { updated_at: new Date() }
-      if (b.status !== undefined) updateSet.status = b.status
-      if (b.notes !== undefined) updateSet.notes = b.notes
-
-      await tx
-        .update(batch_students)
-        .set(updateSet)
-        .where(sql`${batch_students.batch_id} = ${batchId} and ${batch_students.student_id} = ${studentId}::uuid`)
-
-      if (b.status && b.status !== "Waitlisted") {
-        await tx
-          .insert(enrollments)
-          .values({ student_id: studentId, course_id: sourceBatchRow.course_id })
-          .onConflictDoNothing()
-        await tx
-          .update(profiles)
-          .set({ batch: sourceBatchRow.name, updated_at: new Date() })
-          .where(eq(profiles.id, studentId))
-      }
+    await db.transaction(async tx => {
+      await admit(tx, { batchId, student: studentId, status: b.status ?? existing.status, notes: b.notes, allowUpdate: true })
     })
 
     const updatedBatch = await getBatchDto(db, batchId)
@@ -1035,35 +922,11 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
       const [batch] = await db.select().from(cohort_batches).where(eq(cohort_batches.id, batchId)).limit(1)
       if (!batch) throw notFound("Batch not found.")
 
-      await db.transaction(async (tx) => {
-        const [removed] = await tx
-          .delete(batch_students)
-          .where(sql`${batch_students.batch_id} = ${batchId} and ${batch_students.student_id} = ${studentId}::uuid`)
-          .returning({ student_id: batch_students.student_id })
-
-        if (!removed) throw notFound("Student is not enrolled in this batch.")
-
-        if (unenrolCourse) {
-          await tx
-            .delete(enrollments)
-            .where(sql`${enrollments.student_id} = ${studentId}::uuid and ${enrollments.course_id} = ${batch.course_id}`)
-        }
-
-        const [nextBatch] = (
-          await tx.execute(sql`
-            select cb.name
-            from lms.batch_students bs
-            join lms.cohort_batches cb on cb.id = bs.batch_id
-            where bs.student_id = ${studentId}::uuid
-            order by bs.enrolled_at desc
-            limit 1
-          `)
-        ).rows as { name: string }[]
-
-        await tx
-          .update(profiles)
-          .set({ batch: nextBatch?.name ?? "Unassigned", updated_at: new Date() })
-          .where(eq(profiles.id, studentId))
+      await db.transaction(async tx => {
+        await cancelRegistration(tx, batchId, studentId)
+        const [nextBatch] = (await tx.execute(sql`select cb.name from lms.batch_students bs join lms.cohort_batches cb on cb.id = bs.batch_id
+          where bs.student_id = ${studentId}::uuid order by bs.enrolled_at desc limit 1`)).rows as { name: string }[]
+        await tx.update(profiles).set({ batch: nextBatch?.name ?? "Unassigned", updated_at: new Date() }).where(eq(profiles.id, studentId))
       })
 
       const updatedBatch = await getBatchDto(db, batchId)

@@ -1,3 +1,4 @@
+import { learningAdminRoutes } from "../../learning/routes.js"
 import { mediaRoutes } from "../../media/routes.js"
 import type { FastifyInstance } from "fastify"
 import type { AppContext } from "../../context.js"
@@ -14,6 +15,7 @@ export async function adminModule(app: FastifyInstance, ctx: AppContext) {
       scope.addHook("preHandler", authenticate(ctx, ["Admin", "Super Admin"]))
       await adminCoursesRoutes(scope, ctx)
       await mediaRoutes(scope, ctx)
+      await learningAdminRoutes(scope, ctx)
       await adminBatchRoutes(scope, ctx)
       await adminOperationsRoutes(scope, ctx)
       await adminAlumniRoutes(scope, ctx)

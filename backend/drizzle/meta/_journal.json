@@ -57,6 +57,13 @@
       "when": 1794479730104,
       "tag": "0007_durable_media_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794481182684,
+      "tag": "0008_offers_admission_entitlements",
+      "breakpoints": true
     }
   ]
 }

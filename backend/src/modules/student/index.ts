@@ -1,3 +1,5 @@
+import { course_offers } from "../../db/schema.js"
+import { enrollFree } from "../../learning/offers.js"
 import { and, asc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -33,9 +35,9 @@ export async function onboardStudent(tx: Tx, user: AuthUser, ctx: Pick<AppContex
     .onConflictDoNothing()
     .returning()
   if (!created) return
-  const starters = await tx.select({ id: courses.id }).from(courses).where(and(eq(courses.is_starter, true), eq(courses.price, 0), eq(courses.status, "Published")))
+  const starters = await tx.select({ id: courses.id, offer: course_offers.id }).from(courses).innerJoin(course_offers, eq(course_offers.course_id, courses.id)).where(and(eq(courses.is_starter, true), eq(course_offers.price, 0), eq(course_offers.mode, "self_paced"), eq(course_offers.status, "Published"), eq(courses.status, "Published")))
   if (starters.length) {
-    await tx.insert(enrollments).values(starters.map((c) => ({ student_id: user.id, course_id: c.id }))).onConflictDoNothing()
+    for (const starter of starters) await enrollFree(tx, user.id, { offerId: starter.offer })
     await openCertificates(tx, user.id, starters.map((c) => c.id))
   }
   await notify(tx, user.id, "system", "Welcome to Quantum School", "Your learning account is ready.", "courses")

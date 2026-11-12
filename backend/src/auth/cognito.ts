@@ -1,5 +1,6 @@
 import {
   AdminAddUserToGroupCommand,
+  AdminCreateUserCommand, AdminGetUserCommand, AdminDisableUserCommand, AdminEnableUserCommand,
   AdminRemoveUserFromGroupCommand,
   AdminSetUserMFAPreferenceCommand,
   AdminSetUserPasswordCommand,
@@ -26,6 +27,8 @@ export interface CognitoGateway {
   removeFromGroup(username: string, group: string): Promise<void>
   /** Ends every session of the user (refresh tokens stop working). */
   signOutEverywhere(accessToken: string): Promise<void>
+  invite(email: string, name: string): Promise<{ sub: string }>
+  setEnabled(username: string, enabled: boolean): Promise<void>
 }
 
 export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "COGNITO_ENDPOINT" | "COGNITO_USER_POOL_ID">): CognitoGateway {
@@ -47,6 +50,23 @@ export function createCognitoGateway(config: Pick<Config, "COGNITO_REGION" | "CO
     }
   }
   return {
+    async invite(email, name) {
+      let attributes
+      try {
+        const created = await client.send(new AdminCreateUserCommand({ UserPoolId: pool, Username: email, DesiredDeliveryMediums: ["EMAIL"],
+          UserAttributes: [{ Name: "email", Value: email }, { Name: "name", Value: name }, { Name: "email_verified", Value: "true" }] }))
+        attributes = created.User?.Attributes
+      } catch (error) {
+        if ((error as Error).name !== "UsernameExistsException") throw error
+        attributes = (await client.send(new AdminGetUserCommand({ UserPoolId: pool, Username: email }))).UserAttributes
+      }
+      const sub = attributes?.find(a => a.Name === "sub")?.Value
+      if (!sub) throw new Error("Cognito did not return a user identity")
+      return { sub }
+    },
+    async setEnabled(username, enabled) {
+      await client.send(enabled ? new AdminEnableUserCommand({ UserPoolId: pool, Username: username }) : new AdminDisableUserCommand({ UserPoolId: pool, Username: username }))
+    },
     async getAttributes(accessToken) {
       const res = await client.send(new GetUserCommand({ AccessToken: accessToken }))
       const attr = Object.fromEntries((res.UserAttributes ?? []).map((a) => [a.Name ?? "", a.Value ?? ""]))

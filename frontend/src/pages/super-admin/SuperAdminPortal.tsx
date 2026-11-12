@@ -195,8 +195,8 @@ export default function SuperAdminPortal({
     }
   }
 
-  const handleAddTeacher = (data: any) => {
-    adminStore.addTeacher(data)
+  const handleAddTeacher = async (data: any) => {
+    await adminStore.addTeacher(data)
     onToast(`Added instructor ${data.name}`)
   }
 

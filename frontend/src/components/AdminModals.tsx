@@ -30,132 +30,37 @@ import type {
 import BatchFormDialog, { type BatchFormValues } from "../pages/admin/views/batches/BatchFormDialog"
 
 // 1. Add Teacher / Instructor Modal
-export function AddTeacherModal({
-  isOpen,
-  onClose,
-  onAdd,
-  courses,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onAdd: (data: {
-    name: string
-    email: string
-    title: string
-    specialization: string
-    role: "Lead Instructor" | "Teaching Assistant" | "Evaluator"
-    assignedCourses: string[]
-    activeBatches: string[]
-    status: "Available" | "Live Now" | "In Review" | "Off-Duty"
-    avatar: string
-  }) => void
-  courses: AdminCourse[]
+export function AddTeacherModal({ isOpen, onClose, onAdd, courses }: {
+  isOpen: boolean; onClose: () => void; courses: AdminCourse[];
+  onAdd: (data: { name: string; email: string; title: string; specialization: string; role: "Lead Instructor" | "Evaluator"; assignedCourses: string[]; activeBatches: string[]; status: "Available"; avatar: string }) => Promise<void>
 }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [title, setTitle] = useState("AI Instructor & Faculty Researcher")
-  const [specialization, setSpecialization] = useState("LLM Architectures & Multi-Agent Systems")
-  const [role, setRole] = useState<"Lead Instructor" | "Teaching Assistant" | "Evaluator">("Lead Instructor")
-  const [selectedCourse, setSelectedCourse] = useState(courses[0]?.title || "Generative AI Engineering")
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onAdd({
-      name,
-      email: email || `${name.toLowerCase().replace(/\s+/g, ".")}@quantumschool.ai`,
-      title,
-      specialization,
-      role,
-      assignedCourses: [selectedCourse],
-      activeBatches: [`${selectedCourse} Cohort 1`],
-      status: "Available",
-      avatar: `/assets/teacher-${Math.random() > 0.5 ? "male" : "female"}.png`,
-    })
-    setName("")
-    setEmail("")
-    onClose()
+  const [role, setRole] = useState<"Lead Instructor" | "Evaluator">("Lead Instructor")
+  const [courseId, setCourseId] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError("")
+    try {
+      await onAdd({ name, email, role, title: "", specialization: "", assignedCourses: role === "Lead Instructor" && courseId ? [courseId] : [], activeBatches: [], status: "Available", avatar: "" })
+      setName(""); setEmail(""); onClose()
+    } catch (e) { setError(e instanceof Error ? e.message : "Unable to send invitation") }
+    finally { setBusy(false) }
   }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <DialogTitle>Add Instructor or TA</DialogTitle>
-              <DialogDescription>Register a new AI instructor or faculty member to the academy</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Full Name</label>
-            <Input
-              required
-              placeholder="e.g. Dr. Aryan Sharma"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Official Email</label>
-            <Input
-              type="email"
-              placeholder="aryan.sharma@quantumschool.ai"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Role</label>
-              <CustomSelect
-                value={role}
-                onChange={(val) => setRole(val as any)}
-                options={["Lead Instructor", "Teaching Assistant", "Evaluator"]}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Assigned Course</label>
-              <CustomSelect
-                value={selectedCourse}
-                onChange={setSelectedCourse}
-                options={courses.map((c) => ({ value: c.title, label: c.title }))}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Professional Title</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Domain Specialization</label>
-            <Input value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">Add Instructor</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+  return <Dialog open={isOpen} onOpenChange={open => { if (!open && !busy) onClose() }}><DialogContent className="max-w-lg">
+    <DialogHeader><DialogTitle>Invite faculty</DialogTitle><DialogDescription>Create an account and send a sign-in invitation to their email.</DialogDescription></DialogHeader>
+    <form onSubmit={submit} className="space-y-4">
+      <label className="block space-y-2 text-sm">Full name<Input required minLength={2} value={name} onChange={e => setName(e.target.value)} /></label>
+      <label className="block space-y-2 text-sm">Email<Input required type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
+      <label className="block space-y-2 text-sm">Role<CustomSelect value={role} onChange={v => setRole(v as typeof role)} options={["Lead Instructor", "Evaluator"]} /></label>
+      {role === "Lead Instructor" && <label className="block space-y-2 text-sm">Course assignment (optional)<select className="h-10 w-full rounded-lg border border-border bg-surface px-3" value={courseId} onChange={e => setCourseId(e.target.value)}><option value="">Assign later</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></label>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      <DialogFooter><Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" disabled={busy}>{busy ? "Sending invitation…" : "Send invitation"}</Button></DialogFooter>
+    </form>
+  </DialogContent></Dialog>
 }
 
-// 2. Create Cohort Batch Modal (delegates to shared BatchFormDialog)
 export function CreateBatchModal({
   isOpen,
   onClose,

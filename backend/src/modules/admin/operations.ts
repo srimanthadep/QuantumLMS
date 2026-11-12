@@ -1,3 +1,4 @@
+import { grantAccess } from "../../learning/entitlements.js"
 import { asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -6,6 +7,7 @@ import {
   attendance_records,
   cohort_batches,
   courses,
+  course_teachers,
   enrollments,
   profiles,
   timetable_slots,
@@ -20,59 +22,71 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
 
   // 3. List faculty & teachers
   app.get("/teachers", async () => {
-    const teachers = await db
-      .select({
-        id: users.id,
-        name: users.full_name,
-        email: users.email,
-        avatar: users.avatar_url,
-        role: users.role,
-        created_at: users.created_at,
-      })
-      .from(users)
-      .where(sql`${users.role} in ('Teacher', 'Evaluator', 'Admin')`)
-      .orderBy(asc(users.full_name))
+    const teachers = (await db.execute(sql`select u.id, u.full_name as name, u.email, u.avatar_url as avatar, u.role, u.created_at, u.disabled_at, u.provisioning_state,
+      array(select c.title from lms.course_teachers ct join lms.courses c on c.id=ct.course_id where ct.teacher_id=u.id) as assigned_courses,
+      array(select b.name from lms.batch_teachers bt join lms.cohort_batches b on b.id=bt.batch_id where bt.teacher_id=u.id) as active_batches,
+      (select count(*)::int from (select e.student_id from lms.enrollments e join lms.course_teachers ct on ct.course_id=e.course_id where ct.teacher_id=u.id
+        union select bs.student_id from lms.batch_students bs join lms.batch_teachers bt on bt.batch_id=bs.batch_id where bt.teacher_id=u.id and bs.status in ('Active','Completed','At Risk')) roster) as student_count
+      from lms.users u where u.role in ('Teacher','Evaluator') order by u.full_name`)).rows
 
     return { teachers }
   })
 
-  // 3b. Add teacher
-  app.post("/teachers", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().min(2).max(120),
-        email: z.string().email(),
-        role: z.enum(["Teacher", "Teaching Assistant", "Evaluator"]).default("Teacher"),
-      }),
-      req.body,
-    )
-    return {
-      teacher: {
-        id: `teach-${Date.now()}`,
-        name: b.name,
-        email: b.email,
-        role: b.role,
-        avatar: "/assets/shanmuk.png",
-        created_at: new Date().toISOString(),
-      },
+  // Provisioning is recoverable: pending/failed accounts cannot authenticate until Cognito and DB agree.
+  app.post("/teachers", async req => {
+    const b = parse(z.object({ name: z.string().trim().min(2).max(120), email: z.string().email(), role: z.enum(["Teacher", "Lead Instructor", "Teaching Assistant", "Evaluator"]).default("Teacher"), course_ids: z.array(z.string()).max(20).default([]) }), req.body)
+    const email = b.email.toLowerCase(), role = b.role === "Evaluator" ? "Evaluator" : "Teacher"
+    const [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${email}`)
+    if (existing && !["Teacher", "Evaluator"].includes(existing.role)) throw badRequest("This email already belongs to another account role")
+    if (existing?.provisioning_state === "active" && existing.cognito_sub) throw badRequest("This instructor already has an account. Edit their assignments instead.")
+    const pending = await db.transaction(async tx => {
+      const [created] = await tx.insert(users).values({ email, full_name: b.name, role, provisioning_state: "pending" }).onConflictDoNothing().returning()
+      if (created) return created
+      const [current] = await tx.select().from(users).where(sql`lower(${users.email}) = ${email}`).for("update")
+      if (!current || !["Teacher", "Evaluator"].includes(current.role)) throw badRequest("This email belongs to another account role")
+      if (current.provisioning_state === "pending" && Date.now() - current.updated_at.getTime() < 300_000) throw badRequest("An invitation is already being processed. Please wait before retrying.")
+      if (current.provisioning_state === "active" && current.cognito_sub) throw badRequest("This instructor already has an account")
+      const [row] = await tx.update(users).set({ provisioning_state: "pending", full_name: b.name, updated_at: new Date() }).where(eq(users.id, current.id)).returning()
+      return row
+    })
+    try {
+      const identity = await ctx.cognito.invite(email, b.name)
+      await ctx.cognito.addToGroup(email, role === "Evaluator" ? "evaluators" : "teachers")
+      const [teacher] = await db.update(users).set({ cognito_sub: identity.sub, provisioning_state: "active", role, disabled_at: null, updated_at: new Date() }).where(eq(users.id, pending.id)).returning()
+      if (role === "Teacher" && b.course_ids.length) {
+        await db.transaction(async tx => {
+          for (const courseId of b.course_ids) {
+            const [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
+            if (!course) throw badRequest("Assigned course not found")
+            await tx.insert(course_teachers).values({ course_id: courseId, teacher_id: teacher.id }).onConflictDoNothing()
+          }
+        })
+      }
+      return { teacher: { ...teacher, name: teacher.full_name } }
+    } catch {
+      await db.update(users).set({ provisioning_state: "failed" }).where(eq(users.id, pending.id))
+      throw new AppError(503, "provisioning_failed", "The invitation could not be completed. The account is saved as failed; retry with the same email.")
     }
   })
-
-  // 3c. Edit teacher
-  app.patch<{ Params: { id: string } }>("/teachers/:id", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().min(2).max(120).optional(),
-        role: z.enum(["Teacher", "Teaching Assistant", "Evaluator", "Lead Instructor"]).optional(),
-      }),
-      req.body,
-    )
-    return { ok: true, id: req.params.id, teacher: b }
+  app.patch<{ Params: { id: string } }>("/teachers/:id", async req => {
+    const b = parse(z.object({ name: z.string().trim().min(2).max(120).optional(), enabled: z.boolean().optional() }), req.body)
+    const id = parse(z.string().uuid(), req.params.id)
+    const [existing] = await db.select().from(users).where(eq(users.id, id))
+    if (!existing || !["Teacher", "Evaluator"].includes(existing.role)) throw notFound("Teacher not found")
+    if (b.enabled !== undefined) {
+      if (!b.enabled) await db.update(users).set({ disabled_at: new Date(), sessions_revoked_at: new Date() }).where(eq(users.id, id))
+      await ctx.cognito.setEnabled(existing.email, b.enabled)
+    }
+    const [teacher] = await db.update(users).set({ ...(b.name ? { full_name: b.name } : {}), ...(b.enabled !== undefined ? { disabled_at: b.enabled ? null : new Date(), sessions_revoked_at: new Date() } : {}), updated_at: new Date() }).where(eq(users.id, id)).returning()
+    return { teacher: { ...teacher, name: teacher.full_name } }
   })
-
-  // 3d. Delete teacher
-  app.delete<{ Params: { id: string } }>("/teachers/:id", async (req) => {
-    return { ok: true, deleted: req.params.id }
+  app.delete<{ Params: { id: string } }>("/teachers/:id", async req => {
+    const id = parse(z.string().uuid(), req.params.id)
+    const [existing] = await db.select().from(users).where(eq(users.id, id))
+    if (!existing || !["Teacher", "Evaluator"].includes(existing.role)) throw notFound("Teacher not found")
+    await db.update(users).set({ disabled_at: new Date(), sessions_revoked_at: new Date() }).where(eq(users.id, id))
+    await ctx.cognito.setEnabled(existing.email, false)
+    return { ok: true, disabled: id }
   })
 
   // 4. List all students with enrolled courses & attendance
@@ -169,11 +183,13 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
     let targetBatchName: string | undefined
     if (b.batch_id) {
       const [batchRow] = await db
-        .select({ id: cohort_batches.id, name: cohort_batches.name })
+        .select({ id: cohort_batches.id, name: cohort_batches.name, course_id: cohort_batches.course_id })
         .from(cohort_batches)
         .where(eq(cohort_batches.id, b.batch_id))
         .limit(1)
-      targetBatchName = batchRow?.name
+      if (!batchRow) throw notFound("Batch not found")
+      if (batchRow.course_id !== c.id) throw badRequest("Batch and course do not match")
+      targetBatchName = batchRow.name
     }
 
     const result = await db.transaction(async (tx) => {
@@ -193,33 +209,19 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
       }
 
       if (b.batch_id && targetBatchName) {
-        await addStudentsToBatchTx(tx, {
+        const admission = await addStudentsToBatchTx(tx, {
           batchId: b.batch_id,
           studentIds: [studentId],
           status: "Active",
           autoWaitlistWhenFull: true,
         })
+        return { admission }
       }
 
-      const [existing] = await tx
-        .select()
-        .from(enrollments)
-        .where(sql`${enrollments.student_id} = ${studentId} and ${enrollments.course_id} = ${c.id}`)
-        .limit(1)
-
-      if (existing) {
-        return { enrollment: existing, message: "Student is already enrolled." }
-      }
-
-      const [enrollment] = await tx
-        .insert(enrollments)
-        .values({
-          student_id: studentId,
-          course_id: c.id,
-        })
-        .returning()
-
+      await grantAccess(tx, { student: studentId, course: c.id, sourceType: "manual", sourceId: `admin:${c.id}` })
+      const [enrollment] = await tx.select().from(enrollments).where(sql`${enrollments.student_id} = ${studentId}::uuid and ${enrollments.course_id} = ${c.id}`)
       return { enrollment }
+
     })
 
     return result
