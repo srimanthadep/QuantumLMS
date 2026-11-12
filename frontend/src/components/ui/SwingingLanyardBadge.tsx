@@ -178,6 +178,7 @@ function __OriginkitBase_SwingingLanyardBadge(props: any) {
             ...props.advanced,
             ...(props.anchorY !== undefined ? { anchorY: props.anchorY } : {}),
             ...(props.strapSpread !== undefined ? { strapSpread: props.strapSpread } : {}),
+            ...(props.strapWidth !== undefined ? { strapWidth: props.strapWidth } : {}),
             ...(props.stretch !== undefined ? { stretch: props.stretch } : {}),
         },
     }

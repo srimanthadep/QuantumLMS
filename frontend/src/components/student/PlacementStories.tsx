@@ -11,105 +11,32 @@ import {
   Trophy,
   Briefcase,
   Quote,
+  Pencil,
+  Trash2,
+  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring } from "@/lib/motion"
 import { Button } from "@/components/ui"
 import type { StudentNavPage } from "@/pages/student/studentTypes"
+import { useAlumniNetwork, type PlacementStory } from "@/data/alumniStore"
 
-export interface PlacementStory {
-  id: string
-  firstName: string
-  fullName: string
-  company: string
-  role: string
-  package: string
-  head: string
-  quote: string
-  highlight: string
-  bg1?: string
-  bg2?: string
+export type { PlacementStory }
+
+export interface PlacementStoriesAdminControls {
+  onPost?: () => void
+  onEdit: (story: PlacementStory) => void
+  onDelete: (story: PlacementStory) => void
 }
-
-const PLACEMENT_STORIES: readonly PlacementStory[] = [
-  {
-    id: "story-rhea",
-    firstName: "Rhea",
-    fullName: "Rhea Chawla",
-    company: "Byborg",
-    role: "International Systems Architect",
-    package: "₹50 Lakhs+",
-    head: "From Delhi to Luxembourg One Code at a Time!",
-    quote:
-      "Transitioning from university to a high-scale European tech team in Luxembourg felt like a massive leap. QuantumLMS's distributed systems tracks and live system design labs gave me the exact domain knowledge to clear all technical evaluation rounds.",
-    highlight: "Luxembourg International Offer",
-    bg1: "#1e5be0",
-    bg2: "#5aa0ff",
-  },
-  {
-    id: "story-shubhadip",
-    firstName: "Shubhadip",
-    fullName: "Subhadip Das",
-    company: "Mr.Cooper",
-    role: "Senior Data & Analytics Engineer",
-    package: "₹21 LPA",
-    head: "FROM CRICKET TO DATA ANALYTICS",
-    quote:
-      "I spent my college years focused entirely on competitive cricket before discovering data engineering. Building real-time analytics pipelines during the cohort bridged the entire gap and made my transition into Mr. Cooper seamless.",
-    highlight: "Cricket to Data Analytics Switch",
-    bg1: "#1547c4",
-    bg2: "#3b82f6",
-  },
-  {
-    id: "story-nikita",
-    firstName: "Nikita",
-    fullName: "Nikita Singh Raghav",
-    company: "Zepto",
-    role: "Product Growth & Operations",
-    package: "₹19 LPA",
-    head: "Why Nikita Chose Upskilling Over Waiting",
-    quote:
-      "Instead of waiting a full year for traditional MBA admissions, I chose to upskill in product analytics and modern tech stacks. Joining Zepto's fast-paced engineering team proved it was the right decision.",
-    highlight: "Fast-Track Tech Career",
-    bg1: "#1e5be0",
-    bg2: "#5aa0ff",
-  },
-  {
-    id: "story-yoshita",
-    firstName: "Yoshita",
-    fullName: "Yoshita B Shankar",
-    company: "1DS",
-    role: "Full Stack Engineer",
-    package: "₹18 LPA",
-    head: "Every late-night effort built her tomorrow",
-    quote:
-      "Balancing college coursework and deep-dive coding was tough, but the consistency built resilience. The mentorship and code reviews transformed my code quality to industry standards.",
-    highlight: "Consistent Daily Learner",
-    bg1: "#1747c4",
-    bg2: "#4b8cf5",
-  },
-  {
-    id: "story-anup",
-    firstName: "Anup",
-    fullName: "Anup Dhangar",
-    company: "Bhanzu",
-    role: "Core Platform Engineer",
-    package: "₹16 LPA",
-    head: "Success starts When you refuse to settle",
-    quote:
-      "After facing initial rejections, I doubled down on my core algorithms and web infrastructure fundamentals. Committing to structured daily problem solving opened the door to Bhanzu.",
-    highlight: "Turned Rejections into Offer",
-    bg1: "#1a4fcf",
-    bg2: "#5b9cff",
-  },
-] as const
 
 interface PlacementStoriesProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
   className?: string
+  adminControls?: PlacementStoriesAdminControls
 }
 
-export default function PlacementStories({ onNavigate, className }: PlacementStoriesProps) {
+export default function PlacementStories({ onNavigate, className, adminControls }: PlacementStoriesProps) {
+  const { stories } = useAlumniNetwork(adminControls ? "admin" : "student")
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -135,20 +62,20 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
       el.removeEventListener("scroll", updateScrollButtons)
       window.removeEventListener("resize", updateScrollButtons)
     }
-  }, [updateScrollButtons])
+  }, [updateScrollButtons, stories.length])
 
-  // Scroll step (one or two cards width + gap)
+  // Scroll step (one card width + gap)
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollerRef.current
     if (!el) return
-    const cardStep = 248 // card width (226) + gap (22)
+    const cardStep = 260 // card width (244) + gap (16)
     const delta = direction === "left" ? -cardStep * 2 : cardStep * 2
     el.scrollBy({ left: delta, behavior: "smooth" })
   }
 
   // Auto-scroll pace (every 5 seconds when not hovering)
   useEffect(() => {
-    if (isPaused || activeStoryIndex !== null) return
+    if (isPaused || activeStoryIndex !== null || stories.length === 0) return
     const interval = setInterval(() => {
       const el = scrollerRef.current
       if (!el) return
@@ -156,26 +83,33 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
       if (el.scrollLeft >= maxScroll - 10) {
         el.scrollTo({ left: 0, behavior: "smooth" })
       } else {
-        el.scrollBy({ left: 248, behavior: "smooth" })
+        el.scrollBy({ left: 260, behavior: "smooth" })
       }
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [isPaused, activeStoryIndex])
+  }, [isPaused, activeStoryIndex, stories.length])
 
   // Modal story autoplay pace (6 seconds per story, driven by a single timeout + CSS animation)
   useEffect(() => {
-    if (activeStoryIndex === null || isStoryModalPaused) return
+    if (activeStoryIndex === null || isStoryModalPaused || stories.length === 0) return
 
     const timer = setTimeout(() => {
       setActiveStoryIndex((curr) => {
-        if (curr === null) return null
-        return curr < PLACEMENT_STORIES.length - 1 ? curr + 1 : 0
+        if (curr === null || stories.length === 0) return null
+        return curr < stories.length - 1 ? curr + 1 : 0
       })
     }, 6000)
 
     return () => clearTimeout(timer)
-  }, [activeStoryIndex, isStoryModalPaused])
+  }, [activeStoryIndex, isStoryModalPaused, stories.length])
+
+  // Clamp or close modal if stories list shrinks while open
+  useEffect(() => {
+    if (activeStoryIndex !== null && activeStoryIndex >= stories.length) {
+      setActiveStoryIndex(stories.length > 0 ? stories.length - 1 : null)
+    }
+  }, [activeStoryIndex, stories.length])
 
   // Prevent background scroll when story modal is open
   useEffect(() => {
@@ -199,21 +133,23 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
 
   // Keyboard navigation for modal
   useEffect(() => {
-    if (activeStoryIndex === null) return
+    if (activeStoryIndex === null || stories.length === 0) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeStory()
       if (e.key === "ArrowLeft") {
-        setActiveStoryIndex((curr) => (curr !== null && curr > 0 ? curr - 1 : PLACEMENT_STORIES.length - 1))
+        setActiveStoryIndex((curr) => (curr !== null && curr > 0 ? curr - 1 : stories.length - 1))
       }
       if (e.key === "ArrowRight") {
-        setActiveStoryIndex((curr) => (curr !== null && curr < PLACEMENT_STORIES.length - 1 ? curr + 1 : 0))
+        setActiveStoryIndex((curr) => (curr !== null && curr < stories.length - 1 ? curr + 1 : 0))
       }
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [activeStoryIndex])
+  }, [activeStoryIndex, stories.length])
 
-  const activeStory = activeStoryIndex !== null ? PLACEMENT_STORIES[activeStoryIndex] : null
+  const activeStory = activeStoryIndex !== null ? stories[activeStoryIndex] ?? null : null
+
+  if (stories.length === 0 && !adminControls) return null
 
   return (
     <section
@@ -222,37 +158,49 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Clean Header Matching Reference Image 2: Plain title & navigation buttons */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Editorial Section Header */}
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-[18px] font-medium text-muted-foreground tracking-tight select-none">
+          <h2 className="select-none text-base font-bold tracking-tight text-foreground">
             Placement stories
           </h2>
           {onNavigate && (
             <button
               type="button"
               onClick={() => onNavigate("Alumni")}
-              className="text-xs font-semibold text-[#0066cc] hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-text transition-colors hover:bg-primary/15"
             >
               <span>View all alumni</span>
-              <span aria-hidden="true">↗</span>
+              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
+          )}
+          {adminControls?.onPost && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              leftIcon={<Plus className="h-3.5 w-3.5" />}
+              onClick={adminControls.onPost}
+              className="h-7 rounded-full px-2.5 text-xs"
+            >
+              Post story
+            </Button>
           )}
         </div>
 
-        {/* Minimalist Prev / Next Controls Matching Reference Image 2 */}
-        <div className="flex items-center gap-3">
+        {/* Sleek Prev / Next Controls */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => handleScroll("left")}
             disabled={!canScrollLeft}
             aria-label="Previous"
             className={cn(
-              "w-[50px] h-[40px] rounded-[10px] border border-border bg-surface text-foreground grid place-items-center transition-all hover:bg-surface-2 active:scale-95 cursor-pointer shadow-2xs",
-              !canScrollLeft && "opacity-35 cursor-default hover:bg-surface active:scale-100"
+              "grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-border bg-surface text-foreground shadow-2xs transition-all hover:border-border-strong hover:bg-surface-2 active:scale-95",
+              !canScrollLeft && "cursor-default opacity-35 hover:border-border hover:bg-surface active:scale-100"
             )}
           >
-            <ChevronLeft className="h-4.5 w-4.5" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -260,22 +208,32 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
             disabled={!canScrollRight}
             aria-label="Next"
             className={cn(
-              "w-[50px] h-[40px] rounded-[10px] border border-border bg-surface text-foreground grid place-items-center transition-all hover:bg-surface-2 active:scale-95 cursor-pointer shadow-2xs",
-              !canScrollRight && "opacity-35 cursor-default hover:bg-surface active:scale-100"
+              "grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-border bg-surface text-foreground shadow-2xs transition-all hover:border-border-strong hover:bg-surface-2 active:scale-95",
+              !canScrollRight && "cursor-default opacity-35 hover:border-border hover:bg-surface active:scale-100"
             )}
           >
-            <ChevronRight className="h-4.5 w-4.5" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Horizontal Story Cards Carousel (No Grid, Smooth Scroll Snap) */}
+      {/* Horizontal Editorial Story Reel */}
+      {stories.length === 0 ? (
+        <div className="flex h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface text-center">
+          <p className="text-sm font-medium text-foreground">No placement stories published yet</p>
+          {adminControls?.onPost && (
+            <Button type="button" variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={adminControls.onPost}>
+              Post Placement Story
+            </Button>
+          )}
+        </div>
+      ) : (
       <div
         ref={scrollerRef}
-        className="flex gap-[22px] overflow-x-auto scroll-smooth py-1 px-0.5 scrollbar-none [scroll-snap-type:x_mandatory] [-ms-overflow-style:none]"
+        className="scrollbar-none flex gap-4 overflow-x-auto scroll-smooth px-0.5 py-1.5 [scroll-snap-type:x_mandatory] [-ms-overflow-style:none]"
         style={{ scrollbarWidth: "none" }}
       >
-        {PLACEMENT_STORIES.map((story, idx) => {
+        {stories.map((story, idx) => {
           const initials = story.fullName
             .trim()
             .split(/\s+/)
@@ -285,70 +243,107 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
             .toUpperCase()
 
           return (
+            <div key={story.id} className="group/story relative flex-none [scroll-snap-align:start]">
             <button
-              key={story.id}
               type="button"
               onClick={() => openStory(idx)}
               aria-label={`${story.fullName} at ${story.company}`}
-              className="group relative flex-none w-[226px] h-[340px] rounded-[20px] overflow-hidden p-5 text-left cursor-pointer [scroll-snap-align:start] border border-white/15 focus-visible:outline-3 focus-visible:outline-[#6aa7ff] select-none shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.985] flex flex-col justify-between"
+              className="group relative flex h-[324px] w-[248px] flex-none cursor-pointer flex-col justify-between overflow-hidden rounded-[20px] border border-white/[0.12] p-5 text-left select-none shadow-[0_12px_28px_-10px_rgba(3,10,28,0.45)] transition-all duration-300 hover:-translate-y-1.5 hover:border-white/25 hover:shadow-[0_22px_40px_-14px_rgba(3,10,28,0.65)] focus-visible:outline-3 focus-visible:outline-[#6aa7ff] active:scale-[0.985]"
               style={{
-                background: `linear-gradient(165deg, ${story.bg2 || "#3b82f6"} 0%, ${story.bg1 || "#1547c4"} 55%, #061338 100%)`,
+                background: `radial-gradient(120% 80% at 92% 4%, ${story.glow} 0%, transparent 62%), linear-gradient(175deg, #0F182D 0%, #070C18 100%)`,
               }}
             >
-              {/* Top Meta: Company Badge & Package Tag */}
-              <div className="space-y-3 relative z-10">
+              {/* Subtle top edge specular shine & ambient editorial watermark */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              />
+              <Quote
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-2 top-11 h-24 w-24 rotate-180 text-white/[0.035] transition-transform duration-500 group-hover:scale-105"
+              />
+
+              {/* Top Meta: Crisp Non-Wrapping Company & Package Pills */}
+              <div className="relative z-10 space-y-3.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/20 text-white backdrop-blur-md border border-white/25">
-                    <Briefcase className="w-3 h-3 text-sky-200" />
-                    @{story.company}
+                  <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white/95 backdrop-blur-md">
+                    <Briefcase className="h-3 w-3 shrink-0 text-white/70" />
+                    <span className="truncate">{story.company}</span>
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400/25 text-amber-200 border border-amber-300/30">
-                    <Trophy className="w-3 h-3 text-amber-300" />
+                  <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-amber-300/25 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold tracking-tight text-amber-200 backdrop-blur-xs">
+                    <Trophy className="h-3 w-3 shrink-0 text-amber-300" />
                     {story.package}
                   </span>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-sky-200/90">
+                <div className="space-y-1.5 pt-0.5">
+                  <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", story.kickerClass)}>
                     {story.highlight}
                   </p>
-                  <h3 className="text-base font-extrabold leading-snug text-white line-clamp-3 drop-shadow-xs">
-                    "{story.head}"
+                  <h3 className="line-clamp-3 text-[15.5px] font-bold leading-[1.32] tracking-[-0.01em] text-white">
+                    {story.head}
                   </h3>
                 </div>
               </div>
 
-              {/* Quote Excerpt */}
-              <div className="relative z-10 my-auto py-2">
-                <p className="text-[12px] leading-relaxed text-white/80 line-clamp-3 italic">
-                  "{story.quote}"
+              {/* Editorial Quote Excerpt */}
+              <div className="relative z-10 my-auto py-1">
+                <p className="line-clamp-3 border-l-2 border-white/20 pl-2.5 text-[12px] leading-relaxed text-slate-300/90">
+                  “{story.quote}”
                 </p>
               </div>
 
-              {/* Bottom Row: Initials Avatar + Student Name + Play Pill */}
-              <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-white/25 border border-white/35 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs backdrop-blur-md">
+              {/* Bottom Footer: Gradient Monogram Avatar + Name/Role + Glass Play Pill */}
+              <div className="relative z-10 flex items-center justify-between gap-2 border-t border-white/[0.1] pt-3.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white ring-1 ring-white/25 shadow-sm",
+                      story.avatarBg
+                    )}
+                  >
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate leading-tight">
+                    <p className="truncate text-xs font-bold leading-tight text-white">
                       {story.fullName}
                     </p>
-                    <p className="text-[11px] text-sky-200/80 truncate leading-tight mt-0.5">
+                    <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-400">
                       {story.role}
                     </p>
                   </div>
                 </div>
 
-                <div className="w-8 h-8 rounded-full bg-white text-blue-600 flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-110">
-                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/95 text-[#081022] shadow-sm transition-all duration-200 group-hover:scale-110 group-hover:bg-white group-hover:shadow-[0_0_16px_rgba(255,255,255,0.35)]">
+                  <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
                 </div>
               </div>
             </button>
+            {adminControls && (
+              <div className="absolute right-3 bottom-[74px] z-20 flex items-center gap-1 rounded-full border border-white/20 bg-black/70 p-1 backdrop-blur-md">
+                <button
+                  type="button"
+                  aria-label={`Edit ${story.fullName}`}
+                  onClick={() => adminControls.onEdit(story)}
+                  className="grid h-6 w-6 place-items-center rounded-full text-white/90 transition hover:bg-white/20 hover:text-white"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${story.fullName}`}
+                  onClick={() => adminControls.onDelete(story)}
+                  className="grid h-6 w-6 place-items-center rounded-full text-rose-300 transition hover:bg-rose-500/30 hover:text-rose-100"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            </div>
           )
         })}
       </div>
+      )}
 
       {/* Story Modal Player (Instagram/Reels Style Portal) */}
       {typeof document !== "undefined" &&
@@ -359,7 +354,7 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                 role="dialog"
                 aria-modal="true"
                 aria-label={`${activeStory.fullName} placement story`}
-                className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-5"
                 onClick={closeStory}
               >
                 <motion.div
@@ -367,10 +362,10 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.94, opacity: 0, y: 15 }}
                   transition={spring.snappy}
-                  className="relative w-full max-w-[360px] sm:max-w-[380px] h-[600px] sm:h-[640px] max-h-[90vh] rounded-[22px] overflow-hidden shadow-2xl flex flex-col text-white select-none border border-white/20"
+                  className="relative flex h-[600px] max-h-[90vh] w-full max-w-[360px] select-none flex-col overflow-hidden rounded-[22px] border border-white/20 text-white shadow-2xl sm:h-[640px] sm:max-w-[380px]"
                   style={{
-                    backgroundColor: activeStory.bg1 || "#1e5be0",
-                    background: `radial-gradient(130% 70% at 50% 0%, ${activeStory.bg2 || "#5aa0ff"}, transparent 75%), linear-gradient(180deg, ${activeStory.bg1 || "#1e5be0"}, #061338)`,
+                    backgroundColor: "#070C18",
+                    background: `radial-gradient(125% 70% at 50% 0%, ${activeStory.glow}, transparent 68%), linear-gradient(180deg, #0E172B 0%, #050912 100%)`,
                   }}
                   onClick={(e) => e.stopPropagation()}
                   onMouseEnter={() => setIsStoryModalPaused(true)}
@@ -378,7 +373,7 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                 >
                   {/* Top Progress Segment Bar */}
                   <div className="absolute top-2.5 inset-x-3 z-30 flex gap-1.5">
-                    {PLACEMENT_STORIES.map((s, idx) => (
+                    {stories.map((s, idx) => (
                       <div
                         key={s.id}
                         className="h-1 flex-1 rounded-full bg-white/25 overflow-hidden"
@@ -449,7 +444,7 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                     type="button"
                     aria-label="Previous story"
                     onClick={() => {
-                      setActiveStoryIndex((c) => (c !== null && c > 0 ? c - 1 : PLACEMENT_STORIES.length - 1))
+                      setActiveStoryIndex((c) => (c !== null && c > 0 ? c - 1 : stories.length - 1))
                     }}
                     className="absolute inset-y-16 left-0 w-1/4 z-20 cursor-pointer opacity-0"
                   />
@@ -457,7 +452,7 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
                     type="button"
                     aria-label="Next story"
                     onClick={() => {
-                      setActiveStoryIndex((c) => (c !== null && c < PLACEMENT_STORIES.length - 1 ? c + 1 : 0))
+                      setActiveStoryIndex((c) => (c !== null && c < stories.length - 1 ? c + 1 : 0))
                     }}
                     className="absolute inset-y-16 right-0 w-1/4 z-20 cursor-pointer opacity-0"
                   />
@@ -503,17 +498,48 @@ export default function PlacementStories({ onNavigate, className }: PlacementSto
 
                     {/* Action CTA */}
                     <div className="pt-2">
-                      <Button
-                        variant="primary"
-                        className="w-full font-bold shadow-lg bg-white text-slate-900 hover:bg-white/90 active:scale-98"
-                        onClick={() => {
-                          closeStory()
-                          onNavigate?.("Career Hub")
-                        }}
-                      >
-                        Explore career opportunities
-                        <ArrowUpRight className="h-4 w-4 ml-1" />
-                      </Button>
+                      {adminControls ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="primary"
+                            className="flex-1 bg-white font-bold text-slate-900 shadow-lg hover:bg-white/90"
+                            leftIcon={<Pencil className="h-3.5 w-3.5" />}
+                            onClick={() => {
+                              const target = activeStory
+                              closeStory()
+                              adminControls.onEdit(target)
+                            }}
+                          >
+                            Edit Story
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="danger"
+                            className="font-bold shadow-lg"
+                            leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+                            onClick={() => {
+                              const target = activeStory
+                              closeStory()
+                              adminControls.onDelete(target)
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          className="w-full font-bold shadow-lg bg-white text-slate-900 hover:bg-white/90 active:scale-98"
+                          onClick={() => {
+                            closeStory()
+                            onNavigate?.("Career Hub")
+                          }}
+                        >
+                          Explore career opportunities
+                          <ArrowUpRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

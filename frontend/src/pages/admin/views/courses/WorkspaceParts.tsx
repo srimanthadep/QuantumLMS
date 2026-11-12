@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -40,7 +41,7 @@ export function WorkspaceEmpty({
   )
 }
 
-/** Navigation entry: a sidebar row on desktop, a pill on mobile. */
+/** Navigation entry: matches the app shell sidebar on desktop, pill on mobile. */
 export function NavItem({
   icon: Icon,
   label,
@@ -56,26 +57,65 @@ export function NavItem({
   onClick: () => void
   pill?: boolean
 }) {
+  if (pill) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-primary-soft text-primary-text font-semibold"
+            : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>{label}</span>
+        {count !== undefined && (
+          <span
+            className={cn(
+              "rounded-full px-1.5 text-[10px] font-semibold leading-4 tabular-nums",
+              active || count > 0 ? "bg-primary-soft text-primary-text" : "bg-surface-2 text-muted-foreground",
+            )}
+          >
+            {count}
+          </span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 whitespace-nowrap text-sm font-semibold transition-all",
-        pill ? "rounded-full px-3.5 py-1.5" : "w-full rounded-xl px-3.5 py-2.5",
-        active
-          ? "bg-primary text-primary-foreground shadow-xs"
-          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+        "group relative flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        active ? "text-foreground font-semibold" : "text-muted-foreground hover:bg-surface-2/70 hover:text-foreground",
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className={cn(!pill && "flex-1 text-left")}>{label}</span>
+      {active && (
+        <motion.span
+          layoutId="course-workspace-nav"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+          aria-hidden="true"
+          className="absolute inset-0 z-0 rounded-md border border-border bg-surface-2 shadow-2xs"
+        >
+          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+        </motion.span>
+      )}
+      <Icon
+        className={cn("relative z-10 h-4 w-4 shrink-0 transition-colors", active ? "text-primary-text" : "group-hover:text-foreground")}
+        aria-hidden="true"
+      />
+      <span className="relative z-10 min-w-0 flex-1 truncate text-left">{label}</span>
       {count !== undefined && (
         <span
           className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
-            active ? "bg-white/20 text-white" : "bg-surface-2 text-muted-foreground",
+            "relative z-10 rounded-full px-1.5 text-[10px] font-semibold leading-4 tabular-nums",
+            active || count > 0 ? "bg-primary-soft text-primary-text" : "bg-surface-2 text-muted-foreground",
           )}
         >
           {count}

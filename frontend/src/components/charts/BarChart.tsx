@@ -86,8 +86,11 @@ export default function BarChart({
                 className={cn(
                   "relative w-full max-w-[36px] rounded-t-md transition-all duration-200 cursor-pointer overflow-hidden",
                   barFill,
-                  (d.highlight || active) && "ring-2 ring-primary/40 shadow-[0_0_16px_var(--color-primary)] brightness-110",
-                  !d.highlight && !active && "hover:brightness-110",
+                  active
+                    ? "ring-1 ring-primary/25 shadow-[0_2px_10px_-1px_color-mix(in_srgb,var(--color-primary)_24%,transparent)] brightness-105"
+                    : d.highlight
+                      ? "shadow-[0_2px_8px_-2px_color-mix(in_srgb,var(--color-primary)_18%,transparent)]"
+                      : "hover:brightness-105",
                 )}
                 style={{ height: `${pct}%`, originY: 1 }}
                 initial={{ scaleY: 0 }}

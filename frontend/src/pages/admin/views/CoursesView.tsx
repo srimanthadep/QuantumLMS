@@ -66,7 +66,7 @@ function Stat({ icon: Icon, label, value, hint, tone }: { icon: React.ElementTyp
 /** Admin course catalog: stats, filters, grid or list of courses; opens a full-screen workspace per course. */
 export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const navigate = useNavigate()
-  const { courses, addCourse, updateCourse, toggleCourseStatus, deleteCourse } = store
+  const { courses, addCourse, updateCourse, toggleCourseStatus, deleteCourse, refreshCourses } = store
 
   // Filters
   const [search, setSearch] = useState("")
@@ -83,6 +83,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false)
   const [videoUploadTarget, setVideoUploadTarget] = useState<{ courseId?: string; moduleId?: string } | null>(null)
+  const [editorRefreshKey, setEditorRefreshKey] = useState(0)
 
   const instructors = useMemo(() => Array.from(new Set([...DEFAULT_INSTRUCTORS, ...courses.map((c) => c.instructor)])), [courses])
 
@@ -139,16 +140,20 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const editCourse = useCallback((c: AdminCourse) => setEditingCourse(c), [])
   const askDelete = useCallback((c: AdminCourse) => setDeletingCourse(c), [])
   const toggleStatus = useCallback(
-    (c: AdminCourse) => {
-      toggleCourseStatus(c.id)
-      onToast(`"${c.title}" ${c.status === "Published" ? "archived" : "published"}`)
+    async (c: AdminCourse) => {
+      try {
+        await toggleCourseStatus(c.id)
+        onToast(`"${c.title}" ${c.status === "Published" ? "archived" : "published"}`)
+      } catch (err) {
+        onToast(err instanceof Error ? err.message : "Could not update course status.")
+      }
     },
     [toggleCourseStatus, onToast],
   )
 
-  const handleCreate = (v: CourseFormValues) => {
+  const handleCreate = async (v: CourseFormValues) => {
     const slug = v.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-    addCourse({
+    await addCourse({
       title: v.title,
       slug,
       category: v.category,
@@ -162,18 +167,23 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
     onToast(`Created course "${v.title}"`)
   }
 
-  const handleSaveEdit = (v: CourseFormValues) => {
+  const handleSaveEdit = async (v: CourseFormValues) => {
     if (!editingCourse) return
-    updateCourse(editingCourse.id, v)
+    await updateCourse(editingCourse.id, v)
     onToast(`Updated "${v.title}"`)
     setEditingCourse(null)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deletingCourse) return
-    deleteCourse(deletingCourse.id)
-    onToast(`Deleted course "${deletingCourse.title}"`)
-    setDeletingCourse(null)
+    const target = deletingCourse
+    try {
+      await deleteCourse(target.id)
+      onToast(`Deleted course "${target.title}"`)
+      setDeletingCourse(null)
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Could not delete course.")
+    }
   }
 
   const cardProps = { onOpen: openCourse, onEdit: editCourse, onToggleStatus: toggleStatus, onDelete: askDelete }
@@ -190,7 +200,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
           <Button variant="outline" onClick={() => navigate("/admin/approvals")} leftIcon={<ClipboardCheck className="text-warning" aria-hidden="true" />}>
             Approvals
           </Button>
-          <Button variant="outline" onClick={() => setIsVideoUploadOpen(true)} leftIcon={<Video aria-hidden="true" />}>
+          <Button variant="outline" onClick={() => { setVideoUploadTarget(null); setIsVideoUploadOpen(true) }} leftIcon={<Video aria-hidden="true" />}>
             Upload video course
           </Button>
           <Button onClick={() => setIsAddOpen(true)} leftIcon={<Plus aria-hidden="true" />}>
@@ -375,11 +385,14 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         <Suspense fallback={null}>
           <CourseEditorModal
             course={activeCourse}
-            open={!!activeCourse}
-            onOpenChange={(o) => !o && setActiveCourse(null)}
+            open={!!activeCourse && !isVideoUploadOpen}
+            refreshKey={editorRefreshKey}
+            onOpenChange={(o) => {
+              if (!o && !isVideoUploadOpen) setActiveCourse(null)
+            }}
             onCourseUpdated={(updated) => {
-              updateCourse(updated.id, updated)
               setActiveCourse(updated)
+              refreshCourses().catch(() => {})
             }}
             onOpenVideoUpload={(courseId, moduleId) => {
               setVideoUploadTarget({ courseId, moduleId })
@@ -435,13 +448,10 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
             initialCourseId={videoUploadTarget?.courseId}
             initialModuleId={videoUploadTarget?.moduleId}
             existingCourses={courses}
-            onCourseCreated={(newCourse) => {
-              if (courses.some((c) => c.id === newCourse.id)) {
-                updateCourse(newCourse.id, newCourse)
-              } else {
-                addCourse(newCourse)
-              }
+            onCourseCreated={() => {
+              refreshCourses().catch(() => {})
             }}
+            onSuccess={() => setEditorRefreshKey((k) => k + 1)}
             onToast={onToast}
           />
         </Suspense>

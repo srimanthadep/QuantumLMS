@@ -3,6 +3,8 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core"
 import type { Tx } from "../client.js"
 import * as t from "../schema.js"
 import { gradeAttempt } from "../../modules/student/quizzes.js"
+import { seedAlumniDefaults } from "../../modules/alumni/shared.js"
+import { seedBatchesDefaults } from "../../modules/admin/batches.js"
 import { contentRows, demoRows } from "./data.js"
 import { seedRubrics, seedStudentEvaluations } from "./evaluator.js"
 import { seedTime } from "./time.js"
@@ -45,6 +47,8 @@ export async function seedContent(tx: Tx, anchor: Date, tz: string) {
   await upsert(tx, t.post_replies, r.post_replies, t.post_replies.id)
   await upsert(tx, t.course_questions, r.course_questions, t.course_questions.id)
   await tx.insert(t.app_state).values({ key: "demo_anchor", value: anchor.toISOString() }).onConflictDoUpdate({ target: t.app_state.key, set: { value: anchor.toISOString(), updated_at: new Date() } })
+  await seedAlumniDefaults(tx, { force: false })
+  await seedBatchesDefaults(tx, { force: false })
   await recountCounters(tx)
 }
 

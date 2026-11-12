@@ -92,13 +92,16 @@ export default function VideoCourseUploadModal({
   const [modelChoice, setModelChoice] = useState<ModelChoice>("parakeet")
 
   useEffect(() => {
+    if (!open) return
     if (initialCourseId) {
       setTargetCourseId(initialCourseId)
       setUploadMode("existing")
+    } else {
+      setTargetCourseId("")
+      setUploadMode("new")
     }
-    if (initialModuleId) {
-      setTargetModuleId(initialModuleId)
-    }
+    setTargetModuleId(initialModuleId || "")
+    setNewChapterTitle("")
   }, [initialCourseId, initialModuleId, open])
 
   useEffect(() => {

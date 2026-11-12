@@ -29,6 +29,20 @@
       "when": 1793707720158,
       "tag": "0003_drop_mentorship",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794456788491,
+      "tag": "0004_alumni_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794460704659,
+      "tag": "0005_batches_and_course_crud",
+      "breakpoints": true
     }
   ]
 }

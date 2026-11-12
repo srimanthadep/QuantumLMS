@@ -30,7 +30,7 @@ interface CourseFormDialogProps {
   mode: "create" | "edit"
   course?: AdminCourse | null
   instructors: string[]
-  onSubmit: (values: CourseFormValues) => void
+  onSubmit: (values: CourseFormValues) => Promise<void> | void
 }
 
 const EMPTY: CourseFormValues = {
@@ -63,19 +63,37 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 /** One form for both creating a course and quick-editing its catalog details. */
 export default function CourseFormDialog({ open, onOpenChange, mode, course, instructors, onSubmit }: CourseFormDialogProps) {
   const [values, setValues] = useState<CourseFormValues>(EMPTY)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Reset whenever the dialog opens so stale edits never leak between courses.
   useEffect(() => {
     if (!open) return
+    setError(null)
     setValues(mode === "edit" && course ? toValues(course) : { ...EMPTY, instructor: instructors[0] ?? "" })
   }, [open, mode, course, instructors])
 
   const set = <K extends keyof CourseFormValues>(key: K, value: CourseFormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!values.title.trim() || !values.instructor.trim()) return
-    onSubmit({ ...values, title: values.title.trim(), instructor: values.instructor.trim() })
+    if (values.title.trim().length < 3) {
+      setError("Course title must be at least 3 characters.")
+      return
+    }
+    if (values.instructor.trim().length < 2) {
+      setError("Instructor name is required.")
+      return
+    }
+    setError(null)
+    setSaving(true)
+    try {
+      await onSubmit({ ...values, title: values.title.trim(), instructor: values.instructor.trim() })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save course.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const Icon = mode === "create" ? BookOpen : Pencil
@@ -100,6 +118,11 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {error && (
+            <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              {error}
+            </div>
+          )}
           <FormField label="Course title">
             <Input required autoFocus placeholder="e.g. Multi-Modal Vision & Speech Systems" value={values.title} onChange={(e) => set("title", e.target.value)} />
           </FormField>
@@ -130,10 +153,12 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">{mode === "create" ? "Create course" : "Save changes"}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : mode === "create" ? "Create course" : "Save changes"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

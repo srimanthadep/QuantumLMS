@@ -27,6 +27,7 @@ const BatchesView = lazy(() => import("../admin/views/BatchesView"))
 const TeachersView = lazy(() => import("../admin/views/TeachersView"))
 const StudentsView = lazy(() => import("../admin/views/StudentsView"))
 const OrdersView = lazy(() => import("../admin/views/OrdersView"))
+const AlumniView = lazy(() => import("../admin/views/AlumniView"))
 const ReportsView = lazy(() => import("../admin/views/ReportsView"))
 
 interface SuperAdminPortalProps {
@@ -41,6 +42,7 @@ const NAV_PATHS: Record<string, string> = {
   batches: "/super-admin/batches",
   teachers: "/super-admin/teachers",
   students: "/super-admin/students",
+  alumni: "/super-admin/alumni",
   orders: "/super-admin/orders",
   reports: "/super-admin/reports",
   // Super Admin platform console scope
@@ -173,14 +175,24 @@ export default function SuperAdminPortal({
     navigate(NAV_PATHS[id] ?? "/super-admin/health")
   }
 
-  const handleCreateBatch = (data: any) => {
-    adminStore.addBatch(data)
-    onToast(`Cohort batch created: ${data.name}`)
+  const handleCreateBatch = async (data: any) => {
+    try {
+      await adminStore.addBatch(data)
+      onToast(`Cohort batch created: ${data.name}`)
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Could not create cohort batch.")
+      throw err
+    }
   }
 
-  const handleManualEnrol = (data: any) => {
-    adminStore.enrolStudent(data)
-    onToast(`Enrolled ${data.name} into cohort`)
+  const handleManualEnrol = async (data: any) => {
+    try {
+      await adminStore.enrolStudent(data)
+      onToast(`Enrolled ${data.name} into cohort`)
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Could not enrol student.")
+      throw err
+    }
   }
 
   const handleAddTeacher = (data: any) => {
@@ -250,6 +262,7 @@ export default function SuperAdminPortal({
                 <BatchesView
                   store={adminStore}
                   onOpenCreateBatch={() => setIsCreateBatchOpen(true)}
+                  onToast={onToast}
                 />
               }
             />
@@ -274,6 +287,10 @@ export default function SuperAdminPortal({
             <Route
               path="/orders"
               element={<OrdersView store={adminStore} onToast={onToast} />}
+            />
+            <Route
+              path="/alumni"
+              element={<AlumniView onToast={onToast} />}
             />
             <Route
               path="/reports"

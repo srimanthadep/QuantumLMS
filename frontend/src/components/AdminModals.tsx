@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -10,23 +10,16 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { Switch } from "./ui/switch"
 import { Badge } from "./ui/badge"
 import { CustomSelect } from "./ui/select"
-import { DatePicker } from "./ui/date-picker"
 import {
   GraduationCap,
-  Layers,
   UserPlus,
   Receipt,
   RotateCcw,
   ShieldAlert,
   Calendar,
   Clock,
-  Sparkles,
-  Bot,
-  MessageSquare,
-  Award,
 } from "lucide-react"
 import type {
   AdminCourse,
@@ -34,6 +27,7 @@ import type {
   AdminOrder,
   SecurityAuditLog,
 } from "../data/adminStore"
+import BatchFormDialog, { type BatchFormValues } from "../pages/admin/views/batches/BatchFormDialog"
 
 // 1. Add Teacher / Instructor Modal
 export function AddTeacherModal({
@@ -161,7 +155,7 @@ export function AddTeacherModal({
   )
 }
 
-// 2. Create Cohort Batch Modal
+// 2. Create Cohort Batch Modal (delegates to shared BatchFormDialog)
 export function CreateBatchModal({
   isOpen,
   onClose,
@@ -170,186 +164,17 @@ export function CreateBatchModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onCreate: (batch: Omit<AdminBatch, "id" | "enrolledSeats">) => void
+  onCreate: (batch: BatchFormValues) => Promise<void> | void
   courses: AdminCourse[]
 }) {
-  const [name, setName] = useState("")
-  const [courseId, setCourseId] = useState(courses[0]?.id || "")
-  const [instructor, setInstructor] = useState("Srimanth")
-  const [startDate, setStartDate] = useState("2026-11-20")
-  const [endDate, setEndDate] = useState("2027-02-28")
-  const [schedule, setSchedule] = useState("Mon, Wed, Fri · 7:30 PM - 9:30 PM IST")
-  const [maxSeats, setMaxSeats] = useState(100)
-  const [deliveryMode, setDeliveryMode] = useState<"Live + Replay" | "Replay Only">("Live + Replay")
-  const [replayDelayHours, setReplayDelayHours] = useState(2)
-  const [accessExpiryMonths, setAccessExpiryMonths] = useState(12)
-
-  const [liveChat, setLiveChat] = useState(true)
-  const [doubtClearing, setDoubtClearing] = useState(true)
-  const [aiTutor, setAiTutor] = useState(true)
-  const [certificate, setCertificate] = useState(true)
-
-  const selectedCourse = courses.find((c) => c.id === courseId) || courses[0]
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onCreate({
-      name,
-      courseId: selectedCourse?.id || "course-1",
-      courseTitle: selectedCourse?.title || "Generative AI Engineering",
-      instructor,
-      instructorAvatar: "/assets/srimanth.png",
-      startDate,
-      endDate,
-      schedule,
-      maxSeats: Number(maxSeats),
-      deliveryMode,
-      replayDelayHours: Number(replayDelayHours),
-      accessExpiryMonths: Number(accessExpiryMonths),
-      features: {
-        liveChat,
-        doubtClearing,
-        aiTutor,
-        certificate,
-      },
-      status: "Upcoming",
-    })
-    setName("")
-    onClose()
-  }
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary-text border border-primary-border">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <DialogTitle>Create Cohort Batch</DialogTitle>
-              <DialogDescription>Define schedule, seat capacity, and learning entitlements</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Cohort Batch Name</label>
-            <Input
-              required
-              placeholder="e.g. GenAI Engineering Cohort 15"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Course</label>
-              <CustomSelect
-                value={courseId}
-                onChange={setCourseId}
-                options={courses.map((c) => ({ value: c.id, label: c.title }))}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Lead Instructor</label>
-              <CustomSelect
-                value={instructor}
-                onChange={setInstructor}
-                options={["Srimanth", "Dr. Vikram Sen", "Meera Nair", "Ananya Roy"]}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Start Date</label>
-              <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">End Date</label>
-              <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Seat Limit</label>
-              <Input
-                type="number"
-                min={10}
-                max={500}
-                value={maxSeats}
-                onChange={(e) => setMaxSeats(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Delivery Mode</label>
-              <CustomSelect
-                value={deliveryMode}
-                onChange={(val) => setDeliveryMode(val as any)}
-                options={[
-                  { value: "Live + Replay", label: "Live Studio + Replay Access" },
-                  { value: "Replay Only", label: "On-Demand Replay Only" },
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Schedule Timing</label>
-            <Input value={schedule} onChange={(e) => setSchedule(e.target.value)} />
-          </div>
-
-          {/* Entitlement Toggles */}
-          <div className="rounded-xl border border-border bg-surface-2 p-3 space-y-3">
-            <div className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Student Entitlements & Features
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <label className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <MessageSquare className="h-3.5 w-3.5 text-primary-text" /> Live Chat
-                </span>
-                <Switch checked={liveChat} onCheckedChange={setLiveChat} />
-              </label>
-
-              <label className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Sparkles className="h-3.5 w-3.5 text-primary-text" /> Doubt Clearing
-                </span>
-                <Switch checked={doubtClearing} onCheckedChange={setDoubtClearing} />
-              </label>
-
-              <label className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Bot className="h-3.5 w-3.5 text-primary-text" /> AI Tutor (Clover)
-                </span>
-                <Switch checked={aiTutor} onCheckedChange={setAiTutor} />
-              </label>
-
-              <label className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Award className="h-3.5 w-3.5 text-primary-text" /> Official Certificate
-                </span>
-                <Switch checked={certificate} onCheckedChange={setCertificate} />
-              </label>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Cohort</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <BatchFormDialog
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      mode="create"
+      courses={courses}
+      onSubmit={onCreate}
+    />
   )
 }
 
@@ -363,29 +188,43 @@ export function ManualEnrolModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onEnrol: (data: { name: string; email: string; courseId: string; batchId: string }) => void
+  onEnrol: (data: { name: string; email: string; courseId: string; batchId: string }) => Promise<void> | void
   courses: AdminCourse[]
   batches: AdminBatch[]
 }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [courseId, setCourseId] = useState(courses[0]?.id || "")
-  const [batchId, setBatchId] = useState(batches[0]?.id || "")
+  const [courseId, setCourseId] = useState("")
+  const [batchId, setBatchId] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const initialCourseId = courses[0]?.id || ""
+    setCourseId(initialCourseId)
+    const matching = batches.find((b) => b.courseId === initialCourseId) || batches[0]
+    setBatchId(matching?.id || "")
+  }, [isOpen, courses, batches])
 
   const relevantBatches = batches.filter((b) => b.courseId === courseId)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !email.trim()) return
-    onEnrol({
-      name,
-      email,
-      courseId,
-      batchId: batchId || relevantBatches[0]?.id || batches[0]?.id || "batch-1",
-    })
-    setName("")
-    setEmail("")
-    onClose()
+    setSubmitting(true)
+    try {
+      await onEnrol({
+        name: name.trim(),
+        email: email.trim(),
+        courseId: courseId || courses[0]?.id || "",
+        batchId: batchId || relevantBatches[0]?.id || batches[0]?.id || "",
+      })
+      setName("")
+      setEmail("")
+      onClose()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (

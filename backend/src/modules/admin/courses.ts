@@ -12,6 +12,7 @@ import {
   lessons,
   course_materials,
   assignments,
+  cohort_batches,
   enrollments,
   profiles,
 } from "../../db/schema.js"
@@ -25,8 +26,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
   // 1. List all courses with stats
   app.get("/courses", async () => {
-    // Query courses, enrollments count, modules count and lessons count in parallel
-    const [courseRows, enrolledCounts, moduleCounts, lessonCounts] = await Promise.all([
+    // Query courses, enrollments count, modules count, lessons count and cohort count in parallel
+    const [courseRows, enrolledCounts, moduleCounts, lessonCounts, cohortCounts] = await Promise.all([
       db.select().from(courses).orderBy(asc(courses.position), asc(courses.title)),
       db.execute(sql`
         select course_id, count(*)::int as count
@@ -43,6 +44,10 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         from lms.lessons
         group by course_id
       `),
+      db
+        .select({ course_id: cohort_batches.course_id, count: sql<number>`count(*)::int` })
+        .from(cohort_batches)
+        .groupBy(cohort_batches.course_id),
     ])
 
     const enrolledMap = new Map<string, number>(
@@ -54,13 +59,14 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const lessonMap = new Map<string, number>(
       (lessonCounts.rows as { course_id: string; count: number }[]).map((r) => [r.course_id, r.count])
     )
+    const cohortMap = new Map<string, number>(cohortCounts.map((r) => [r.course_id, r.count]))
 
     const detailedCourses = courseRows.map((c) => ({
       ...c,
       enrolled_students: enrolledMap.get(c.id) ?? 0,
       modules_count: moduleMap.get(c.id) ?? 0,
       lessons_count: lessonMap.get(c.id) ?? 0,
-      status: "Published",
+      cohort_count: cohortMap.get(c.id) ?? 0,
     }))
 
     return { courses: detailedCourses }
@@ -97,32 +103,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         .orderBy(asc(assignments.due_at)),
     ])
     if (!course) {
-      // Graceful fallback for client-side or newly initialized draft courses
-      return {
-        course: {
-          id: courseId,
-          code: `CRSE-${courseId.slice(-6).toUpperCase()}`,
-          title: "Course Track " + courseId,
-          category: "LLM Engineering",
-          image: "",
-          instructor: "Lead Instructor",
-          instructor_role: "Lead Instructor",
-          description: "",
-          level: "Intermediate",
-          credits: 4,
-          duration: "12 Weeks",
-          rating: "5.0",
-          reviews: "0",
-          progress_color: "var(--primary)",
-          enrolled_students: 0,
-          modules_count: modulesList.length,
-          lessons_count: lessonsList.length,
-        },
-        modules: modulesList,
-        lessons: lessonsList,
-        materials: materialsList,
-        assignments: assignmentsList,
-      }
+      throw notFound("Course not found.")
     }
 
     return {
@@ -154,6 +135,9 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     certificate_title: z.string().trim().max(150).optional(),
     certificate_skills: z.array(z.string().trim()).optional(),
     is_starter: z.boolean().default(false),
+    price: z.number().int().min(0).max(10_000_000).default(39999),
+    capacity: z.number().int().min(1).max(100_000).default(250),
+    status: z.enum(["Published", "Draft", "Archived"]).default("Published"),
   })
 
   app.post("/courses", async (req, reply) => {
@@ -206,6 +190,9 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         certificate_title: input.certificate_title || `${input.title} Specialist`,
         certificate_skills: input.certificate_skills || [input.category, "AI Systems", "Hands-on Labs"],
         is_starter: input.is_starter,
+        price: input.price,
+        capacity: input.capacity,
+        status: input.status,
         position: nextPos,
       })
       .returning()
@@ -242,7 +229,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         enrolled_students: 0,
         modules_count: 1,
         lessons_count: 1,
-        status: "Published",
+        cohort_count: 0,
       },
     }
   })
@@ -260,28 +247,19 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     image: z.string().trim().max(300).optional(),
     is_starter: z.boolean().optional(),
     position: z.number().int().optional(),
+    price: z.number().int().min(0).max(10_000_000).optional(),
+    capacity: z.number().int().min(1).max(100_000).optional(),
+    status: z.enum(["Published", "Draft", "Archived"]).optional(),
   })
 
   app.patch<{ Params: { id: string } }>("/courses/:id", async (req) => {
     const patch = parse(patchSchema, req.body)
 
-    let [existing] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
-    if (!existing) {
-      await db
-        .insert(courses)
-        .values({
-          id: req.params.id,
-          code: `CRSE-${req.params.id.slice(-6).toUpperCase()}`,
-          title: patch.title || "Course " + req.params.id,
-          category: patch.category || "LLM Engineering",
-          instructor: patch.instructor || "Lead Instructor",
-          level: patch.level || "Intermediate",
-          description: patch.description || "",
-          duration: patch.duration || "12 Weeks",
-        })
-        .onConflictDoNothing()
-      const [newRow] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
-      existing = newRow
+    const [existing] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
+    if (!existing) throw notFound("Course not found.")
+
+    if (Object.keys(patch).length === 0) {
+      return { ok: true, course: existing }
     }
 
     const [updated] = await db

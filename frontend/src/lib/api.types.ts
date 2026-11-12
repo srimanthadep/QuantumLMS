@@ -4,6 +4,29 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Rows {
+  alumni_profiles: {
+    id: string
+    name: string
+    avatar: string
+    tag: string
+    current_company: string
+    company_logo: string
+    role: string
+    hike: string
+    lms_program: string
+    prior_role: string
+    prior_company: string
+    location: string
+    degree: string
+    package: string
+    bio: string
+    prep_strategy: string
+    skills: string[]
+    linkedin_url: string
+    position: number
+    created_at: string
+    updated_at: string
+  }
   announcement_reads: {
     student_id: string
     announcement_id: string
@@ -58,6 +81,14 @@ export interface Rows {
     class_date: string
     status: string
   }
+  batch_students: {
+    batch_id: string
+    student_id: string
+    status: string
+    notes: string
+    enrolled_at: string
+    updated_at: string
+  }
   campus_events: {
     id: string
     title: string
@@ -82,6 +113,28 @@ export interface Rows {
     grade: string | null
     skills: string[]
     status: string
+  }
+  cohort_batches: {
+    id: string
+    name: string
+    course_id: string
+    instructor: string
+    instructor_avatar: string
+    start_date: string
+    end_date: string
+    schedule: string
+    timezone: string
+    max_seats: number
+    delivery_mode: string
+    replay_delay_hours: number
+    access_expiry_months: number
+    meeting_url: string | null
+    features: Json
+    status: string
+    notes: string
+    position: number
+    created_at: string
+    updated_at: string
   }
   community_posts: {
     id: string
@@ -160,6 +213,9 @@ export interface Rows {
     certificate_skills: string[]
     is_starter: boolean
     position: number
+    price: number
+    capacity: number
+    status: string
   }
   enrollments: {
     student_id: string
@@ -297,6 +353,24 @@ export interface Rows {
     read_at: string | null
     created_at: string
   }
+  placement_stories: {
+    id: string
+    first_name: string
+    full_name: string
+    company: string
+    role: string
+    package: string
+    head: string
+    quote: string
+    highlight: string
+    accent: string
+    glow: string
+    kicker_class: string
+    avatar_bg: string
+    position: number
+    created_at: string
+    updated_at: string
+  }
   post_likes: {
     post_id: string
     student_id: string
@@ -373,6 +447,18 @@ export interface Rows {
     question_count: number
     available_from: string | null
     due_at: string
+  }
+  recent_placements: {
+    id: string
+    name: string
+    company: string
+    role: string
+    color: string
+    src: string
+    offset_y: number
+    position: number
+    created_at: string
+    updated_at: string
   }
   reevaluation_requests: {
     id: string

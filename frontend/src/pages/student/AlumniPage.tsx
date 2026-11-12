@@ -12,7 +12,19 @@ import {
   Briefcase,
   X,
   RotateCcw,
+  Pencil,
+  Trash2,
+  Plus,
 } from "lucide-react"
+import {
+  useAlumniNetwork,
+  ALUMNI_TAGS,
+  TAG_CONFIG,
+  resolveCompanyLogo,
+  type AlumniProfile,
+} from "@/data/alumniStore"
+
+export { TAG_CONFIG, type AlumniProfile }
 import type { StudentNavPage } from "./studentTypes"
 import { CustomSelect } from "@/components/ui/select"
 import PageHeader from "@/components/ui/page-header"
@@ -32,40 +44,6 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-}
-
-export const TAG_CONFIG: Record<AlumniProfile["tag"], string> = {
-  "Career Gap":
-    "bg-[#EBF3FF] text-[#0066FF] dark:bg-blue-500/20 dark:text-blue-200 dark:border dark:border-blue-500/30",
-  "Fresher":
-    "bg-[#ECFDF5] text-[#059669] dark:bg-emerald-500/20 dark:text-emerald-200 dark:border dark:border-emerald-500/30",
-  "Non-Tech to Tech":
-    "bg-[#F5F3FF] text-[#7C3AED] dark:bg-purple-500/20 dark:text-purple-200 dark:border dark:border-purple-500/30",
-  "Switcher":
-    "bg-[#EFF6FF] text-[#2563EB] dark:bg-sky-500/20 dark:text-sky-200 dark:border dark:border-sky-500/30",
-  "Upskiller":
-    "bg-[#FFF7ED] text-[#EA580C] dark:bg-amber-500/20 dark:text-amber-200 dark:border dark:border-amber-500/30",
-}
-
-export interface AlumniProfile {
-  id: string
-  name: string
-  avatar?: string
-  tag: "Career Gap" | "Fresher" | "Non-Tech to Tech" | "Switcher" | "Upskiller"
-  currentCompany: string
-  companyLogo?: string
-  role: string
-  hike: string
-  lmsProgram: string
-  priorRole: string
-  priorCompany: string
-  location: string
-  degree: string
-  package?: string
-  bio: string
-  prepStrategy: string
-  skills: string[]
-  linkedInUrl?: string
 }
 
 export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
@@ -299,25 +277,37 @@ export const ALUMNI_DIRECTORY: readonly AlumniProfile[] = [
   },
 ] as const
 
-const QUICK_FILTERS = [
-  "Career Gap",
-  "Fresher",
-  "Non-Tech to Tech",
-  "Switcher",
-  "Upskiller",
-] as const
+export interface AlumniPageAdminControls {
+  onCreateProfile: () => void
+  onEditProfile: (profile: AlumniProfile) => void
+  onDeleteProfile: (profile: AlumniProfile) => void
+  onEditMetrics: () => void
+}
 
 interface AlumniPageProps {
   onNavigate?: (page: StudentNavPage, courseId?: string) => void
   onToast: (msg: string) => void
+  hideHeader?: boolean
+  adminControls?: AlumniPageAdminControls
 }
 
-export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
+export default function AlumniPage({ onNavigate: _onNavigate, onToast, hideHeader = false, adminControls }: AlumniPageProps) {
+  const { profiles: alumniProfiles, metrics } = useAlumniNetwork(adminControls ? "admin" : "student")
   const [backgroundFilter, setBackgroundFilter] = useState<string>("all")
   const [locationFilter, setLocationFilter] = useState<string>("all")
   const [degreeFilter, setDegreeFilter] = useState<string>("all")
   const [quickFilter, setQuickFilter] = useState<string | null>(null)
   const [selectedAlumni, setSelectedAlumni] = useState<AlumniProfile | null>(null)
+
+  const locationOptions = useMemo(() => {
+    const unique = Array.from(new Set(alumniProfiles.map((p) => p.location).filter(Boolean))).sort()
+    return [{ value: "all", label: "Location (All)" }, ...unique.map((loc) => ({ value: loc, label: loc }))]
+  }, [alumniProfiles])
+
+  const degreeOptions = useMemo(() => {
+    const unique = Array.from(new Set(alumniProfiles.map((p) => p.degree).filter(Boolean))).sort()
+    return [{ value: "all", label: "Degree (All)" }, ...unique.map((deg) => ({ value: deg, label: deg }))]
+  }, [alumniProfiles])
 
   const handleQuickFilterClick = (filter: string) => {
     if (quickFilter === filter) {
@@ -337,7 +327,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
   }
 
   const filteredAlumni = useMemo(() => {
-    return ALUMNI_DIRECTORY.filter((item) => {
+    return alumniProfiles.filter((item) => {
       // Career Background filter
       if (backgroundFilter !== "all" && item.tag !== backgroundFilter) {
         return false
@@ -352,7 +342,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
       }
       return true
     })
-  }, [backgroundFilter, locationFilter, degreeFilter])
+  }, [backgroundFilter, locationFilter, degreeFilter, alumniProfiles])
 
   const hasActiveFilters = backgroundFilter !== "all" || locationFilter !== "all" || degreeFilter !== "all" || quickFilter !== null
 
@@ -361,37 +351,52 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
       {/* =========================================================================
           PAGE HEADER: Standard QuantumLMS PageHeader Component
       ========================================================================= */}
-      <PageHeader
-        eyebrow="Placement Network"
-        title="Alumni Placements"
-        description="Connect with Quantum School alumni, discover verified career switch journeys, and learn from their experience."
-        actions={
-          hasActiveFilters ? (
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-              onClick={handleResetFilters}
-            >
-              Reset filters
-            </Button>
-          ) : undefined
-        }
-      />
+      {!hideHeader && (
+        <PageHeader
+          eyebrow="Placement Network"
+          title="Alumni Placements"
+          description="Connect with Quantum School alumni, discover verified career switch journeys, and learn from their experience."
+          actions={
+            hasActiveFilters ? (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                onClick={handleResetFilters}
+              >
+                Reset filters
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
 
       {/* =========================================================================
           METRICS BANNER: Standard QuantumLMS Surface & Border Design Tokens
       ========================================================================= */}
       <section
         aria-label="Placement Statistics"
-        className="rounded-xl border border-border bg-surface shadow-2xs overflow-hidden grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border"
+        className="relative rounded-xl border border-border bg-surface shadow-2xs overflow-hidden grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border"
       >
+        {adminControls && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={adminControls.onEditMetrics}
+            aria-label="Edit placement metrics"
+            leftIcon={<Pencil className="w-3.5 h-3.5" />}
+            className="absolute top-2 right-2 z-10 h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Edit metrics
+          </Button>
+        )}
         <div className="p-4 sm:p-5 flex flex-col justify-center">
           <span className="text-xs font-medium text-muted-foreground">
             Students placed
           </span>
           <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
-            4,500+
+            {metrics.studentsPlaced}
           </p>
         </div>
 
@@ -400,7 +405,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
             Highest hike
           </span>
           <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
-            500%
+            {metrics.highestHike}
           </p>
         </div>
 
@@ -409,7 +414,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
             Highest package
           </span>
           <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
-            ₹1.5 Cr
+            {metrics.highestPackage}
           </p>
         </div>
 
@@ -418,7 +423,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
             Hiring partners
           </span>
           <p className="mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-foreground tabular-nums">
-            800+
+            {metrics.hiringPartners}
           </p>
         </div>
       </section>
@@ -439,6 +444,17 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
 
           {/* Filter Dropdowns using CustomSelect */}
           <div className="flex items-center flex-wrap gap-2.5">
+            {hideHeader && hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                onClick={handleResetFilters}
+                className="h-8.5 text-xs"
+              >
+                Reset filters
+              </Button>
+            )}
             {/* Career Background */}
             <div className="w-[170px]">
               <CustomSelect
@@ -467,15 +483,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 onChange={setLocationFilter}
                 placeholder="Location"
                 triggerClassName="h-8.5 text-xs bg-surface border-border text-foreground hover:border-border-strong rounded-lg shadow-2xs"
-                options={[
-                  { value: "all", label: "Location (All)" },
-                  { value: "Bangalore", label: "Bangalore" },
-                  { value: "Pune", label: "Pune" },
-                  { value: "Mumbai", label: "Mumbai" },
-                  { value: "Hyderabad", label: "Hyderabad" },
-                  { value: "Chennai", label: "Chennai" },
-                  { value: "International", label: "International" },
-                ]}
+                options={locationOptions}
               />
             </div>
 
@@ -486,13 +494,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 onChange={setDegreeFilter}
                 placeholder="Degree"
                 triggerClassName="h-8.5 text-xs bg-surface border-border text-foreground hover:border-border-strong rounded-lg shadow-2xs"
-                options={[
-                  { value: "all", label: "Degree (All)" },
-                  { value: "B.Tech / BE", label: "B.Tech / BE" },
-                  { value: "BCA / MCA", label: "BCA / MCA" },
-                  { value: "B.Sc / M.Sc", label: "B.Sc / M.Sc" },
-                  { value: "Non-Engineering", label: "Non-Engineering" },
-                ]}
+                options={degreeOptions}
               />
             </div>
           </div>
@@ -503,7 +505,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
           <span className="text-xs font-medium text-muted-foreground mr-1 select-none">
             Quick Filters:
           </span>
-          {QUICK_FILTERS.map((pill) => {
+          {ALUMNI_TAGS.map((pill) => {
             const isActive = quickFilter === pill || backgroundFilter === pill
             return (
               <Button
@@ -532,14 +534,25 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
               Try adjusting your filters or resetting to see all alumni journeys.
             </p>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleResetFilters}
-              className="mt-4"
-            >
-              Reset Filters
-            </Button>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <Button
+                variant={adminControls ? "outline" : "primary"}
+                size="sm"
+                onClick={handleResetFilters}
+              >
+                Reset Filters
+              </Button>
+              {adminControls && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus className="w-3.5 h-3.5" />}
+                  onClick={adminControls.onCreateProfile}
+                >
+                  Post Alumni Profile
+                </Button>
+              )}
+            </div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -552,12 +565,21 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 <div>
                   {/* Card Top: Initials Avatar + Name + Lightning Tag */}
                   <div className="flex items-center gap-3.5">
-                    <div
-                      className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-sm flex items-center justify-center shadow-2xs shrink-0"
-                      aria-label={alumni.name}
-                    >
-                      {getInitials(alumni.name)}
-                    </div>
+                    {alumni.avatar && (alumni.avatar.startsWith("/") || /^https?:\/\//i.test(alumni.avatar)) ? (
+                      <img
+                        src={alumni.avatar}
+                        alt={alumni.name}
+                        className="w-12 h-12 rounded-xl border border-blue-200/60 dark:border-blue-800/60 object-cover shadow-2xs shrink-0"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-sm flex items-center justify-center shadow-2xs shrink-0"
+                        aria-label={alumni.name}
+                      >
+                        {getInitials(alumni.name)}
+                      </div>
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[15px] font-bold text-foreground leading-snug truncate">
@@ -612,22 +634,25 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
 
                         {/* Company Logo */}
                         <div className="h-6 flex items-center shrink-0">
-                          {alumni.companyLogo ? (
-                            <img
-                              src={alumni.companyLogo}
-                              alt={alumni.currentCompany}
-                              className={`h-5 w-auto max-w-[85px] object-contain object-left ${
-                                alumni.currentCompany.toLowerCase() === "uber"
-                                  ? "dark:invert"
-                                  : "dark:brightness-110"
-                              }`}
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span className="text-sm font-semibold text-foreground leading-tight">
-                              {alumni.currentCompany}
-                            </span>
-                          )}
+                          {(() => {
+                            const companyLogo = resolveCompanyLogo(alumni.currentCompany, alumni.companyLogo)
+                            return companyLogo ? (
+                              <img
+                                src={companyLogo}
+                                alt={alumni.currentCompany}
+                                className={`h-5 w-auto max-w-[85px] object-contain object-left ${
+                                  alumni.currentCompany.toLowerCase() === "uber"
+                                    ? "dark:invert"
+                                    : "dark:brightness-110"
+                                }`}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="text-sm font-semibold text-foreground leading-tight">
+                                {alumni.currentCompany}
+                              </span>
+                            )
+                          })()}
                         </div>
                       </div>
 
@@ -714,8 +739,8 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                   </div>
                 </div>
 
-                {/* Card Bottom: View Profile Button */}
-                <div className="mt-5 pt-2">
+                {/* Card Bottom: View Profile Button (+ Admin Edit / Delete) */}
+                <div className="mt-5 pt-2 flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -726,6 +751,30 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                   >
                     View profile
                   </Button>
+                  {adminControls && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label={`Edit ${alumni.name}`}
+                        onClick={() => adminControls.onEditProfile(alumni)}
+                        className="h-9.5 w-9.5 shrink-0 rounded-xl border-border bg-surface hover:bg-surface-2"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label={`Delete ${alumni.name}`}
+                        onClick={() => adminControls.onDeleteProfile(alumni)}
+                        className="h-9.5 w-9.5 shrink-0 rounded-xl border-border bg-surface text-danger hover:bg-danger-soft hover:text-danger"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </Card>
             ))}
@@ -761,12 +810,20 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
               </Button>
 
               <div className="flex items-start gap-4">
-                <div
-                  className="w-14 h-14 rounded-xl bg-surface-3 border border-border flex items-center justify-center font-mono font-bold text-base text-primary shadow-xs flex-none"
-                  aria-hidden="true"
-                >
-                  {getInitials(selectedAlumni.name)}
-                </div>
+                {selectedAlumni.avatar && (selectedAlumni.avatar.startsWith("/") || /^https?:\/\//i.test(selectedAlumni.avatar)) ? (
+                  <img
+                    src={selectedAlumni.avatar}
+                    alt={selectedAlumni.name}
+                    className="w-14 h-14 rounded-xl border border-border object-cover shadow-xs flex-none"
+                  />
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-xl bg-surface-3 border border-border flex items-center justify-center font-mono font-bold text-base text-primary shadow-xs flex-none"
+                    aria-hidden="true"
+                  >
+                    {getInitials(selectedAlumni.name)}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3
@@ -877,7 +934,7 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 asChild
               >
                 <a
-                  href={selectedAlumni.linkedInUrl || "#"}
+                  href={selectedAlumni.linkedInUrl && /^https?:\/\//i.test(selectedAlumni.linkedInUrl) ? selectedAlumni.linkedInUrl : "#"}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => {
@@ -894,19 +951,50 @@ export default function AlumniPage({ onNavigate, onToast }: AlumniPageProps) {
                 </a>
               </Button>
 
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
-                onClick={() => {
-                  onToast(
-                    `Mentorship request sent to ${selectedAlumni.name}! They typically respond within 24 hours.`
-                  )
-                  setSelectedAlumni(null)
-                }}
-              >
-                Request Mentorship
-              </Button>
+              {adminControls ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Pencil className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      const target = selectedAlumni
+                      setSelectedAlumni(null)
+                      adminControls.onEditProfile(target)
+                    }}
+                  >
+                    Edit Profile
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      const target = selectedAlumni
+                      setSelectedAlumni(null)
+                      adminControls.onDeleteProfile(target)
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    onToast(
+                      `Mentorship request sent to ${selectedAlumni.name}! They typically respond within 24 hours.`
+                    )
+                    setSelectedAlumni(null)
+                  }}
+                >
+                  Request Mentorship
+                </Button>
+              )}
             </div>
           </div>
         </div>

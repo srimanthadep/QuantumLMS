@@ -18,6 +18,7 @@ const BatchesView = lazy(() => import("./views/BatchesView"))
 const TeachersView = lazy(() => import("./views/TeachersView"))
 const StudentsView = lazy(() => import("./views/StudentsView"))
 const OrdersView = lazy(() => import("./views/OrdersView"))
+const AlumniView = lazy(() => import("./views/AlumniView"))
 const ReportsView = lazy(() => import("./views/ReportsView"))
 const SettingsView = lazy(() => import("./views/SettingsView"))
 const TeacherApprovalsView = lazy(() => import("./views/TeacherApprovalsView"))
@@ -50,6 +51,7 @@ const NAV_PATHS: Record<string, string> = {
   batches: "/admin/batches",
   teachers: "/admin/teachers",
   students: "/admin/students",
+  alumni: "/admin/alumni",
   orders: "/admin/orders",
   reports: "/admin/reports",
   health: "/admin/health",
@@ -161,14 +163,24 @@ export default function AdminPortal({
     navigate(NAV_PATHS[id] ?? "/admin/overview")
   }
 
-  const handleCreateBatch = (data: any) => {
-    store.addBatch(data)
-    onToast(`Cohort batch created: ${data.name}`)
+  const handleCreateBatch = async (data: any) => {
+    try {
+      await store.addBatch(data)
+      onToast(`Cohort batch created: ${data.name}`)
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Could not create cohort batch.")
+      throw err
+    }
   }
 
-  const handleManualEnrol = (data: any) => {
-    store.enrolStudent(data)
-    onToast(`Enrolled ${data.name} into cohort`)
+  const handleManualEnrol = async (data: any) => {
+    try {
+      await store.enrolStudent(data)
+      onToast(`Enrolled ${data.name} into cohort`)
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : "Could not enrol student.")
+      throw err
+    }
   }
 
   const handleAddTeacher = (data: any) => {
@@ -222,6 +234,7 @@ export default function AdminPortal({
                 <BatchesView
                   store={store}
                   onOpenCreateBatch={() => setIsCreateBatchOpen(true)}
+                  onToast={onToast}
                 />
               }
             />
@@ -246,6 +259,10 @@ export default function AdminPortal({
             <Route
               path="/orders"
               element={<OrdersView store={store} onToast={onToast} />}
+            />
+            <Route
+              path="/alumni"
+              element={<AlumniView onToast={onToast} />}
             />
             <Route
               path="/reports"

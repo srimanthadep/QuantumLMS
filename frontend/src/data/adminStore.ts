@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
-import { api } from "@/lib/api"
+import { ApiError, api } from "@/lib/api"
+
+const isOfflineError = (err: unknown) => err instanceof ApiError && (!err.status || err.code === "network")
 
 export interface AdminCourse {
   id: string
@@ -26,24 +28,54 @@ export interface AdminBatch {
   id: string
   name: string
   courseId: string
+  courseCode?: string
   courseTitle: string
   instructor: string
   instructorAvatar: string
   startDate: string
   endDate: string
   schedule: string
+  timezone: string
   enrolledSeats: number
+  waitlistedSeats: number
   maxSeats: number
-  deliveryMode: "Live + Replay" | "Replay Only"
+  deliveryMode: "Live + Replay" | "Replay Only" | "Self-Paced"
   replayDelayHours: number
   accessExpiryMonths: number
+  meetingUrl?: string | null
   features: {
     liveChat: boolean
     doubtClearing: boolean
     aiTutor: boolean
     certificate: boolean
   }
-  status: "Active" | "Upcoming" | "Completed"
+  status: "Active" | "Upcoming" | "Completed" | "Archived"
+  notes?: string
+}
+
+export type BatchRosterStatus = "Active" | "Waitlisted" | "Completed" | "Paused" | "At Risk"
+
+export interface BatchRosterStudent {
+  id: string
+  name: string
+  email: string
+  avatarUrl?: string | null
+  rollNumber: string
+  program: string
+  status: BatchRosterStatus
+  notes: string
+  enrolledAt: string
+  attendanceRate: number
+  courseProgress: number
+}
+
+export interface BatchAvailableStudent {
+  id: string
+  name: string
+  email: string
+  avatarUrl?: string | null
+  rollNumber: string
+  currentBatch: string
 }
 
 export interface AdminTeacher {
@@ -423,6 +455,60 @@ function saveStorage(key: string, data: unknown) {
   )
 }
 
+function mapApiCourse(c: any): AdminCourse {
+  const enrolled = Number(c.enrolled_students ?? 0)
+  const price = Number(c.price ?? 39999)
+  return {
+    id: String(c.id),
+    title: String(c.title),
+    slug: c.code ? String(c.code).toLowerCase().replace(/[^a-z0-9]/g, "-") : String(c.title).toLowerCase().replace(/[^a-z0-9]/g, "-"),
+    category: c.category || "LLM Engineering",
+    instructor: c.instructor || "Srimanth",
+    instructorAvatar: c.instructor === "Srimanth" ? "/assets/srimanth.png" : "",
+    enrolledStudents: enrolled,
+    capacity: Number(c.capacity ?? 250),
+    price,
+    revenue: enrolled * price,
+    rating: parseFloat(c.rating || "5.0") || 5.0,
+    completionRate: 88,
+    status: (c.status as AdminCourse["status"]) || "Published",
+    cohortCount: Number(c.cohort_count ?? 0),
+    updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+  }
+}
+
+function mapApiBatch(b: any): AdminBatch {
+  const rawFeatures = (b.features && typeof b.features === "object" ? b.features : {}) as Partial<AdminBatch["features"]>
+  return {
+    id: String(b.id),
+    name: String(b.name),
+    courseId: String(b.course_id ?? ""),
+    courseCode: b.course_code ? String(b.course_code) : undefined,
+    courseTitle: String(b.course_title ?? "AI Engineering"),
+    instructor: String(b.instructor ?? "Srimanth"),
+    instructorAvatar: b.instructor_avatar || (b.instructor === "Srimanth" ? "/assets/srimanth.png" : ""),
+    startDate: String(b.start_date ?? "2026-11-10"),
+    endDate: String(b.end_date ?? "2027-02-15"),
+    schedule: String(b.schedule ?? "Mon, Wed, Fri · 7:30 PM - 9:30 PM"),
+    timezone: String(b.timezone ?? "Asia/Kolkata"),
+    enrolledSeats: Number(b.enrolled_seats ?? 0),
+    waitlistedSeats: Number(b.waitlisted_seats ?? 0),
+    maxSeats: Number(b.max_seats ?? 100),
+    deliveryMode: (b.delivery_mode as AdminBatch["deliveryMode"]) || "Live + Replay",
+    replayDelayHours: Number(b.replay_delay_hours ?? 2),
+    accessExpiryMonths: Number(b.access_expiry_months ?? 24),
+    meetingUrl: b.meeting_url ? String(b.meeting_url) : null,
+    features: {
+      liveChat: rawFeatures.liveChat ?? true,
+      doubtClearing: rawFeatures.doubtClearing ?? true,
+      aiTutor: rawFeatures.aiTutor ?? true,
+      certificate: rawFeatures.certificate ?? true,
+    },
+    status: (b.status as AdminBatch["status"]) || "Active",
+    notes: String(b.notes ?? ""),
+  }
+}
+
 // Custom Hook for Admin Data
 export function useAdminStore() {
   const [courses, setCourses] = useState<AdminCourse[]>(() => loadStorage(KEYS.courses, INITIAL_COURSES))
@@ -439,251 +525,422 @@ export function useAdminStore() {
   useEffect(() => saveStorage(KEYS.orders, orders), [orders])
   useEffect(() => saveStorage(KEYS.settings, settings), [settings])
 
-  // Sync courses with Backend API
+  const refreshCourses = useCallback(async () => {
+    const res = await api.get<{ courses: any[] }>("/admin/courses", { bypassCache: true })
+    if (Array.isArray(res?.courses)) {
+      setCourses(res.courses.map(mapApiCourse))
+    }
+  }, [])
+
+  const refreshOperations = useCallback(async () => {
+    const [bRes, tRes, sRes, oRes, setRes] = await Promise.allSettled([
+      api.get<{ batches: any[] }>("/admin/batches", { bypassCache: true }),
+      api.get<{ teachers: any[] }>("/admin/teachers", { bypassCache: true }),
+      api.get<{ students: any[] }>("/admin/students", { bypassCache: true }),
+      api.get<{ orders: any[] }>("/admin/orders", { bypassCache: true }),
+      api.get<{ settings: any }>("/admin/settings", { bypassCache: true }),
+    ])
+
+    if (bRes.status === "fulfilled" && Array.isArray(bRes.value?.batches)) {
+      setBatches(bRes.value.batches.map(mapApiBatch))
+    }
+
+    if (tRes.status === "fulfilled" && Array.isArray(tRes.value?.teachers)) {
+      setTeachers(
+        tRes.value.teachers.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          title: "Senior AI Instructor",
+          specialization: "LLMs & Agentic Orchestration",
+          role: (t.role as any) === "Teacher" ? "Lead Instructor" : ((t.role as any) === "Evaluator" ? "Evaluator" : "Teaching Assistant"),
+          assignedCourses: ["Agentic AI Systems"],
+          activeBatches: ["Cohort 14"],
+          studentCount: 142,
+          rating: 4.95,
+          status: "Available",
+          avatar: t.avatar || "/assets/shanmuk.png",
+          attendanceRate: 98,
+        })),
+      )
+    }
+
+    if (sRes.status === "fulfilled" && Array.isArray(sRes.value?.students)) {
+      setStudents(
+        sRes.value.students.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          avatar: s.avatar_url || "",
+          courseId: "c1",
+          courseTitle: "Autonomous Agent Architectures",
+          batchId: "b-1",
+          batchName: s.batch_name || "Unassigned",
+          enrolledAt: "2026-10-15",
+          progress: 74,
+          attendanceRate: s.attendance_rate || 92,
+          evaluationScore: 94,
+          status: "Active",
+        })),
+      )
+    }
+
+    if (oRes.status === "fulfilled" && Array.isArray(oRes.value?.orders)) {
+      setOrders(
+        oRes.value.orders.map((o: any) => ({
+          id: o.id,
+          orderNumber: o.order_number,
+          studentId: o.student_id || "stu-1",
+          studentName: o.student_name,
+          studentEmail: o.student_email,
+          courseTitle: o.course_title,
+          amount: o.amount || 44999,
+          currency: "INR" as const,
+          method: (o.method as any) || "Razorpay (UPI)",
+          date: o.date,
+          status: (o.status as any) || "Paid",
+        })),
+      )
+    }
+
+    if (setRes.status === "fulfilled" && setRes.value?.settings) {
+      setSettings((prev) => ({ ...prev, ...setRes.value.settings }))
+    }
+  }, [])
+
+  // Sync courses & operations with Backend API on mount
   useEffect(() => {
-    let cancelled = false
-    async function fetchBackendCourses() {
+    refreshCourses().catch(() => {})
+    refreshOperations().catch(() => {})
+  }, [refreshCourses, refreshOperations])
+
+  const addCourse = useCallback(
+    async (
+      newCourse: Omit<
+        AdminCourse,
+        "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "cohortCount" | "updatedAt"
+      >,
+    ) => {
       try {
-        const res = await api.get<{ courses: any[] }>("/admin/courses")
-        if (!cancelled && res?.courses && Array.isArray(res.courses)) {
-          const apiCourses: AdminCourse[] = res.courses.map((c) => ({
-            id: c.id,
-            title: c.title,
-            slug: c.code ? c.code.toLowerCase().replace(/[^a-z0-9]/g, "-") : c.title.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-            category: c.category || "LLM Engineering",
-            instructor: c.instructor || "Srimanth",
-            instructorAvatar: "/assets/srimanth.png",
-            enrolledStudents: c.enrolled_students ?? 0,
-            capacity: 250,
-            price: 39999,
-            revenue: (c.enrolled_students ?? 0) * 39999,
-            rating: parseFloat(c.rating || "5.0") || 5.0,
-            completionRate: 88,
-            status: (c.status as any) || "Published",
-            cohortCount: Math.max(1, c.modules_count ?? 1),
-            updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-          }))
-
-          setCourses(apiCourses)
+        const res = await api.post<{ ok: boolean; course: any }>("/admin/courses", {
+          title: newCourse.title,
+          category: newCourse.category,
+          instructor: newCourse.instructor,
+          instructor_role: "Lead Instructor",
+          description: `Comprehensive track in ${newCourse.title} covering architecture, practical applications and production deployment.`,
+          level: "Beginner",
+          credits: 4,
+          duration: "12 Weeks",
+          price: newCourse.price,
+          capacity: newCourse.capacity,
+          status: newCourse.status,
+        })
+        const created = res?.course ? mapApiCourse(res.course) : null
+        if (created) {
+          setCourses((prev) => [created, ...prev])
+          return created
         }
-      } catch {
-        // Fallback to offline / mock storage smoothly
+      } catch (err) {
+        if (!isOfflineError(err)) throw err
       }
-    }
-    fetchBackendCourses()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
-  // Sync operations: batches, faculty teachers, enrolled students, orders, settings
-  useEffect(() => {
-    let cancelled = false
-    async function fetchOperations() {
+      const fallbackCourse: AdminCourse = {
+        ...newCourse,
+        id: `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
+        enrolledStudents: 0,
+        revenue: 0,
+        rating: 5.0,
+        completionRate: 0,
+        cohortCount: 0,
+        updatedAt: new Date().toISOString().split("T")[0],
+      }
+      setCourses((prev) => [fallbackCourse, ...prev])
+      return fallbackCourse
+    },
+    [],
+  )
+
+  const toggleCourseStatus = useCallback(
+    async (courseId: string) => {
+      const target = courses.find((c) => c.id === courseId)
+      const nextStatus: AdminCourse["status"] = target?.status === "Published" ? "Archived" : "Published"
+
       try {
-        const [bRes, tRes, sRes, oRes, setRes] = await Promise.allSettled([
-          api.get<{ batches: any[] }>("/admin/batches"),
-          api.get<{ teachers: any[] }>("/admin/teachers"),
-          api.get<{ students: any[] }>("/admin/students"),
-          api.get<{ orders: any[] }>("/admin/orders"),
-          api.get<{ settings: any }>("/admin/settings"),
-        ])
-        if (cancelled) return
-
-        if (bRes.status === "fulfilled" && bRes.value?.batches?.length) {
-          setBatches((prev) => {
-            const apiBatches: AdminBatch[] = bRes.value.batches.map((b: any, i: number) => ({
-              id: b.id || `batch-api-${i}`,
-              name: b.name,
-              courseId: b.course_id || "c1",
-              courseTitle: b.course_title || "GenAI Engineering",
-              instructor: "Shanmuk",
-              instructorAvatar: "/assets/shanmuk.png",
-              startDate: "2026-11-10",
-              endDate: "2027-02-15",
-              schedule: b.schedule || "Mon, Wed, Fri · 7:30 PM - 9:30 PM IST",
-              enrolledSeats: b.enrolled_seats || 0,
-              maxSeats: b.max_seats || 100,
-              deliveryMode: b.delivery_mode || "Live + Replay",
-              replayDelayHours: 2,
-              accessExpiryMonths: 12,
-              features: { liveChat: true, doubtClearing: true, aiTutor: true, certificate: true },
-              status: b.status || "Active",
-            }))
-            return apiBatches
-          })
-        }
-
-        if (tRes.status === "fulfilled" && tRes.value?.teachers?.length) {
-          setTeachers((prev) => {
-            const apiTeachers: AdminTeacher[] = tRes.value.teachers.map((t: any) => ({
-              id: t.id,
-              name: t.name,
-              email: t.email,
-              title: "Senior AI Instructor",
-              specialization: "LLMs & Agentic Orchestration",
-              role: (t.role as any) === "Teacher" ? "Lead Instructor" : ((t.role as any) === "Evaluator" ? "Evaluator" : "Teaching Assistant"),
-              assignedCourses: ["Agentic AI Systems"],
-              activeBatches: ["Cohort 14"],
-              studentCount: 142,
-              rating: 4.95,
-              status: "Available",
-              avatar: t.avatar || "/assets/shanmuk.png",
-              attendanceRate: 98,
-            }))
-            return apiTeachers
-          })
-        }
-
-        if (sRes.status === "fulfilled" && sRes.value?.students?.length) {
-          setStudents((prev) => {
-            const apiStudents: AdminStudent[] = sRes.value.students.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              email: s.email,
-              avatar: s.avatar_url || "",
-              courseId: "c1",
-              courseTitle: "Autonomous Agent Architectures",
-              batchId: "b-1",
-              batchName: s.batch_name || "Cohort 7 (Evening)",
-              enrolledAt: "2026-10-15",
-              progress: 74,
-              attendanceRate: s.attendance_rate || 92,
-              evaluationScore: 94,
-              status: "Active",
-            }))
-            return apiStudents
-          })
-        }
-
-        if (oRes.status === "fulfilled" && oRes.value?.orders?.length) {
-          setOrders((prev) => {
-            const apiOrders: AdminOrder[] = oRes.value.orders.map((o: any) => ({
-              id: o.id,
-              orderNumber: o.order_number,
-              studentId: o.student_id || "stu-1",
-              studentName: o.student_name,
-              studentEmail: o.student_email,
-              courseTitle: o.course_title,
-              amount: o.amount || 44999,
-              currency: "INR" as const,
-              method: (o.method as any) || "Razorpay (UPI)",
-              date: o.date,
-              status: (o.status as any) || "Paid",
-            }))
-            return apiOrders
-          })
-        }
-
-        if (setRes.status === "fulfilled" && setRes.value?.settings) {
-          setSettings((prev) => ({ ...prev, ...setRes.value.settings }))
-        }
-      } catch {
-        // Safe offline fallback
+        await api.patch(`/admin/courses/${courseId}`, { status: nextStatus })
+      } catch (err) {
+        if (!isOfflineError(err)) throw err
       }
+
+      const today = new Date().toISOString().split("T")[0]
+      setCourses((prev) =>
+        prev.map((c) => (c.id === courseId ? { ...c, status: nextStatus, updatedAt: today } : c)),
+      )
+    },
+    [courses],
+  )
+
+  const updateCourse = useCallback(async (courseId: string, patch: Partial<AdminCourse>) => {
+    const apiPayload: Record<string, unknown> = {}
+    if (patch.title !== undefined) apiPayload.title = patch.title
+    if (patch.category !== undefined) apiPayload.category = patch.category
+    if (patch.instructor !== undefined) apiPayload.instructor = patch.instructor
+    if (patch.price !== undefined) apiPayload.price = patch.price
+    if (patch.capacity !== undefined) apiPayload.capacity = patch.capacity
+    if (patch.status !== undefined) apiPayload.status = patch.status
+
+    try {
+      if (Object.keys(apiPayload).length > 0) {
+        await api.patch(`/admin/courses/${courseId}`, apiPayload)
+      }
+    } catch (err) {
+      if (!isOfflineError(err)) throw err
     }
-    fetchOperations()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
-  const addCourse = useCallback((newCourse: Omit<AdminCourse, "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "cohortCount" | "updatedAt">) => {
-    const localId = `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`
-    const course: AdminCourse = {
-      ...newCourse,
-      id: localId,
-      enrolledStudents: 0,
-      revenue: 0,
-      rating: 5.0,
-      completionRate: 0,
-      cohortCount: 1,
-      updatedAt: new Date().toISOString().split("T")[0],
-    }
-    setCourses((prev) => [course, ...prev])
-
-    // Asynchronously persist to backend PostgreSQL
-    api
-      .post<{ ok: boolean; course: any }>("/admin/courses", {
-        title: newCourse.title,
-        category: newCourse.category,
-        instructor: newCourse.instructor,
-        instructor_role: "Lead Instructor",
-        description: `Comprehensive track in ${newCourse.title} covering architecture, practical applications and production deployment.`,
-        level: "Beginner",
-        credits: 4,
-        duration: "12 Weeks",
-      })
-      .then((res) => {
-        if (res?.course?.id) {
-          setCourses((prev) =>
-            prev.map((c) => (c.id === localId ? { ...c, id: res.course.id } : c))
-          )
-        }
-      })
-      .catch(() => {
-        // Safe offline fallback
-      })
-
-    return course
-  }, [])
-
-  const toggleCourseStatus = useCallback((courseId: string) => {
+    const today = new Date().toISOString().split("T")[0]
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id !== courseId) return c
-        const nextStatus = c.status === "Published" ? "Archived" : "Published"
-        return { ...c, status: nextStatus, updatedAt: new Date().toISOString().split("T")[0] }
-      })
+        const nextPrice = patch.price ?? c.price
+        return {
+          ...c,
+          ...patch,
+          revenue: (patch.enrolledStudents ?? c.enrolledStudents) * nextPrice,
+          updatedAt: today,
+        }
+      }),
     )
-    api.patch(`/admin/courses/${courseId}`, {}).catch(() => {})
   }, [])
 
-  const updateCourse = useCallback((courseId: string, patch: Partial<AdminCourse>) => {
-    setCourses((prev) =>
-      prev.map((c) => (c.id === courseId ? { ...c, ...patch, updatedAt: new Date().toISOString().split("T")[0] } : c))
-    )
-    api.patch(`/admin/courses/${courseId}`, patch).catch(() => {})
-  }, [])
-
-  const deleteCourse = useCallback((courseId: string) => {
-    setCourses((prev) => prev.filter((c) => c.id !== courseId))
-    api.delete(`/admin/courses/${courseId}`).catch(() => {})
-  }, [])
-
-  const addBatch = useCallback((batchData: Omit<AdminBatch, "id" | "enrolledSeats">) => {
-    const batch: AdminBatch = {
-      ...batchData,
-      id: `batch-${Date.now()}`,
-      enrolledSeats: 0,
+  const deleteCourse = useCallback(async (courseId: string) => {
+    try {
+      await api.delete(`/admin/courses/${courseId}`)
+    } catch (err) {
+      if (!isOfflineError(err)) throw err
     }
-    setBatches((prev) => [batch, ...prev])
-    setCourses((prev) =>
-      prev.map((c) => (c.id === batch.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c))
-    )
-    api
-      .post("/admin/batches", {
-        name: batchData.name,
-        course_id: batchData.courseId,
-        max_seats: batchData.maxSeats,
-        schedule: batchData.schedule,
-        delivery_mode: batchData.deliveryMode,
-      })
-      .catch(() => {})
-    return batch
+    setCourses((prev) => prev.filter((c) => c.id !== courseId))
+    setBatches((prev) => prev.filter((b) => b.courseId !== courseId))
   }, [])
 
-  const updateBatch = useCallback((batchId: string, patch: Partial<AdminBatch>) => {
-    setBatches((prev) =>
-      prev.map((b) => (b.id === batchId ? { ...b, ...patch } : b))
-    )
-    api.patch(`/admin/batches/${batchId}`, patch).catch(() => {})
+  const addBatch = useCallback(
+    async (
+      batchData: Omit<AdminBatch, "id" | "enrolledSeats" | "waitlistedSeats"> & { waitlistedSeats?: number },
+    ) => {
+      try {
+        const res = await api.post<{ ok: boolean; batch: any }>("/admin/batches", {
+          name: batchData.name,
+          course_id: batchData.courseId,
+          instructor: batchData.instructor,
+          start_date: batchData.startDate,
+          end_date: batchData.endDate,
+          schedule: batchData.schedule,
+          timezone: batchData.timezone || "Asia/Kolkata",
+          max_seats: batchData.maxSeats,
+          delivery_mode: batchData.deliveryMode,
+          replay_delay_hours: batchData.replayDelayHours,
+          access_expiry_months: batchData.accessExpiryMonths,
+          meeting_url: batchData.meetingUrl || null,
+          features: batchData.features,
+          status: batchData.status,
+          notes: batchData.notes || "",
+        })
+        if (res?.batch) {
+          const created = mapApiBatch(res.batch)
+          setBatches((prev) => [created, ...prev])
+          setCourses((prev) =>
+            prev.map((c) => (c.id === created.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
+          )
+          return created
+        }
+      } catch (err) {
+        if (!isOfflineError(err)) throw err
+      }
+
+      const fallbackBatch: AdminBatch = {
+        ...batchData,
+        id: `batch-${Date.now()}`,
+        enrolledSeats: 0,
+        waitlistedSeats: 0,
+        timezone: batchData.timezone || "Asia/Kolkata",
+      }
+      setBatches((prev) => [fallbackBatch, ...prev])
+      setCourses((prev) =>
+        prev.map((c) => (c.id === fallbackBatch.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
+      )
+      return fallbackBatch
+    },
+    [],
+  )
+
+  const duplicateBatch = useCallback(async (batchId: string) => {
+    try {
+      const res = await api.post<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}/duplicate`, {})
+      if (res?.batch) {
+        const created = mapApiBatch(res.batch)
+        setBatches((prev) => [created, ...prev])
+        setCourses((prev) =>
+          prev.map((c) => (c.id === created.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
+        )
+        return created
+      }
+    } catch (err) {
+      if (!isOfflineError(err)) throw err
+    }
+    return null
   }, [])
 
-  const deleteBatch = useCallback((batchId: string) => {
+  const updateBatch = useCallback(async (batchId: string, patch: Partial<AdminBatch>) => {
+    const apiPayload: Record<string, unknown> = {}
+    if (patch.name !== undefined) apiPayload.name = patch.name
+    if (patch.courseId !== undefined) apiPayload.course_id = patch.courseId
+    if (patch.instructor !== undefined) apiPayload.instructor = patch.instructor
+    if (patch.startDate !== undefined) apiPayload.start_date = patch.startDate
+    if (patch.endDate !== undefined) apiPayload.end_date = patch.endDate
+    if (patch.schedule !== undefined) apiPayload.schedule = patch.schedule
+    if (patch.timezone !== undefined) apiPayload.timezone = patch.timezone
+    if (patch.maxSeats !== undefined) apiPayload.max_seats = patch.maxSeats
+    if (patch.deliveryMode !== undefined) apiPayload.delivery_mode = patch.deliveryMode
+    if (patch.replayDelayHours !== undefined) apiPayload.replay_delay_hours = patch.replayDelayHours
+    if (patch.accessExpiryMonths !== undefined) apiPayload.access_expiry_months = patch.accessExpiryMonths
+    if (patch.meetingUrl !== undefined) apiPayload.meeting_url = patch.meetingUrl || null
+    if (patch.features !== undefined) apiPayload.features = patch.features
+    if (patch.status !== undefined) apiPayload.status = patch.status
+    if (patch.notes !== undefined) apiPayload.notes = patch.notes
+
+    try {
+      const res = await api.patch<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}`, apiPayload)
+      if (res?.batch) {
+        const mapped = mapApiBatch(res.batch)
+        setBatches((prev) => prev.map((b) => (b.id === batchId ? mapped : b)))
+        await Promise.allSettled([refreshCourses(), refreshOperations()])
+        return mapped
+      }
+    } catch (err) {
+      if (!isOfflineError(err)) throw err
+    }
+
+    setBatches((prev) => prev.map((b) => (b.id === batchId ? { ...b, ...patch } : b)))
+    return null
+  }, [refreshCourses, refreshOperations])
+
+  const deleteBatch = useCallback(async (batchId: string) => {
+    const existing = batches.find((b) => b.id === batchId)
+    try {
+      await api.delete(`/admin/batches/${batchId}`)
+    } catch (err) {
+      if (!isOfflineError(err)) throw err
+    }
     setBatches((prev) => prev.filter((b) => b.id !== batchId))
-    api.delete(`/admin/batches/${batchId}`).catch(() => {})
+    if (existing) {
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.id === existing.courseId ? { ...c, cohortCount: Math.max(0, c.cohortCount - 1) } : c,
+        ),
+      )
+    }
+  }, [batches])
+
+  const fetchBatchStudents = useCallback(async (batchId: string) => {
+    const res = await api.get<{
+      batch: any
+      students: any[]
+      available_students: any[]
+    }>(`/admin/batches/${batchId}/students`, { bypassCache: true })
+
+    return {
+      batch: mapApiBatch(res.batch),
+      students: (res.students || []).map((s): BatchRosterStudent => ({
+        id: String(s.id),
+        name: String(s.name),
+        email: String(s.email),
+        avatarUrl: s.avatar_url ?? null,
+        rollNumber: String(s.roll_number ?? ""),
+        program: String(s.program ?? "Artificial Intelligence"),
+        status: (s.status as BatchRosterStatus) || "Active",
+        notes: String(s.notes ?? ""),
+        enrolledAt: s.enrolled_at ? new Date(s.enrolled_at).toISOString().split("T")[0] : "",
+        attendanceRate: Number(s.attendance_rate ?? 92),
+        courseProgress: Number(s.course_progress ?? 0),
+      })),
+      availableStudents: (res.available_students || []).map((a): BatchAvailableStudent => ({
+        id: String(a.id),
+        name: String(a.name),
+        email: String(a.email),
+        avatarUrl: a.avatar_url ?? null,
+        rollNumber: String(a.roll_number ?? ""),
+        currentBatch: String(a.current_batch ?? ""),
+      })),
+    }
   }, [])
+
+  const addStudentsToBatch = useCallback(
+    async (
+      batchId: string,
+      payload: {
+        studentIds?: string[]
+        name?: string
+        email?: string
+        program?: string
+        status?: BatchRosterStatus
+        notes?: string
+        allowOverCapacity?: boolean
+        autoWaitlistWhenFull?: boolean
+      },
+    ) => {
+      const res = await api.post<{
+        ok: boolean
+        added_count: number
+        waitlisted_count: number
+        skipped_count: number
+        batch: any
+      }>(`/admin/batches/${batchId}/students`, {
+        ...(payload.studentIds?.length ? { student_ids: payload.studentIds } : {}),
+        ...(payload.name ? { name: payload.name } : {}),
+        ...(payload.email ? { email: payload.email } : {}),
+        ...(payload.program ? { program: payload.program } : {}),
+        status: payload.status ?? "Active",
+        notes: payload.notes ?? "",
+        allow_over_capacity: payload.allowOverCapacity ?? false,
+        auto_waitlist_when_full: payload.autoWaitlistWhenFull ?? false,
+      })
+      if (res?.batch) {
+        const updated = mapApiBatch(res.batch)
+        setBatches((prev) => prev.map((b) => (b.id === batchId ? updated : b)))
+      }
+      await Promise.allSettled([refreshCourses(), refreshOperations()])
+      return res
+    },
+    [refreshCourses, refreshOperations],
+  )
+
+  const updateBatchStudent = useCallback(
+    async (
+      batchId: string,
+      studentId: string,
+      patch: { status?: BatchRosterStatus; notes?: string; targetBatchId?: string; allowOverCapacity?: boolean },
+    ) => {
+      const res = await api.patch<{ ok: boolean; transferred: boolean; batch: any; target_batch?: any }>(
+        `/admin/batches/${batchId}/students/${studentId}`,
+        {
+          ...(patch.status !== undefined ? { status: patch.status } : {}),
+          ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
+          ...(patch.targetBatchId !== undefined ? { target_batch_id: patch.targetBatchId } : {}),
+          ...(patch.allowOverCapacity !== undefined ? { allow_over_capacity: patch.allowOverCapacity } : {}),
+        },
+      )
+      await Promise.allSettled([refreshCourses(), refreshOperations()])
+      return res
+    },
+    [refreshCourses, refreshOperations],
+  )
+
+  const removeStudentFromBatch = useCallback(
+    async (batchId: string, studentId: string, unenrolCourse = false) => {
+      const query = unenrolCourse ? "?unenrol_course=true" : ""
+      await api.delete(`/admin/batches/${batchId}/students/${studentId}${query}`)
+      await Promise.allSettled([refreshCourses(), refreshOperations()])
+    },
+    [refreshCourses, refreshOperations],
+  )
 
   const addTeacher = useCallback((teacherData: Omit<AdminTeacher, "id" | "studentCount" | "rating" | "attendanceRate">) => {
     const teacher: AdminTeacher = {
@@ -714,43 +971,53 @@ export function useAdminStore() {
     api.delete(`/admin/teachers/${teacherId}`).catch(() => {})
   }, [])
 
-  const enrolStudent = useCallback((studentData: { name: string; email: string; courseId: string; batchId: string }) => {
-    const course = courses.find((c) => c.id === studentData.courseId)
-    const batch = batches.find((b) => b.id === studentData.batchId)
-    const student: AdminStudent = {
-      id: `stu-${Date.now()}`,
-      name: studentData.name,
-      email: studentData.email,
-      avatar: "",
-      courseId: studentData.courseId,
-      courseTitle: course ? course.title : "AI Course",
-      batchId: studentData.batchId,
-      batchName: batch ? batch.name : "Active Cohort",
-      enrolledAt: new Date().toISOString().split("T")[0],
-      progress: 0,
-      attendanceRate: 100,
-      evaluationScore: 100,
-      status: "Active",
-    }
-    setStudents((prev) => [student, ...prev])
-    if (batch) {
-      setBatches((prev) =>
-        prev.map((b) => (b.id === batch.id ? { ...b, enrolledSeats: b.enrolledSeats + 1 } : b))
-      )
-    }
-    if (course) {
-      setCourses((prev) =>
-        prev.map((c) => (c.id === course.id ? { ...c, enrolledStudents: c.enrolledStudents + 1 } : c))
-      )
-    }
-    api
-      .post("/admin/students/enrol", {
-        student_id: student.id,
-        course_id: studentData.courseId,
-      })
-      .catch(() => {})
-    return student
-  }, [courses, batches])
+  const enrolStudent = useCallback(
+    async (studentData: { name: string; email: string; courseId: string; batchId: string }) => {
+      try {
+        await api.post("/admin/students/enrol", {
+          name: studentData.name,
+          email: studentData.email,
+          course_id: studentData.courseId,
+          ...(studentData.batchId ? { batch_id: studentData.batchId } : {}),
+        })
+        await Promise.allSettled([refreshCourses(), refreshOperations()])
+        return null
+      } catch (err) {
+        if (!isOfflineError(err)) throw err
+      }
+
+      const course = courses.find((c) => c.id === studentData.courseId)
+      const batch = batches.find((b) => b.id === studentData.batchId)
+      const student: AdminStudent = {
+        id: `stu-${Date.now()}`,
+        name: studentData.name,
+        email: studentData.email,
+        avatar: "",
+        courseId: studentData.courseId,
+        courseTitle: course ? course.title : "AI Course",
+        batchId: studentData.batchId,
+        batchName: batch ? batch.name : "Active Cohort",
+        enrolledAt: new Date().toISOString().split("T")[0],
+        progress: 0,
+        attendanceRate: 100,
+        evaluationScore: 100,
+        status: "Active",
+      }
+      setStudents((prev) => [student, ...prev])
+      if (batch) {
+        setBatches((prev) =>
+          prev.map((b) => (b.id === batch.id ? { ...b, enrolledSeats: b.enrolledSeats + 1 } : b)),
+        )
+      }
+      if (course) {
+        setCourses((prev) =>
+          prev.map((c) => (c.id === course.id ? { ...c, enrolledStudents: c.enrolledStudents + 1 } : c)),
+        )
+      }
+      return student
+    },
+    [courses, batches, refreshCourses, refreshOperations],
+  )
 
   const updateStudent = useCallback((studentId: string, patch: Partial<AdminStudent>) => {
     setStudents((prev) =>
@@ -792,9 +1059,16 @@ export function useAdminStore() {
     updateCourse,
     toggleCourseStatus,
     deleteCourse,
+    refreshCourses,
     addBatch,
+    duplicateBatch,
     updateBatch,
     deleteBatch,
+    refreshOperations,
+    fetchBatchStudents,
+    addStudentsToBatch,
+    updateBatchStudent,
+    removeStudentFromBatch,
     addTeacher,
     updateTeacher,
     deleteTeacher,

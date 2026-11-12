@@ -119,12 +119,13 @@ interface LessonPlayerProps {
   poster: string
   completed: boolean
   onComplete: () => void
+  autoPlay?: boolean
 }
 
 const SPEEDS = ["0.75", "1", "1.25", "1.5", "2"]
 
 /** Lesson stage: an HTML5 video player with YouTube-style multi-quality switching (1080p, 720p, 480p, 144p), or a launch panel for readings/labs. */
-export default function LessonPlayer({ lesson, moduleTitle, poster, completed, onComplete }: LessonPlayerProps) {
+export default function LessonPlayer({ lesson, moduleTitle, poster, completed, onComplete, autoPlay = false }: LessonPlayerProps) {
   const fallbackDuration = Math.max(60, parseMinutes(lesson.duration) * 60)
   const [duration, setDuration] = useState(fallbackDuration)
   const [playing, setPlaying] = useState(false)
@@ -204,15 +205,26 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   }, [transcriptSegments, position])
 
   useEffect(() => {
-    setPlaying(false)
     setPosition(completed ? duration : 0)
-    if (videoRef.current) {
-      videoRef.current.currentTime = completed ? duration : 0
-      videoRef.current.pause()
+    const v = videoRef.current
+    if (v) {
+      v.currentTime = completed ? duration : 0
+      if (autoPlay && activeVideoSrc) {
+        v.play().catch(() => {
+          v.muted = true
+          setMuted(true)
+          v.play().catch(() => setPlaying(false))
+        })
+      } else {
+        setPlaying(false)
+        v.pause()
+      }
+    } else {
+      setPlaying(Boolean(autoPlay && !activeVideoSrc))
     }
     // reset only when the lesson changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson.id])
+  }, [lesson.id, autoPlay, activeVideoSrc])
 
   // Simulated timer ticker fallback only when there is NO real video element loaded
   useEffect(() => {
@@ -393,6 +405,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
           ref={videoRef}
           src={activeVideoSrc}
           poster={poster}
+          autoPlay={autoPlay}
           playsInline
           preload="metadata"
           onLoadedMetadata={(e) => {

@@ -9,6 +9,7 @@ import {
 import { badRequest, notFound } from "../../errors.js"
 import { me, parse } from "../../http.js"
 import { addDays, localDay } from "../../lib/time.js"
+import { getAlumniNetwork } from "../alumni/shared.js"
 
 /** Schedule, attendance, campus feed, grades, notes and notifications: the student's own rows plus shared content. */
 export async function campusRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -160,6 +161,9 @@ export async function campusRoutes(app: FastifyInstance, ctx: AppContext) {
       .where(and(eq(notifications.student_id, s.id), isNull(notifications.read_at), id ? eq(notifications.id, id) : undefined))
     return reply.code(204).send()
   })
+
+  /* ------------------------------ Alumni Network ------------------------------ */
+  app.get("/api/student/alumni", async () => getAlumniNetwork(db))
 }
 
 /** Public: anyone with a shared credential link sees what was earned and by whom, nothing else. */

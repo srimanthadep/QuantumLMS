@@ -102,10 +102,16 @@ export const courses = lms.table("courses", {
   certificate_skills: text().array().default(sql`'{}'::text[]`).notNull(),
   is_starter: boolean().default(false).notNull(),
   position: integer().default(0).notNull(),
+  price: integer().default(39999).notNull(),
+  capacity: integer().default(250).notNull(),
+  status: text().default("Published").notNull(),
 }, (table) => [
   unique("courses_code_key").on(table.code),
   check("courses_credits_check", sql`credits >= 0`),
   check("courses_level_check", sql`level = ANY (ARRAY['Beginner'::text, 'Intermediate'::text, 'Advanced'::text])`),
+  check("courses_price_check", sql`price >= 0`),
+  check("courses_capacity_check", sql`capacity > 0`),
+  check("courses_status_check", sql`status = ANY (ARRAY['Published'::text, 'Draft'::text, 'Archived'::text])`),
 ]);
 
 export const course_modules = lms.table("course_modules", {
@@ -1099,4 +1105,137 @@ export const reevaluation_requests = lms.table("reevaluation_requests", {
   check("reevaluation_requests_resolution_check", sql`char_length(resolution) <= 2000`),
   check("reevaluation_requests_scores_check", sql`(original_score >= 0) AND ((revised_score IS NULL) OR (revised_score >= 0))`),
   check("reevaluation_requests_check", sql`((status = ANY (ARRAY['Pending'::text, 'In Review'::text])) AND (resolved_at IS NULL) AND (revised_score IS NULL)) OR ((status = 'Upheld'::text) AND (resolved_at IS NOT NULL) AND (resolution IS NOT NULL) AND (revised_score IS NULL)) OR ((status = 'Revised'::text) AND (resolved_at IS NOT NULL) AND (resolution IS NOT NULL) AND (revised_score IS NOT NULL))`),
+]);
+
+/** Alumni Directory entries posted/edited/deleted by Admin and shown in Student Alumni Network. */
+export const alumni_profiles = lms.table("alumni_profiles", {
+  id: text().primaryKey().notNull(),
+  name: text().notNull(),
+  avatar: text().default("").notNull(),
+  tag: text().notNull(),
+  current_company: text().notNull(),
+  company_logo: text().default("").notNull(),
+  role: text().notNull(),
+  hike: text().default("").notNull(),
+  lms_program: text().default("Joined Quantum School").notNull(),
+  prior_role: text().default("").notNull(),
+  prior_company: text().default("").notNull(),
+  location: text().notNull(),
+  degree: text().notNull(),
+  package: text().default("").notNull(),
+  bio: text().default("").notNull(),
+  prep_strategy: text().default("").notNull(),
+  skills: text().array().default(sql`'{}'::text[]`).notNull(),
+  linkedin_url: text().default("").notNull(),
+  position: integer().default(0).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  index("alumni_profiles_position_idx").using("btree", table.position),
+  check("alumni_profiles_tag_check", sql`tag = ANY (ARRAY['Career Gap'::text, 'Fresher'::text, 'Non-Tech to Tech'::text, 'Switcher'::text, 'Upskiller'::text])`),
+  check("alumni_profiles_name_check", sql`(char_length(name) >= 1) AND (char_length(name) <= 120)`),
+]);
+
+/** Spotlight placement story cards shown in Student Dashboard Placement Stories reel. */
+export const placement_stories = lms.table("placement_stories", {
+  id: text().primaryKey().notNull(),
+  first_name: text().notNull(),
+  full_name: text().notNull(),
+  company: text().notNull(),
+  role: text().notNull(),
+  package: text().default("").notNull(),
+  head: text().notNull(),
+  quote: text().notNull(),
+  highlight: text().default("Featured Offer").notNull(),
+  accent: text().default("#2563EB").notNull(),
+  glow: text().default("rgba(37, 99, 235, 0.38)").notNull(),
+  kicker_class: text().default("text-sky-300").notNull(),
+  avatar_bg: text().default("from-blue-500 to-indigo-600").notNull(),
+  position: integer().default(0).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  index("placement_stories_position_idx").using("btree", table.position),
+  check("placement_stories_name_check", sql`(char_length(full_name) >= 1) AND (char_length(full_name) <= 120)`),
+]);
+
+/** Recent placement cards shown in Student Dashboard MirrorFlip carousel. */
+export const recent_placements = lms.table("recent_placements", {
+  id: text().primaryKey().notNull(),
+  name: text().notNull(),
+  company: text().notNull(),
+  role: text().default("").notNull(),
+  color: text().default("#2563EB").notNull(),
+  src: text().default("").notNull(),
+  offset_y: integer().default(0).notNull(),
+  position: integer().default(0).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  index("recent_placements_position_idx").using("btree", table.position),
+  check("recent_placements_name_check", sql`(char_length(name) >= 1) AND (char_length(name) <= 120)`),
+]);
+
+/** Cohort batches owned by admins and linked to courses. */
+export const cohort_batches = lms.table("cohort_batches", {
+  id: text().primaryKey().notNull(),
+  name: text().notNull(),
+  course_id: text().notNull(),
+  instructor: text().notNull(),
+  instructor_avatar: text().default("").notNull(),
+  start_date: text().notNull(),
+  end_date: text().notNull(),
+  schedule: text().default("Mon, Wed, Fri · 7:30 PM - 9:30 PM").notNull(),
+  timezone: text().default("Asia/Kolkata").notNull(),
+  max_seats: integer().default(100).notNull(),
+  delivery_mode: text().default("Live + Replay").notNull(),
+  replay_delay_hours: integer().default(2).notNull(),
+  access_expiry_months: integer().default(24).notNull(),
+  meeting_url: text(),
+  features: jsonb().default({ liveChat: true, doubtClearing: true, aiTutor: true, certificate: true }).notNull(),
+  status: text().default("Active").notNull(),
+  notes: text().default("").notNull(),
+  position: integer().default(0).notNull(),
+  created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  index("cohort_batches_course_idx").using("btree", table.course_id),
+  index("cohort_batches_position_idx").using("btree", table.position, table.created_at),
+  foreignKey({
+    columns: [table.course_id],
+    foreignColumns: [courses.id],
+    name: "cohort_batches_course_id_fkey",
+  }).onDelete("cascade"),
+  check("cohort_batches_name_check", sql`(char_length(name) >= 2) AND (char_length(name) <= 150)`),
+  check("cohort_batches_max_seats_check", sql`max_seats > 0`),
+  check("cohort_batches_delivery_mode_check", sql`delivery_mode = ANY (ARRAY['Live + Replay'::text, 'Replay Only'::text, 'Self-Paced'::text])`),
+  check("cohort_batches_replay_delay_check", sql`replay_delay_hours >= 0`),
+  check("cohort_batches_access_expiry_check", sql`access_expiry_months >= 0`),
+  check("cohort_batches_meeting_url_check", sql`(meeting_url IS NULL) OR (meeting_url ~ '^https?://'::text)`),
+  check("cohort_batches_features_check", sql`jsonb_typeof(features) = 'object'::text`),
+  check("cohort_batches_status_check", sql`status = ANY (ARRAY['Active'::text, 'Upcoming'::text, 'Completed'::text, 'Archived'::text])`),
+]);
+
+/** Students enrolled inside each cohort batch. */
+export const batch_students = lms.table("batch_students", {
+  batch_id: text().notNull(),
+  student_id: uuid().notNull(),
+  status: text().default("Active").notNull(),
+  notes: text().default("").notNull(),
+  enrolled_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.batch_id, table.student_id], name: "batch_students_pkey" }),
+  index("batch_students_student_idx").using("btree", table.student_id),
+  foreignKey({
+    columns: [table.batch_id],
+    foreignColumns: [cohort_batches.id],
+    name: "batch_students_batch_id_fkey",
+  }).onDelete("cascade"),
+  foreignKey({
+    columns: [table.student_id],
+    foreignColumns: [profiles.id],
+    name: "batch_students_student_id_fkey",
+  }).onDelete("cascade"),
+  check("batch_students_status_check", sql`status = ANY (ARRAY['Active'::text, 'Waitlisted'::text, 'Completed'::text, 'Paused'::text, 'At Risk'::text])`),
 ]);

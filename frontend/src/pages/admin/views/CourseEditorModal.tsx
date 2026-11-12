@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import {
-  ArrowLeft,
   BookOpen,
   Plus,
   Trash2,
@@ -29,6 +28,7 @@ import {
   ChevronsUpDown,
   Settings2,
   Star,
+  Play,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -49,7 +49,36 @@ import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { formatINR, seatPercent, themeFor, CATEGORIES, STATUSES } from "./courses/courseTheme"
 import { NavItem, PanelHeader, WorkspaceEmpty, dueInfo } from "./courses/WorkspaceParts"
+import LessonPlayer from "@/pages/student/course/LessonPlayer"
 import type { AdminCourse } from "@/data/adminStore"
+
+/** Converts YouTube/Vimeo watch URLs to embed URLs; returns null for direct/R2 video streams. */
+function toVideoEmbedUrl(url?: string | null): string | null {
+  if (!url) return null
+  try {
+    const u = new URL(url, window.location.origin)
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.replace(/^\//, "")
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : null
+    }
+    if (u.hostname.includes("youtube.com")) {
+      const id = u.searchParams.get("v")
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : null
+    }
+    if (u.hostname.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean).pop()
+      return id ? `https://player.vimeo.com/video/${id}?autoplay=1` : null
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function lessonHasPlayableVideo(l: LessonRowItem): boolean {
+  const hasQualities = Boolean(l.video_qualities && typeof l.video_qualities === "object" && Object.keys(l.video_qualities).length > 0)
+  return l.type === "video" && Boolean(l.video_url || hasQualities)
+}
 
 interface CourseModuleItem {
   id: string
@@ -99,6 +128,7 @@ interface AssignmentItem {
 interface CourseEditorModalProps {
   course: AdminCourse | null
   open: boolean
+  refreshKey?: number
   onOpenChange: (open: boolean) => void
   onCourseUpdated: (course: AdminCourse) => void
   onOpenVideoUpload: (courseId: string, moduleId?: string) => void
@@ -110,6 +140,7 @@ type EditorTab = "curriculum" | "materials" | "assignments" | "settings"
 export default function CourseEditorModal({
   course,
   open,
+  refreshKey,
   onOpenChange,
   onCourseUpdated,
   onOpenVideoUpload,
@@ -159,6 +190,8 @@ export default function CourseEditorModal({
 
   // Edit Lesson State
   const [editingLesson, setEditingLesson] = useState<LessonRowItem | null>(null)
+  // Preview / Play Video Lesson State
+  const [previewingLesson, setPreviewingLesson] = useState<{ lesson: LessonRowItem; moduleTitle: string } | null>(null)
 
   // Upload Material State
   const [isAddMaterialOpen, setIsAddMaterialOpen] = useState(false)
@@ -235,7 +268,7 @@ export default function CourseEditorModal({
         setEditCapacity(res.course.capacity ?? course.capacity)
         setEditLevel(res.course.level || "Intermediate")
         setEditDuration(res.course.duration || "12 Weeks")
-        setEditStatus(course.status || "Published")
+        setEditStatus((res.course.status as AdminCourse["status"]) || course.status || "Published")
         setEditDescription(res.course.description || "")
       } else {
         setEditTitle(course.title)
@@ -278,9 +311,14 @@ export default function CourseEditorModal({
   useEffect(() => {
     if (open && course) {
       setActiveTab("curriculum")
-      fetchDetails()
     }
   }, [open, course?.id])
+
+  useEffect(() => {
+    if (open && course) {
+      fetchDetails()
+    }
+  }, [open, course?.id, refreshKey])
 
   if (!course) return null
 
@@ -569,6 +607,9 @@ export default function CourseEditorModal({
         level: editLevel,
         duration: editDuration.trim(),
         description: editDescription.trim(),
+        price: Math.max(0, Number(editPrice) || 0),
+        capacity: Math.max(1, Number(editCapacity) || 250),
+        status: editStatus,
       })
 
       const updated: AdminCourse = {
@@ -622,6 +663,17 @@ export default function CourseEditorModal({
     setIsAddAssignmentOpen(true)
   }
 
+  const handleLessonClick = (lesson: LessonRowItem, moduleTitle: string) => {
+    if (lessonHasPlayableVideo(lesson)) {
+      setPreviewingLesson({ lesson, moduleTitle })
+      return
+    }
+    if (lesson.type === "video") {
+      onToast("No video uploaded for this lesson yet — attach a URL or upload a video.")
+    }
+    setEditingLesson(lesson)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -629,59 +681,54 @@ export default function CourseEditorModal({
         containerClassName="p-0 sm:p-0"
         className="w-screen h-dvh max-w-none max-h-dvh flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-none border-0 bg-background text-foreground shadow-none"
       >
-        {/* ===== Hero Header (Back to courses, title, category, published ALL on ONE LINE) ===== */}
+        {/* ===== Hero Header (title, category, published ALL on ONE LINE) ===== */}
         <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-r text-white", gradient)}>
-          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-48 w-48 rotate-[-10deg] text-white/10" aria-hidden="true" />
+          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-56 w-56 rotate-[-10deg] text-white/10" aria-hidden="true" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden="true" />
-          <div className="relative px-4 py-3 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {/* Left: Back to courses, title, category, published in one row */}
-              <div className="flex flex-wrap items-center gap-3 min-w-0">
-                <Button
-                  variant="glass"
-                  size="sm"
-                  onClick={() => onOpenChange(false)}
-                  leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
-                  className="shrink-0"
-                >
-                  Back to Courses
-                </Button>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white shadow-xs">
-                    <BookOpen className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  <DialogTitle className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
-                    {course.title}
-                  </DialogTitle>
-                  <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
-                    {course.category}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
-                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} aria-hidden="true" />
-                    {course.status}
-                  </span>
+          <div className="relative px-5 py-5 sm:px-7 sm:py-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Left: Icon + Title/Status row stacked above category */}
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white shadow-xs">
+                  <BookOpen className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+                    <DialogTitle className="truncate text-2xl font-bold tracking-tight text-white sm:text-[28px] leading-tight">
+                      {course.title}
+                    </DialogTitle>
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur sm:text-[13px]">
+                      <span className={cn("h-2 w-2 rounded-full", statusDot)} aria-hidden="true" />
+                      {course.status}
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <span className="inline-flex shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
+                      {course.category}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Right: Quick telemetry pills + close X */}
-              <div className="flex items-center gap-2 shrink-0">
-                <dl className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-3 shrink-0">
+                <dl className="hidden md:flex items-center gap-2.5">
                   {[
                     { label: "Chapters", value: String(modules.length) },
                     { label: "Lessons", value: String(lessons.length) },
                     { label: "Runtime", value: runtimeLabel },
                     { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
                   ].map((s) => (
-                    <div key={s.label} className="min-w-[76px] rounded-lg bg-white/15 px-2.5 py-1 text-center backdrop-blur">
-                      <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{s.label}</dt>
-                      <dd className="text-sm font-bold tabular-nums leading-tight">{s.value}</dd>
+                    <div key={s.label} className="min-w-[88px] rounded-xl bg-white/15 px-3.5 py-2 text-center backdrop-blur">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wider text-white/75">{s.label}</dt>
+                      <dd className="mt-0.5 text-base font-bold tabular-nums leading-tight">{s.value}</dd>
                     </div>
                   ))}
                 </dl>
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+                  className="rounded-xl p-2 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
                   aria-label="Close workspace"
                 >
                   <X className="h-5 w-5" />
@@ -694,21 +741,26 @@ export default function CourseEditorModal({
         {/* ===== Body: sidebar on the left + panel on the right ===== */}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           {/* Desktop & Tablet Left Sidebar */}
-          <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-surface p-4 md:flex">
-            <nav aria-label="Workspace sections" className="flex flex-col gap-1.5">
-              {tabs.map((t) => (
-                <NavItem
-                  key={t.id}
-                  icon={t.icon}
-                  label={t.label}
-                  count={t.count}
-                  active={activeTab === t.id}
-                  onClick={() => setActiveTab(t.id)}
-                />
-              ))}
+          <aside className="hidden w-[var(--shell-sidebar-w)] shrink-0 flex-col overflow-y-auto border-r border-border bg-surface p-3 md:flex">
+            <nav aria-label="Workspace sections">
+              <ul className="flex flex-col gap-0.5">
+                {tabs.map((t) => (
+                  <li key={t.id}>
+                    <NavItem
+                      icon={t.icon}
+                      label={t.label}
+                      count={t.count}
+                      active={activeTab === t.id}
+                      onClick={() => setActiveTab(t.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
             </nav>
 
-            <div className="space-y-3 rounded-2xl border border-border bg-surface-2/50 p-4">
+            <div className="mx-2 my-3 h-px bg-border" role="separator" />
+
+            <div className="space-y-3 rounded-xl border border-border bg-surface-2/50 p-3.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
@@ -783,19 +835,10 @@ export default function CourseEditorModal({
                         </Button>
                       )}
                       <Button
-                        size="sm"
-                        variant="outline"
-                        leftIcon={<Plus aria-hidden="true" />}
-                        onClick={() => setIsAddModuleOpen(true)}
-                        className="shrink-0"
-                      >
-                        + New Chapter
-                      </Button>
-                      <Button
-                        size="sm"
-                        leftIcon={<Video aria-hidden="true" />}
+                        size="md"
+                        leftIcon={<Video className="h-4 w-4" aria-hidden="true" />}
                         onClick={() => onOpenVideoUpload(course.id)}
-                        className="shrink-0 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+                        className="shrink-0 rounded-[14px]! px-4 shadow-xs"
                       >
                         Upload Video Chapter
                       </Button>
@@ -806,8 +849,8 @@ export default function CourseEditorModal({
                           <Button size="sm" variant="outline" onClick={() => setIsAddModuleOpen(true)}>
                             Add chapter
                           </Button>
-                          <Button size="sm" onClick={() => onOpenVideoUpload(course.id)}>
-                            Upload video lecture
+                          <Button size="md" leftIcon={<Video className="h-4 w-4" aria-hidden="true" />} className="rounded-[14px]! px-4 shadow-xs" onClick={() => onOpenVideoUpload(course.id)}>
+                            Upload Video Chapter
                           </Button>
                         </WorkspaceEmpty>
                       ) : (
@@ -909,49 +952,78 @@ export default function CourseEditorModal({
                                       </div>
                                     ) : (
                                       <ul className="divide-y divide-border/60">
-                                        {moduleLessons.map((l, lIdx) => (
-                                          <li key={l.id} className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2/60 sm:px-4">
-                                            <span className="w-5 shrink-0 text-center tabular-nums text-[11px] font-medium text-subtle-foreground">{lIdx + 1}</span>
-                                            <span
-                                              className={cn(
-                                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                                                l.type === "video" ? "bg-primary-soft text-primary-text" : l.type === "lab" ? "bg-warning-soft text-warning" : "bg-info-soft text-info",
-                                              )}
-                                            >
-                                              {l.type === "video" ? <Video className="h-4 w-4" aria-hidden="true" /> : l.type === "lab" ? <Sparkles className="h-4 w-4" aria-hidden="true" /> : <FileText className="h-4 w-4" aria-hidden="true" />}
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate text-sm font-medium text-foreground">{l.title}</p>
-                                              <p className="text-xs text-muted-foreground">
-                                                {l.duration || `${l.minutes}m`} · <span className="capitalize">{l.type}</span>
-                                              </p>
-                                            </div>
-                                            {l.type === "video" &&
-                                              (l.video_url ? (
-                                                <Badge tone="success" size="sm" dot className="hidden sm:inline-flex">
-                                                  Video ready
-                                                </Badge>
-                                              ) : (
-                                                <Badge tone="warning" size="sm" className="hidden sm:inline-flex">
-                                                  No video
-                                                </Badge>
-                                              ))}
-                                            <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                                              <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} onClick={() => setEditingLesson(l)}>
-                                                <Edit2 aria-hidden="true" />
-                                              </Button>
-                                              <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                aria-label={`Delete ${l.title}`}
-                                                className="text-danger hover:bg-danger/10 hover:text-danger"
-                                                onClick={() => handleDeleteLesson(l.id, l.title)}
+                                        {moduleLessons.map((l, lIdx) => {
+                                          const playable = lessonHasPlayableVideo(l)
+                                          return (
+                                            <li key={l.id} className="group flex items-center gap-2 px-3 py-2 transition-colors hover:bg-surface-2/60 sm:px-4">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleLessonClick(l, m.title)}
+                                                title={playable ? `Play ${l.title}` : `Open ${l.title}`}
+                                                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-0.5 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 cursor-pointer"
                                               >
-                                                <Trash2 aria-hidden="true" />
-                                              </Button>
-                                            </div>
-                                          </li>
-                                        ))}
+                                                <span className="w-5 shrink-0 text-center tabular-nums text-[11px] font-medium text-subtle-foreground">{lIdx + 1}</span>
+                                                <span
+                                                  className={cn(
+                                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                                    l.type === "video"
+                                                      ? playable
+                                                        ? "bg-primary-soft text-primary-text group-hover:bg-primary group-hover:text-primary-foreground"
+                                                        : "bg-primary-soft text-primary-text"
+                                                      : l.type === "lab"
+                                                        ? "bg-warning-soft text-warning"
+                                                        : "bg-info-soft text-info",
+                                                  )}
+                                                >
+                                                  {l.type === "video" ? (
+                                                    playable ? (
+                                                      <>
+                                                        <Video className="h-4 w-4 group-hover:hidden" aria-hidden="true" />
+                                                        <Play className="hidden h-3.5 w-3.5 fill-current group-hover:block" aria-hidden="true" />
+                                                      </>
+                                                    ) : (
+                                                      <Video className="h-4 w-4" aria-hidden="true" />
+                                                    )
+                                                  ) : l.type === "lab" ? (
+                                                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                                                  ) : (
+                                                    <FileText className="h-4 w-4" aria-hidden="true" />
+                                                  )}
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                  <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary-text">{l.title}</p>
+                                                  <p className="text-xs text-muted-foreground">
+                                                    {l.duration || `${l.minutes}m`} · <span className="capitalize">{l.type}</span>
+                                                  </p>
+                                                </div>
+                                                {l.type === "video" &&
+                                                  (playable ? (
+                                                    <Badge tone="success" size="sm" dot className="hidden shrink-0 sm:inline-flex">
+                                                      Video ready
+                                                    </Badge>
+                                                  ) : (
+                                                    <Badge tone="warning" size="sm" className="hidden shrink-0 sm:inline-flex">
+                                                      No video
+                                                    </Badge>
+                                                  ))}
+                                              </button>
+                                              <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                                                <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} onClick={() => setEditingLesson(l)}>
+                                                  <Edit2 aria-hidden="true" />
+                                                </Button>
+                                                <Button
+                                                  size="icon-sm"
+                                                  variant="ghost"
+                                                  aria-label={`Delete ${l.title}`}
+                                                  className="text-danger hover:bg-danger/10 hover:text-danger"
+                                                  onClick={() => handleDeleteLesson(l.id, l.title)}
+                                                >
+                                                  <Trash2 aria-hidden="true" />
+                                                </Button>
+                                              </div>
+                                            </li>
+                                          )
+                                        })}
                                       </ul>
                                     )}
                                   </div>
@@ -1203,14 +1275,6 @@ export default function CourseEditorModal({
             </div>
           </main>
         </div>
-
-        {/* ===== Workspace Footer ===== */}
-        <footer className="shrink-0 border-t border-border bg-surface px-4 py-3 sm:px-8 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Course ID: <span className="font-mono text-foreground font-semibold tabular-nums">{course.id}</span></span>
-          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
-            Close Workspace
-          </Button>
-        </footer>
       </DialogContent>
 
       {/* --- SUB-DIALOG 1: ADD CHAPTER (MODULE) --- */}
@@ -1603,6 +1667,58 @@ export default function CourseEditorModal({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- SUB-DIALOG 6: VIDEO LESSON PLAYER PREVIEW --- */}
+      <Dialog open={!!previewingLesson} onOpenChange={(o) => !o && setPreviewingLesson(null)}>
+        <DialogContent className="max-w-4xl gap-0 overflow-hidden border border-border bg-surface p-0">
+          {previewingLesson && (() => {
+            const { lesson, moduleTitle } = previewingLesson
+            const embedUrl = toVideoEmbedUrl(lesson.video_url)
+            return (
+              <>
+                <div className="border-b border-border bg-surface-2/60 px-5 py-3.5 pr-12">
+                  <DialogTitle className="truncate text-base font-semibold text-foreground">{lesson.title}</DialogTitle>
+                  <DialogDescription className="truncate text-xs text-muted-foreground">
+                    {moduleTitle} · {lesson.duration || `${lesson.minutes}m`}
+                  </DialogDescription>
+                </div>
+                <div className="bg-black p-3 sm:p-4">
+                  {embedUrl ? (
+                    <div className="aspect-video w-full overflow-hidden rounded-xl border border-border">
+                      <iframe
+                        src={embedUrl}
+                        title={lesson.title}
+                        className="h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <LessonPlayer
+                      lesson={{
+                        id: lesson.id,
+                        title: lesson.title,
+                        duration: lesson.duration || `${lesson.minutes || 10}m`,
+                        minutes: lesson.minutes,
+                        type: lesson.type,
+                        status: "In Progress",
+                        summary: lesson.summary || "",
+                        video_url: lesson.video_url || undefined,
+                        video_qualities: lesson.video_qualities || undefined,
+                      }}
+                      moduleTitle={moduleTitle}
+                      poster="/assets/course_genai.jpg"
+                      completed={false}
+                      onComplete={() => {}}
+                      autoPlay
+                    />
+                  )}
+                </div>
+              </>
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </Dialog>

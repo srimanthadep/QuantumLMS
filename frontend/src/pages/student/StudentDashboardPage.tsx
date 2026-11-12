@@ -7,20 +7,17 @@ import {
   BellRing,
   BookOpen,
   CalendarDays,
-  Check,
   CheckCircle2,
   ChevronRight,
   Clock,
   Flame,
   GraduationCap,
   ListTodo,
-  Play,
   Radio,
   Sparkles,
   Target,
   Timer,
   TrendingUp,
-  Trophy,
   Zap,
   type LucideIcon,
 } from "lucide-react"
@@ -34,9 +31,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  EmptyState,
   PageHeader,
-  Progress,
   SegmentedControl,
   Skeleton,
 } from "@/components/ui"
@@ -297,14 +292,6 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
     const current = (data.profile.ui_state && typeof data.profile.ui_state === "object" && !Array.isArray(data.profile.ui_state) ? data.profile.ui_state : {}) as Record<string, unknown>
     return data.updateProfile({ ui_state: { ...current, ...patch } as never })
   }
-  const togglePriority = (item: PriorityItem) => {
-    const done = !completed.has(item.id)
-    // Only ids still in the queue are kept, so the list can't grow without bound.
-    const next = priorityItems.map((p) => p.id).filter((id) => (id === item.id ? done : completed.has(id)))
-    saveUiState({ dashboard_done: next })
-      .then(() => done && onToast(`Completed: ${item.title}`))
-      .catch((e: Error) => onToast(`Couldn't save: ${e.message}`))
-  }
   const toggleReminder = (slot: TimetableSlot) => {
     reminders
       .toggle("slot", slot.id)
@@ -328,6 +315,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
           anchorX={92}
           anchorY={0}
           strapSpread={105}
+          strapWidth={24}
           stretch={350}
           strapColor="var(--primary)"
           image={{
@@ -355,124 +343,147 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
         <StaggerItem>
           <div className="lg:pl-[164px] xl:pl-[176px]">
             <section
-              className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F17] shadow-xl [contain:paint] transform-gpu"
+              className="relative isolate overflow-hidden rounded-2xl border border-[#2B7AE4]/35 shadow-[0_14px_34px_-10px_rgba(3,49,108,0.45)] [contain:paint] transform-gpu"
+              style={{
+                background: "linear-gradient(90deg, #03316C 0%, #00326F 40%, #0E58B5 76%, #0B6FDE 100%)",
+              }}
               aria-label="Learning command center"
             >
-              {activeCourse && (
-                <img
-                  src={activeCourse.image}
-                  alt=""
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[0.14] [mask-image:linear-gradient(90deg,transparent_10%,black_65%)] lg:w-2/3"
-                />
-              )}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-[#0B0F17]/90 to-[#0B0F17]" />
-              <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+              {/* Crisp geometric angled line pattern on the right half matching the workshop banner aesthetic */}
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-90 [mask-image:linear-gradient(90deg,transparent_22%,black_68%)]"
+              >
+                <defs>
+                  <pattern id="learning-live-geo" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <path
+                      d="M 0 32 L 32 32 L 32 0 M 32 64 L 32 32 L 64 32 M 16 16 L 48 16 L 48 48"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.085)"
+                      strokeWidth="1.25"
+                    />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#learning-live-geo)" />
+              </svg>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-16 -top-20 -z-10 h-64 w-64 rounded-full bg-[#3898FF]/25 blur-3xl"
+              />
 
               <div className="p-5 sm:p-6 lg:p-7">
                 {/* Top Tagline */}
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Badge tone="live" dot className="shrink-0 border-white/15 bg-white/10 text-white text-[11px] px-2.5 py-0.5">
-                      Learning Live
-                    </Badge>
-                    <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
+                <div className="mb-3.5 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-[5px] bg-[#DE3049] px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-white shadow-xs">
+                      LIVE
+                    </span>
+                    <span className="shrink-0 text-xs font-bold uppercase italic tracking-[0.08em] text-white">
                       Your Next Lesson
                     </span>
-                    <span className="hidden xl:inline truncate text-xs text-white/40">· Continue where you left off</span>
-                  </div>
-                  <div className="shrink-0 text-xs text-white/60 font-mono">
-                    {today}
+                    <span className="hidden xl:inline truncate text-xs text-blue-100/75">· Continue where you left off</span>
                   </div>
                 </div>
 
                 {/* Main Command Center Grid */}
-                <div className="grid gap-4 xl:gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(235px,0.8fr)] xl:grid-cols-[minmax(0,1.25fr)_minmax(255px,0.85fr)] items-center">
+                <div className="grid items-center gap-5 xl:gap-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(240px,0.82fr)] xl:grid-cols-[minmax(0,1.3fr)_minmax(265px,0.85fr)]">
                   <div className="min-w-0">
-                    <h2 className="text-lg sm:text-xl xl:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                    <h2 className="line-clamp-2 text-lg sm:text-xl xl:text-[22px] font-bold leading-snug tracking-tight text-white">
                       {activeCourse ? (activeCourse.lastWatched || activeCourse.title) : "Choose a course to begin"}
                     </h2>
-                    {activeCourse && (
-                      <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-1">
-                        {activeCourse.title} · Module {activeCourse.completedModules + 1 || 1} · {activeCourse.completedModules} of {activeCourse.totalModules} modules completed
-                      </p>
-                    )}
 
-                    {/* Connected Course Progress Bar */}
-                    <div className="mt-3.5 max-w-md">
-                      <div className="flex items-center justify-between text-xs font-medium text-white/90 mb-1.5">
-                        <span className="flex items-center gap-1.5">
-                          <Target className="h-3.5 w-3.5 text-primary" />
-                          {activeCourse?.nextMilestone ?? "Course progress"}
+                    {/* Compact Glass Metadata Pill Strip (Date · Course / Progress) */}
+                    <div className="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg border border-white/15 bg-[#011F4B]/55 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur-xs">
+                      <span className="inline-flex shrink-0 items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-sky-300" aria-hidden="true" />
+                        {today}
+                      </span>
+                      <span className="hidden xl:inline-block h-3.5 w-px bg-white/25" aria-hidden="true" />
+                      <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                        <Target className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />
+                        <span className="truncate">
+                          {activeCourse
+                            ? `${activeCourse.title} · Module ${activeCourse.completedModules + 1 || 1} (${activeCourse.completedModules}/${activeCourse.totalModules})`
+                            : "Select a course to start tracking progress"}
                         </span>
-                        <span className="font-mono font-semibold text-white">{activeCourse?.progress ?? 0}%</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
-                        <motion.div
-                          className="h-full rounded-full bg-primary"
-                          initial={{ scaleX: 0 }}
-                          animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
-                          style={{ originX: 0 }}
-                          transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
-                        />
-                      </div>
+                      </span>
+                      <span className="ml-1 shrink-0 rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white">
+                        {activeCourse?.progress ?? 0}%
+                      </span>
                     </div>
 
-                    {/* Actions */}
+                    {/* Sleek Progress Track */}
+                    <div className="mt-3 h-1.5 w-full max-w-md overflow-hidden rounded-full bg-white/20">
+                      <motion.div
+                        className="h-full rounded-full bg-white"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: (activeCourse?.progress ?? 0) / 100 }}
+                        style={{ originX: 0 }}
+                        transition={{ duration: 0.9, ease: ease.out, delay: 0.2 }}
+                      />
+                    </div>
+
+                    {/* High-Contrast White CTA + Glass Secondary CTA */}
                     <div className="mt-4 flex flex-wrap items-center gap-2.5">
                       <Button
-                        variant="primary"
+                        variant="ghost"
                         size="default"
-                        leftIcon={<Play className="fill-current h-4 w-4" aria-hidden="true" />}
+                        rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
                         onClick={() => activeCourse && openCourse(activeCourse)}
-                        className="font-semibold px-4 shadow-sm"
+                        className="rounded-xl bg-white px-5 font-semibold text-[#03265A] shadow-[0_8px_20px_-6px_rgba(0,0,0,0.35)] hover:bg-blue-50 hover:text-[#03265A] active:scale-[0.98]"
                       >
                         Resume learning
                       </Button>
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="default"
-                        leftIcon={<Sparkles className="h-4 w-4 text-warning" aria-hidden="true" />}
+                        leftIcon={<Sparkles className="h-4 w-4 text-sky-200" aria-hidden="true" />}
                         onClick={() => onNavigate("My Notes")}
-                        className="border-white/15 bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] text-xs font-medium"
+                        className="rounded-xl border border-white/25 bg-white/10 px-4 text-xs font-semibold text-white backdrop-blur-xs hover:bg-white/20 hover:text-white active:scale-[0.98]"
                       >
                         Open study notes
                       </Button>
                     </div>
                   </div>
 
-                  {/* Integrated Compact 4-Stat Strip */}
-                  <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-white/10 bg-black/40 p-2.5 xl:p-3">
-                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-white text-lg font-bold tabular-nums">{focusScore}</span>
-                        <span className="text-[10px] font-bold text-success uppercase">Focus</span>
+                  {/* Integrated 4-Stat Frosted Glass Tiles (Single Layer) */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col justify-between rounded-xl border border-white/20 bg-white/[0.11] px-3.5 py-3 shadow-[0_8px_20px_-8px_rgba(2,25,68,0.4)] backdrop-blur-md transition-all duration-200 hover:border-white/35 hover:bg-white/[0.16]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xl font-bold leading-none tracking-tight tabular-nums text-white">{focusScore}</span>
+                        <span className="rounded-md bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
+                          Focus
+                        </span>
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Focus score</p>
+                      <p className="mt-2 whitespace-nowrap text-xs font-medium text-blue-50/85">Focus score</p>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-white text-lg font-bold tabular-nums">{streak} {streak === 1 ? "day" : "days"}</span>
-                        <Flame className="h-4 w-4 shrink-0 text-warning fill-current" />
+                    <div className="flex flex-col justify-between rounded-xl border border-white/20 bg-white/[0.11] px-3.5 py-3 shadow-[0_8px_20px_-8px_rgba(2,25,68,0.4)] backdrop-blur-md transition-all duration-200 hover:border-white/35 hover:bg-white/[0.16]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xl font-bold leading-none tracking-tight tabular-nums text-white">
+                          {streak} {streak === 1 ? "day" : "days"}
+                        </span>
+                        <Flame className="h-4 w-4 shrink-0 fill-current text-amber-300" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Learning streak</p>
+                      <p className="mt-2 whitespace-nowrap text-xs font-medium text-blue-50/85">Learning streak</p>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-white text-lg font-bold tabular-nums">{week.total}h</span>
-                        <Clock className="h-4 w-4 shrink-0 text-sky-400" />
+                    <div className="flex flex-col justify-between rounded-xl border border-white/20 bg-white/[0.11] px-3.5 py-3 shadow-[0_8px_20px_-8px_rgba(2,25,68,0.4)] backdrop-blur-md transition-all duration-200 hover:border-white/35 hover:bg-white/[0.16]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xl font-bold leading-none tracking-tight tabular-nums text-white">{week.total}h</span>
+                        <Clock className="h-4 w-4 shrink-0 text-sky-200" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">This week</p>
+                      <p className="mt-2 whitespace-nowrap text-xs font-medium text-blue-50/85">This week</p>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white/5 border border-white/5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-white text-lg font-bold tabular-nums">{priorityItems.length - completedItems}</span>
-                        <ListTodo className="h-4 w-4 shrink-0 text-amber-400" />
+                    <div className="flex flex-col justify-between rounded-xl border border-white/20 bg-white/[0.11] px-3.5 py-3 shadow-[0_8px_20px_-8px_rgba(2,25,68,0.4)] backdrop-blur-md transition-all duration-200 hover:border-white/35 hover:bg-white/[0.16]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xl font-bold leading-none tracking-tight tabular-nums text-white">
+                          {priorityItems.length - completedItems}
+                        </span>
+                        <ListTodo className="h-4 w-4 shrink-0 text-amber-200" />
                       </div>
-                      <p className="text-[11px] text-white/70 mt-1 font-medium whitespace-nowrap">Priority tasks</p>
+                      <p className="mt-2 whitespace-nowrap text-xs font-medium text-blue-50/85">Priority tasks</p>
                     </div>
                   </div>
                 </div>
@@ -527,7 +538,7 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                 badgeTone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
                 icon={ListTodo}
                 tone={priorityItems.length - completedItems > 0 ? "warning" : "success"}
-                onClick={() => document.getElementById("priority-queue")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                onClick={() => onNavigate("Assessments")}
               />
             </div>
 
@@ -653,185 +664,6 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                     </button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </StaggerItem>
-
-        <StaggerItem>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.8fr)]">
-            {/* Course Trajectory (Responsive Smart Grid) */}
-            <Card className="overflow-hidden rounded-[14px] border border-border">
-              <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-bold">Continue learning</CardTitle>
-                    <Badge variant="outline" className="text-[10px]">
-                      {inProgress.length} Active
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Pick up right where you left off in your cohort curriculum.</p>
-                </div>
-                <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("My Courses")}>
-                  View all courses
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {inProgress.length === 1 ? (
-                  /* Single Course Smart Horizontal Card - Eliminates Empty Space */
-                  <div className="rounded-xl border border-primary/25 bg-gradient-to-r from-primary/5 via-surface-2/40 to-surface-2/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4 min-w-0 flex-1">
-                      <div className="relative h-18 w-28 shrink-0 overflow-hidden rounded-lg bg-ink-950 border border-border shadow-xs">
-                        <img src={inProgress[0].image} alt="" className="h-full w-full object-cover opacity-85" />
-                        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                          {inProgress[0].category}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge tone="primary" size="sm">Active Cohort</Badge>
-                          <span className="text-xs font-semibold text-primary">{inProgress[0].progress}% completed</span>
-                        </div>
-                        <h3 className="text-base font-bold text-foreground mt-1 truncate">{inProgress[0].title}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          Next lesson: <span className="font-semibold text-foreground">{inProgress[0].lastWatched}</span>
-                        </p>
-                        <div className="mt-3 flex items-center gap-3">
-                          <div className="h-2 flex-1 max-w-xs overflow-hidden rounded-full bg-border">
-                            <div className="h-full rounded-full bg-primary" style={{ width: `${inProgress[0].progress}%` }} />
-                          </div>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {inProgress[0].completedModules} / {inProgress[0].totalModules} modules
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="primary"
-                      size="default"
-                      rightIcon={<ArrowRight className="h-4 w-4" />}
-                      onClick={() => openCourse(inProgress[0])}
-                      className="shrink-0 font-semibold shadow-sm"
-                    >
-                      Resume course
-                    </Button>
-                  </div>
-                ) : inProgress.length > 1 ? (
-                  /* Multi-Course Balanced Grid */
-                  <div className={cn("grid grid-cols-1 gap-3", inProgress.length === 2 ? "sm:grid-cols-2" : "md:grid-cols-3")}>
-                    {inProgress.slice(0, 3).map((course, index) => (
-                      <motion.button
-                        key={course.id}
-                        type="button"
-                        onClick={() => openCourse(course)}
-                        whileHover={{ y: -3 }}
-                        whileTap={{ scale: 0.985 }}
-                        transition={spring.snappy}
-                        className={cn(
-                          "group relative isolate overflow-hidden rounded-xl border p-4 text-left transition-all",
-                          course.id === activeCourse?.id
-                            ? "border-primary/40 bg-primary-soft/50 ring-1 ring-primary/20"
-                            : "border-border bg-surface-2/40 hover:border-border-strong/60 hover:bg-surface-2",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge tone={course.id === activeCourse?.id ? "primary" : "neutral"} size="sm">
-                            {index === 0 ? "Now" : "Up next"}
-                          </Badge>
-                          <span className="text-caption font-semibold tabular-nums text-primary-text">{course.progress}%</span>
-                        </div>
-                        <h3 className="mt-2.5 line-clamp-1 text-sm font-bold text-foreground">{course.title}</h3>
-                        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{course.lastWatched}</p>
-                        <Progress value={course.progress} tone={course.id === activeCourse?.id ? "primary" : "info"} size="xs" className="mt-3.5" label={`${course.title} progress`} />
-                        <div className="mt-2.5 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{course.completedModules}/{course.totalModules} modules</span>
-                          <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                            Resume <Play className="h-3 w-3 fill-current" aria-hidden="true" />
-                          </span>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    size="sm"
-                    icon={<BookOpen aria-hidden="true" />}
-                    title="Start your first course"
-                    description="Choose a program from the catalog to build your learning plan."
-                    action={<Button size="sm" onClick={() => onNavigate("My Courses")}>Explore programs</Button>}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Action Center (Upgraded Priority Queue) */}
-            <Card id="priority-queue" className="scroll-mt-5 rounded-[14px] border border-border">
-              <CardHeader className="flex-row items-start justify-between gap-3 pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-bold">Your action center</CardTitle>
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning">
-                      {priorityItems.length - completedItems}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Immediate milestones, live sessions, and submissions.</p>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2 px-3">
-                {priorityItems.length ? (
-                  priorityItems.map((item) => {
-                    const done = completed.has(item.id)
-                    const details = item.due.includes("Continue") ? item.due : dueLabel(item.due)
-                    const ItemIcon = item.kind === "quiz" ? Trophy : item.kind === "lesson" ? Play : ListTodo
-                    return (
-                      <div
-                        key={item.id}
-                        className="group flex items-center gap-2.5 rounded-lg border border-border/40 bg-surface px-3 py-2.5 transition-colors hover:bg-surface-2"
-                      >
-                        <motion.button
-                          type="button"
-                          role="checkbox"
-                          aria-checked={done}
-                          aria-label={`Mark ${item.title} ${done ? "incomplete" : "complete"}`}
-                          onClick={() => togglePriority(item)}
-                          whileTap={{ scale: 0.82 }}
-                          transition={spring.snappy}
-                          className={cn(
-                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-                            done ? "border-success bg-success text-white" : "border-border-strong bg-surface text-subtle-foreground hover:border-primary",
-                          )}
-                        >
-                          <AnimatePresence initial={false}>
-                            {done && (
-                              <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.4, opacity: 0 }} transition={spring.snappy} className="flex">
-                                <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
-                        </motion.button>
-                        <button
-                          type="button"
-                          onClick={() => onNavigate(item.route, item.kind === "lesson" ? activeCourse?.id : undefined)}
-                          className="min-w-0 flex-1 text-left"
-                        >
-                          <span className={cn("block truncate text-xs font-semibold transition-colors", done ? "text-muted-foreground line-through" : "text-foreground group-hover:text-primary")}>{item.title}</span>
-                          <span className="flex items-center gap-1.5 truncate text-[11px] text-muted-foreground mt-0.5">
-                            <ItemIcon className={cn("h-3 w-3 shrink-0", METRIC_TONE[item.tone].text)} aria-hidden="true" />
-                            {item.detail}
-                          </span>
-                        </button>
-                        <Badge tone={done ? "success" : item.tone === "warning" ? "warning" : "neutral"} size="sm" className="shrink-0 text-[10px]">
-                          {done ? "Done" : details.replace(/^Due /, "")}
-                        </Badge>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <EmptyState size="sm" icon={<CheckCircle2 aria-hidden="true" />} title="You're all clear" description="No pending actions right now." />
-                )}
-                <Button variant="link" size="sm" rightIcon={<ArrowRight aria-hidden="true" />} onClick={() => onNavigate("Assessments")} className="mt-1 self-start text-xs">
-                  Review all assessments
-                </Button>
               </CardContent>
             </Card>
           </div>

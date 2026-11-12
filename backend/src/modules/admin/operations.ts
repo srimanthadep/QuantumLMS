@@ -4,6 +4,7 @@ import { z } from "zod"
 import type { AppContext } from "../../context.js"
 import {
   attendance_records,
+  cohort_batches,
   courses,
   enrollments,
   profiles,
@@ -12,88 +13,10 @@ import {
 } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
+import { addStudentsToBatchTx, findOrCreateStudentInTx } from "./batches.js"
 
 export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db
-
-  // 1. List cohort batches
-  app.get("/batches", async () => {
-    const rows = (
-      await db.execute(sql`
-        select
-          coalesce(p.batch, 'GenAI Engineering Cohort 14') as name,
-          c.id as course_id,
-          c.title as course_title,
-          count(distinct e.student_id)::int as enrolled_seats,
-          100 as max_seats,
-          'Mon, Wed, Fri · 7:30 PM - 9:30 PM IST' as schedule,
-          'Live + Replay' as delivery_mode,
-          'Active' as status
-        from lms.courses c
-        left join lms.enrollments e on e.course_id = c.id
-        left join lms.profiles p on p.id = e.student_id
-        group by p.batch, c.id, c.title
-      `)
-    ).rows
-
-    return { batches: rows }
-  })
-
-  // 2. Create cohort batch
-  app.post("/batches", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().min(3).max(120),
-        course_id: z.string().min(1),
-        max_seats: z.number().int().min(10).max(500).default(100),
-        schedule: z.string().max(120).default("Mon, Wed, Fri · 7:30 PM - 9:30 PM IST"),
-        delivery_mode: z.enum(["Live + Replay", "Replay Only"]).default("Live + Replay"),
-      }),
-      req.body,
-    )
-
-    const [c] = await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1)
-    if (!c) throw notFound("Course not found.")
-
-    const newBatch = {
-      id: `batch-${Date.now()}`,
-      name: b.name,
-      course_id: c.id,
-      course_title: c.title,
-      enrolled_seats: 0,
-      max_seats: b.max_seats,
-      schedule: b.schedule,
-      delivery_mode: b.delivery_mode,
-      status: "Active",
-    }
-
-    return { batch: newBatch }
-  })
-
-  // 2b. Edit cohort batch
-  app.patch<{ Params: { id: string } }>("/batches/:id", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().min(3).max(120).optional(),
-        schedule: z.string().max(120).optional(),
-        max_seats: z.number().int().min(10).max(500).optional(),
-        delivery_mode: z.enum(["Live + Replay", "Replay Only"]).optional(),
-        status: z.enum(["Active", "Upcoming", "Completed"]).optional(),
-      }),
-      req.body,
-    )
-    return {
-      ok: true,
-      id: req.params.id,
-      batch: b,
-      message: "Batch updated successfully.",
-    }
-  })
-
-  // 2c. Delete cohort batch
-  app.delete<{ Params: { id: string } }>("/batches/:id", async (req) => {
-    return { ok: true, deleted: req.params.id }
-  })
 
   // 3. List faculty & teachers
   app.get("/teachers", async () => {
@@ -181,55 +104,125 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
   app.patch<{ Params: { id: string } }>("/students/:id", async (req) => {
     const b = parse(
       z.object({
-        name: z.string().min(2).max(120).optional(),
-        batch: z.string().optional(),
+        name: z.string().trim().min(2).max(120).optional(),
+        batch: z.string().trim().min(1).max(150).optional(),
         status: z.enum(["Active", "Completed", "At Risk", "Paused"]).optional(),
       }),
       req.body,
     )
+
+    const uuidOk = z.string().uuid().safeParse(req.params.id).success
+    if (!uuidOk) {
+      return { ok: true, id: req.params.id, student: b }
+    }
+
+    await db.transaction(async (tx) => {
+      if (b.name !== undefined) {
+        await tx
+          .update(users)
+          .set({ full_name: b.name, updated_at: new Date() })
+          .where(eq(users.id, req.params.id))
+      }
+      if (b.batch !== undefined) {
+        await tx
+          .update(profiles)
+          .set({ batch: b.batch, updated_at: new Date() })
+          .where(eq(profiles.id, req.params.id))
+      }
+    })
+
     return { ok: true, id: req.params.id, student: b }
   })
 
   // 4c. Delete student
   app.delete<{ Params: { id: string } }>("/students/:id", async (req) => {
-    return { ok: true, deleted: req.params.id }
+    const uuidOk = z.string().uuid().safeParse(req.params.id).success
+    if (!uuidOk) {
+      return { ok: true, deleted: req.params.id }
+    }
+    const [existing] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1)
+    if (!existing) throw notFound("Student not found.")
+    if (existing.is_demo) {
+      await db.delete(enrollments).where(eq(enrollments.student_id, existing.id))
+      return { ok: true, deleted: existing.id }
+    }
+    await db.delete(users).where(eq(users.id, existing.id))
+    return { ok: true, deleted: existing.id }
   })
 
-  // 5. Manually enroll student in a course
+  // 5. Manually enroll student in a course (and optional cohort batch)
   app.post("/students/enrol", async (req) => {
     const b = parse(
       z.object({
-        student_id: z.string().uuid(),
+        student_id: z.string().uuid().optional(),
+        name: z.string().trim().min(2).max(120).optional(),
+        email: z.string().trim().email().max(200).optional(),
         course_id: z.string().min(1),
+        batch_id: z.string().trim().min(1).optional(),
       }),
       req.body,
     )
 
-    const [[u], [c], [existing]] = await Promise.all([
-      db.select().from(users).where(eq(users.id, b.student_id)).limit(1),
-      db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1),
-      db
-        .select()
-        .from(enrollments)
-        .where(sql`${enrollments.student_id} = ${b.student_id} and ${enrollments.course_id} = ${b.course_id}`)
-        .limit(1),
-    ])
-    if (!u) throw notFound("Student not found.")
+    const [c] = await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1)
     if (!c) throw notFound("Course not found.")
 
-    if (existing) {
-      return { enrollment: existing, message: "Student is already enrolled." }
+    let targetBatchName: string | undefined
+    if (b.batch_id) {
+      const [batchRow] = await db
+        .select({ id: cohort_batches.id, name: cohort_batches.name })
+        .from(cohort_batches)
+        .where(eq(cohort_batches.id, b.batch_id))
+        .limit(1)
+      targetBatchName = batchRow?.name
     }
 
-    const [enrollment] = await db
-      .insert(enrollments)
-      .values({
-        student_id: u.id,
-        course_id: c.id,
-      })
-      .returning()
+    const result = await db.transaction(async (tx) => {
+      let studentId = b.student_id
+      if (studentId) {
+        const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, studentId)).limit(1)
+        if (!u) throw notFound("Student not found.")
+      } else if (b.name && b.email) {
+        const created = await findOrCreateStudentInTx(tx, {
+          name: b.name,
+          email: b.email,
+          batchName: targetBatchName,
+        })
+        studentId = created.studentId
+      } else {
+        throw badRequest("Provide a student_id UUID or both name and email.")
+      }
 
-    return { enrollment }
+      if (b.batch_id && targetBatchName) {
+        await addStudentsToBatchTx(tx, {
+          batchId: b.batch_id,
+          studentIds: [studentId],
+          status: "Active",
+          autoWaitlistWhenFull: true,
+        })
+      }
+
+      const [existing] = await tx
+        .select()
+        .from(enrollments)
+        .where(sql`${enrollments.student_id} = ${studentId} and ${enrollments.course_id} = ${c.id}`)
+        .limit(1)
+
+      if (existing) {
+        return { enrollment: existing, message: "Student is already enrolled." }
+      }
+
+      const [enrollment] = await tx
+        .insert(enrollments)
+        .values({
+          student_id: studentId,
+          course_id: c.id,
+        })
+        .returning()
+
+      return { enrollment }
+    })
+
+    return result
   })
 
   // 6. List orders
