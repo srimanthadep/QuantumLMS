@@ -1,3 +1,4 @@
+import { contentChanged, lockCourse, reorderContent, snapshotLesson } from "../../learning/content.js"
 import { randomUUID } from "node:crypto"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -7,6 +8,7 @@ import {
   courses,
   course_modules,
   lessons,
+  lesson_revisions,
   course_materials,
   assignments,
   cohort_batches,
@@ -14,7 +16,7 @@ import {
   profiles,
 } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
-import { parse } from "../../http.js"
+import { parse, me } from "../../http.js"
 import { assertPublishable } from "../../media/publication.js"
 import { invalidateCatalogCache } from "../student/courses.js"
 
@@ -25,7 +27,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.get("/courses", async () => {
     // Query courses, enrollments count, modules count, lessons count and cohort count in parallel
     const [courseRows, enrolledCounts, moduleCounts, lessonCounts, cohortCounts] = await Promise.all([
-      db.select().from(courses).orderBy(asc(courses.position), asc(courses.title)),
+      db.select().from(courses).where(sql`${courses.deleted_at} is null`).orderBy(asc(courses.position), asc(courses.title)),
       db.execute(sql`
         select course_id, count(*)::int as count
         from lms.enrollments
@@ -33,12 +35,12 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       `),
       db.execute(sql`
         select course_id, count(*)::int as count
-        from lms.course_modules
+        from lms.course_modules where archived_at is null
         group by course_id
       `),
       db.execute(sql`
         select course_id, count(*)::int as count
-        from lms.lessons
+        from lms.lessons where archived_at is null
         group by course_id
       `),
       db
@@ -76,16 +78,16 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   app.get<{ Params: { id: string } }>("/courses/:id", async (req) => {
     const courseId = req.params.id
     const [[course], modulesList, lessonsList, [enrolledCountRow], materialsList, assignmentsList] = await Promise.all([
-      db.select().from(courses).where(eq(courses.id, courseId)).limit(1),
+      db.select().from(courses).where(and(eq(courses.id, courseId), sql`${courses.deleted_at} is null`)).limit(1),
       db
         .select()
         .from(course_modules)
-        .where(eq(course_modules.course_id, courseId))
+        .where(and(eq(course_modules.course_id, courseId), sql`${course_modules.archived_at} is null`))
         .orderBy(asc(course_modules.position)),
       db
         .select()
         .from(lessons)
-        .where(eq(lessons.course_id, courseId))
+        .where(and(eq(lessons.course_id, courseId), sql`${lessons.archived_at} is null`))
         .orderBy(asc(lessons.position)),
       db
         .select({ n: sql<number>`count(*)::int` })
@@ -223,6 +225,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     credits: z.number().int().min(0).max(20).optional(),
     duration: z.string().trim().max(50).optional(),
     image: z.string().trim().max(300).optional(),
+    certificate_title: z.string().trim().min(1).max(150).optional(),
+    certificate_skills: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
     is_starter: z.boolean().optional(),
     position: z.number().int().optional(),
     price: z.number().int().min(0).max(10_000_000).optional(),
@@ -235,7 +239,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
     const updated = await db.transaction(async tx => {
       const [existing] = await tx.select().from(courses).where(eq(courses.id, req.params.id)).for("update")
-      if (!existing) throw notFound("Course not found")
+      if (!existing || existing.deleted_at) throw notFound("Course not found")
       if (!Object.keys(patch).length) return existing
       if (patch.status === "Published") await assertPublishable(tx, req.params.id)
       const [row] = await tx.update(courses).set(patch).where(eq(courses.id, req.params.id)).returning()
@@ -251,11 +255,39 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const [existing] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1)
     if (!existing) throw notFound("Course not found.")
 
-    await db.delete(courses).where(eq(courses.id, req.params.id))
+    await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      await tx.update(courses).set({ deleted_at: new Date(), status: "Archived" }).where(eq(courses.id, req.params.id))
+    })
     invalidateCatalogCache()
     return { ok: true, deleted: existing.id }
   })
 
+  app.post<{ Params: { id: string } }>("/courses/:id/restore", async req => {
+    const [course] = await db.update(courses).set({ deleted_at: null, status: "Draft" }).where(eq(courses.id, req.params.id)).returning()
+    if (!course) throw notFound("Course not found")
+    invalidateCatalogCache(); return { course }
+  })
+  app.put<{ Params: { id: string } }>("/courses/:id/order", async req => {
+    const input = parse(z.object({ module_ids: z.array(z.string()).max(2000), lesson_ids: z.array(z.string()).max(5000) }), req.body)
+    await db.transaction(tx => reorderContent(tx, req.params.id, input, me(req).id)); invalidateCatalogCache(); return { ok: true }
+  })
+  app.get<{ Params: { id: string; lessonId: string } }>("/courses/:id/lessons/:lessonId/history", async req => {
+    const [lesson] = await db.select().from(lessons).where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+    if (!lesson) throw notFound("Lesson not found")
+    return { revisions: await db.select().from(lesson_revisions).where(eq(lesson_revisions.lesson_id, lesson.id)).orderBy(desc(lesson_revisions.created_at)) }
+  })
+  app.post<{ Params: { id: string; lessonId: string } }>("/courses/:id/lessons/:lessonId/restore", async req => {
+    await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      const [lesson] = await tx.select().from(lessons).where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+      if (!lesson) throw notFound("Lesson not found")
+      await snapshotLesson(tx, lesson, me(req).id, "restore")
+      await tx.update(course_modules).set({ archived_at: null }).where(eq(course_modules.id, lesson.module_id))
+      await tx.update(lessons).set({ archived_at: null }).where(eq(lessons.id, lesson.id))
+      await contentChanged(tx, req.params.id, me(req).id, "lesson.restored")
+    }); invalidateCatalogCache(); return { ok: true }
+  })
   // --- 5a. Modules / Chapters Management ---
   const moduleSchema = z.object({
     title: z.string().trim().min(2).max(200),
@@ -267,7 +299,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const courseId = req.params.id
     const moduleRow = await db.transaction(async tx => {
       const [course] = await tx.select().from(courses).where(eq(courses.id, courseId)).for("update")
-      if (!course) throw notFound("Course not found")
+      if (!course || course.deleted_at) throw notFound("Course not found")
+      await contentChanged(tx, courseId, me(req).id, "module.created")
       const [pos] = await tx.select({ max: sql<number>`coalesce(max(${course_modules.position}), 0)::int` }).from(course_modules).where(eq(course_modules.course_id, courseId))
       const [row] = await tx.insert(course_modules).values({ id: randomUUID(), course_id: courseId, position: pos.max + 1, title: input.title, duration: input.duration }).returning()
       return row
@@ -280,20 +313,28 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
   app.patch<{ Params: { id: string; moduleId: string } }>("/courses/:id/modules/:moduleId", async (req) => {
     const input = parse(moduleSchema.partial(), req.body)
-    const [updated] = await db
-      .update(course_modules)
-      .set(input)
-      .where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id)))
-      .returning()
-    if (!updated) throw notFound("Module not found.")
+    const updated = await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      const [row] = await tx.update(course_modules).set(input).where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id), sql`${course_modules.archived_at} is null`)).returning()
+      if (!row) throw notFound("Module not found")
+      await contentChanged(tx, req.params.id, me(req).id, "module.edited")
+      return row
+    })
     invalidateCatalogCache()
     return { ok: true, module: updated }
   })
 
   app.delete<{ Params: { id: string; moduleId: string } }>("/courses/:id/modules/:moduleId", async (req) => {
-    await db
-      .delete(course_modules)
-      .where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id)))
+    await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      const [module] = await tx.select().from(course_modules).where(and(eq(course_modules.id, req.params.moduleId), eq(course_modules.course_id, req.params.id)))
+      if (!module) throw notFound("Module not found")
+      const children = await tx.select().from(lessons).where(eq(lessons.module_id, module.id))
+      for (const lesson of children) await snapshotLesson(tx, lesson, me(req).id, "archive-module")
+      await tx.update(lessons).set({ archived_at: new Date() }).where(eq(lessons.module_id, module.id))
+      await tx.update(course_modules).set({ archived_at: new Date() }).where(eq(course_modules.id, module.id))
+      await contentChanged(tx, req.params.id, me(req).id, "module.archived")
+    })
     invalidateCatalogCache()
     return { ok: true, deleted: req.params.moduleId }
   })
@@ -316,14 +357,14 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     if (input.videoUrl || input.videoQualities) throw badRequest("Attach a ready media asset instead of a raw video URL")
     const lessonRow = await db.transaction(async tx => {
       const [course] = await tx.select().from(courses).where(eq(courses.id, courseId)).for("update")
-      if (!course) throw notFound("Course not found")
+      if (!course || course.deleted_at) throw notFound("Course not found")
       const [module] = await tx.select().from(course_modules).where(and(eq(course_modules.id, input.moduleId), eq(course_modules.course_id, courseId)))
-      if (!module) throw badRequest("The module must belong to this course")
+      if (!module || module.archived_at) throw badRequest("The module must belong to this course and be active")
       const [pos] = await tx.select({ max: sql<number>`coalesce(max(${lessons.position}), 0)::int` }).from(lessons).where(eq(lessons.course_id, courseId))
       const [row] = await tx.insert(lessons).values({ id: randomUUID(), course_id: module.course_id, module_id: module.id, position: pos.max + 1,
         title: input.title, duration: input.duration, minutes: input.minutes, type: input.type, summary: input.summary }).returning()
       // Editing structure requires review and an explicit publish action.
-      await tx.update(courses).set({ status: "Draft" }).where(eq(courses.id, courseId))
+      await contentChanged(tx, courseId, me(req).id, "lesson.created")
       return row
     })
     invalidateCatalogCache()
@@ -338,7 +379,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     if (input.videoUrl !== undefined || input.videoQualities !== undefined) throw badRequest("Attach a ready media asset instead of a raw video URL")
     if (input.moduleId) {
       const [module] = await db.select().from(course_modules).where(and(eq(course_modules.id, input.moduleId), eq(course_modules.course_id, req.params.id)))
-      if (!module) throw badRequest("The module must belong to this course")
+      if (!module || module.archived_at) throw badRequest("The module must belong to this course and be active")
     }
     const updateData: any = {}
     if (input.moduleId !== undefined) updateData.module_id = input.moduleId
@@ -350,20 +391,32 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     if (input.videoUrl !== undefined) updateData.video_url = input.videoUrl
     if (input.videoQualities !== undefined) updateData.video_qualities = input.videoQualities
 
-    const [updated] = await db
-      .update(lessons)
-      .set(updateData)
-      .where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
-      .returning()
-    if (!updated) throw notFound("Lesson not found.")
+    const updated = await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      const [current] = await tx.select().from(lessons).where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+      if (!current || current.archived_at) throw notFound("Lesson not found")
+      if (input.moduleId) {
+        const [module] = await tx.select().from(course_modules).where(and(eq(course_modules.id, input.moduleId), eq(course_modules.course_id, req.params.id)))
+        if (!module || module.archived_at) throw badRequest("Select an active module in this course")
+      }
+      await snapshotLesson(tx, current, me(req).id, "edit")
+      const [row] = await tx.update(lessons).set(updateData).where(eq(lessons.id, current.id)).returning()
+      await contentChanged(tx, req.params.id, me(req).id, "lesson.edited")
+      return row
+    })
     invalidateCatalogCache()
     return { ok: true, lesson: updated }
   })
 
   app.delete<{ Params: { id: string; lessonId: string } }>("/courses/:id/lessons/:lessonId", async (req) => {
-    await db
-      .delete(lessons)
-      .where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+    await db.transaction(async tx => {
+      await lockCourse(tx, req.params.id)
+      const [lesson] = await tx.select().from(lessons).where(and(eq(lessons.id, req.params.lessonId), eq(lessons.course_id, req.params.id)))
+      if (!lesson) throw notFound("Lesson not found")
+      await snapshotLesson(tx, lesson, me(req).id, "archive")
+      await tx.update(lessons).set({ archived_at: new Date() }).where(eq(lessons.id, lesson.id))
+      await contentChanged(tx, req.params.id, me(req).id, "lesson.archived")
+    })
     invalidateCatalogCache()
     return { ok: true, deleted: req.params.lessonId }
   })

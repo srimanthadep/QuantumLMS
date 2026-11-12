@@ -84,9 +84,11 @@ try {
       await pool.query("insert into public.quantumlms_test_guard values ($1)", [nonce])
       await migrate(drizzle(pool), { migrationsFolder: path.join(root, "drizzle"), migrationsSchema: "lms", migrationsTable: "__drizzle_migrations" })
       // Explicit known fixtures, never implicit production seeding or production-data copies.
+      if (file !== "self-paced.test.ts") {
       await createDb(pool).transaction((tx) => seedContent(tx, new Date(), "Asia/Kolkata"))
       await pool.query("update lms.courses set price = 0, status = 'Published' where is_starter = true or id = 'cat-1'")
       await pool.query("insert into lms.course_offers (id, course_id, title, mode, price, status) select 'fixture:' || id, id, title, 'self_paced', price, status from lms.courses on conflict do nothing")
+      }
       await pool.end()
       console.log(`\nIsolated suite: ${file}`)
       await run(process.execPath, ["--import", "tsx", "--test", "--test-timeout=60000", `tests/${file}`], {

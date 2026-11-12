@@ -115,6 +115,7 @@ function sliceIntoSubtitles(rawSegments: { start: number; end: number; text: str
 }
 
 interface LessonPlayerProps {
+  playbackEndpoint?: string
   lesson: LessonItem
   moduleTitle: string
   poster: string
@@ -126,7 +127,7 @@ interface LessonPlayerProps {
 const SPEEDS = ["0.75", "1", "1.25", "1.5", "2"]
 
 /** Lesson stage: an HTML5 video player with YouTube-style multi-quality switching (1080p, 720p, 480p, 144p), or a launch panel for readings/labs. */
-export default function LessonPlayer({ lesson, moduleTitle, poster, completed, onComplete, autoPlay = false }: LessonPlayerProps) {
+export default function LessonPlayer({ lesson, moduleTitle, poster, completed, onComplete, autoPlay = false, playbackEndpoint }: LessonPlayerProps) {
   const fallbackDuration = Math.max(60, parseMinutes(lesson.duration) * 60)
   const [duration, setDuration] = useState(fallbackDuration)
   const [playing, setPlaying] = useState(false)
@@ -149,13 +150,13 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     setPlaybackError(null)
     resumeAt.current = 0
     if (lesson.type !== "video") return
-    const load = () => api.post<{ url: string; qualities: Record<string, { url: string }> }>(`/student/lessons/${encodeURIComponent(lesson.id)}/playback`)
+    const load = () => api.post<{ url: string; qualities: Record<string, { url: string }> }>(playbackEndpoint ?? `/student/lessons/${encodeURIComponent(lesson.id)}/playback`)
       .then((result) => { if (!disposed) { resumeAt.current = videoRef.current?.currentTime ?? 0; setPlayback(result); setPlaybackError(null) } })
       .catch((error) => { if (!disposed) { setPlayback(null); setPlaying(false); setPlaybackError((error as Error).message) } })
     void load()
     const renewal = setInterval(() => { void load() }, 240_000)
     return () => { disposed = true; clearInterval(renewal) }
-  }, [lesson.id, lesson.type])
+  }, [lesson.id, lesson.type, playbackEndpoint])
   const qualities = playback?.qualities ?? null
 
   const [quality, setQuality] = useState<string>("auto")

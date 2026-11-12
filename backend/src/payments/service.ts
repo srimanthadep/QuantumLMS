@@ -41,10 +41,12 @@ export async function checkout(ctx: AppContext, student: string, input: { offer_
       if (prior.offer_id !== input.offer_id || prior.batch_id !== (input.batch_id ?? null)) throw conflict("Checkout key already belongs to another offer")
       return { row: prior, created: false }
     }
+    const [hint] = await tx.select().from(course_offers).where(eq(course_offers.id, input.offer_id))
+    if (!hint) throw badRequest("Choose a published paid offer")
+    const [course] = await tx.select().from(courses).where(eq(courses.id, hint.course_id)).for("update")
     const [offer] = await tx.select().from(course_offers).where(eq(course_offers.id, input.offer_id)).for("update")
     if (!offer || offer.status !== "Published" || offer.price <= 0) throw badRequest("Choose a published paid offer")
-    const [course] = await tx.select().from(courses).where(eq(courses.id, offer.course_id))
-    if (course?.status !== "Published") throw conflict("This course is not published")
+    if (course?.status !== "Published" || course.deleted_at) throw conflict("This course is not published")
     if ((offer.mode === "live") !== Boolean(input.batch_id)) throw badRequest("Live checkout requires its batch; self-paced checkout has no batch")
     const expiry = new Date(Date.now() + ctx.config.PAYMENT_RESERVATION_MINUTES * 60_000)
     const [row] = await tx.insert(orders).values({ id: randomUUID(), student_id: student, offer_id: offer.id, course_id: offer.course_id,

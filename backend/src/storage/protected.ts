@@ -19,11 +19,11 @@ export async function authorizeMediaKey(ctx: AppContext, user: AuthUser, key: st
   const short = `/api/files/${key}`
   const doubled = `/api/files/${kind}/${key}`
   const sources = kind === "videos"
-    ? await ctx.db.select({ course_id: lessons.course_id }).from(lessons).where(or(
+    ? await ctx.db.select({ course_id: lessons.course_id }).from(lessons).where(and(sql`${lessons.archived_at} is null`, or(
       eq(lessons.video_url, short), eq(lessons.video_url, doubled), eq(lessons.video_url, key),
       sql`exists (select 1 from jsonb_each(coalesce(${lessons.video_qualities}, '{}'::jsonb)) v
         where v.value->>'url' in (${short}, ${doubled}, ${key}) or v.value #>> '{}' in (${short}, ${doubled}, ${key}))`,
-    ))
+    )))
     : await ctx.db.select({ course_id: course_materials.course_id }).from(course_materials).where(and(
       eq(course_materials.is_available, true), or(eq(course_materials.url, short), eq(course_materials.url, doubled), eq(course_materials.url, key)),
     ))

@@ -14,7 +14,9 @@ export type AttemptRow = Pick<
 >
 type LessonRow = Pick<Tables<"lessons">, "id" | "module_id" | "course_id" | "position" | "title" | "duration" | "minutes" | "type" | "summary" | "video_url" | "video_qualities">
 
+type CatalogCourse = Pick<Tables<"courses">, "id" | "code" | "title" | "category" | "image" | "instructor" | "instructor_role" | "description" | "level" | "credits" | "duration" | "rating" | "reviews" | "progress_color"> & { modules_count: number; lessons_count: number }
 export interface CoreRaw {
+  catalog?: CatalogCourse[]
   uid: string
   profile: Profile
   courses: Tables<"courses">[]
@@ -63,11 +65,12 @@ interface CoreResponse {
 }
 
 export async function loadCore(uid?: string): Promise<CoreRaw> {
-  const r = await api.get<CoreResponse>("/student/core", "Your profile could not be loaded.")
+  const [r, catalog] = await Promise.all([api.get<CoreResponse>("/student/core", { bypassCache: true, fallback: "Your profile could not be loaded." }), api.get<{ courses: CatalogCourse[] }>("/catalog/courses", { bypassCache: true })])
   return {
     uid: uid ?? r.profile.id,
     profile: r.profile,
     courses: r.courses,
+    catalog: catalog.courses,
     modules: r.modules,
     lessons: r.lessons,
     enrollments: Object.fromEntries(r.enrollments.map((e) => [e.course_id, e.enrolled_at])),
@@ -222,7 +225,7 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
 
   const curriculum: Record<string, ModuleItem[]> = {}
   const items: (CourseItem & { _enrolledAt?: string })[] = []
-  for (const c of raw.courses) {
+  for (const c of [...raw.courses, ...(raw.catalog ?? []).filter(c => !raw.courses.some(enrolled => enrolled.id === c.id))]) {
     const enrolledAt = raw.enrollments[c.id]
     const mods = raw.modules.filter((m) => m.course_id === c.id).sort((a, b) => a.position - b.position)
     const ordered = mods.flatMap((m) => lessonsByModule.get(m.id) ?? [])
@@ -283,9 +286,9 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
       rating: c.rating,
       reviews: c.reviews,
       progressColor: c.progress_color,
-      totalModules: mods.length,
+      totalModules: "modules_count" in c ? c.modules_count : mods.length,
       completedModules: modules.filter((m) => m.status === "Completed").length,
-      totalLessons: total,
+      totalLessons: "lessons_count" in c ? c.lessons_count : total,
       completedLessons: doneCount,
       progress: total ? Math.round((doneCount / total) * 100) : 0,
       status: !enrolledAt ? "Catalog" : finished ? "Completed" : "In Progress",

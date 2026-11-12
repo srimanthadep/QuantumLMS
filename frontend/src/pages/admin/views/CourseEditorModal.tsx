@@ -1,3 +1,4 @@
+import SelfPacedOfferPanel from "./courses/SelfPacedOfferPanel"
 import { useState, useEffect } from "react"
 import {
   BookOpen,
@@ -135,7 +136,7 @@ interface CourseEditorModalProps {
   onToast: (msg: string) => void
 }
 
-type EditorTab = "curriculum" | "materials" | "assignments" | "settings"
+type EditorTab = "enrollment" | "curriculum" | "materials" | "assignments" | "settings"
 
 export default function CourseEditorModal({
   course,
@@ -146,6 +147,7 @@ export default function CourseEditorModal({
   onOpenVideoUpload,
   onToast,
 }: CourseEditorModalProps) {
+  const [loadError, setLoadError] = useState("")
   const [activeTab, setActiveTab] = useState<EditorTab>("curriculum")
   const [loading, setLoading] = useState(false)
   const [openModules, setOpenModules] = useState<Set<string>>(new Set())
@@ -184,7 +186,6 @@ export default function CourseEditorModal({
   const [newLessonTitle, setNewLessonTitle] = useState("")
   const [newLessonType, setNewLessonType] = useState<"video" | "reading" | "lab">("video")
   const [newLessonDuration, setNewLessonDuration] = useState("15m")
-  const [newLessonUrl, setNewLessonUrl] = useState("")
   const [newLessonSummary, setNewLessonSummary] = useState("")
   const [savingLesson, setSavingLesson] = useState(false)
 
@@ -216,96 +217,19 @@ export default function CourseEditorModal({
   const [savingAssignment, setSavingAssignment] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<AssignmentItem | null>(null)
 
-  // Fetch full details whenever modal opens or course changes
+  // Load only persisted course content. Failed requests remain visible and retryable.
   const fetchDetails = async () => {
     if (!course) return
-    setLoading(true)
+    setLoading(true); setLoadError("")
     try {
-      const res = await api.get<{
-        course: any
-        modules: CourseModuleItem[]
-        lessons: LessonRowItem[]
-        materials?: MaterialItem[]
-        assignments?: AssignmentItem[]
-      }>(`/admin/courses/${course.id}`)
-
-      if (res?.modules && res.modules.length > 0) {
-        setModules(res.modules)
-        setOpenModules(new Set(res.modules.map((m) => m.id)))
-      } else {
-        // Fallback default starter module if course is newly created
-        setModules((prev) => {
-          if (prev.length > 0) return prev
-          const starter: CourseModuleItem[] = [
-            { id: `mod-1-${course.id}`, course_id: course.id, position: 1, title: "Module 1: Orientation & Architecture Setup", duration: "4 hours" },
-            { id: `mod-2-${course.id}`, course_id: course.id, position: 2, title: "Chapter 2: Streaming Architecture & Multi-Agent State", duration: "2 Hours" },
-          ]
-          setOpenModules(new Set(starter.map((m) => m.id)))
-          return starter
-        })
-      }
-
-      if (res?.lessons && res.lessons.length > 0) {
-        setLessons(res.lessons)
-      } else {
-        setLessons((prev) => {
-          if (prev.length > 0) return prev
-          return [
-            { id: `les-1-${course.id}`, course_id: course.id, module_id: `mod-1-${course.id}`, position: 1, title: "1.1 Welcome, Prerequisites & Environment Setup", duration: "20m", minutes: 20, type: "video", summary: "Overview of environment setup and stack architecture." },
-            { id: `les-2-${course.id}`, course_id: course.id, module_id: `mod-2-${course.id}`, position: 1, title: "2.1 SSE Streaming & Client Heartbeats", duration: "15m", minutes: 15, type: "video", summary: "Architecting real-time streaming connections." },
-          ]
-        })
-      }
-
-      setMaterials(res?.materials || [])
-      setAssignmentsList(res?.assignments || [])
-
-      if (res?.course) {
-        setEditTitle(res.course.title || course.title)
-        setEditCategory(res.course.category || course.category)
-        setEditInstructor(res.course.instructor || course.instructor)
-        setEditPrice(res.course.price ?? course.price)
-        setEditCapacity(res.course.capacity ?? course.capacity)
-        setEditLevel(res.course.level || "Intermediate")
-        setEditDuration(res.course.duration || "12 Weeks")
-        setEditStatus((res.course.status as AdminCourse["status"]) || course.status || "Published")
-        setEditDescription(res.course.description || "")
-      } else {
-        setEditTitle(course.title)
-        setEditCategory(course.category)
-        setEditInstructor(course.instructor)
-        setEditPrice(course.price ?? 39999)
-        setEditCapacity(course.capacity ?? 300)
-        setEditStatus(course.status || "Published")
-      }
-    } catch (err: any) {
-      console.warn("Could not fetch detailed course curriculum from API, using cached/local store:", err)
-      setEditTitle(course.title)
-      setEditCategory(course.category)
-      setEditInstructor(course.instructor)
-      setEditPrice(course.price ?? 39999)
-      setEditCapacity(course.capacity ?? 300)
-      setEditStatus(course.status || "Published")
-
-      setModules((prev) => {
-        if (prev.length > 0) return prev
-        const starter: CourseModuleItem[] = [
-          { id: `mod-1-${course.id}`, course_id: course.id, position: 1, title: "Module 1: Orientation & Architecture Setup", duration: "4 hours" },
-          { id: `mod-2-${course.id}`, course_id: course.id, position: 2, title: "Chapter 2: Streaming Architecture & Multi-Agent State", duration: "2 Hours" },
-        ]
-        setOpenModules(new Set(starter.map((m) => m.id)))
-        return starter
-      })
-      setLessons((prev) => {
-        if (prev.length > 0) return prev
-        return [
-          { id: `les-1-${course.id}`, course_id: course.id, module_id: `mod-1-${course.id}`, position: 1, title: "1.1 Welcome, Prerequisites & Environment Setup", duration: "20m", minutes: 20, type: "video", summary: "Overview of environment setup and stack architecture." },
-          { id: `les-2-${course.id}`, course_id: course.id, module_id: `mod-2-${course.id}`, position: 1, title: "2.1 SSE Streaming & Client Heartbeats", duration: "15m", minutes: 15, type: "video", summary: "Architecting real-time streaming connections." },
-        ]
-      })
-    } finally {
-      setLoading(false)
-    }
+      const res = await api.get<{ course: any; modules: CourseModuleItem[]; lessons: LessonRowItem[]; materials: MaterialItem[]; assignments: AssignmentItem[] }>(`/admin/courses/${course.id}`, { bypassCache: true })
+      setModules(res.modules); setLessons(res.lessons); setMaterials(res.materials); setAssignmentsList(res.assignments)
+      setOpenModules(new Set(res.modules.map(m => m.id)))
+      setEditTitle(res.course.title); setEditCategory(res.course.category); setEditInstructor(res.course.instructor)
+      setEditLevel(res.course.level); setEditDuration(res.course.duration); setEditDescription(res.course.description)
+      setEditPrice(Number(res.course.price)); setEditCapacity(Number(res.course.capacity)); setEditStatus(res.course.status)
+    } catch (error) { setLoadError((error as Error).message) }
+    finally { setLoading(false) }
   }
 
   useEffect(() => {
@@ -322,151 +246,47 @@ export default function CourseEditorModal({
 
   if (!course) return null
 
-  // 1. Chapter / Module Handlers
+  const mutateContent = async (action: () => Promise<unknown>, message: string) => {
+    try { await action(); await fetchDetails(); onToast(message); return true }
+    catch (error) { onToast((error as Error).message); return false }
+  }
+  const moveContent = async (kind: "module" | "lesson", id: string, direction: -1 | 1) => {
+    const ids = kind === "module" ? modules.map(m => m.id) : lessons.map(l => l.id)
+    const index = ids.indexOf(id)
+    const siblings = kind === "module" ? ids : lessons.filter(l => l.module_id === lessons.find(row => row.id === id)?.module_id).map(l => l.id)
+    const neighbor = siblings[siblings.indexOf(id) + direction]
+    const target = ids.indexOf(neighbor)
+    if (target < 0 || target >= ids.length) return
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    await mutateContent(() => api.put(`/admin/courses/${course.id}/order`, { module_ids: kind === "module" ? ids : modules.map(m => m.id), lesson_ids: kind === "lesson" ? ids : lessons.map(l => l.id) }), "Lesson order saved. Learner progress is preserved.")
+  }
   const handleCreateModule = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newModuleTitle.trim()) return
+    e.preventDefault(); if (!newModuleTitle.trim()) return
     setSavingModule(true)
-    const fallbackModule: CourseModuleItem = {
-      id: `mod-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      course_id: course.id,
-      position: modules.length + 1,
-      title: newModuleTitle.trim(),
-      duration: newModuleDuration.trim() || "1 Hour",
-    }
-    try {
-      const res = await api.post<{ ok: boolean; module: CourseModuleItem }>(`/admin/courses/${course.id}/modules`, {
-        title: newModuleTitle.trim(),
-        duration: newModuleDuration.trim() || "1 Hour",
-      })
-      const saved = res.module || fallbackModule
-      setModules((prev) => [...prev, saved])
-      setOpenModules((prev) => new Set(prev).add(saved.id))
-      onToast(`Added chapter "${saved.title}"`)
-    } catch {
-      setModules((prev) => [...prev, fallbackModule])
-      setOpenModules((prev) => new Set(prev).add(fallbackModule.id))
-      onToast(`Added chapter "${fallbackModule.title}"`)
-    } finally {
-      setIsAddModuleOpen(false)
-      setNewModuleTitle("")
-      setSavingModule(false)
-    }
+    if (await mutateContent(() => api.post(`/admin/courses/${course.id}/modules`, { title: newModuleTitle.trim(), duration: newModuleDuration.trim() }), "Chapter added. Review and publish the offer when ready.")) { setIsAddModuleOpen(false); setNewModuleTitle("") }
+    setSavingModule(false)
   }
-
   const handleUpdateModule = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingModule || !editModTitle.trim()) return
-    const updatedTitle = editModTitle.trim()
-    const updatedDuration = editModDuration.trim() || editingModule.duration
-    try {
-      await api.patch<{ ok: boolean; module: CourseModuleItem }>(
-        `/admin/courses/${course.id}/modules/${editingModule.id}`,
-        {
-          title: updatedTitle,
-          duration: updatedDuration,
-        }
-      )
-    } catch {
-      // Graceful local fallback
-    }
-    setModules((prev) =>
-      prev.map((m) =>
-        m.id === editingModule.id ? { ...m, title: updatedTitle, duration: updatedDuration } : m
-      )
-    )
-    onToast(`Updated chapter "${updatedTitle}"`)
-    setEditingModule(null)
+    e.preventDefault(); if (!editingModule) return
+    if (await mutateContent(() => api.patch(`/admin/courses/${course.id}/modules/${editingModule.id}`, { title: editModTitle.trim(), duration: editModDuration.trim() }), "Chapter saved.")) setEditingModule(null)
   }
-
-  const handleDeleteModule = async (moduleId: string, moduleTitle: string) => {
-    if (!window.confirm(`Delete "${moduleTitle}" and all its lessons? This cannot be undone.`)) return
-    try {
-      await api.delete(`/admin/courses/${course.id}/modules/${moduleId}`)
-    } catch {
-      // Graceful local delete
-    }
-    setModules((prev) => prev.filter((m) => m.id !== moduleId))
-    setLessons((prev) => prev.filter((l) => l.module_id !== moduleId))
-    onToast(`Deleted chapter "${moduleTitle}"`)
+  const handleDeleteModule = async (moduleId: string, title: string) => {
+    if (!window.confirm(`Remove "${title}" from the curriculum? Content and learner progress will remain in history.`)) return
+    await mutateContent(() => api.delete(`/admin/courses/${course.id}/modules/${moduleId}`), "Chapter archived; learner history retained.")
   }
-
-  // 2. Lesson Handlers
   const handleCreateLesson = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!targetModuleId || !newLessonTitle.trim()) return
+    e.preventDefault(); if (!targetModuleId || !newLessonTitle.trim()) return
     setSavingLesson(true)
-    const mins = parseInt(newLessonDuration.replace(/\D/g, ""), 10) || 15
-    const fallbackLesson: LessonRowItem = {
-      id: `les-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      course_id: course.id,
-      module_id: targetModuleId,
-      position: lessons.filter((l) => l.module_id === targetModuleId).length + 1,
-      title: newLessonTitle.trim(),
-      type: newLessonType,
-      duration: newLessonDuration.trim() || `${mins}m`,
-      minutes: mins,
-      summary: newLessonSummary.trim(),
-      video_url: newLessonUrl.trim() || null,
-    }
-    try {
-      const res = await api.post<{ ok: boolean; lesson: LessonRowItem }>(`/admin/courses/${course.id}/lessons`, {
-        moduleId: targetModuleId,
-        title: newLessonTitle.trim(),
-        type: newLessonType,
-        duration: newLessonDuration.trim() || `${mins}m`,
-        minutes: mins,
-        videoUrl: newLessonUrl.trim() || undefined,
-        summary: newLessonSummary.trim(),
-      })
-      const saved = res.lesson || fallbackLesson
-      setLessons((prev) => [...prev, saved])
-      onToast(`Added lesson "${saved.title}"`)
-    } catch {
-      setLessons((prev) => [...prev, fallbackLesson])
-      onToast(`Added lesson "${fallbackLesson.title}"`)
-    } finally {
-      setIsAddLessonOpen(false)
-      setNewLessonTitle("")
-      setNewLessonUrl("")
-      setNewLessonSummary("")
-      setSavingLesson(false)
-    }
+    if (await mutateContent(() => api.post(`/admin/courses/${course.id}/lessons`, { moduleId: targetModuleId, title: newLessonTitle.trim(), type: newLessonType, duration: newLessonDuration, minutes: parseInt(newLessonDuration, 10) || 15, summary: newLessonSummary.trim() }), "Lesson created. Attach a processed upload for video lessons.")) { setIsAddLessonOpen(false); setNewLessonTitle(""); setNewLessonSummary("") }
+    setSavingLesson(false)
   }
-
   const handleUpdateLesson = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingLesson || !editingLesson.title.trim()) return
-    const mins = parseInt(editingLesson.duration.replace(/\D/g, ""), 10) || 15
-    try {
-      await api.patch<{ ok: boolean; lesson: LessonRowItem }>(
-        `/admin/courses/${course.id}/lessons/${editingLesson.id}`,
-        {
-          title: editingLesson.title.trim(),
-          type: editingLesson.type,
-          duration: editingLesson.duration.trim() || `${mins}m`,
-          minutes: mins,
-          videoUrl: editingLesson.video_url || undefined,
-          summary: editingLesson.summary,
-        }
-      )
-    } catch {
-      // Graceful local update
-    }
-    setLessons((prev) => prev.map((l) => (l.id === editingLesson.id ? editingLesson : l)))
-    onToast(`Updated lesson "${editingLesson.title}"`)
-    setEditingLesson(null)
+    e.preventDefault(); if (!editingLesson) return
+    if (await mutateContent(() => api.patch(`/admin/courses/${course.id}/lessons/${editingLesson.id}`, { title: editingLesson.title.trim(), type: editingLesson.type, duration: editingLesson.duration, minutes: parseInt(editingLesson.duration, 10) || 15, summary: editingLesson.summary }), "Lesson saved; its previous content and learner progress are retained.")) setEditingLesson(null)
   }
-
-  const handleDeleteLesson = async (lessonId: string, lessonTitle: string) => {
-    if (!window.confirm(`Delete lesson "${lessonTitle}"?`)) return
-    try {
-      await api.delete(`/admin/courses/${course.id}/lessons/${lessonId}`)
-    } catch {
-      // Graceful local delete
-    }
-    setLessons((prev) => prev.filter((l) => l.id !== lessonId))
-    onToast(`Deleted lesson "${lessonTitle}"`)
+  const handleDeleteLesson = async (lessonId: string, title: string) => {
+    if (!window.confirm(`Remove "${title}" from the curriculum? Content and learner progress will remain in history.`)) return
+    await mutateContent(() => api.delete(`/admin/courses/${course.id}/lessons/${lessonId}`), "Lesson archived; learner history retained.")
   }
 
   // 3. Materials Handlers
@@ -649,10 +469,11 @@ export default function CourseEditorModal({
     { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
     { id: "materials", label: "Materials", icon: FileText, count: materials.length },
     { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
+    { id: "enrollment", label: "Enrollment & publishing", icon: GraduationCap },
     { id: "settings", label: "Course Settings", icon: Settings2 },
   ]
 
-  const statusDot = course.status === "Published" ? "bg-emerald-300" : course.status === "Draft" ? "bg-amber-300" : "bg-slate-300"
+  const statusDot = editStatus === "Published" ? "bg-emerald-300" : editStatus === "Draft" ? "bg-amber-300" : "bg-slate-300"
 
   const openNewAssignment = () => {
     setEditingAssignment(null)
@@ -669,7 +490,7 @@ export default function CourseEditorModal({
       return
     }
     if (lesson.type === "video") {
-      onToast("No video uploaded for this lesson yet — attach a URL or upload a video.")
+      onToast("No processed video is attached yet. Use Upload Video to upload and attach one.")
     }
     setEditingLesson(lesson)
   }
@@ -699,7 +520,7 @@ export default function CourseEditorModal({
                     </DialogTitle>
                     <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur sm:text-[13px]">
                       <span className={cn("h-2 w-2 rounded-full", statusDot)} aria-hidden="true" />
-                      {course.status}
+                      {editStatus}
                     </span>
                   </div>
                   <div className="mt-1">
@@ -808,7 +629,7 @@ export default function CourseEditorModal({
           {/* Right Main Content Panel */}
           <main className="min-h-0 flex-1 overflow-y-auto bg-background">
             <div className="w-full space-y-6 px-5 py-6 sm:px-8">
-            {loading ? (
+            {loadError ? <div role="alert" className="rounded-xl border border-danger/30 p-5"><p>{loadError}</p><Button variant="outline" onClick={() => void fetchDetails()}>Retry</Button></div> : loading ? (
               <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface-2/60" />
@@ -915,6 +736,8 @@ export default function CourseEditorModal({
                                     >
                                       <Edit2 aria-hidden="true" />
                                     </Button>
+                                    <Button size="icon-sm" variant="ghost" aria-label={`Move ${m.title} earlier`} disabled={mIdx === 0} onClick={() => void moveContent("module", m.id, -1)}>↑</Button>
+                                    <Button size="icon-sm" variant="ghost" aria-label={`Move ${m.title} later`} disabled={mIdx === modules.length-1} onClick={() => void moveContent("module", m.id, 1)}>↓</Button>
                                     <Button
                                       size="icon-sm"
                                       variant="ghost"
@@ -1008,6 +831,8 @@ export default function CourseEditorModal({
                                                   ))}
                                               </button>
                                               <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                                                <Button size="icon-sm" variant="ghost" aria-label={`Move ${l.title} earlier`} disabled={lIdx === 0} onClick={() => void moveContent("lesson", l.id, -1)}>↑</Button>
+                                                <Button size="icon-sm" variant="ghost" aria-label={`Move ${l.title} later`} disabled={lIdx === moduleLessons.length-1} onClick={() => void moveContent("lesson", l.id, 1)}>↓</Button>
                                                 <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} onClick={() => setEditingLesson(l)}>
                                                   <Edit2 aria-hidden="true" />
                                                 </Button>
@@ -1204,6 +1029,7 @@ export default function CourseEditorModal({
                   )}
 
                   {/* ---------- SETTINGS ---------- */}
+                  {activeTab === "enrollment" && <SelfPacedOfferPanel courseId={course.id} title={course.title} onChanged={fetchDetails} />}
                   {activeTab === "settings" && (
                     <form onSubmit={handleSaveCourseSettings} className="space-y-5">
                       <PanelHeader title="Course settings" description="Catalog details, delivery format and pricing." />
@@ -1398,17 +1224,7 @@ export default function CourseEditorModal({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Video Stream URL (Optional)</label>
-              <Input
-                placeholder="https://... or /api/files/videos/..."
-                value={newLessonUrl}
-                onChange={(e) => setNewLessonUrl(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Tip: You can also use "Upload Video" from the chapter menu to auto-extract neural transcripts and transcode 1080p.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">For video lessons, upload and process a file, then attach it to this lesson from Upload Video.</p>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Lesson Overview / Summary</label>
@@ -1475,13 +1291,7 @@ export default function CourseEditorModal({
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Video Stream URL</label>
-                <Input
-                  value={editingLesson.video_url || ""}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, video_url: e.target.value })}
-                />
-              </div>
+              <p className="text-sm text-muted-foreground">Use Upload Video to replace a video after processing. The previous asset and learner progress are retained.</p>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Lesson Summary / Transcript</label>
@@ -1697,6 +1507,7 @@ export default function CourseEditorModal({
                     </div>
                   ) : (
                     <LessonPlayer
+                      playbackEndpoint={`/admin/lessons/${encodeURIComponent(lesson.id)}/playback`}
                       lesson={{
                         id: lesson.id,
                         title: lesson.title,

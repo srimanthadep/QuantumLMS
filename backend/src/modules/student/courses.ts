@@ -1,3 +1,4 @@
+import { lessonPlayback } from "../../storage/lesson-playback.js"
 import { enrollFree } from "../../learning/offers.js"
 import { requireEntitlement } from "../../learning/entitlements.js"
 import { entitlement_grants } from "../../db/schema.js"
@@ -77,7 +78,7 @@ async function getCatalogData(db: Db) {
   }
   const [courseRows, modules, lessonRows, assignmentRows, quizRows] = await Promise.all([
     db.select().from(courses).orderBy(asc(courses.position)),
-    db.select().from(course_modules).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
+    db.select().from(course_modules).where(sql`${course_modules.archived_at} is null`).orderBy(asc(course_modules.course_id), asc(course_modules.position)),
     db
       .select({
         id: lessons.id,
@@ -93,6 +94,7 @@ async function getCatalogData(db: Db) {
         video_qualities: lessons.video_qualities,
       })
       .from(lessons)
+      .where(sql`${lessons.archived_at} is null`)
       .orderBy(asc(lessons.course_id), asc(lessons.position)),
     db.select().from(assignments).orderBy(asc(assignments.due_at)),
     db.select().from(quizzes).orderBy(asc(quizzes.due_at)),
@@ -194,7 +196,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     const tz = ctx.config.CAMPUS_TZ
     return db.transaction(async (tx) => {
       const l = await tx.query.lessons.findFirst({ where: eq(lessons.id, req.params.id) })
-      if (!l) throw notFound("Lesson not found.")
+      if (!l || l.archived_at) throw notFound("Lesson not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, l.course_id)) })
       await requireEntitlement(tx, s.id, l.course_id)
       const today = localDay(new Date(), tz)
@@ -217,8 +219,8 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         }
       }
       const [[{ total }], [{ completed }]] = await Promise.all([
-        tx.select({ total: count() }).from(lessons).where(eq(lessons.course_id, l.course_id)),
-        tx.select({ completed: count() }).from(lesson_progress).where(and(eq(lesson_progress.student_id, s.id), eq(lesson_progress.course_id, l.course_id))),
+        tx.select({ total: count() }).from(lessons).where(and(eq(lessons.course_id, l.course_id), sql`${lessons.archived_at} is null`)),
+        tx.select({ completed: count() }).from(lesson_progress).innerJoin(lessons, eq(lessons.id, lesson_progress.lesson_id)).where(and(eq(lesson_progress.student_id, s.id), eq(lesson_progress.course_id, l.course_id), sql`${lessons.archived_at} is null`)),
       ])
       const certificate = total > 0 && completed === total ? await issueCertificate(tx, s.id, l.course_id) : null
       return { course_id: l.course_id, completed, total, certificate }
@@ -284,19 +286,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     })
   })
 
-  app.post<{ Params: { id: string } }>("/api/student/lessons/:id/playback", async (req) => {
-    const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, req.params.id) })
-    if (!lesson) throw notFound("Lesson not found.")
-    await assertCourseAccess(db, me(req), lesson.course_id)
-    const key = mediaKey(lesson.video_url, "videos")
-    if (!key) throw notFound("A private video is not available for this lesson.")
-    const qualities: Record<string, { url: string }> = {}
-    for (const [name, entry] of Object.entries((lesson.video_qualities ?? {}) as Record<string, { url?: string } | string>)) {
-      const k = mediaKey(typeof entry === "string" ? entry : entry.url, "videos")
-      if (k) qualities[name] = { url: await signedMedia(ctx, k) }
-    }
-    return { url: await signedMedia(ctx, key), qualities, expires_in: 300 }
-  })
+  app.post<{ Params: { id: string } }>("/api/student/lessons/:id/playback", async req => lessonPlayback(ctx, me(req), req.params.id))
 
   app.get<{ Params: { id: string } }>("/api/student/courses/:id/materials", async (req) => {
     await assertCourseAccess(db, me(req), req.params.id)

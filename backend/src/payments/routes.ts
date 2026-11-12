@@ -12,7 +12,7 @@ export async function paymentModule(app: FastifyInstance, ctx: AppContext) {
   app.get("/api/catalog/offers", async req => {
     const query = parse(z.object({ course_id: z.string().min(1) }), req.query)
     const offers = await ctx.db.select({ id: course_offers.id, title: course_offers.title, price: course_offers.price, currency: course_offers.currency, mode: course_offers.mode }).from(course_offers)
-      .innerJoin(courses, eq(courses.id, course_offers.course_id)).where(and(eq(course_offers.course_id, query.course_id), eq(course_offers.status, "Published"), eq(courses.status, "Published")))
+      .innerJoin(courses, eq(courses.id, course_offers.course_id)).where(and(eq(course_offers.course_id, query.course_id), eq(course_offers.status, "Published"), eq(courses.status, "Published"), sql`${courses.deleted_at} is null`))
     const batches = await ctx.db.select({ id: cohort_batches.id, offer_id: cohort_batches.offer_id, name: cohort_batches.name, starts_at: cohort_batches.starts_at, timezone: cohort_batches.timezone }).from(cohort_batches)
       .where(and(eq(cohort_batches.course_id, query.course_id), sql`(${cohort_batches.lifecycle} in ('Recruiting','Ready','Scheduled') or (${cohort_batches.lifecycle}='Running' and ${cohort_batches.allow_late_join}=true))`,
         sql`(${cohort_batches.registration_deadline} is null or ${cohort_batches.registration_deadline}>now() or (${cohort_batches.lifecycle}='Running' and ${cohort_batches.allow_late_join}=true))`))

@@ -12,7 +12,7 @@ interface Props {
   existingCourses?: AdminCourse[]; onSuccess?: () => void
 }
 type Asset = { id: string; state: string; error?: string | null; duration_seconds?: number; created_at: string }
-type Lesson = { id: string; title: string }
+type Lesson = { id: string; title: string; type: string }
 type Detail = { asset: Asset; variants: { quality: string; url: string }[] }
 
 export default function VideoCourseUploadModal(props: Props) {
@@ -22,6 +22,7 @@ export default function VideoCourseUploadModal(props: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [assets, setAssets] = useState<Asset[]>([])
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [replaceLessonId, setReplaceLessonId] = useState("")
   const [lessonId, setLessonId] = useState("")
   const [assetId, setAssetId] = useState("")
   const [detail, setDetail] = useState<Detail | null>(null)
@@ -34,7 +35,7 @@ export default function VideoCourseUploadModal(props: Props) {
     if (!courseId) { setAssets([]); setLessons([]); return }
     let active = true
     Promise.all([api.get<{ assets: Asset[] }>(`/admin/media?courseId=${encodeURIComponent(courseId)}`), api.get<{ lessons: Lesson[] }>(`/admin/courses/${courseId}`)])
-      .then(([media, course]) => { if (active) { setAssets(media.assets); setLessons(course.lessons) } })
+      .then(([media, course]) => { if (active) { setAssets(media.assets); setLessons(course.lessons.filter(l => l.type === "video")) } })
       .catch(e => { if (active) setError(e.message) })
     return () => { active = false }
   }, [courseId])
@@ -45,7 +46,7 @@ export default function VideoCourseUploadModal(props: Props) {
     let timeout: ReturnType<typeof setTimeout>
     const poll = async () => {
       try {
-        const data = await api.get<Detail>(`/admin/media/${assetId}`)
+        const data = await api.get<Detail>(`/admin/media/${assetId}`, { bypassCache: true })
         if (!active) return
         setDetail(data)
         if (["queued", "processing"].includes(data.asset.state)) timeout = setTimeout(poll, 3000)
@@ -64,10 +65,13 @@ export default function VideoCourseUploadModal(props: Props) {
         const data = await api.post<{ course: AdminCourse }>("/admin/courses", { title, instructor, category: "General", status: "Draft" })
         target = data.course.id; setCourseId(target); props.onCourseCreated?.(data.course)
       }
-      let moduleId = props.initialCourseId === target ? props.initialModuleId : undefined
-      if (!moduleId) moduleId = (await api.post<{ module: { id: string } }>(`/admin/courses/${target}/modules`, { title })).module.id
-      const created = await api.post<{ lesson: Lesson }>(`/admin/courses/${target}/lessons`, { moduleId, title, type: "video" })
-      setLessonId(created.lesson.id); setLessons(previous => [...previous.filter(l => l.id !== created.lesson.id), created.lesson])
+      if (replaceLessonId) setLessonId(replaceLessonId)
+      else {
+        let moduleId = props.initialCourseId === target ? props.initialModuleId : undefined
+        if (!moduleId) moduleId = (await api.post<{ module: { id: string } }>(`/admin/courses/${target}/modules`, { title })).module.id
+        const created = await api.post<{ lesson: Lesson }>(`/admin/courses/${target}/lessons`, { moduleId, title, type: "video" })
+        setLessonId(created.lesson.id); setLessons(previous => [...previous.filter(l => l.id !== created.lesson.id), created.lesson])
+      }
       const data = await api.post<{ asset: Asset; upload: { url: string; method: string; headers: Record<string, string> } }>("/admin/media/uploads", {
         courseId: target, filename: file.name, contentType: file.type || "video/mp4", bytes: file.size,
       })
@@ -97,13 +101,14 @@ export default function VideoCourseUploadModal(props: Props) {
   return <Dialog open={props.open} onOpenChange={open => { if (!busy) props.onOpenChange(open) }}>
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle className="flex items-center gap-2"><Film className="h-5 w-5 text-primary" /> Course video</DialogTitle>
-        <DialogDescription>Upload a video, review the processed result, then attach it to a lesson.</DialogDescription></DialogHeader>
+        <DialogDescription>Upload a video, review the processed result, then attach it to a lesson. Replacements preserve lesson progress and the previous content history.</DialogDescription></DialogHeader>
       <div className="space-y-5 py-2">
         <label className="block space-y-2 text-sm font-medium">Course
           <select className={selectClass} value={courseId} disabled={busy || !!props.initialCourseId} onChange={e => { setCourseId(e.target.value); setAssetId(""); setDetail(null); setLessonId("") }}>
             <option value="">Create a draft course</option>{props.existingCourses?.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select></label>
         {!courseId && <label className="block space-y-2 text-sm font-medium">Instructor<Input value={instructor} onChange={e => setInstructor(e.target.value)} /></label>}
+        {courseId && lessons.length > 0 && <label className="block space-y-2 text-sm font-medium">Upload destination<select className={selectClass} value={replaceLessonId} disabled={busy} onChange={e => { setReplaceLessonId(e.target.value); const lesson = lessons.find(l => l.id === e.target.value); if (lesson) setTitle(lesson.title) }}><option value="">Create a new video lesson</option>{lessons.map(l => <option key={l.id} value={l.id}>Replace video: {l.title}</option>)}</select></label>}
         <label className="block space-y-2 text-sm font-medium">Lesson title<Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Building your first AI workflow" /></label>
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-7 text-center">
           <Upload className="h-6 w-6 text-primary" /><span className="text-sm font-medium">{file?.name ?? "Choose a video"}</span>

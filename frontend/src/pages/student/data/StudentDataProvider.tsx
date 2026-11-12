@@ -118,8 +118,8 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
         await reloadCoreResource()
       },
       enroll: async (course) => {
-        const at = await actions.enroll(course.id)
-        patch((r) => ({ ...r, enrollments: { ...r.enrollments, [course.id]: at } }))
+        await actions.enroll(course.id)
+        await reloadCoreResource()
         refreshName("grades")
       },
       // Optimistic: the lesson flips at once and flips back if the server refuses. Calls run one at a time so quick

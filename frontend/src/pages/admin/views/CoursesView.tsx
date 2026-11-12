@@ -179,10 +179,10 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
     const target = deletingCourse
     try {
       await deleteCourse(target.id)
-      onToast(`Deleted course "${target.title}"`)
+      onToast(`Archived course "${target.title}"`)
       setDeletingCourse(null)
     } catch (err) {
-      onToast(err instanceof Error ? err.message : "Could not delete course.")
+      onToast(err instanceof Error ? err.message : "Could not archive course.")
     }
   }
 
@@ -412,8 +412,8 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
                 <Trash2 className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <DialogTitle>Delete this course?</DialogTitle>
-                <DialogDescription>This removes its curriculum, modules and lessons. It can't be undone.</DialogDescription>
+                <DialogTitle>Archive this course?</DialogTitle>
+                <DialogDescription>This closes enrollment and removes the course from the admin list. Existing learners, content and progress are retained.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -430,7 +430,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
               Cancel
             </Button>
             <Button type="button" variant="danger" onClick={handleDelete}>
-              Delete course
+              Archive course
             </Button>
           </DialogFooter>
         </DialogContent>

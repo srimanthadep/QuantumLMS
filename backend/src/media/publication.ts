@@ -1,11 +1,11 @@
-import { eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { Tx } from "../db/client.js"
 import { course_modules, lessons, media_assets, media_variants } from "../db/schema.js"
 import { badRequest } from "../errors.js"
 
 export async function assertPublishable(db: Tx, courseId: string) {
-  const modules = await db.select().from(course_modules).where(eq(course_modules.course_id, courseId))
-  const content = await db.select().from(lessons).where(eq(lessons.course_id, courseId))
+  const modules = await db.select().from(course_modules).where(and(eq(course_modules.course_id, courseId), sql`${course_modules.archived_at} is null`))
+  const content = await db.select().from(lessons).where(and(eq(lessons.course_id, courseId), sql`${lessons.archived_at} is null`))
   if (!modules.length || !content.length || modules.some(m => !content.some(l => l.module_id === m.id))) throw badRequest("Every published course needs modules with lessons")
   for (const lesson of content) {
     if (!modules.some(m => m.id === lesson.module_id)) throw badRequest("A lesson belongs to a different course module")

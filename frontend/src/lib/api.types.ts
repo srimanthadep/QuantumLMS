@@ -207,6 +207,7 @@ export interface Rows {
     mime_type: string | null
   }
   course_modules: {
+    archived_at: string | null
     id: string
     course_id: string
     position: number
@@ -248,6 +249,7 @@ export interface Rows {
     assigned_at: string
   }
   courses: {
+    deleted_at: string | null
     id: string
     code: string
     title: string
@@ -383,7 +385,16 @@ export interface Rows {
     course_id: string
     completed_at: string
   }
+  lesson_revisions: {
+    id: string
+    lesson_id: string
+    actor_id: string | null
+    action: string
+    snapshot: Json
+    created_at: string
+  }
   lessons: {
+    archived_at: string | null
     id: string
     module_id: string
     course_id: string

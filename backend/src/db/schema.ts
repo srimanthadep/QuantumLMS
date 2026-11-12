@@ -86,6 +86,7 @@ export const profiles = lms.table("profiles", {
 ]);
 
 export const courses = lms.table("courses", {
+  deleted_at: timestamp({ withTimezone: true }),
   id: text().primaryKey().notNull(),
   code: text().notNull(),
   title: text().notNull(),
@@ -117,6 +118,7 @@ export const courses = lms.table("courses", {
 ]);
 
 export const course_modules = lms.table("course_modules", {
+  archived_at: timestamp({ withTimezone: true }),
   id: text().primaryKey().notNull(),
   course_id: text().notNull(),
   position: integer().notNull(),
@@ -133,6 +135,7 @@ export const course_modules = lms.table("course_modules", {
 ]);
 
 export const lessons = lms.table("lessons", {
+  archived_at: timestamp({ withTimezone: true }),
   id: text().primaryKey().notNull(),
   module_id: text().notNull(),
   course_id: text().notNull(),
@@ -1387,3 +1390,9 @@ export const refunds = lms.table("refunds", {
   status: text().notNull().default("pending"), attempts: integer().notNull().default(0), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
   available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), confirmed_at: timestamp({ withTimezone: true }),
 }, t => [index("refund_queue_idx").on(t.status, t.available_at)]);
+
+export const lesson_revisions = lms.table("lesson_revisions", {
+  id: text().primaryKey(), lesson_id: text().notNull().references(() => lessons.id, { onDelete: "cascade" }),
+  actor_id: uuid().references(() => users.id, { onDelete: "set null" }), action: text().notNull(), snapshot: jsonb().notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [index("lesson_revision_history_idx").on(t.lesson_id, t.created_at)]);

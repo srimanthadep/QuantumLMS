@@ -105,9 +105,13 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     return { ok: true, time: new Date().toISOString() }
   })
 
-  app.get("/api/catalog/courses", async () => ({ courses: await ctx.db.select({ id: courses.id, code: courses.code, title: courses.title,
-    category: courses.category, image: courses.image, description: courses.description, instructor: courses.instructor,
-    level: courses.level, duration: courses.duration, price: courses.price }).from(courses).where(eq(courses.status, "Published")) }))
+  app.get("/api/catalog/courses", async () => ({ courses: (await ctx.db.execute(sql`select c.id,c.code,c.title,c.category,c.image,c.description,c.instructor,c.instructor_role,c.level,c.credits,c.duration,c.rating,c.reviews,c.progress_color,
+    (select min(price) from lms.course_offers o where o.course_id=c.id and o.status='Published') as price,
+    (select count(*)::int from lms.course_modules m where m.course_id=c.id and m.archived_at is null) as modules_count,
+    (select count(*)::int from lms.lessons l where l.course_id=c.id and l.archived_at is null) as lessons_count
+    from lms.courses c where c.status='Published' and c.deleted_at is null
+    and exists(select 1 from lms.course_offers o where o.course_id=c.id and o.status='Published') order by c.position,c.title`)).rows }))
+
 
   app.get("/api/me", { preHandler: authenticate(ctx) }, async (req) => {
     const u = me(req)

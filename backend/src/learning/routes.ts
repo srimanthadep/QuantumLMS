@@ -1,3 +1,4 @@
+import { lockCourse } from "./content.js"
 import { provider, queueRefund } from "../payments/service.js"
 import { localDay } from "../lib/time.js"
 import { randomUUID } from "node:crypto"
@@ -29,10 +30,13 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
     const patch = parse(z.object({ title: z.string().min(2).max(150).optional(), price: z.number().int().min(0).max(10_000_000).optional(),
       status: z.enum(["Draft", "Published", "Archived"]).optional(), completion_policy: policy.optional() }), req.body)
     const offer = await db.transaction(async tx => {
+      const [hint] = await tx.select().from(course_offers).where(eq(course_offers.id, req.params.id))
+      if (!hint) throw notFound("Offer not found")
+      await lockCourse(tx, hint.course_id)
       const [current] = await tx.select().from(course_offers).where(eq(course_offers.id, req.params.id)).for("update")
       if (!current) throw notFound("Offer not found")
       if (patch.status === "Published") {
-        await tx.select().from(courses).where(eq(courses.id, current.course_id)).for("update")
+        await lockCourse(tx, current.course_id)
         if (current.mode === "self_paced") await assertPublishable(tx, current.course_id)
         await tx.update(courses).set({ status: "Published" }).where(eq(courses.id, current.course_id))
       }
