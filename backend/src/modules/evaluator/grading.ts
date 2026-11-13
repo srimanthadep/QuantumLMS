@@ -1,3 +1,4 @@
+import { enqueueCompletion, lockAcademicRecord } from "../../completion/service.js"
 import { and, asc, eq, inArray, sql } from "drizzle-orm"
 import type { Tx } from "../../db/client.js"
 import { assignment_submissions, assignments, evaluations, evaluator_assignments, rubric_criteria, rubrics } from "../../db/schema.js"
@@ -147,6 +148,7 @@ export async function releaseEvaluation(tx: Tx, evaluationId: string, now = new 
   const [a] = await tx.select().from(assignments).where(eq(assignments.id, s.assignment_id)).limit(1)
   const rubric = await rubricFor(tx, s.assignment_id)
   if (!a || !rubric) return null
+  await lockAcademicRecord(tx,s.student_id,a.course_id)
   const score = scaled(e.total, rubric.max_points, a.max_marks)
   const grade = letterGrade((score * 100) / a.max_marks)
   await tx.update(evaluations).set({ status: "released", released_at: now, updated_at: now }).where(eq(evaluations.id, e.id))
@@ -155,5 +157,6 @@ export async function releaseEvaluation(tx: Tx, evaluationId: string, now = new 
     .set({ status: "Graded", score, grade, feedback: e.feedback, graded_at: now })
     .where(eq(assignment_submissions.id, s.id))
   await notify(tx, s.student_id, "grade", "Assignment graded", `${a.title} · ${score}/${a.max_marks} (${grade})`, "assessments")
+  await enqueueCompletion(tx,s.student_id,a.course_id)
   return score
 }

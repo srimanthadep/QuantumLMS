@@ -166,6 +166,9 @@ export interface AttendanceSubject {
 }
 
 export interface AssignmentData {
+  contextName?: string
+  attemptsUsed?: number
+  maxAttempts?: number
   id: string
   title: string
   course: string

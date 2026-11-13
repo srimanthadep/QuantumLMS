@@ -48,10 +48,50 @@ export interface Rows {
     value: Json
     updated_at: string
   }
+  assessment_definition_versions: {
+    id: string
+    definition_id: string
+    version: number
+    snapshot: Json
+    created_at: string
+  }
+  assessment_definitions: {
+    id: string
+    course_id: string
+    kind: string
+    title: string
+    description: string
+    version: number
+    status: string
+    config: Json
+    created_by: string | null
+    updated_at: string
+  }
+  assessment_offerings: {
+    id: string
+    definition_id: string | null
+    definition_version: number | null
+    course_id: string
+    batch_id: string | null
+    offer_id: string | null
+    context: string
+    title: string
+    quiz_id: string | null
+    assignment_id: string | null
+    required: boolean
+    passing_pct: number
+    max_attempts: number
+    available_from: string | null
+    due_at: string | null
+    days_after_enrollment: number | null
+    status: string
+    created_at: string
+  }
   assignment_submissions: {
     id: string
     student_id: string
     assignment_id: string
+    attempt_number: number
     status: string
     repo_url: string | null
     comments: string | null
@@ -190,6 +230,59 @@ export interface Rows {
     like_count: number
     reply_count: number
     created_at: string
+  }
+  completion_checks: {
+    student_id: string
+    course_id: string
+    requested_version: number
+    processed_version: number
+    error: string | null
+    available_at: string
+  }
+  completion_credentials: {
+    id: string
+    completion_id: string | null
+    student_id: string
+    course_id: string | null
+    credential_id: string
+    title: string
+    course_title: string
+    grade: string
+    skills: string[]
+    issued_at: string
+    revoked_at: string | null
+    revocation_reason: string | null
+    replaces_id: string | null
+    issue_reason: string
+  }
+  completion_events: {
+    id: string
+    completion_id: string
+    kind: string
+    processed_at: string | null
+    created_at: string
+  }
+  completion_policies: {
+    id: string
+    course_id: string
+    context_key: string
+    version: number
+    rules: Json
+    created_by: string | null
+    created_at: string
+  }
+  completions: {
+    id: string
+    student_id: string
+    course_id: string
+    context_key: string
+    batch_id: string | null
+    offer_id: string | null
+    revision: number
+    policy_id: string
+    policy_snapshot: Json
+    evidence: Json
+    completed_at: string
   }
   course_materials: {
     id: string

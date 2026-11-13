@@ -4,7 +4,7 @@ import { z } from "zod"
 import { invalidateUserCache, type AuthUser } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import type { Tx } from "../../db/client.js"
-import { evaluator_assignments, evaluator_profiles, rubrics, users } from "../../db/schema.js"
+import { evaluator_profiles, users } from "../../db/schema.js"
 import { seedContent } from "../../db/seed/index.js"
 import { seedEvaluatorDemo } from "../../db/seed/evaluator.js"
 import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
@@ -33,14 +33,9 @@ const preferencesInput = z
   .partial()
   .strict()
 
-/**
- * A new evaluator: a profile, and every assignment that has a rubric to mark. (Admins will assign work per
- * evaluator once that screen exists.) The shared demo evaluator gets the demo marking history instead.
- */
+/** Provision the profile only. Assessment access requires an explicit admin allocation. */
 export async function onboardEvaluator(tx: Tx, user: AuthUser, ctx: Pick<AppContext, "config"> & { storage?: Storage }) {
   await tx.insert(evaluator_profiles).values({ id: user.id }).onConflictDoNothing()
-  const marked = await tx.select({ id: rubrics.assignment_id }).from(rubrics)
-  if (marked.length) await tx.insert(evaluator_assignments).values(marked.map((m) => ({ evaluator_id: user.id, assignment_id: m.id }))).onConflictDoNothing()
 }
 
 async function profileView(db: Tx, user: AuthUser) {

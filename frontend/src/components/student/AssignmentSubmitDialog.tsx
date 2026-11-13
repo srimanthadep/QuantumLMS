@@ -49,7 +49,7 @@ export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }
       return
     }
     // A resubmission may keep the file that was uploaded before.
-    if (!url && !file && !shown.uploadedFileName) {
+    if (!url && !file && (shown.status === "Graded" || !shown.uploadedFileName)) {
       setFormError("Add a repository link or attach a file.")
       return
     }
@@ -162,7 +162,7 @@ export default function AssignmentSubmitDialog({ assignment, onClose, onSubmit }
                   </motion.div>
                 )}
               </AnimatePresence>
-              {!file && shown.uploadedFileName && (
+              {!file && shown.status !== "Graded" && shown.uploadedFileName && (
                 <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
                   <FileArchive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span className="truncate">Current file: {shown.uploadedFileName}. Attach a new one to replace it.</span>

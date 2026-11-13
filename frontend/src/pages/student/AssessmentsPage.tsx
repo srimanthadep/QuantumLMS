@@ -376,6 +376,7 @@ function Assignments({
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                      {a.status === "Graded" && (a.attemptsUsed??1)<(a.maxAttempts??1) && <Button size="sm" onClick={()=>onSubmit(a)}>New attempt</Button>}
                       {a.status === "Graded" && (
                         <ProgressRing value={a.score ?? 0} size={46} thickness={4} tone="success" label={`Score ${a.score}%`}>
                           <span className="text-[11px] font-semibold tabular-nums text-foreground">{a.grade}</span>

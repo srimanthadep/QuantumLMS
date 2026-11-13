@@ -37,11 +37,15 @@ describe("access", () => {
     assert.equal((await student.call("GET", "/api/evaluator/queue")).status, 403)
   })
 
-  test("a new evaluator gets a profile and every assignment that has a rubric", async () => {
+  test("a new evaluator has no marking access until explicitly allocated", async () => {
     const p = await e1.call("GET", "/api/evaluator/profile")
     assert.equal(p.status, 200, JSON.stringify(p.body))
     assert.equal(p.body.title, "Evaluator")
-    assert.deepEqual(p.body.assigned.map((a: { id: string }) => a.id).sort(), ["asg-1", "asg-2", "asg-3", "asg-4", "asg-5"])
+    assert.deepEqual(p.body.assigned, [])
+    for(const evaluator of [e1,e2]) {
+      const id=(await evaluator.call("GET","/api/me")).body.id
+      await h.ctx.db.insert(evaluator_assignments).values(["asg-1","asg-2","asg-3","asg-4","asg-5"].map(assignment_id=>({evaluator_id:id,assignment_id})))
+    }
     assert.equal(p.body.preferences.daily_goal, 8)
   })
 

@@ -105,6 +105,7 @@ export class AppStack extends Stack {
           REPLAY_ENABLED: String(props.replayEnabled ?? true),
           ZOOM_RECORDING_WEBHOOK_ENABLED: String(props.zoomWebhookEnabled ?? false),
           PAYMENT_RESERVATION_MINUTES: String(props.paymentReservationMinutes ?? 15),
+          COMPLETION_SWEEP_SECONDS: "30",
           SCHEDULE_SWEEP_SECONDS: String(props.scheduleSweepSeconds ?? 60),
           PAYMENT_SWEEP_SECONDS: String(props.paymentSweepSeconds ?? 30),
           PAYMENT_HTTP_TIMEOUT_MS: String(props.paymentHttpTimeoutMs ?? 15000),

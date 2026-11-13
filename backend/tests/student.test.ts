@@ -94,15 +94,17 @@ describe("courses", () => {
     assert.deepEqual([after.minutes, after.lessons], [0, 0])
   })
 
-  test("progress needs an enrollment; finishing a course issues its certificate", async () => {
+  test("progress needs an enrollment; policy checks issue a certificate separately", async () => {
     assert.equal((await a.call("POST", "/api/student/lessons/cat-1-m1-l1/complete", { done: true })).status, 403)
     assert.equal((await a.call("POST", "/api/student/enrollments", { course_id: "cat-1" })).status, 200)
     const lessons = (await a.call("GET", "/api/student/core")).body.lessons.filter((l: { course_id: string }) => l.course_id === "cat-1")
     let last
     for (const l of lessons) last = await a.call("POST", `/api/student/lessons/${l.id}/complete`, { done: true })
     assert.equal(last!.body.completed, lessons.length)
-    assert.equal(last!.body.certificate.status, "Earned")
-    assert.match(last!.body.certificate.credential_id, /^QAI-[0-9A-F]{10}-PE$/)
+    assert.equal(last!.body.certificate, null)
+    const checked=await a.call("POST","/api/student/completion/check",{course_id:"cat-1"})
+    assert.equal(checked.status,200,JSON.stringify(checked.body))
+    assert.ok(checked.body.results.some((r:{credential:{credential_id:string}|null})=>r.credential?.credential_id.startsWith("QAI-")))
     assert.equal((await a.call("GET", "/api/student/notifications")).body[0].title, "Certificate earned")
   })
 

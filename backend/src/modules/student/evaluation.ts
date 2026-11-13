@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
@@ -33,7 +33,7 @@ export async function evaluationRoutes(app: FastifyInstance, ctx: AppContext) {
       .select()
       .from(assignment_submissions)
       .where(and(eq(assignment_submissions.student_id, s.id), eq(assignment_submissions.assignment_id, req.params.id)))
-      .limit(1)
+      .orderBy(desc(assignment_submissions.attempt_number)).limit(1)
     if (!sub || sub.status !== "Graded") throw notFound("This assignment hasn't been graded yet.")
     const [[a], [ev], rubric, [request]] = await Promise.all([
       db.select().from(assignments).where(eq(assignments.id, sub.assignment_id)).limit(1),
@@ -71,7 +71,7 @@ export async function evaluationRoutes(app: FastifyInstance, ctx: AppContext) {
     return db.transaction(async (tx) => {
       const res = await tx.execute(sql`
         select id, status, score, graded_at from lms.assignment_submissions
-        where student_id = ${s.id}::uuid and assignment_id = ${req.params.id} for update`)
+        where student_id = ${s.id}::uuid and assignment_id = ${req.params.id} order by attempt_number desc limit 1 for update`)
       const sub = res.rows[0] as { id: string; status: string; score: number | null; graded_at: Date | null } | undefined
       if (!sub) throw notFound("You haven't submitted this assignment.")
       if (sub.status !== "Graded" || sub.score === null) throw badRequest("You can ask for a re-evaluation once the grade is released.", "not_graded")

@@ -311,6 +311,7 @@ export const assignment_submissions = lms.table("assignment_submissions", {
   id: uuid().defaultRandom().primaryKey().notNull(),
   student_id: uuid().notNull(),
   assignment_id: text().notNull(),
+  attempt_number: integer().notNull().default(1),
   status: text().default('Submitted').notNull(),
   repo_url: text(),
   comments: text(),
@@ -333,7 +334,8 @@ export const assignment_submissions = lms.table("assignment_submissions", {
       foreignColumns: [profiles.id],
       name: "assignment_submissions_student_id_fkey"
     }).onDelete("cascade"),
-  unique("assignment_submissions_student_id_assignment_id_key").on(table.student_id, table.assignment_id),
+  unique("assignment_submissions_student_assignment_attempt_key").on(table.student_id, table.assignment_id, table.attempt_number),
+  check("assignment_submission_attempt_positive", sql`${table.attempt_number} > 0`),
   check("assignment_submissions_comments_check", sql`char_length(comments) <= 4000`),
   check("assignment_submissions_score_check", sql`score >= 0`),
   // Submitted -> Under Review (an evaluator started) -> Graded (the evaluation was released).
@@ -1449,3 +1451,51 @@ export const recording_provider_events = lms.table("recording_provider_events", 
   meeting_id: text().notNull(), meeting_uuid: text().notNull(), file_id: text().notNull(), title: text().notNull(), recording_start: timestamp({ withTimezone: true }),
   state: text().notNull().default("Awaiting upload"), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Reusable authoring drafts. Published offerings contain immutable grading instances. */
+export const assessment_definitions = lms.table("assessment_definitions", {
+  id: uuid().defaultRandom().primaryKey(), course_id: text().notNull().references(() => courses.id),
+  kind: text().notNull(), title: text().notNull(), description: text().notNull().default(""),
+  version: integer().notNull().default(1), status: text().notNull().default("Draft"), config: jsonb().notNull().default({}),
+  created_by: uuid().references(() => users.id, { onDelete: "set null" }), updated_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+}, t => [check("assessment_definition_kind",sql`${t.kind} in ('quiz','assignment')`),check("assessment_definition_status",sql`${t.status} in ('Draft','Published','Archived')`)]);
+export const assessment_definition_versions = lms.table("assessment_definition_versions", {
+  id: uuid().defaultRandom().primaryKey(), definition_id: uuid().notNull().references(() => assessment_definitions.id), version: integer().notNull(),
+  snapshot: jsonb().notNull(), created_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+}, t => [unique("assessment_definition_version_key").on(t.definition_id,t.version)]);
+export const assessment_offerings = lms.table("assessment_offerings", {
+  id: uuid().defaultRandom().primaryKey(), definition_id: uuid().references(() => assessment_definitions.id), definition_version: integer(),
+  course_id: text().notNull().references(() => courses.id), batch_id: text().references(() => cohort_batches.id), offer_id: text().references(() => course_offers.id),
+  context: text().notNull(), title: text().notNull(), quiz_id: text().references(() => quizzes.id), assignment_id: text().references(() => assignments.id),
+  required: boolean().notNull().default(true), passing_pct: integer().notNull().default(40), max_attempts: integer().notNull().default(1),
+  available_from: timestamp({withTimezone:true}), due_at: timestamp({withTimezone:true}), days_after_enrollment: integer(),
+  status: text().notNull().default("Published"), created_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+}, t => [unique("assessment_offering_quiz_key").on(t.quiz_id),unique("assessment_offering_assignment_key").on(t.assignment_id),
+  check("assessment_offering_instance",sql`(${t.quiz_id} is not null)::int + (${t.assignment_id} is not null)::int = 1`),
+  check("assessment_offering_context",sql`(${t.context}='batch' and ${t.batch_id} is not null and ${t.offer_id} is null) or (${t.context}='self_paced' and ${t.offer_id} is not null and ${t.batch_id} is null) or (${t.context}='legacy' and ${t.offer_id} is null and ${t.batch_id} is null)`),
+  check("assessment_offering_limits",sql`${t.passing_pct} between 0 and 100 and ${t.max_attempts} between 1 and 20 and (${t.days_after_enrollment} is null or ${t.days_after_enrollment} between 1 and 3650)`),
+  check("assessment_offering_status",sql`${t.status} in ('Published','Archived')`),index("assessment_offering_context_idx").on(t.course_id,t.batch_id,t.offer_id)]);
+export const completion_policies = lms.table("completion_policies", {
+  id: uuid().defaultRandom().primaryKey(), course_id: text().notNull().references(() => courses.id), context_key: text().notNull(),
+  version: integer().notNull(), rules: jsonb().notNull(), created_by: uuid().references(() => users.id,{onDelete:"set null"}), created_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("completion_policy_version_key").on(t.context_key,t.version)]);
+export const completions = lms.table("completions", {
+  id: uuid().defaultRandom().primaryKey(), student_id: uuid().notNull().references(()=>users.id,{onDelete:"cascade"}), course_id: text().notNull().references(()=>courses.id),
+  context_key: text().notNull(), batch_id: text().references(()=>cohort_batches.id), offer_id: text().references(()=>course_offers.id), revision: integer().notNull().default(1),
+  policy_id: uuid().notNull().references(()=>completion_policies.id), policy_snapshot: jsonb().notNull(), evidence: jsonb().notNull(), completed_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("completion_student_context_revision_key").on(t.student_id,t.context_key,t.revision)]);
+export const completion_credentials = lms.table("completion_credentials", {
+  id: uuid().defaultRandom().primaryKey(), completion_id: uuid().references(()=>completions.id), student_id: uuid().notNull().references(()=>users.id,{onDelete:"cascade"}),
+  course_id: text().references(()=>courses.id), credential_id: text().notNull(), title: text().notNull(), course_title: text().notNull(), grade: text().notNull().default("Completed"),
+  skills: text().array().notNull().default(sql`'{}'::text[]`), issued_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+  revoked_at: timestamp({withTimezone:true}), revocation_reason: text(), replaces_id: uuid(), issue_reason: text().notNull().default("Policy satisfied"),
+},t=>[unique("completion_credential_identifier_key").on(t.credential_id),unique("completion_credential_completion_key").on(t.completion_id),
+  unique("completion_credential_replaces_key").on(t.replaces_id),foreignKey({columns:[t.replaces_id],foreignColumns:[t.id]}),index("completion_credential_student_idx").on(t.student_id)]);
+export const completion_checks = lms.table("completion_checks", {
+  student_id: uuid().notNull().references(()=>users.id,{onDelete:"cascade"}), course_id: text().notNull().references(()=>courses.id,{onDelete:"cascade"}),
+  requested_version: integer().notNull().default(1), processed_version: integer().notNull().default(0), error: text(), available_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[primaryKey({columns:[t.student_id,t.course_id]})]);
+export const completion_events = lms.table("completion_events", {
+  id: uuid().defaultRandom().primaryKey(), completion_id: uuid().notNull().references(()=>completions.id), kind: text().notNull(),
+  processed_at: timestamp({withTimezone:true}), created_at: timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("completion_event_kind_key").on(t.completion_id,t.kind)]);

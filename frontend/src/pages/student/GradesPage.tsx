@@ -1,3 +1,4 @@
+import CompletionProgress from "@/components/live/CompletionProgress"
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Award, BookOpen, Download, Eye, GraduationCap, Medal, Percent, ScrollText, TrendingUp } from "lucide-react"
@@ -367,6 +368,7 @@ export default function GradesPage({ onToast, initialView = "grades", onNavigate
         </TabsContent>
 
         <TabsContent value="certificates" className="mt-5">
+          <div className="mb-5"><CompletionProgress /></div>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge tone="success">{earned.length} earned</Badge>
             <Badge tone="neutral">{certificates.length - earned.length} in progress</Badge>

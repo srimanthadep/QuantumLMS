@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { after, before, test } from "node:test"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { createHarness, type TestHarness, type TestUser } from "./helpers.js"
 import { courses, course_offers, entitlement_grants, seat_reservations, lessons, lesson_progress, lesson_revisions, media_assets, media_variants, orders, payments, refunds } from "../src/db/schema.js"
 import { reconcilePayment } from "../src/payments/service.js"
@@ -13,7 +13,7 @@ before(async () => {
   admin = await h.user({ groups: ["admins"] }); learner = await h.user(); outsider = await h.user()
   authorId = (await admin.call("GET", "/api/me")).body.id; studentId = (await learner.call("GET", "/api/me")).body.id
 })
-after(async () => { try { await h.ctx.db.delete(refunds); await h.ctx.db.delete(payments); await h.ctx.db.delete(orders); await h.ctx.db.delete(seat_reservations); await h.ctx.db.delete(entitlement_grants); await h.ctx.db.delete(course_offers); await h.ctx.db.delete(courses) } finally { await h.close() } })
+after(async () => { try { await h.ctx.db.execute(sql`delete from lms.completion_events`);await h.ctx.db.execute(sql`delete from lms.completion_credentials`);await h.ctx.db.execute(sql`delete from lms.completions`);await h.ctx.db.execute(sql`delete from lms.completion_policies`); await h.ctx.db.delete(refunds); await h.ctx.db.delete(payments); await h.ctx.db.delete(orders); await h.ctx.db.delete(seat_reservations); await h.ctx.db.delete(entitlement_grants); await h.ctx.db.delete(course_offers); await h.ctx.db.delete(courses) } finally { await h.close() } })
 
 test("an empty install can author and publish a self-paced offer without seeded curriculum", async () => {
   const created = await admin.call("POST", "/api/admin/courses", { title: "Fresh course", category: "Testing", instructor: "Real teacher" }); assert.equal(created.status, 201); course = created.body.course.id
@@ -57,7 +57,8 @@ test("reordering uses stable IDs, rejects partial/cross-course orders, and prese
 
 test("ready video replacement is atomic, retains history/progress, and closes enrollment for review", async () => {
   const completed = await learner.call("POST", `/api/student/lessons/${second}/complete`, { done: true })
-  assert.equal(completed.status, 200); assert.equal(completed.body.certificate?.status, "Earned", "new content can complete without any seeded credential")
+  assert.equal(completed.status, 200); assert.equal(completed.body.certificate, null)
+  const checked=await learner.call("POST","/api/student/completion/check",{course_id:course});assert.equal(checked.status,200,JSON.stringify(checked.body));assert.ok(checked.body.results[0].credential?.credential_id,"new content completes through the policy service without seeded credentials")
   const before = (await h.ctx.db.select().from(lessons).where(eq(lessons.id, second)))[0]
   const asset = randomUUID(), key = `videos/assets/${asset}/720p.mp4`
   await h.ctx.storage.put(key, Buffer.from("replacement"), "video/mp4")

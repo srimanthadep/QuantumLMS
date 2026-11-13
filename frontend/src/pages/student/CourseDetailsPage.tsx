@@ -1,3 +1,4 @@
+import CompletionProgress from "@/components/live/CompletionProgress"
 import RecordingLibrary from "@/components/live/RecordingLibrary"
 import { useCallback, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -330,7 +331,8 @@ function CourseView({
             </TabsList>
 
             <TabsContent value="replays" className="mt-5"><RecordingLibrary role="Student" courseId={course.id} /></TabsContent>
-            <TabsContent value="overview" className="mt-5">
+            <TabsContent value="overview" className="mt-5 space-y-5">
+              <CompletionProgress courseId={course.id} />
               <Overview course={course} modules={modules.map((m) => ({ title: m.title, done: m.lessons.every((l) => completed.has(l.id)) }))} />
             </TabsContent>
             <TabsContent value="materials" className="mt-5">

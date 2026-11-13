@@ -1,3 +1,4 @@
+import AssessmentAuthoringPanel from "@/components/admin/AssessmentAuthoringPanel"
 import SelfPacedOfferPanel from "./courses/SelfPacedOfferPanel"
 import { useState, useEffect } from "react"
 import {
@@ -8,13 +9,8 @@ import {
   Video,
   FileText,
   Upload,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   File,
   Download,
-  ExternalLink,
   Sparkles,
   Layers,
   GraduationCap,
@@ -22,9 +18,6 @@ import {
   FileCode,
   Database,
   Presentation,
-  Check,
-  ChevronRight,
-  Loader2,
   ChevronDown,
   ChevronsUpDown,
   Settings2,
@@ -44,12 +37,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CustomSelect } from "@/components/ui/select"
-import { DatePicker } from "@/components/ui/date-picker"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { formatINR, seatPercent, themeFor, CATEGORIES, STATUSES } from "./courses/courseTheme"
-import { NavItem, PanelHeader, WorkspaceEmpty, dueInfo } from "./courses/WorkspaceParts"
+import { NavItem, PanelHeader, WorkspaceEmpty } from "./courses/WorkspaceParts"
 import LessonPlayer from "@/pages/student/course/LessonPlayer"
 import type { AdminCourse } from "@/data/adminStore"
 
@@ -116,16 +108,6 @@ interface MaterialItem {
   published_at?: string | null
 }
 
-interface AssignmentItem {
-  id: string
-  course_id: string
-  title: string
-  description: string
-  max_marks: number
-  priority: "High" | "Medium" | "Normal"
-  due_at: string
-}
-
 interface CourseEditorModalProps {
   course: AdminCourse | null
   open: boolean
@@ -156,7 +138,6 @@ export default function CourseEditorModal({
   const [modules, setModules] = useState<CourseModuleItem[]>([])
   const [lessons, setLessons] = useState<LessonRowItem[]>([])
   const [materials, setMaterials] = useState<MaterialItem[]>([])
-  const [assignmentsList, setAssignmentsList] = useState<AssignmentItem[]>([])
 
   // Course Settings Form
   const [editTitle, setEditTitle] = useState("")
@@ -203,27 +184,13 @@ export default function CourseEditorModal({
   const [matFile, setMatFile] = useState<File | null>(null)
   const [uploadingMat, setUploadingMat] = useState(false)
 
-  // Create Assignment State
-  const [isAddAssignmentOpen, setIsAddAssignmentOpen] = useState(false)
-  const [assignTitle, setAssignTitle] = useState("")
-  const [assignDesc, setAssignDesc] = useState("")
-  const [assignMarks, setAssignMarks] = useState(100)
-  const [assignPriority, setAssignPriority] = useState<"High" | "Medium" | "Normal">("Normal")
-  const [assignDueDate, setAssignDueDate] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() + 14)
-    return d.toISOString().split("T")[0]
-  })
-  const [savingAssignment, setSavingAssignment] = useState(false)
-  const [editingAssignment, setEditingAssignment] = useState<AssignmentItem | null>(null)
-
   // Load only persisted course content. Failed requests remain visible and retryable.
   const fetchDetails = async () => {
     if (!course) return
     setLoading(true); setLoadError("")
     try {
-      const res = await api.get<{ course: any; modules: CourseModuleItem[]; lessons: LessonRowItem[]; materials: MaterialItem[]; assignments: AssignmentItem[] }>(`/admin/courses/${course.id}`, { bypassCache: true })
-      setModules(res.modules); setLessons(res.lessons); setMaterials(res.materials); setAssignmentsList(res.assignments)
+      const res = await api.get<{ course: any; modules: CourseModuleItem[]; lessons: LessonRowItem[]; materials: MaterialItem[] }>(`/admin/courses/${course.id}`, { bypassCache: true })
+      setModules(res.modules); setLessons(res.lessons); setMaterials(res.materials)
       setOpenModules(new Set(res.modules.map(m => m.id)))
       setEditTitle(res.course.title); setEditCategory(res.course.category); setEditInstructor(res.course.instructor)
       setEditLevel(res.course.level); setEditDuration(res.course.duration); setEditDescription(res.course.description)
@@ -354,66 +321,6 @@ export default function CourseEditorModal({
     }
   }
 
-  // 4. Assignments Handlers
-  const handleSaveAssignment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!assignTitle.trim()) return
-    setSavingAssignment(true)
-
-    try {
-      if (editingAssignment) {
-        const res = await api.patch<{ ok: boolean; assignment: AssignmentItem }>(
-          `/admin/courses/${course.id}/assignments/${editingAssignment.id}`,
-          {
-            title: assignTitle.trim(),
-            description: assignDesc.trim(),
-            maxMarks: Number(assignMarks),
-            priority: assignPriority,
-            dueAt: new Date(assignDueDate).toISOString(),
-          }
-        )
-        if (res.assignment) {
-          setAssignmentsList((prev) => prev.map((a) => (a.id === editingAssignment.id ? res.assignment : a)))
-          onToast(`Updated assignment "${res.assignment.title}"`)
-          setEditingAssignment(null)
-        }
-      } else {
-        const res = await api.post<{ ok: boolean; assignment: AssignmentItem }>(
-          `/admin/courses/${course.id}/assignments`,
-          {
-            title: assignTitle.trim(),
-            description: assignDesc.trim(),
-            maxMarks: Number(assignMarks),
-            priority: assignPriority,
-            dueAt: new Date(assignDueDate).toISOString(),
-          }
-        )
-        if (res.assignment) {
-          setAssignmentsList((prev) => [...prev, res.assignment])
-          onToast(`Created assignment: "${res.assignment.title}"`)
-          setIsAddAssignmentOpen(false)
-          setAssignTitle("")
-          setAssignDesc("")
-        }
-      }
-    } catch (err: any) {
-      onToast(`Failed to save assignment: ${err.message}`)
-    } finally {
-      setSavingAssignment(false)
-    }
-  }
-
-  const handleDeleteAssignment = async (assignId: string, assignTitleStr: string) => {
-    if (!window.confirm(`Delete assignment "${assignTitleStr}"?`)) return
-    try {
-      await api.delete(`/admin/courses/${course.id}/assignments/${assignId}`)
-      setAssignmentsList((prev) => prev.filter((a) => a.id !== assignId))
-      onToast(`Deleted assignment "${assignTitleStr}"`)
-    } catch (err: any) {
-      onToast(`Failed to delete assignment: ${err.message}`)
-    }
-  }
-
   // 5. Course Details Save Handler
   const handleSaveCourseSettings = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -468,21 +375,12 @@ export default function CourseEditorModal({
   const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
     { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
     { id: "materials", label: "Materials", icon: FileText, count: materials.length },
-    { id: "assignments", label: "Assignments", icon: GraduationCap, count: assignmentsList.length },
+    { id: "assignments", label: "Assessments & completion", icon: GraduationCap },
     { id: "enrollment", label: "Enrollment & publishing", icon: GraduationCap },
     { id: "settings", label: "Course Settings", icon: Settings2 },
   ]
 
   const statusDot = editStatus === "Published" ? "bg-emerald-300" : editStatus === "Draft" ? "bg-amber-300" : "bg-slate-300"
-
-  const openNewAssignment = () => {
-    setEditingAssignment(null)
-    setAssignTitle("")
-    setAssignDesc("")
-    setAssignMarks(100)
-    setAssignPriority("Normal")
-    setIsAddAssignmentOpen(true)
-  }
 
   const handleLessonClick = (lesson: LessonRowItem, moduleTitle: string) => {
     if (lessonHasPlayableVideo(lesson)) {
@@ -946,89 +844,8 @@ export default function CourseEditorModal({
                   )}
 
                   {/* ---------- ASSIGNMENTS ---------- */}
-                  {activeTab === "assignments" && (
-                    <div className="space-y-5">
-                      <PanelHeader title="Assignments" description="Graded milestones, deadlines and project submissions.">
-                        <Button size="sm" leftIcon={<Plus aria-hidden="true" />} onClick={openNewAssignment}>
-                          New assignment
-                        </Button>
-                      </PanelHeader>
+                  {activeTab === "assignments" && <AssessmentAuthoringPanel courseId={course.id} />}
 
-                      {assignmentsList.length === 0 ? (
-                        <WorkspaceEmpty icon={GraduationCap} title="No assignments yet" description="Add hands-on assignments to assess learners and unlock certificates.">
-                          <Button size="sm" onClick={openNewAssignment}>
-                            Create assignment
-                          </Button>
-                        </WorkspaceEmpty>
-                      ) : (
-                        <ul className="space-y-3">
-                          {assignmentsList.map((a) => {
-                            const due = dueInfo(a.due_at)
-                            return (
-                              <li key={a.id} className="flex overflow-hidden rounded-2xl border border-border bg-surface shadow-xs transition-colors hover:border-primary-border">
-                                <span
-                                  className={cn("w-1.5 shrink-0", a.priority === "High" ? "bg-danger" : a.priority === "Medium" ? "bg-warning" : "bg-border-strong")}
-                                  aria-hidden="true"
-                                />
-                                <div className="flex min-w-0 flex-1 items-start gap-3 p-4">
-                                  <div className="min-w-0 flex-1 space-y-2">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <h3 className="text-sm font-semibold text-foreground">{a.title}</h3>
-                                      <Badge tone={a.priority === "High" ? "danger" : a.priority === "Medium" ? "warning" : "neutral"} size="sm">
-                                        {a.priority}
-                                      </Badge>
-                                      <Badge tone="primary" size="sm">
-                                        {a.max_marks} pts
-                                      </Badge>
-                                    </div>
-                                    {a.description && <p className="line-clamp-2 text-xs text-muted-foreground">{a.description}</p>}
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                      <span className="flex items-center gap-1.5">
-                                        <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                                        {new Date(a.due_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                                      </span>
-                                      <Badge tone={due.tone} size="sm">
-                                        {due.label}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="flex shrink-0 items-center gap-0.5">
-                                    <Button
-                                      size="icon-sm"
-                                      variant="ghost"
-                                      aria-label={`Edit ${a.title}`}
-                                      onClick={() => {
-                                        setEditingAssignment(a)
-                                        setAssignTitle(a.title)
-                                        setAssignDesc(a.description || "")
-                                        setAssignMarks(a.max_marks)
-                                        setAssignPriority(a.priority)
-                                        setAssignDueDate(new Date(a.due_at).toISOString().split("T")[0])
-                                        setIsAddAssignmentOpen(true)
-                                      }}
-                                    >
-                                      <Edit2 aria-hidden="true" />
-                                    </Button>
-                                    <Button
-                                      size="icon-sm"
-                                      variant="ghost"
-                                      aria-label={`Delete ${a.title}`}
-                                      className="text-danger hover:bg-danger/10 hover:text-danger"
-                                      onClick={() => handleDeleteAssignment(a.id, a.title)}
-                                    >
-                                      <Trash2 aria-hidden="true" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ---------- SETTINGS ---------- */}
                   {activeTab === "enrollment" && <SelfPacedOfferPanel courseId={course.id} title={course.title} onChanged={fetchDetails} />}
                   {activeTab === "settings" && (
                     <form onSubmit={handleSaveCourseSettings} className="space-y-5">
@@ -1385,95 +1202,6 @@ export default function CourseEditorModal({
               </Button>
               <Button type="submit" loading={uploadingMat}>
                 Upload Material
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* --- SUB-DIALOG 6: CREATE / EDIT ASSIGNMENT --- */}
-      <Dialog
-        open={isAddAssignmentOpen || !!editingAssignment}
-        onOpenChange={(o) => {
-          if (!o) {
-            setIsAddAssignmentOpen(false)
-            setEditingAssignment(null)
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingAssignment ? "Edit Assignment" : "New Course Assignment"}</DialogTitle>
-            <DialogDescription>Set grading criteria, instructions, and deadline</DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveAssignment} className="space-y-3.5 py-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Assignment Title</label>
-              <Input
-                required
-                placeholder="e.g. Capstone: Production Agent Supervisor"
-                value={assignTitle}
-                onChange={(e) => setAssignTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Max Marks / Score</label>
-                <Input
-                  type="number"
-                  min={10}
-                  max={1000}
-                  value={assignMarks}
-                  onChange={(e) => setAssignMarks(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Priority</label>
-                <CustomSelect
-                  value={assignPriority}
-                  onChange={(val) => setAssignPriority(val as any)}
-                  options={["Normal", "Medium", "High"]}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Submission Deadline</label>
-              <DatePicker
-                required
-                value={assignDueDate}
-                onChange={setAssignDueDate}
-                placeholder="Select submission deadline"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Instructions & Rubric</label>
-              <textarea
-                rows={3}
-                className="w-full rounded-md border border-border bg-surface p-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                placeholder="Describe project requirements, test cases, and delivery expectations..."
-                value={assignDesc}
-                onChange={(e) => setAssignDesc(e.target.value)}
-              />
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsAddAssignmentOpen(false)
-                  setEditingAssignment(null)
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" loading={savingAssignment}>
-                {editingAssignment ? "Save Assignment" : "Publish Assignment"}
               </Button>
             </DialogFooter>
           </form>

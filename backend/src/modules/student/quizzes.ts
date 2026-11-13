@@ -1,3 +1,5 @@
+import { assessmentAccess } from "../../assessments/access.js"
+import { enqueueCompletion, lockAcademicRecord } from "../../completion/service.js"
 import { requireEntitlement } from "../../learning/entitlements.js"
 import { and, asc, eq, isNull, lt, sql } from "drizzle-orm"
 import type { FastifyBaseLogger, FastifyInstance } from "fastify"
@@ -37,6 +39,7 @@ export async function gradeAttempt(tx: Tx, attemptId: string, opts: { notify?: b
   if (!a || a.submitted_at) return
   const q = await tx.query.quizzes.findFirst({ where: eq(quizzes.id, String(a.quiz_id)) })
   if (!q) return
+  await lockAcademicRecord(tx,String(a.student_id),q.course_id)
   const qs = await tx.select({ position: quiz_questions.position, correct: quiz_questions.correct_index }).from(quiz_questions).where(eq(quiz_questions.quiz_id, q.id))
   const answers = (a.answers ?? {}) as Record<string, number>
   const score = qs.filter((x) => answers[String(x.position - 1)] === x.correct).length
@@ -61,6 +64,7 @@ export async function gradeAttempt(tx: Tx, attemptId: string, opts: { notify?: b
         : `You need ${q.passing_pct}% to pass. Revisit the module material, then review each explanation below.`,
     })
     .where(eq(quiz_attempts.id, attemptId))
+  await enqueueCompletion(tx,String(a.student_id),q.course_id)
   if (opts.notify !== false) {
     await notify(tx, String(a.student_id), "assessment", "Quiz graded", `${q.title} · ${score}/${max} (${pct}%)`, "quizzes", "grades")
   }
@@ -134,6 +138,7 @@ async function ownAttempt(tx: Tx, studentId: string, attemptId: string, lock = f
     : await tx.select().from(quiz_attempts).where(and(eq(quiz_attempts.id, attemptId), eq(quiz_attempts.student_id, studentId))).limit(1)
   const a = rows[0]
   if (!a) throw notFound("Quiz attempt not found.")
+  await assessmentAccess(tx,studentId,"quiz",a.quiz_id)
   return { ...a, deadline_at: new Date(a.deadline_at), started_at: new Date(a.started_at), submitted_at: a.submitted_at ? new Date(a.submitted_at) : null }
 }
 
@@ -160,17 +165,20 @@ export async function quizRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!q) throw notFound("Quiz not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, q.course_id)) })
       await requireEntitlement(tx, s.id, q.course_id)
+      const access=await assessmentAccess(tx,s.id,"quiz",q.id)
+      const due=access.offering.context==="legacy"?q.due_at:access.due??q.due_at
+      const available=access.offering.context==="legacy"?q.available_from:access.available
       // Serialise starts per student and quiz, so a double click can't open two attempts.
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${s.id} || ':' || ${q.id}))`)
       const [open] = await tx.select().from(quiz_attempts).where(and(eq(quiz_attempts.student_id, s.id), eq(quiz_attempts.quiz_id, q.id), isNull(quiz_attempts.submitted_at))).limit(1)
       if (open) return attemptPayload(tx, open)
       const now = new Date()
       const tz = ctx.config.CAMPUS_TZ
-      if (q.available_from && now < q.available_from) throw badRequest(`This quiz opens on ${fmtLocal(q.available_from, tz)}.`, "not_open")
-      if (now > q.due_at) throw badRequest(`This quiz closed on ${fmtLocal(q.due_at, tz)}.`, "closed")
+      if (available && now < available) throw badRequest(`This quiz opens on ${fmtLocal(available!, tz)}.`, "not_open")
+      if (now > due) throw badRequest(`This quiz closed on ${fmtLocal(due, tz)}.`, "closed")
       const [{ used }] = await tx.select({ used: sql<number>`count(*)::int` }).from(quiz_attempts).where(and(eq(quiz_attempts.student_id, s.id), eq(quiz_attempts.quiz_id, q.id)))
       if (used >= q.max_attempts) throw badRequest(`You have used all ${q.max_attempts} attempt(s) for this quiz.`, "no_attempts")
-      const deadline = new Date(Math.min(now.getTime() + q.duration_minutes * 60_000, q.due_at.getTime()))
+      const deadline = new Date(Math.min(now.getTime() + q.duration_minutes * 60_000, due.getTime()))
       const [a] = await tx.insert(quiz_attempts).values({ student_id: s.id, quiz_id: q.id, attempt_number: used + 1, started_at: now, deadline_at: deadline }).returning()
       return attemptPayload(tx, a)
     })

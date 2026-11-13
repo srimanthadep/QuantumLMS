@@ -74,6 +74,7 @@ const schema = z.object({
   DEMO_SUPER_ADMIN_EMAIL: z.string().email().default("superadmin@lms.com"),
   /** Grade quiz attempts that ran out of time while the student was away (seconds between runs, 0 = off). */
   SCHEDULE_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
+  COMPLETION_SWEEP_SECONDS: z.coerce.number().int().min(0).default(30),
   QUIZ_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
 })
 

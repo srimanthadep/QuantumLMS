@@ -511,14 +511,6 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   })
 
   // --- 5d. Assignments Management ---
-  const assignmentSchema = z.object({
-    title: z.string().trim().min(3).max(200),
-    description: z.string().trim().max(5000).default(""),
-    maxMarks: z.number().int().min(1).max(1000).default(100),
-    priority: z.enum(["High", "Medium", "Normal"]).default("Normal"),
-    dueAt: z.string().min(1),
-  })
-
   app.get<{ Params: { id: string } }>("/courses/:id/assignments", async (req) => {
     const assignmentsList = await db
       .select()
@@ -528,52 +520,11 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     return { assignments: assignmentsList }
   })
 
-  app.post<{ Params: { id: string } }>("/courses/:id/assignments", async (req, reply) => {
-    const input = parse(assignmentSchema, req.body)
-    const courseId = req.params.id
-    const assignId = `a-${courseId}-${Date.now().toString(36)}`
-
-    const [row] = await db
-      .insert(assignments)
-      .values({
-        id: assignId,
-        course_id: courseId,
-        title: input.title,
-        description: input.description,
-        max_marks: input.maxMarks,
-        priority: input.priority,
-        due_at: new Date(input.dueAt),
-      })
-      .returning()
-
-    reply.code(201)
-    return { ok: true, assignment: row }
-  })
-
-  app.patch<{ Params: { id: string; assignmentId: string } }>("/courses/:id/assignments/:assignmentId", async (req) => {
-    const input = parse(assignmentSchema.partial(), req.body)
-    const updateData: any = {}
-    if (input.title !== undefined) updateData.title = input.title
-    if (input.description !== undefined) updateData.description = input.description
-    if (input.maxMarks !== undefined) updateData.max_marks = input.maxMarks
-    if (input.priority !== undefined) updateData.priority = input.priority
-    if (input.dueAt !== undefined) updateData.due_at = new Date(input.dueAt)
-
-    const [updated] = await db
-      .update(assignments)
-      .set(updateData)
-      .where(and(eq(assignments.id, req.params.assignmentId), eq(assignments.course_id, req.params.id)))
-      .returning()
-    if (!updated) throw notFound("Assignment not found.")
-    return { ok: true, assignment: updated }
-  })
-
-  app.delete<{ Params: { id: string; assignmentId: string } }>("/courses/:id/assignments/:assignmentId", async (req) => {
-    await db
-      .delete(assignments)
-      .where(and(eq(assignments.id, req.params.assignmentId), eq(assignments.course_id, req.params.id)))
-    return { ok: true, deleted: req.params.assignmentId }
-  })
+  // Frozen grading instances are never edited/deleted through the old course CRUD routes.
+  for(const method of ["post","patch","delete"] as const) {
+    const path=method==="post"?"/courses/:id/assignments":"/courses/:id/assignments/:assignmentId"
+    app[method](path,async()=>{throw badRequest("Use Assessments in the course workspace to author and release a versioned assessment. Existing grading history is preserved.")})
+  }
 
   // 6. Platform stats overview for Admin
   app.get("/stats", async () => {

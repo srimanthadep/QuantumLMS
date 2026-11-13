@@ -1,3 +1,4 @@
+import { enqueueCourseCompletions } from "../completion/service.js"
 import { randomUUID } from "node:crypto"
 import { eq, sql } from "drizzle-orm"
 import type { Tx } from "../db/client.js"
@@ -29,5 +30,6 @@ export async function transitionBatch(tx: Tx, actor: AuthUser, batchId: string, 
   if (next === "Completed" && (!batch.ends_at || new Date() < batch.ends_at)) throw conflict("A batch cannot complete before its configured end")
   const [row] = await tx.update(cohort_batches).set({ lifecycle: next, status: next === "Running" ? "Active" : next === "Completed" ? "Completed" : next === "Cancelled" ? "Archived" : "Upcoming", updated_at: new Date() }).where(eq(cohort_batches.id, batch.id)).returning()
   await tx.insert(audit_events).values({ id: randomUUID(), actor_id: actor.id, actor_role: actor.role, action: `batch.${next.toLowerCase()}`, target: batch.id, outcome: "success" })
+  if(next === "Completed") await enqueueCourseCompletions(tx,batch.course_id)
   return row
 }

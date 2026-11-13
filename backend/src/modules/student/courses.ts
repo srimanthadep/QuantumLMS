@@ -1,3 +1,5 @@
+import { assessmentAccess, studentOfferings } from "../../assessments/access.js"
+import { enqueueCompletion, lockAcademicRecord } from "../../completion/service.js"
 import { lessonPlayback } from "../../storage/lesson-playback.js"
 import { enrollFree } from "../../learning/offers.js"
 import { requireEntitlement } from "../../learning/entitlements.js"
@@ -22,26 +24,6 @@ import { assertCourseAccess } from "../../auth/access.js"
 import { mediaKey, signedMedia } from "../../storage/protected.js"
 import { ownObject, studentProfile, trimmed } from "./shared.js"
 import { broadcastToChannel } from "../../ws.js"
-
-/** Issues the course certificate once every lesson is complete. Returns it when newly earned. */
-async function issueCertificate(tx: Tx, studentId: string, courseId: string) {
-  const c = await tx.query.courses.findFirst({ where: eq(courses.id, courseId) })
-  if (!c?.certificate_title) return null
-  const earned = await tx.query.certificates.findFirst({ where: and(eq(certificates.student_id, studentId), eq(certificates.course_id, courseId), eq(certificates.status, "Earned")) })
-  if (earned) return null
-  const [g] = await tx.select({ letter: grades.letter_grade }).from(grades).where(and(eq(grades.student_id, studentId), eq(grades.course_code, c.code))).orderBy(asc(grades.position)).limit(1)
-  const grade = g ? `Grade: ${g.letter}${g.letter === "A+" ? " (Honors)" : ""}` : "Completed"
-  // Random, so credentials can't be enumerated through the public verification page.
-  const credential = `QAI-${crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}-${c.code.split("-")[0].toUpperCase()}`
-  const values = { student_id: studentId, course_id: c.id, title: c.certificate_title, course_title: c.title, skills: c.certificate_skills, status: "Earned", issued_at: new Date(), credential_id: credential, grade }
-  const [cert] = await tx
-    .insert(certificates)
-    .values(values)
-    .onConflictDoUpdate({ target: [certificates.student_id, certificates.course_id], set: { status: "Earned", issued_at: values.issued_at, credential_id: credential, grade, title: values.title, course_title: values.course_title, skills: values.skills } })
-    .returning()
-  await notify(tx, studentId, "grade", "Certificate earned", `You completed ${c.title}. "${c.certificate_title}" is ready to share.`, "certificates", "grades")
-  return cert
-}
 
 const CATALOG_TTL_MS = 30_000
 let catalogCache: {
@@ -124,6 +106,13 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         where r.student_id = ${s.id}::uuid`),
     ])
     const allowed = new Set(enrolled.map((e) => e.course_id))
+    const assessmentRows=await studentOfferings(db,s.id)
+    const assignmentIds=new Set(assessmentRows.map(o=>o.assignment_id)),quizIds=new Set(assessmentRows.map(o=>o.quiz_id))
+    const datedAssessment=<T extends {id:string;due_at:Date}>(row:T,kind:"quiz"|"assignment")=>{
+      const o=assessmentRows.find(o=>(kind==="quiz"?o.quiz_id:o.assignment_id)===row.id)
+      return o&&o.context!=="legacy"?{...row,due_at:o.effective_due_at?new Date(o.effective_due_at):row.due_at}:row
+    }
+    const latestSubmissions=[...new Map(submissions.sort((a,b)=>a.attempt_number-b.attempt_number).map(s=>[s.assignment_id,s])).values()]
     const reevaluations = requests.rows
     return {
       profile,
@@ -132,9 +121,10 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       lessons: catalog.lessonRows.filter((l) => allowed.has(l.course_id)).map((l) => ({ ...l, video_url: null, video_qualities: {} })),
       enrollments: enrolled,
       progress,
-      assignments: catalog.assignmentRows.filter((a) => allowed.has(a.course_id)),
-      submissions,
-      quizzes: catalog.quizRows.filter((q) => allowed.has(q.course_id)),
+      assignments: catalog.assignmentRows.filter((a) => allowed.has(a.course_id)&&assignmentIds.has(a.id)).map(a=>datedAssessment(a,"assignment")),
+      submissions: latestSubmissions,
+      assessment_offerings: assessmentRows,
+      quizzes: catalog.quizRows.filter((q) => allowed.has(q.course_id)&&quizIds.has(q.id)).map(q=>datedAssessment(q,"quiz")),
       attempts,
       reevaluations,
     }
@@ -189,7 +179,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     })
   })
 
-  // Marks a lesson complete (or not), logs study time for today and issues the certificate when the course is done.
+  // Progress is a learning fact. Credential issuance runs separately through the policy service.
   app.post<{ Params: { id: string } }>("/api/student/lessons/:id/complete", async (req) => {
     const s = me(req)
     const { done } = parse(z.object({ done: z.boolean().default(true) }), req.body ?? {})
@@ -199,6 +189,7 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!l || l.archived_at) throw notFound("Lesson not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, l.course_id)) })
       await requireEntitlement(tx, s.id, l.course_id)
+      await lockAcademicRecord(tx,s.id,l.course_id)
       const today = localDay(new Date(), tz)
       if (done) {
         const [added] = await tx.insert(lesson_progress).values({ student_id: s.id, lesson_id: l.id, course_id: l.course_id }).onConflictDoNothing().returning()
@@ -222,8 +213,8 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         tx.select({ total: count() }).from(lessons).where(and(eq(lessons.course_id, l.course_id), sql`${lessons.archived_at} is null`)),
         tx.select({ completed: count() }).from(lesson_progress).innerJoin(lessons, eq(lessons.id, lesson_progress.lesson_id)).where(and(eq(lesson_progress.student_id, s.id), eq(lesson_progress.course_id, l.course_id), sql`${lessons.archived_at} is null`)),
       ])
-      const certificate = total > 0 && completed === total ? await issueCertificate(tx, s.id, l.course_id) : null
-      return { course_id: l.course_id, completed, total, certificate }
+      await enqueueCompletion(tx,s.id,l.course_id)
+      return { course_id: l.course_id, completed, total, certificate: null, completion_check_queued: true }
     })
   })
 
@@ -247,19 +238,23 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!a) throw notFound("Assignment not found.")
       const enrolled = await tx.query.enrollments.findFirst({ where: and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, a.course_id)) })
       await requireEntitlement(tx, s.id, a.course_id)
-      const prev = await tx.query.assignment_submissions.findFirst({ where: and(eq(assignment_submissions.student_id, s.id), eq(assignment_submissions.assignment_id, a.id)) })
-      if (prev?.status === "Graded") throw badRequest("This assignment has already been graded.", "graded")
+      const access=await assessmentAccess(tx,s.id,"assignment",a.id)
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${'submission:'+s.id+':'+a.id}))`)
+      const [prev]=await tx.select().from(assignment_submissions).where(and(eq(assignment_submissions.student_id,s.id),eq(assignment_submissions.assignment_id,a.id))).orderBy(desc(assignment_submissions.attempt_number)).limit(1)
+      if(prev?.status==="Graded"&&prev.attempt_number>=access.offering.max_attempts)throw badRequest("This assignment has already been graded and all attempts are used.","graded")
+      if(access.offering.context!=="legacy"&&((access.available&&new Date()<access.available)||(access.due&&new Date()>access.due)))throw badRequest("This assessment is outside its submission window")
+      const attempt=prev?.status==="Graded"?prev.attempt_number+1:prev?.attempt_number??1
       if (prev?.status === "Under Review") throw badRequest("An evaluator is reviewing this submission, so it can't be changed now.", "under_review")
-      if (!repo && !fileKey && !prev?.file_path) throw badRequest("Add a repository link or attach a file.")
+      if (!repo && !fileKey && (prev?.status === "Graded" || !prev?.file_path)) throw badRequest("Add a repository link or attach a file.")
       const now = new Date()
       const fileName = fileKey ? (b.file_name ?? "").slice(0, 200) || null : null
       const fileSize = fileKey ? (b.file_size ?? "").slice(0, 40) || null : null
       // A resubmission replaces the link and notes; the earlier file stays unless a new one is attached.
       const [row] = await tx
         .insert(assignment_submissions)
-        .values({ student_id: s.id, assignment_id: a.id, repo_url: repo, comments, file_path: fileKey, file_name: fileName, file_size: fileSize, submitted_at: now })
+        .values({ student_id: s.id, assignment_id: a.id, attempt_number: attempt, repo_url: repo, comments, file_path: fileKey, file_name: fileName, file_size: fileSize, submitted_at: now })
         .onConflictDoUpdate({
-          target: [assignment_submissions.student_id, assignment_submissions.assignment_id],
+          target: [assignment_submissions.student_id, assignment_submissions.assignment_id, assignment_submissions.attempt_number],
           set: {
             repo_url: repo,
             comments,

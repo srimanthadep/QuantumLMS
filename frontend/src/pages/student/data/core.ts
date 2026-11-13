@@ -26,6 +26,7 @@ export interface CoreRaw {
   enrollments: Record<string, string>
   /** lesson_id -> completed_at */
   progress: Record<string, string>
+  assessment_offerings?: (Tables<"assessment_offerings"> & {context_name:string|null})[]
   assignments: Tables<"assignments">[]
   /** assignment_id -> submission */
   submissions: Record<string, Tables<"assignment_submissions">>
@@ -57,6 +58,7 @@ interface CoreResponse {
   lessons: LessonRow[]
   enrollments: { course_id: string; enrolled_at: string }[]
   progress: { lesson_id: string; completed_at: string }[]
+  assessment_offerings?: (Tables<"assessment_offerings"> & {context_name:string|null})[]
   assignments: Tables<"assignments">[]
   submissions: Tables<"assignment_submissions">[]
   quizzes: Tables<"quizzes">[]
@@ -76,6 +78,7 @@ export async function loadCore(uid?: string): Promise<CoreRaw> {
     enrollments: Object.fromEntries(r.enrollments.map((e) => [e.course_id, e.enrolled_at])),
     progress: Object.fromEntries(r.progress.map((p) => [p.lesson_id, p.completed_at])),
     assignments: r.assignments,
+    assessment_offerings: r.assessment_offerings,
     submissions: Object.fromEntries(r.submissions.map((s) => [s.assignment_id, s])),
     quizzes: r.quizzes,
     attempts: r.attempts,
@@ -143,9 +146,13 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
     .filter((a) => raw.enrollments[a.course_id])
     .map((a) => {
       const sub = raw.submissions[a.id]
+      const offering=raw.assessment_offerings?.find(o=>o.assignment_id===a.id)
       return {
         id: a.id,
         title: a.title,
+        contextName: offering?.context_name??undefined,
+        attemptsUsed: sub?.attempt_number??0,
+        maxAttempts: offering?.max_attempts??1,
         course: courseTitle.get(a.course_id) ?? "",
         courseId: a.course_id,
         dueAt: a.due_at,

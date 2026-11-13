@@ -1,3 +1,4 @@
+import { enqueueCompletion, lockAcademicRecord } from "../../completion/service.js"
 import { eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
@@ -107,6 +108,7 @@ export async function reevaluationRoutes(app: FastifyInstance, ctx: AppContext) 
       const [s] = await tx.select().from(assignment_submissions).where(eq(assignment_submissions.id, r.submission_id)).limit(1)
       const [a] = s ? await tx.select().from(assignments).where(eq(assignments.id, s.assignment_id)).limit(1) : []
       if (!s || !a) throw notFound("The submission no longer exists.")
+      await lockAcademicRecord(tx,s.student_id,a.course_id)
       const now = new Date()
       if (b.decision === "uphold") {
         await tx
@@ -130,6 +132,7 @@ export async function reevaluationRoutes(app: FastifyInstance, ctx: AppContext) 
         await tx.insert(evaluations).values({ submission_id: s.id, evaluator_id: u.id, status: "released", scores, total, feedback: s.feedback ?? "", started_at: now, updated_at: now, evaluated_at: now, released_at: now })
       }
       await tx.update(assignment_submissions).set({ score, grade, graded_at: now }).where(eq(assignment_submissions.id, s.id))
+      await enqueueCompletion(tx,s.student_id,a.course_id)
       await tx
         .update(reevaluation_requests)
         .set({ status: "Revised", revised_score: score, resolution: b.resolution, handled_by: u.id, resolved_at: now, updated_at: now })

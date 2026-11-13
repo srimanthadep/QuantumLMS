@@ -1,3 +1,4 @@
+import { studentCertificates } from "../../completion/service.js"
 import { listSessions } from "../../live/access.js"
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -114,7 +115,7 @@ export async function campusRoutes(app: FastifyInstance, ctx: AppContext) {
     const [g, gpa, certs] = await Promise.all([
       db.select().from(grades).where(eq(grades.student_id, s.id)).orderBy(asc(grades.position)),
       db.select({ term: gpa_history.term, gpa: gpa_history.gpa, position: gpa_history.position }).from(gpa_history).where(eq(gpa_history.student_id, s.id)).orderBy(asc(gpa_history.position)),
-      db.select().from(certificates).where(eq(certificates.student_id, s.id)).orderBy(sql`${certificates.issued_at} desc nulls last`),
+      studentCertificates(db,s.id),
     ])
     return { grades: g, gpa, certificates: certs }
   })
@@ -177,6 +178,9 @@ export async function campusRoutes(app: FastifyInstance, ctx: AppContext) {
 export async function publicCertificateRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get<{ Params: { credentialId: string } }>("/api/public/certificates/:credentialId", async (req) => {
     const id = req.params.credentialId.slice(0, 64)
+    const current=await ctx.db.execute(sql`select cc.credential_id,cc.title,cc.course_title,cc.issued_at,cc.grade,cc.skills,u.full_name as recipient,cc.revoked_at
+      from lms.completion_credentials cc join lms.users u on u.id=cc.student_id where cc.credential_id=${id}`)
+    if(current.rows.length){const {revoked_at,...credential}=current.rows[0];if(revoked_at)throw notFound("This credential has been revoked. Contact support for its status.");return credential}
     const [row] = await ctx.db
       .select({ credential_id: certificates.credential_id, title: certificates.title, course_title: certificates.course_title, issued_at: certificates.issued_at, grade: certificates.grade, skills: certificates.skills, recipient: users.full_name })
       .from(certificates)

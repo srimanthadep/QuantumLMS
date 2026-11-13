@@ -1,3 +1,4 @@
+import { registerLegacyAssessments } from "../../assessments/access.js"
 import { eq, sql } from "drizzle-orm"
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core"
 import type { Tx } from "../client.js"
@@ -50,6 +51,7 @@ export async function seedContent(tx: Tx, anchor: Date, tz: string) {
   await seedAlumniDefaults(tx, { force: false })
   await seedBatchesDefaults(tx, { force: false })
   await recountCounters(tx)
+  await registerLegacyAssessments(tx)
 }
 
 /** Every row a student owns (used before re-seeding the demo student). Profile and account stay. */

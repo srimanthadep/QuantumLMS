@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { and, inArray, like, lt } from "drizzle-orm"
+import { and, inArray, like, lt, sql } from "drizzle-orm"
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose"
 import type { FastifyInstance, InjectOptions } from "fastify"
 import { buildApp } from "../src/app.js"
@@ -80,6 +80,7 @@ export async function createHarness(): Promise<TestHarness> {
     LOCAL_STORAGE_DIR: uploads,
     UPLOAD_SIGNING_SECRET: "test-upload-signing-secret",
     REPLAY_ENABLED: "true", ZOOM_RECORDING_WEBHOOK_ENABLED: "false", ZOOM_RECORDING_WEBHOOK_SECRET: undefined,
+    COMPLETION_SWEEP_SECONDS: "0",
     QUIZ_SWEEP_SECONDS: "0",
     SCHEDULE_SWEEP_SECONDS: "0",
     PAYMENT_SWEEP_SECONDS: "0",
@@ -139,6 +140,12 @@ export async function createHarness(): Promise<TestHarness> {
     },
     async close() {
       try {
+      if(created.length){
+        const emails=sql.join(created.map(email=>sql`${email}`),sql`, `)
+        await ctx.db.execute(sql`delete from lms.completion_events where completion_id in(select id from lms.completions where student_id in(select id from lms.users where email in(${emails})))`)
+        await ctx.db.execute(sql`delete from lms.completion_credentials where student_id in(select id from lms.users where email in(${emails}))`)
+        await ctx.db.execute(sql`delete from lms.completions where student_id in(select id from lms.users where email in(${emails}))`)
+      }
       if (created.length) await ctx.db.delete(users).where(inArray(users.email, created))
       await ctx.db.delete(users).where(like(users.email, `t-${tag}-%@${TEST_DOMAIN}`))
       // Leftovers from runs that crashed before cleaning up.
