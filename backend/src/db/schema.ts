@@ -1206,6 +1206,7 @@ export const cohort_batches = lms.table("cohort_batches", {
   underfilled_action: text().notNull().default("admin_decides"),
   allow_late_join: boolean().notNull().default(false),
   live_provider: text().notNull().default("zoom_link"),
+  default_host_url: text(), default_passcode: text(),
   join_before_minutes: integer().notNull().default(15), join_after_minutes: integer().notNull().default(30),
   instructor: text().notNull(),
   instructor_avatar: text().default("").notNull(),
@@ -1356,6 +1357,8 @@ export const seat_reservations = lms.table("seat_reservations", {
 }, t => [index("reservations_batch_idx").on(t.batch_id, t.state, t.expires_at), check("reservation_state", sql`${t.state} in ('active','converted','released')`)]);
 // Session persistence is introduced here so lifecycle prerequisites can be enforced before schedule authoring in phase 6.
 export const live_sessions = lms.table("live_sessions", {
+  schedule_rule_id: text().references(() => schedule_rules.id), schedule_version: integer(), local_date: text(), timezone: text().notNull().default("Asia/Kolkata"),
+  updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id),
   teacher_id: uuid().references(() => users.id), occurrence_key: text().notNull().unique(), title: text().notNull(),
   starts_at: timestamp({ withTimezone: true }).notNull(), ends_at: timestamp({ withTimezone: true }).notNull(),
@@ -1396,3 +1399,26 @@ export const lesson_revisions = lms.table("lesson_revisions", {
   actor_id: uuid().references(() => users.id, { onDelete: "set null" }), action: text().notNull(), snapshot: jsonb().notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 }, t => [index("lesson_revision_history_idx").on(t.lesson_id, t.created_at)]);
+
+export const schedule_rules = lms.table("schedule_rules", {
+  id: text().primaryKey(), batch_id: text().notNull().references(() => cohort_batches.id), version: integer().notNull().default(1),
+  timezone: text().notNull(), weekdays: integer().array().notNull(), local_start: text().notNull(), duration_minutes: integer().notNull(),
+  start_date: date({ mode: "string" }).notNull(), end_date: date({ mode: "string" }).notNull(), title: text().notNull(),
+  teacher_id: uuid().references(() => users.id), provider: text().notNull(), join_url: text(), host_url: text(), passcode: text(),
+  active: boolean().notNull().default(true), generated_version: integer().notNull().default(0), generation_error: text(), available_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [index("schedule_batch_idx").on(t.batch_id), check("schedule_duration", sql`${t.duration_minutes}>0 and ${t.duration_minutes}<=720`)]);
+export const schedule_rule_versions = lms.table("schedule_rule_versions", {
+  rule_id: text().notNull().references(() => schedule_rules.id), version: integer().notNull(), snapshot: jsonb().notNull(),
+  actor_id: uuid().references(() => users.id), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.rule_id,t.version] })]);
+export const schedule_exceptions = lms.table("schedule_exceptions", {
+  occurrence_key: text().primaryKey(), rule_id: text().references(() => schedule_rules.id), session_id: text().notNull().references(() => live_sessions.id),
+  action: text().notNull(), starts_at: timestamp({ withTimezone: true }), ends_at: timestamp({ withTimezone: true }), reason: text().notNull(),
+  actor_id: uuid().references(() => users.id), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+export const session_attendance = lms.table("session_attendance", {
+  session_id: text().notNull().references(() => live_sessions.id), student_id: uuid().notNull().references(() => users.id),
+  joined_at: timestamp({ withTimezone: true }).notNull().defaultNow(), last_joined_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  join_clicks: integer().notNull().default(1),
+}, t => [primaryKey({ columns: [t.session_id,t.student_id] }), index("attendance_student_idx").on(t.student_id)]);

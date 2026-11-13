@@ -61,8 +61,9 @@ export async function resolveUser(
   db: Db,
   cognito: CognitoGateway,
   claims: TokenClaims,
-  opts: { demoEmails: string[]; onboard: Partial<Record<Role, Onboard>> },
+  opts: { allowDevelopmentLogin?: boolean; demoEmails: string[]; onboard: Partial<Record<Role, Onboard>> },
 ): Promise<AuthUser> {
+  if (claims.developmentIdentity && !opts.allowDevelopmentLogin) throw unauthorized("Development login is disabled")
   const role = roleFromGroups(claims.groups)
   const toAuth = (u: typeof users.$inferSelect): AuthUser => ({
     id: u.id,
@@ -82,12 +83,13 @@ export async function resolveUser(
   const existing = (await db.select().from(users).where(eq(users.cognito_sub, claims.sub)).limit(1))[0]
 
   if (existing) {
+    if (claims.developmentIdentity && (!existing.is_demo || existing.role !== role)) throw forbidden("Use a separate demo email for each role")
     if (existing.disabled_at || existing.provisioning_state !== "active") throw forbidden("This account is disabled or provisioning is incomplete.")
     // "Sign out of all devices" ends the access tokens Cognito already issued, not only the refresh tokens.
     if (existing.sessions_revoked_at && claims.issuedAt <= Math.floor(existing.sessions_revoked_at.getTime() / 1000)) {
       throw unauthorized("You were signed out. Sign in again.")
     }
-    const isDemo = opts.demoEmails.includes(existing.email.toLowerCase())
+    const isDemo = opts.demoEmails.includes(existing.email.toLowerCase()) || Boolean(claims.developmentIdentity)
     const stale = !existing.last_seen_at || now - existing.last_seen_at.getTime() > SEEN_EVERY_MS
     if (existing.role !== role || existing.is_demo !== isDemo || stale) {
       const [u] = await db
@@ -104,24 +106,32 @@ export async function resolveUser(
     return toAuth(existing)
   }
 
-  let attrs
-  try {
-    attrs = await cognito.getAttributes(claims.token)
-  } catch (e) {
-    // A revoked token (signed out everywhere) or a deleted user: same as an expired session.
-    const name = (e as Error).name
-    if (name === "NotAuthorizedException" || name === "UserNotFoundException") throw unauthorized("Your session expired. Sign in again.")
-    throw e
+  let attrs: { email: string; name?: string }
+  if (claims.developmentIdentity) {
+    if (!opts.allowDevelopmentLogin) throw unauthorized("Development login is disabled")
+    attrs = claims.developmentIdentity
+  } else {
+    try { attrs = await cognito.getAttributes(claims.token) } catch (e) {
+      const name = (e as Error).name
+      if (name === "NotAuthorizedException" || name === "UserNotFoundException") throw unauthorized("Your session expired. Sign in again.")
+      throw e
+    }
   }
   const email = attrs.email.trim().toLowerCase()
   if (!email) throw forbidden("Your account has no email address. Contact support.")
-  const isDemo = opts.demoEmails.includes(email)
+  const isDemo = opts.demoEmails.includes(email) || Boolean(claims.developmentIdentity)
 
   return db.transaction(async (tx) => {
     // An existing row for this email (a re-created Cognito user, or a seeded demo account) is linked, not duplicated.
     const [byEmail] = await tx.select().from(users).where(sql`lower(${users.email}) = ${email}`).limit(1)
     if (byEmail) {
       if (byEmail.disabled_at || byEmail.provisioning_state !== "active") throw forbidden("This account is disabled or provisioning is incomplete.")
+      if (claims.developmentIdentity) {
+        if ((!byEmail.is_demo && !opts.demoEmails.includes(email)) || byEmail.role !== role) throw forbidden("Development login cannot replace a real account or change its role. Use a separate demo email.")
+        if (byEmail.sessions_revoked_at && claims.issuedAt <= Math.floor(byEmail.sessions_revoked_at.getTime()/1000)) throw unauthorized("Sign in again")
+        // Keep the real Cognito association intact when opening a configured demo account.
+        return toAuth(byEmail)
+      }
       if (byEmail.cognito_sub && byEmail.cognito_sub !== claims.sub && !isDemo) {
         throw forbidden("This email belongs to another account. Contact support.")
       }

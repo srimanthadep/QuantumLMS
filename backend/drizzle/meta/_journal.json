@@ -78,6 +78,13 @@
       "when": 1794484551646,
       "tag": "0010_safe_content_history",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794486459655,
+      "tag": "0011_dated_live_sessions",
+      "breakpoints": true
     }
   ]
 }

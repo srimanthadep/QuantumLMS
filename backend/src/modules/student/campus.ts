@@ -1,10 +1,11 @@
+import { listSessions } from "../../live/access.js"
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
 import {
   announcement_reads, announcements, attendance_records, campus_events, certificates, event_registrations, gpa_history,
-  grades, leave_requests, notes, notifications, reminders, study_activity, timetable_slots, users,
+  grades, leave_requests, notes, notifications, reminders, study_activity, users,
 } from "../../db/schema.js"
 import { badRequest, notFound } from "../../errors.js"
 import { me, parse } from "../../http.js"
@@ -28,10 +29,16 @@ export async function campusRoutes(app: FastifyInstance, ctx: AppContext) {
   })
 
   /* --------------------------------- Timetable -------------------------------- */
-  app.get("/api/student/timetable", async () => db.select().from(timetable_slots).orderBy(asc(timetable_slots.starts)))
+  app.get("/api/student/timetable", async req => listSessions(db, me(req)))
 
   /* -------------------------------- Attendance -------------------------------- */
-  app.get("/api/student/attendance", async (req) => {
+  app.get("/api/student/attendance", async req => ({
+    records: await listSessions(db, me(req)),
+    leaves: await db.select().from(leave_requests).where(eq(leave_requests.student_id, me(req).id)).orderBy(desc(leave_requests.created_at)),
+    basis: "Join clicks only; external meeting presence is not verified. Legacy course/date records are retained separately."
+  }))
+
+  app.get("/api/student/attendance/legacy", async (req) => {
     const s = me(req)
     const [records, leaves] = await Promise.all([
       db

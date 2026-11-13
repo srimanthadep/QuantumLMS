@@ -17,7 +17,6 @@ import type {
   TeachingSuggestionItem,
 } from "@/types"
 import { useSession } from "@/app/session"
-import { minutesOf } from "./teacherUtils"
 
 const KEYS = {
   sessions: "quantum_teacher_sessions_v2",
@@ -94,17 +93,6 @@ const EMPTY_MONITORING: AIMonitoringData = {
   suggestions: [],
 }
 
-export interface NewSessionInput {
-  title: string
-  courseId: string
-  scheduledDate: string
-  startTime: string
-  endTime: string
-  platform: LiveSessionItem["platform"]
-  meetingUrl?: string
-  classNotes?: string
-}
-
 export interface NewCourseInput {
   name: string
   code: string
@@ -143,10 +131,7 @@ interface TeacherData {
   submitGradesForApproval: (key: string) => void
   requestRecordingPublish: (recordingId: string, targetModuleId?: string, targetLessonId?: string) => void
 
-  scheduleSession: (input: NewSessionInput) => Promise<LiveSessionItem>
-  updateSession: (id: string, patch: Partial<LiveSessionItem>) => void
-  startSession: (id: string) => void
-  endSession: (id: string) => string
+
 
   replyToDoubt: (id: string, text: string, resolve: boolean) => void
   setDoubtStatus: (id: string, status: DoubtItem["status"]) => void
@@ -171,7 +156,7 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   const { user } = useSession()
   const [courses, setCourses] = useState<CourseItem[]>([])
   const [students, setStudents] = useState<StudentItem[]>([])
-  const [sessions, setSessions] = useState<LiveSessionItem[]>(() => load(KEYS.sessions, []))
+  const [sessions, setSessions] = useState<LiveSessionItem[]>([])
   const [doubts, setDoubts] = useState<DoubtItem[]>(() => load(KEYS.doubts, []))
   const [events, setEvents] = useState<CalendarEventItem[]>(() => load(KEYS.events, []))
   const [recordings, setRecordings] = useState<SessionRecordingItem[]>([])
@@ -210,15 +195,15 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
             courseId: c.course_id || "",
             courseName: c.course_title || "Course",
             courseCode: c.course_code || "",
-            batchName: "Cohort 14 (Evening)",
-            scheduledDate: "2026-11-10",
-            startTime: c.starts?.slice(0, 5) || "10:00",
-            endTime: c.ends?.slice(0, 5) || "11:30",
-            durationMinutes: 90,
-            status: "Upcoming",
-            platform: "Zoom",
-            meetingUrl: `https://classroom.quantumschool.ai/live/${c.id}`,
-            instructorName: c.instructor || "Instructor",
+            batchName: c.batch_name,
+            scheduledDate: new Intl.DateTimeFormat("en-CA", { timeZone: c.timezone }).format(new Date(c.starts_at)),
+            startTime: new Intl.DateTimeFormat("en-GB", { timeZone: c.timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(c.starts_at)),
+            endTime: new Intl.DateTimeFormat("en-GB", { timeZone: c.timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(c.ends_at)),
+            durationMinutes: (Date.parse(c.ends_at) - Date.parse(c.starts_at)) / 60000,
+            status: c.status === "Live" ? "Live Now" : c.status === "Ended" ? "Completed" : c.status,
+            platform: c.provider === "meet_link" ? "Google Meet" : "Zoom",
+            meetingUrl: undefined,
+            instructorName: c.teacher_name || "Teacher pending",
             enrolledCount: 0,
             topicsCovered: [],
             isReadOnly: false,
@@ -376,81 +361,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         }),
       ),
     [editCourse],
-  )
-
-  const scheduleSession = useCallback(
-    async (input: NewSessionInput) => {
-      const course = courses.find((c) => c.id === input.courseId)
-      const session: LiveSessionItem = {
-        id: `ls-${Date.now()}`,
-        title: input.title,
-        courseId: input.courseId,
-        courseName: course?.name ?? "",
-        courseCode: course?.code ?? "",
-        batchName: course?.assignedClass,
-        scheduledDate: input.scheduledDate,
-        startTime: input.startTime,
-        endTime: input.endTime,
-        durationMinutes: Math.max(15, minutesOf(input.endTime) - minutesOf(input.startTime)),
-        status: "Upcoming",
-        approvalStatus: "Pending Approval",
-        platform: input.platform,
-        meetingUrl: input.meetingUrl?.trim() || (input.platform === "Quantum Classroom" ? `https://classroom.quantumschool.ai/live/${Date.now().toString(36)}` : undefined),
-        classNotes: input.classNotes,
-        instructorName: user.name,
-        instructorAvatar: user.avatar,
-        enrolledCount: course?.enrolledStudentsCount ?? 0,
-        topicsCovered: [],
-        isReadOnly: false,
-      }
-      const saved = await api
-        .post<{ classSession: { id: string } }>("/teacher/classes", {
-          title: input.title,
-          course_id: input.courseId,
-          starts: input.startTime,
-          ends: input.endTime,
-          room: "Online Studio 1",
-          is_online: true,
-        })
-      session.id = saved.classSession.id
-      setSessions((list) => [...list, session])
-      return session
-    },
-    [courses, user.name, user.avatar],
-  )
-
-  const updateSession = useCallback((id: string, patch: Partial<LiveSessionItem>) => setSessions((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s))), [])
-  const startSession = useCallback((id: string) => updateSession(id, { status: "Live Now" }), [updateSession])
-
-  const endSession = useCallback(
-    (id: string) => {
-      const session = sessions.find((s) => s.id === id)
-      updateSession(id, { status: "Completed" })
-      const existing = recordings.find((r) => r.sessionId === id)
-      if (existing) {
-        setRecordings((list) => list.map((r) => (r.id === existing.id && r.status === "Not Available" ? { ...r, status: "Processing" } : r)))
-        return existing.id
-      }
-      const recId = `rec-${id}`
-      setRecordings((list) => [
-        {
-          id: recId,
-          sessionId: id,
-          title: session?.title ?? "Live class",
-          courseName: session?.courseName ?? "",
-          courseCode: session?.courseCode ?? "",
-          sessionDate: session?.scheduledDate ?? "",
-          duration: `${session?.durationMinutes ?? 60} mins`,
-          status: "Processing",
-          fileSize: "Transcoding",
-          viewsCount: 0,
-          keyTakeaways: ["Transcoding and chaptering in progress", "Available for review in about 10 minutes"],
-        },
-        ...list,
-      ])
-      return recId
-    },
-    [sessions, recordings, updateSession],
   )
 
   const replyToDoubt = useCallback(
@@ -702,10 +612,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       moveModule,
       addLesson,
       toggleLessonDelivered,
-      scheduleSession,
-      updateSession,
-      startSession,
-      endSession,
       replyToDoubt,
       setDoubtStatus,
       addEvent,
@@ -743,10 +649,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       moveModule,
       addLesson,
       toggleLessonDelivered,
-      scheduleSession,
-      updateSession,
-      startSession,
-      endSession,
       replyToDoubt,
       setDoubtStatus,
       addEvent,

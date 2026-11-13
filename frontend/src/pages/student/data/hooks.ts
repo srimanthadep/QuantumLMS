@@ -30,7 +30,7 @@ export function useReminders() {
 /** This week's timetable with live statuses (re-evaluated every minute). */
 export function useTimetable() {
   const { now } = useStudentData()
-  const res = useStudentResource("timetable", loadTimetable, 600_000)
+  const res = useStudentResource("timetable", loadTimetable, 15_000)
   const week = useMemo(() => (res.data ? timetableWeek(res.data, now) : null), [res.data, now])
   return { ...res, week }
 }

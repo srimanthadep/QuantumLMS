@@ -3,8 +3,9 @@ import type { BadgeTone } from "@/components/ui"
 import type { AttendanceStatus, CalendarEventItem, CourseItem, DoubtItem, LiveAttendanceRecord, LiveSessionItem, StudentItem } from "@/types"
 
 /** "Now" in the teacher demo timeline: Thursday 22 Oct 2026, during the live lab (11:30–13:00). */
-export const DEMO_NOW = new Date(2026, 9, 22, 12, 17)
-export const DEMO_DATE = "2026-10-22"
+// Compatibility names retained for existing views; dates now use the current device clock.
+export const DEMO_NOW = new Date()
+export const DEMO_DATE = `${DEMO_NOW.getFullYear()}-${String(DEMO_NOW.getMonth()+1).padStart(2,"0")}-${String(DEMO_NOW.getDate()).padStart(2,"0")}`
 
 const COURSE_ART: Record<string, CourseCategoryName> = {
   c1: "Generative AI",
@@ -41,7 +42,7 @@ export function toDate(iso?: string, time = "00:00"): Date {
     }
   }
 
-  return new Date(y || 2026, (m || 1) - 1, d || 1, h, min)
+  return new Date(y || new Date().getFullYear(), (m || 1) - 1, d || 1, h, min)
 }
 
 export function isoDate(d: Date): string {

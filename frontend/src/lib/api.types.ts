@@ -153,6 +153,8 @@ export interface Rows {
     underfilled_action: string
     allow_late_join: boolean
     live_provider: string
+    default_host_url: string | null
+    default_passcode: string | null
     join_before_minutes: number
     join_after_minutes: number
     instructor: string
@@ -409,6 +411,11 @@ export interface Rows {
     video_qualities: Json | null
   }
   live_sessions: {
+    schedule_rule_id: string | null
+    schedule_version: number | null
+    local_date: string | null
+    timezone: string
+    updated_at: string
     id: string
     batch_id: string
     teacher_id: string | null
@@ -695,6 +702,47 @@ export interface Rows {
     version: string
     guidance: string
   }
+  schedule_exceptions: {
+    occurrence_key: string
+    rule_id: string | null
+    session_id: string
+    action: string
+    starts_at: string | null
+    ends_at: string | null
+    reason: string
+    actor_id: string | null
+    created_at: string
+  }
+  schedule_rule_versions: {
+    rule_id: string
+    version: number
+    snapshot: Json
+    actor_id: string | null
+    created_at: string
+  }
+  schedule_rules: {
+    id: string
+    batch_id: string
+    version: number
+    timezone: string
+    weekdays: number[]
+    local_start: string
+    duration_minutes: number
+    start_date: string
+    end_date: string
+    title: string
+    teacher_id: string | null
+    provider: string
+    join_url: string | null
+    host_url: string | null
+    passcode: string | null
+    active: boolean
+    generated_version: number
+    generation_error: string | null
+    available_at: string
+    created_at: string
+    updated_at: string
+  }
   seat_reservations: {
     id: string
     batch_id: string | null
@@ -705,6 +753,13 @@ export interface Rows {
     state: string
     expires_at: string
     created_at: string
+  }
+  session_attendance: {
+    session_id: string
+    student_id: string
+    joined_at: string
+    last_joined_at: string
+    join_clicks: number
   }
   squad_members: {
     squad_id: string

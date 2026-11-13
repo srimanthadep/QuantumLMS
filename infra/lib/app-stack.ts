@@ -27,6 +27,7 @@ export interface AppStackProps extends StackProps {
   paymentsSecretArn?: string
   paymentReservationMinutes?: number
   paymentSweepSeconds?: number
+  scheduleSweepSeconds?: number
   paymentHttpTimeoutMs?: number
   /** Optional PEM CA for a database with a private certificate chain. */
   databaseCaCert?: string
@@ -97,6 +98,7 @@ export class AppStack extends Stack {
           NODE_ENV: "production",
           PORT: "4000",
           PAYMENT_RESERVATION_MINUTES: String(props.paymentReservationMinutes ?? 15),
+          SCHEDULE_SWEEP_SECONDS: String(props.scheduleSweepSeconds ?? 60),
           PAYMENT_SWEEP_SECONDS: String(props.paymentSweepSeconds ?? 30),
           PAYMENT_HTTP_TIMEOUT_MS: String(props.paymentHttpTimeoutMs ?? 15000),
           LOG_LEVEL: "info",
@@ -113,6 +115,7 @@ export class AppStack extends Stack {
           S3_BUCKET: uploads.bucketName,
           S3_REGION: this.region,
           DEMO_MODE: String(props.demoMode),
+          DEV_FAKE_LOGIN: "false",
           CAMPUS_TZ: props.campusTz,
         },
         secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl), ...(paymentSecret ? {

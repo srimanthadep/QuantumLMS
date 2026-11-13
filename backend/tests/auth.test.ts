@@ -1,3 +1,4 @@
+import { buildApp } from "../src/app.js"
 import assert from "node:assert/strict"
 import { after, before, describe, test } from "node:test"
 import { randomUUID } from "node:crypto"
@@ -45,6 +46,9 @@ describe("access tokens", () => {
       await h.token(randomUUID(), [], { client_id: "another-client" }),
       await h.token(randomUUID(), [], { exp: Math.floor(Date.now() / 1000) - 60 }),
       "not-a-jwt",
+      "fake-token:admin@lms.com:Admin",
+      "dev-token:superadmin@lms.com:Super Admin",
+      "dev-session:invented",
     ]) {
       const res = await get("/api/me", token)
       assert.equal(res.statusCode, 401, `token should be refused: ${token.slice(0, 20)}`)
@@ -101,3 +105,32 @@ describe("sign out of all devices", () => {
     assert.equal(res.status, 204)
   })
 })
+
+ test("passwordless development login is absent under strict auth", async () => {
+   const result = await h.app.inject({ method: "POST", url: "/api/auth/fake-login", payload: { email: "admin@lms.com", role: "Admin" } })
+   assert.equal(result.statusCode, 404)
+ })
+
+ test("local development sessions are server-issued, role-stable and cannot take over real users", async () => {
+   const old = { NODE_ENV: h.ctx.config.NODE_ENV, DEMO_MODE: h.ctx.config.DEMO_MODE, DEV_FAKE_LOGIN: h.ctx.config.DEV_FAKE_LOGIN }
+   Object.assign(h.ctx.config, { NODE_ENV: "development", DEMO_MODE: true, DEV_FAKE_LOGIN: true })
+   const app = await buildApp(h.ctx, { logger: false })
+   const email = `dev-${randomUUID()}@test.quantumlms.dev`
+   try {
+     const response = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000", origin: "http://localhost:8443" }, payload: { email, role: "Teacher" } })
+     assert.equal(response.statusCode, 200, response.body)
+     const token = response.json().token
+     assert.match(token, /^dev-session:[a-f0-9]{64}$/)
+     const profile = await app.inject({ method: "GET", url: "/api/me", headers: { authorization: `Bearer ${token}` } })
+     assert.equal(profile.statusCode, 200); assert.equal(profile.json().role, "Teacher")
+     const roleChange = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000" }, payload: { email, role: "Admin" } })
+     assert.equal(roleChange.statusCode, 403)
+     const remote = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000", origin: "https://outside.example" }, payload: { email, role: "Teacher" } })
+     assert.equal(remote.statusCode, 403)
+     const real = await h.user(); await real.call("GET", "/api/me")
+     const impersonate = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000" }, payload: { email: real.email, role: "Student" } })
+     assert.equal(impersonate.statusCode, 403)
+     h.ctx.config.DEV_FAKE_LOGIN = false
+     assert.equal((await app.inject({ method: "GET", url: "/api/me", headers: { authorization: `Bearer ${token}` } })).statusCode, 401)
+   } finally { Object.assign(h.ctx.config, old); await app.close(); await h.ctx.db.delete(users).where(eq(users.email, email)) }
+ })

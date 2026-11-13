@@ -522,9 +522,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                     <Zap className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
                     <span>Instant 1-Click Demo Portals</span>
                   </span>
-                  <span className="rounded-full bg-[#eeecff] px-2 py-0.5 text-[10px] font-semibold text-[#5749d2]">
-                    Sandbox Mode
-                  </span>
+                  <a
+                    href="/fake-login"
+                    className="inline-flex items-center gap-1 rounded-full bg-[#eeecff] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#5749d2] transition-colors hover:bg-[#dedaff]"
+                  >
+                    ⚡ Fake Login Route →
+                  </a>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
@@ -622,7 +625,14 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                   className="mb-3.5 flex items-start gap-2.5 rounded-xl border border-[#f0d8d7] bg-[#fff4f3] p-3 text-[12px] leading-5 text-[#a53a35]"
                 >
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{errorMessage}</span>
+                  <div className="flex-1">
+                    <span>{errorMessage}</span>
+                    {import.meta.env.DEV && <div className="mt-1">
+                      <a href="/fake-login" className="font-semibold underline hover:opacity-80">
+                        Open local development login →
+                      </a>
+                    </div>}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

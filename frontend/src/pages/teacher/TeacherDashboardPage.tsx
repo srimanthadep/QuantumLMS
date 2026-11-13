@@ -118,7 +118,7 @@ function SectionCard({
 /** Teaching command center: the live class, today's agenda and the work waiting on the teacher. */
 export default function TeacherDashboardPage() {
   const navigate = useNavigate()
-  const { teacherName, sessions, events, doubts, students, courses, assignments, suggestions, monitoring, dismissSuggestion, startSession, notify } = useTeacherData()
+  const { teacherName, sessions, events, doubts, students, courses, assignments, suggestions, monitoring, dismissSuggestion, notify } = useTeacherData()
   const [range, setRange] = useState<Range>("term")
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [gradingKey, setGradingKey] = useState<string | null>(null)
@@ -232,16 +232,7 @@ export default function TeacherDashboardPage() {
   const pulse = PULSE[range]
   const today = DEMO_NOW.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })
 
-  const openFocus = () => {
-    if (!focus) return navigate("/teacher/live-class")
-    if (focus.status === "Live Now") return navigate(`/teacher/live-class/studio/${focus.id}`)
-    if (focus.scheduledDate === DEMO_DATE) {
-      startSession(focus.id)
-      notify(`“${focus.title}” is live. Learners have been notified.`)
-      return navigate(`/teacher/live-class/studio/${focus.id}`)
-    }
-    navigate("/teacher/live-class")
-  }
+  const openFocus = () => navigate(focus ? `/teacher/live-class/studio/${focus.id}` : "/teacher/live-class")
 
   return (
     <div className="flex w-full min-w-0 flex-col">

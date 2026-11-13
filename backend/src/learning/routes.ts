@@ -50,7 +50,7 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
     if (!batch) throw notFound("Batch not found")
     const teachers = await db.select({ id: users.id, name: users.full_name }).from(batch_teachers).innerJoin(users, eq(users.id, batch_teachers.teacher_id)).where(eq(batch_teachers.batch_id, batch.id))
     const paid = await db.execute(sql`select count(*)::int as count from lms.batch_registrations where batch_id = ${batch.id} and state = 'confirmed' and paid_at is not null`)
-    const { meeting_url: _protected, ...safe } = batch
+    const { meeting_url: _protected, default_host_url: _host, default_passcode: _passcode, ...safe } = batch
     return { batch: safe, teachers, paid: paid.rows[0].count, available: await availableSeats(db, batch) }
   })
   app.patch<{ Params: { id: string } }>("/batches/:id/admission", async req => {

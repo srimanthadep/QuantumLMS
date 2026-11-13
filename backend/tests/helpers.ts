@@ -71,7 +71,7 @@ export async function createHarness(): Promise<TestHarness> {
     DATABASE_URL: databaseUrl,
     DATABASE_SSL: "disable",
     DATABASE_CA_CERT: undefined,
-    DEMO_MODE: "false",
+    DEMO_MODE: "false", DEV_FAKE_LOGIN: "false",
     LOG_LEVEL: "silent",
     COGNITO_USER_POOL_ID: "test-pool",
     COGNITO_CLIENT_ID: CLIENT_ID,
@@ -80,6 +80,7 @@ export async function createHarness(): Promise<TestHarness> {
     LOCAL_STORAGE_DIR: uploads,
     UPLOAD_SIGNING_SECRET: "test-upload-signing-secret",
     QUIZ_SWEEP_SECONDS: "0",
+    SCHEDULE_SWEEP_SECONDS: "0",
     PAYMENT_SWEEP_SECONDS: "0",
     RAZORPAY_KEY_ID: undefined, RAZORPAY_KEY_SECRET: undefined, RAZORPAY_WEBHOOK_SECRET: undefined,
     // Two test files run at once next to the dev server; Supabase's session pooler allows 15 clients in total.

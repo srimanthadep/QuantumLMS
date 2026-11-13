@@ -354,20 +354,8 @@ export default function BatchFormFields({
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5 sm:col-span-2">
-              <label
-                htmlFor={`${datalistId}-meetingUrl`}
-                className="text-xs font-semibold text-foreground"
-              >
-                Live classroom link (optional)
-              </label>
-              <Input
-                type="url"
-                placeholder="https://meet.google.com/..."
-                id={`${datalistId}-meetingUrl`}
-                aria-label="Live classroom link (optional)"
-                value={values.meetingUrl}
-                onChange={(e) => onChange({ meetingUrl: e.target.value })}
-              />
+              <p className="text-xs font-semibold text-foreground">Protected meeting links</p>
+              <p className="text-xs text-muted-foreground">After saving the batch, use Live sessions to choose Zoom or Google Meet, validate links, and schedule dated classes.</p>
             </div>
             <div className="space-y-1.5">
               <label

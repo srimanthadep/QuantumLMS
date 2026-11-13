@@ -148,7 +148,6 @@ describe("admin cohort batches CRUD and student roster management", () => {
       delivery_mode: "Self-Paced",
       replay_delay_hours: 4,
       access_expiry_months: 18,
-      meeting_url: "https://meet.google.com/quantum-alpha",
       features: { liveChat: true, doubtClearing: false, aiTutor: true, certificate: true },
       status: "Upcoming",
       notes: "Initial test cohort",
@@ -158,7 +157,10 @@ describe("admin cohort batches CRUD and student roster management", () => {
     createdBatchIds.push(primaryBatchId)
 
     assert.equal(createRes.body.batch.delivery_mode, "Self-Paced")
-    assert.equal(createRes.body.batch.meeting_url, "https://meet.google.com/quantum-alpha")
+    assert.equal(createRes.body.batch.meeting_url, null)
+    assert.equal((await admin.call("PUT", `/api/live/batches/${primaryBatchId}/settings`, { provider: "meet_link", join_url: "https://meet.google.com/abc-defg-hij" })).status, 200)
+    assert.equal((await admin.call("GET", `/api/live/batches/${primaryBatchId}/settings`)).body.join_url, "https://meet.google.com/abc-defg-hij")
+    assert.equal((await admin.call("GET", `/api/admin/batches/${primaryBatchId}`)).body.batch.meeting_url, null)
     assert.equal(createRes.body.batch.features.doubtClearing, false)
 
     const patchRes = await superAdmin.call("PATCH", `/api/admin/batches/${primaryBatchId}`, {

@@ -163,8 +163,32 @@ export async function currentUserId(): Promise<string | null> {
   return (await currentSignIn())?.userId ?? null
 }
 
+const FAKE_LOGIN_KEY = "quantum_fake_login_token"
+
+const localDevelopment = () => import.meta.env.DEV && typeof window !== "undefined" && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)
+export function setFakeAuthToken(token: string | null, user?: { id: string; email: string }) {
+  if (token && !localDevelopment()) throw new Error("Development login is local only")
+  try {
+    localStorage.removeItem(FAKE_LOGIN_KEY) // Discard earlier unsigned tokens.
+    if (token && user) sessionStorage.setItem(FAKE_LOGIN_KEY, JSON.stringify({ token, user }))
+    else sessionStorage.removeItem(FAKE_LOGIN_KEY)
+  } catch { /* Browser storage may be unavailable. */ }
+  cachedAccessToken = null
+  cachedTokenExpiresAt = 0
+}
+function developmentSession(): { token: string; user: { id: string; email: string } } | null {
+  if (!localDevelopment()) return null
+  try {
+    const value = JSON.parse(sessionStorage.getItem(FAKE_LOGIN_KEY) ?? "null")
+    return value?.token?.startsWith("dev-session:") && value.user?.id && value.user?.email ? value : null
+  } catch { return null }
+}
+export function getFakeAuthToken(): string | null { return developmentSession()?.token ?? null }
+
 /** Who is signed in to Cognito on this device: id and the email they signed in with. */
 export async function currentSignIn(): Promise<{ userId: string; email: string } | null> {
+  const fake = developmentSession()
+  if (fake) return { userId: fake.user.id, email: fake.user.email }
   if (!isAuthConfigured) return null
   try {
     const u = await getCurrentUser()
@@ -190,6 +214,8 @@ function parseTokenExpiryMs(jwt: string): number {
 
 /** A fresh access token for API calls (Amplify refreshes it when it's about to expire), or null when signed out. */
 export async function accessToken(): Promise<string | null> {
+  const fake = getFakeAuthToken()
+  if (fake) return fake
   if (!isAuthConfigured) return null
   if (cachedAccessToken && Date.now() < cachedTokenExpiresAt) {
     return cachedAccessToken
@@ -223,6 +249,7 @@ export async function accessToken(): Promise<string | null> {
 
 /** Ends the session on this device. ("Sign out of all devices" goes through the API, which revokes every session.) */
 export async function signOutHere() {
+  setFakeAuthToken(null)
   resetPrivateSession()
   inFlightToken = null
   cachedAccessToken = null

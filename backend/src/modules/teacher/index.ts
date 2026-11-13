@@ -1,3 +1,6 @@
+import { listSessions } from "../../live/access.js"
+import { sessionInput } from "../../live/routes.js"
+import { createSession } from "../../live/sessions.js"
 import crypto from "node:crypto"
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -12,7 +15,6 @@ import {
   enrollments,
   lessons,
   profiles,
-  timetable_slots,
   users,
 } from "../../db/schema.js"
 import { forbidden, notFound } from "../../errors.js"
@@ -99,81 +101,13 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
         return { courses: result }
       })
 
-      // 1. List teacher classes / live sessions
-      scope.get("/classes", async (req) => {
-        const ids = await teacherCourseIds(db, me(req))
-        const slots = await db
-          .select({
-            id: timetable_slots.id,
-            course_id: timetable_slots.course_id,
-            course_title: courses.title,
-            course_code: timetable_slots.course_code,
-            day: timetable_slots.day,
-            starts: timetable_slots.starts,
-            ends: timetable_slots.ends,
-            title: timetable_slots.title,
-            instructor: timetable_slots.instructor,
-            room: timetable_slots.room,
-            is_online: timetable_slots.is_online,
-          })
-          .from(timetable_slots)
-          .leftJoin(courses, eq(courses.id, timetable_slots.course_id))
-          .where(inArray(timetable_slots.course_id, ids))
-          .orderBy(asc(timetable_slots.day), asc(timetable_slots.starts))
-
-        return { classes: slots }
-      })
-
-      // 2. Schedule a live class session
-      scope.post("/classes", async (req) => {
-        const u = me(req)
-        const b = parse(
-          z.object({
-            course_id: z.string().min(1).optional(),
-            course_code: z.string().min(1).optional(),
-            title: z.string().min(3).max(200),
-            day: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]).default("Monday"),
-            starts: z.string().default("10:00:00"),
-            ends: z.string().default("11:30:00"),
-            instructor: z.string().min(1).optional(),
-            room: z.string().max(80).default("Online Studio 1"),
-            is_online: z.boolean().default(true),
-          }),
-          req.body,
-        )
-
-        if (!b.course_id) throw forbidden("Choose an assigned course.")
-        await assertCourseAccess(db, u, b.course_id)
-        const [course] = await db.select().from(courses).where(eq(courses.id, b.course_id))
-        if (!course) throw notFound("Course not found.")
-        const courseId = course.id
-        const courseCode = course.code
-
-        const [slot] = await db
-          .insert(timetable_slots)
-          .values({
-            id: crypto.randomUUID(),
-            course_id: courseId,
-            course_code: courseCode || "AI-101",
-            title: b.title,
-            day: b.day,
-            starts: b.starts.length === 5 ? `${b.starts}:00` : b.starts,
-            ends: b.ends.length === 5 ? `${b.ends}:00` : b.ends,
-            instructor: b.instructor || u.full_name || "Instructor",
-            room: b.room,
-            is_online: b.is_online,
-          })
-          .returning()
-
-        broadcastToChannel("notifications", "class-scheduled", {
-          id: slot.id,
-          title: slot.title,
-          instructor: slot.instructor,
-          starts: slot.starts,
-        })
-        broadcastToChannel("live:classroom", "class-scheduled", slot)
-
-        return { classSession: slot }
+      // Compatibility routes use the same persisted sessions and batch scope as the shared live module.
+      scope.get("/classes", async req => ({ classes: await listSessions(db, me(req)) }))
+      scope.post("/classes", async req => {
+        const hint = parse(z.object({ course_id: z.string().optional() }), req.body)
+        if (hint.course_id) await assertCourseAccess(db, me(req), hint.course_id)
+        const session = await createSession(ctx, me(req), parse(sessionInput, req.body))
+        return { classSession: { id: session.id, title: session.title, starts_at: session.starts_at, ends_at: session.ends_at, status: session.status } }
       })
 
       // 3. List doubts / student questions
@@ -311,7 +245,8 @@ export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
               count(distinct q.id) filter (where q.answer_text is null)::int as pending_doubts
             from lms.courses c
             left join lms.enrollments e on e.course_id = c.id and ${teacherStudentPredicate(me(req), sql`e.student_id`, sql`c.id`)}
-            left join lms.timetable_slots s on s.course_id = c.id
+            left join lms.cohort_batches b on b.course_id=c.id
+            left join lms.live_sessions s on s.batch_id=b.id and (s.teacher_id=${me(req).id}::uuid or exists(select 1 from lms.batch_teachers bt where bt.batch_id=b.id and bt.teacher_id=${me(req).id}::uuid))
             left join lms.course_questions q on q.course_id = c.id and ${teacherStudentPredicate(me(req), sql`q.author_id`, sql`c.id`)}
             where c.id in (select jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb))
           `)

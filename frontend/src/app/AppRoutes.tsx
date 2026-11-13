@@ -11,6 +11,7 @@ import { api, DEMO_SUPPORT, DEMO_ADMIN, DEMO_SUPER_ADMIN } from "@/lib/api"
 import { LEGACY_BG, noopHexChange } from "./legacy"
 
 const AuthPage = lazy(() => import("@/pages/auth/AuthPage"))
+const FakeLoginPage = import.meta.env.DEV ? lazy(() => import("@/pages/auth/FakeLoginPage")) : () => <Navigate to="/auth" replace />
 const StudentPortal = lazy(() => import("@/pages/student/StudentPortal"))
 const TeacherPortal = lazy(() => import("@/pages/teacher/TeacherPortal"))
 const EvaluatorPortal = lazy(() => import("@/pages/evaluator/EvaluatorPortal"))
@@ -129,6 +130,32 @@ export default function AppRoutes() {
       <Route path="/" element={<Navigate to="/auth" replace />} />
       <Route path="/auth" element={<AuthRoute />} />
       <Route path="/login" element={<AuthRoute />} />
+      {import.meta.env.DEV && <>
+      <Route
+        path="/fake-login"
+        element={
+          <Suspense fallback={<RouteFallback variant="page" />}>
+            <FakeLoginPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/dev/login"
+        element={
+          <Suspense fallback={<RouteFallback variant="page" />}>
+            <FakeLoginPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/fake"
+        element={
+          <Suspense fallback={<RouteFallback variant="page" />}>
+            <FakeLoginPage />
+          </Suspense>
+        }
+      />
+      </>}
       {/* Public: anyone with a shared certificate link can check it. */}
       <Route
         path="/verify/:credentialId"

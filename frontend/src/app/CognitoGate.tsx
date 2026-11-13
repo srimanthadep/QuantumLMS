@@ -4,7 +4,7 @@ import { Hub } from "aws-amplify/utils"
 import { CloudOff, RotateCcw } from "lucide-react"
 import { Button, EmptyState } from "@/components/ui"
 import { toApiError } from "@/lib/api"
-import { currentSignIn, isAuthConfigured, signInWithEmail } from "@/lib/auth"
+import { currentSignIn, getFakeAuthToken, isAuthConfigured, signInWithEmail } from "@/lib/auth"
 import { clearAll } from "@/lib/resource"
 import { useSession } from "./session"
 import RouteFallback from "./RouteFallback"
@@ -70,6 +70,19 @@ export default function CognitoGate({ demo, load, errorTitle, children }: Cognit
 
   const check = useCallback(async () => {
     setState({ status: "checking" })
+    const fake = getFakeAuthToken()
+    if (fake) {
+      try {
+        const profile = await loadRef.current()
+        uidRef.current = profile.id
+        setState({ status: "ready", uid: profile.id })
+      } catch (e) {
+        const err = toApiError(e, "Development sign-in failed. Check the API and try again.")
+        uidRef.current = null
+        setState({ status: "error", message: err.message })
+      }
+      return
+    }
     if (!isAuthConfigured) {
       setState({ status: "error", message: "Sign-in isn't configured. Set VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID in frontend/.env.local." })
       return

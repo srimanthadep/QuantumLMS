@@ -22,6 +22,7 @@ test("production refuses demo mode and non-verifying TLS", () => {
   const base = { DATABASE_URL: "postgresql://localhost/example", STORAGE_DRIVER: "s3", S3_BUCKET: "test", COGNITO_USER_POOL_ID: "test", COGNITO_CLIENT_ID: "test", NODE_ENV: "production" }
   assert.throws(() => loadConfig({ ...base, DEMO_MODE: "true" }), /DEMO_MODE/)
   assert.throws(() => loadConfig({ ...base, DATABASE_SSL: "require" }), /TLS/)
+  assert.throws(() => loadConfig({ ...base, DEV_FAKE_LOGIN: "true" }), /DEV_FAKE_LOGIN/)
   assert.equal(loadConfig(base).DEMO_MODE, false)
   assert.deepEqual(sslOptions("verify"), { rejectUnauthorized: true, ca: undefined })
   assert.ok(!withoutSslMode("postgresql://localhost/example?sslmode=no-verify&sslrootcert=bad").includes("ssl"))

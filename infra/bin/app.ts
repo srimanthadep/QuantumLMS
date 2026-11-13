@@ -35,6 +35,7 @@ if (context("authOnly") !== "true") {
     databaseSecretArn,
     paymentsSecretArn: context("paymentsSecretArn") ?? process.env.PAYMENTS_SECRET_ARN,
     paymentReservationMinutes: Number(context("paymentReservationMinutes") ?? "15"),
+    scheduleSweepSeconds: Number(context("scheduleSweepSeconds") ?? "60"),
     paymentSweepSeconds: Number(context("paymentSweepSeconds") ?? "30"),
     paymentHttpTimeoutMs: Number(context("paymentHttpTimeoutMs") ?? "15000"),
     databaseCaCert: process.env.DATABASE_CA_CERT,

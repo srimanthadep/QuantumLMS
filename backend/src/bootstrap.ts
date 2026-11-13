@@ -1,3 +1,4 @@
+import { devLoginEnabled, verifyDevSession } from "./auth/dev-sessions.js"
 import { createRazorpay } from "./payments/razorpay.js"
 import type { PaymentProvider } from "./payments/provider.js"
 import { createCognitoGateway, type CognitoGateway } from "./auth/cognito.js"
@@ -46,10 +47,11 @@ export function createContext(config: Config, overrides: { payments?: PaymentPro
   const pool = createPool(config)
   const db = createDb(pool)
   const cognito = overrides.cognito ?? createCognitoGateway(config)
-  const verifyToken = overrides.verifyToken ?? createTokenVerifier({ issuer: config.cognitoIssuer, jwksUri: config.cognitoJwksUri, clientId: config.COGNITO_CLIENT_ID })
+  const cognitoVerifier = overrides.verifyToken ?? createTokenVerifier({ issuer: config.cognitoIssuer, jwksUri: config.cognitoJwksUri, clientId: config.COGNITO_CLIENT_ID })
+  const verifyToken: VerifyToken = token => devLoginEnabled(config) && token.startsWith("dev-session:") ? Promise.resolve(verifyDevSession(token)) : cognitoVerifier(token)
   const { storage, localStorage } = overrides.storage ? { storage: overrides.storage, localStorage: undefined } : createStorage(config)
   const demoEmails = config.DEMO_MODE
-    ? [config.DEMO_STUDENT_EMAIL, config.DEMO_EVALUATOR_EMAIL, config.DEMO_SUPPORT_EMAIL, config.DEMO_ADMIN_EMAIL, config.DEMO_SUPER_ADMIN_EMAIL].map((e) => e.toLowerCase())
+    ? [config.DEMO_TEACHER_EMAIL, config.DEMO_STUDENT_EMAIL, config.DEMO_EVALUATOR_EMAIL, config.DEMO_SUPPORT_EMAIL, config.DEMO_ADMIN_EMAIL, config.DEMO_SUPER_ADMIN_EMAIL].map((e) => e.toLowerCase())
     : []
   return {
     config,
@@ -60,6 +62,6 @@ export function createContext(config: Config, overrides: { payments?: PaymentPro
     verifyToken,
     storage,
     localStorage,
-    resolveUser: (claims) => resolveUser(db, cognito, claims, { demoEmails, onboard: onboardingFor(config, storage) }),
+    resolveUser: (claims) => resolveUser(db, cognito, claims, { allowDevelopmentLogin: devLoginEnabled(config), demoEmails, onboard: onboardingFor(config, storage) }),
   }
 }

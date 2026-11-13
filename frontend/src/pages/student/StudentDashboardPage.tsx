@@ -520,10 +520,10 @@ export default function StudentDashboardPage({ onNavigate, onToast, courses, ass
                 onClick={() => onNavigate("My Courses")}
               />
               <MetricTile
-                label="Attendance pulse"
+                label="Session join clicks"
                 value={attendance ? `${attendance.overallPercentage}%` : "–"}
-                detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} classes attended` : "No classes recorded yet") : "Loading…"}
-                badgeText={attendance && attendance.overallPercentage >= 85 ? "Excellent" : "Regular"}
+                detail={attendance ? (attendance.totalClasses ? `${attendance.attendedClasses} of ${attendance.totalClasses - attendance.excusedClasses} ended classes with a join click (presence unverified)` : "No classes recorded yet") : "Loading…"}
+                badgeText="Clicks only"
                 badgeTone={attendance && attendance.overallPercentage >= 85 ? "info" : "neutral"}
                 icon={CheckCircle2}
                 tone="info"

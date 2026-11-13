@@ -428,7 +428,7 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
       cb.delivery_mode,
       cb.replay_delay_hours,
       cb.access_expiry_months,
-      cb.meeting_url,
+      null::text as meeting_url,
       cb.features,
       cb.status, cb.lifecycle, cb.offer_id, cb.minimum_paid_registrations,
       cb.notes,
@@ -477,14 +477,7 @@ async function getBatchDto(db: Db, batchId: string) {
   return rows[0] ?? null
 }
 
-const meetingUrlField = z
-  .union([
-    z.string().trim().regex(/^https?:\/\/.+/i, "Meeting URL must start with http:// or https://").max(500),
-    z.literal(""),
-    z.null(),
-  ])
-  .optional()
-  .transform((v) => (v ? v : null))
+const meetingUrlField = z.union([z.literal(""), z.null()]).optional().transform(() => null)
 
 const dateField = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must use YYYY-MM-DD format")
 
@@ -639,7 +632,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         delivery_mode: source.delivery_mode,
         replay_delay_hours: source.replay_delay_hours,
         access_expiry_months: source.access_expiry_months,
-        meeting_url: source.meeting_url,
+        meeting_url: null,
         features: normalizeFeatures(source.features),
         status: b.status,
         notes: source.notes,
@@ -704,7 +697,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
       if (b.delivery_mode !== undefined) updateSet.delivery_mode = b.delivery_mode
       if (b.replay_delay_hours !== undefined) updateSet.replay_delay_hours = b.replay_delay_hours
       if (b.access_expiry_months !== undefined) updateSet.access_expiry_months = b.access_expiry_months
-      if (b.meeting_url !== undefined) updateSet.meeting_url = b.meeting_url
+      // Meeting links are managed only by the protected live settings endpoint.
       if (b.features !== undefined) {
         updateSet.features = normalizeFeatures(b.features, normalizeFeatures(existing.features))
       }

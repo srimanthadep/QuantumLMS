@@ -976,7 +976,7 @@ export default function CourseWorkspacePage() {
   const { courseId = "" } = useParams()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const { courses, students, sessions, recordings, assignments, doubts = [], replyToDoubt, setDoubtStatus, toggleLessonDelivered, startSession, notify } = useTeacherData()
+  const { courses, students, sessions, recordings, assignments, doubts = [], replyToDoubt, setDoubtStatus, toggleLessonDelivered, notify } = useTeacherData()
   const course = courses.find((c) => c.id === courseId)
   const tabParam = params.get("tab") as Tab | null
   const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "curriculum"
@@ -1115,12 +1115,10 @@ export default function CourseWorkspacePage() {
                         <Button
                           size="sm"
                           onClick={() => {
-                            startSession(next.id)
-                            notify(`“${next.title}” is live`)
                             navigate(`/teacher/live-class/studio/${next.id}`)
                           }}
                         >
-                          Start class
+                          Manage class
                         </Button>
                       ) : (
                         <Badge tone="info">Scheduled</Badge>
