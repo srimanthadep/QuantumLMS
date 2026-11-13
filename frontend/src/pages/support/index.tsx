@@ -1,3 +1,4 @@
+import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
@@ -24,6 +25,7 @@ export interface SupportPortalProps {
 }
 
 const NAV_PATHS: Record<string, string> = {
+  placements: "/support/placements",
   dashboard: "/support",
   inbox: "/support/inbox",
   "live-chat": "/support/live-chat",
@@ -40,6 +42,7 @@ function navIdFor(pathname: string): string {
   if (path.startsWith("/support/knowledge-base")) return "knowledge-base"
   if (path.startsWith("/support/agents")) return "agents"
   if (path.startsWith("/support/analytics")) return "analytics"
+  if (path.startsWith("/support/placements")) return "placements"
   if (path.startsWith("/support/settings")) return "settings"
   return "dashboard"
 }
@@ -146,6 +149,7 @@ export default function SupportPortal({ currentUser, onOpenAiModal, onToast }: S
             <Route path="agents" element={<SupportAgentsPage onToast={onToast} />} />
             <Route path="analytics" element={<SupportAnalyticsPage />} />
             <Route path="settings" element={<SupportSettingsPage onToast={onToast} />} />
+            <Route path="placements" element={<PlacementWorkspace role="Support" />} />
             <Route path="*" element={<Navigate to="/support" replace />} />
           </Routes>
         </Suspense>

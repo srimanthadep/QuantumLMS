@@ -1,3 +1,4 @@
+import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
 import EnrollmentDialog from "@/components/student/EnrollmentDialog"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
@@ -33,6 +34,7 @@ const NOTIFICATION_PAGE: Record<string, StudentNavPage> = {
   grades: "Grades",
   courses: "My Courses",
   alumni: "Alumni",
+  placements: "Jobs & Applications",
 }
 
 /** Shell nav id -> student page. */
@@ -43,6 +45,7 @@ const NAV_TO_PAGE: Record<string, StudentNavPage> = {
   assessments: "Assessments",
   grades: "Grades & Certificates",
   alumni: "Alumni",
+  placements: "Jobs & Applications",
   notes: "My Notes",
   community: "Community",
   career: "Career Hub",
@@ -52,6 +55,7 @@ const NAV_TO_PAGE: Record<string, StudentNavPage> = {
 
 function navIdFor(page: StudentNavPage): string {
   switch (page) {
+    case "Jobs & Applications": return "placements"
     case "My Courses":
     case "Course Details":
       return "courses"
@@ -122,6 +126,7 @@ function parseInitialTab(): StudentNavPage {
     const hash = window.location.hash.replace("#", "")
     const target = (pageParam || hash || "").toLowerCase().trim()
 
+    if (["placements","jobs","jobs & applications"].includes(target)) return "Jobs & Applications"
     if (
       target === "live-class" ||
       target === "live-classes" ||
@@ -374,6 +379,8 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
         return <SupportHelpPage onToast={onToast} onOpenAiModal={onOpenAiModal} onNavigate={navigateTo} />
       case "My Notes":
         return <MyNotesPage onToast={onToast} />
+      case "Jobs & Applications":
+        return <PlacementWorkspace role="Student" onResume={()=>navigateTo("Resume Building")} onInterviews={()=>navigateTo("Mock Interview")} onSupport={()=>navigateTo("Support & Help")} />
       case "Alumni":
       case "Alumni Placements":
         return <AlumniPage onNavigate={navigateTo} onToast={onToast} />

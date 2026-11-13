@@ -1499,3 +1499,30 @@ export const completion_events = lms.table("completion_events", {
   id: uuid().defaultRandom().primaryKey(), completion_id: uuid().notNull().references(()=>completions.id), kind: text().notNull(),
   processed_at: timestamp({withTimezone:true}), created_at: timestamp({withTimezone:true}).notNull().defaultNow(),
 },t=>[unique("completion_event_kind_key").on(t.completion_id,t.kind)]);
+
+/** Placement access is earned by a policy completion, separate from course media access. */
+export const placement_tracks = lms.table("placement_tracks", {
+  id: uuid().defaultRandom().primaryKey(),course_id:text().notNull().references(()=>courses.id),title:text().notNull(),description:text().notNull().default(""),
+  active:boolean().notNull().default(true),auto_enroll:boolean().notNull().default(true),eligible_modes:text().array().notNull().default(sql`ARRAY['live','self_paced']::text[]`),version:integer().notNull().default(1),created_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("placement_track_course_key").on(t.course_id),check("placement_track_modes",sql`cardinality(${t.eligible_modes})>0 and ${t.eligible_modes}<@ARRAY['live','self_paced']::text[]`)]);
+export const placement_memberships = lms.table("placement_memberships", {
+  id:uuid().defaultRandom().primaryKey(),track_id:uuid().notNull().references(()=>placement_tracks.id),student_id:uuid().notNull().references(()=>users.id),completion_id:uuid().notNull().references(()=>completions.id),
+  eligibility:text().notNull().default("Eligible"),status:text().notNull().default("Active"),mentor_id:uuid().references(()=>users.id,{onDelete:"set null"}),version:integer().notNull().default(1),
+  eligible_at:timestamp({withTimezone:true}).notNull().defaultNow(),updated_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("placement_membership_student_track_key").on(t.student_id,t.track_id),check("placement_eligibility",sql`${t.eligibility} in ('Eligible','Revoked')`),check("placement_membership_status",sql`${t.status} in ('Active','Placed','Closed')`),index("placement_mentor_idx").on(t.mentor_id,t.status)]);
+export const placement_jobs = lms.table("placement_jobs", {
+  id:uuid().defaultRandom().primaryKey(),track_id:uuid().notNull().references(()=>placement_tracks.id),title:text().notNull(),company:text().notNull(),location:text().notNull(),
+  work_mode:text().notNull().default("Remote"),employment_type:text().notNull().default("Full-time"),description:text().notNull(),requirements:text().notNull().default(""),
+  status:text().notNull().default("Draft"),closes_at:timestamp({withTimezone:true}),version:integer().notNull().default(1),created_by:uuid().references(()=>users.id,{onDelete:"set null"}),created_at:timestamp({withTimezone:true}).notNull().defaultNow(),updated_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[check("placement_job_status",sql`${t.status} in ('Draft','Published','Closed')`),check("placement_job_mode",sql`${t.work_mode} in ('Remote','Hybrid','On-site')`),index("placement_jobs_track_idx").on(t.track_id,t.status)]);
+export const job_applications = lms.table("job_applications", {
+  id:uuid().defaultRandom().primaryKey(),job_id:uuid().notNull().references(()=>placement_jobs.id),membership_id:uuid().notNull().references(()=>placement_memberships.id),student_id:uuid().notNull().references(()=>users.id),
+  resume_student_id:uuid().references(()=>resumes.student_id,{onDelete:"set null"}),resume_snapshot:jsonb().notNull(),resume_updated_at:timestamp({withTimezone:true}).notNull(),cover_note:text().notNull().default(""),
+  status:text().notNull().default("Submitted"),version:integer().notNull().default(1),submitted_at:timestamp({withTimezone:true}).notNull().defaultNow(),updated_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("job_application_student_job_key").on(t.student_id,t.job_id),check("job_application_status",sql`${t.status} in ('Submitted','Reviewing','Shortlisted','Interview','Offered','Placed','Rejected','Withdrawn')`),index("job_application_membership_idx").on(t.membership_id,t.status)]);
+export const job_application_events = lms.table("job_application_events", {
+  id:uuid().defaultRandom().primaryKey(),application_id:uuid().notNull().references(()=>job_applications.id),version:integer().notNull(),status:text().notNull(),note:text().notNull(),actor_id:uuid().references(()=>users.id,{onDelete:"set null"}),actor_role:text().notNull(),created_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("job_application_event_version_key").on(t.application_id,t.version)]);
+export const placement_support_requests = lms.table("placement_support_requests", {
+  id:uuid().defaultRandom().primaryKey(),membership_id:uuid().notNull().references(()=>placement_memberships.id),application_id:uuid().references(()=>job_applications.id),ticket_id:text().notNull().references(()=>support_tickets.id),created_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[unique("placement_support_ticket_key").on(t.ticket_id)]);

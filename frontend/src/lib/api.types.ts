@@ -466,6 +466,30 @@ export interface Rows {
     responses: Json
     created_at: string
   }
+  job_application_events: {
+    id: string
+    application_id: string
+    version: number
+    status: string
+    note: string
+    actor_id: string | null
+    actor_role: string
+    created_at: string
+  }
+  job_applications: {
+    id: string
+    job_id: string
+    membership_id: string
+    student_id: string
+    resume_student_id: string | null
+    resume_snapshot: Json
+    resume_updated_at: string
+    cover_note: string
+    status: string
+    version: number
+    submitted_at: string
+    updated_at: string
+  }
   leave_requests: {
     id: string
     student_id: string
@@ -618,6 +642,35 @@ export interface Rows {
     refunded_amount: number
     created_at: string
   }
+  placement_jobs: {
+    id: string
+    track_id: string
+    title: string
+    company: string
+    location: string
+    work_mode: string
+    employment_type: string
+    description: string
+    requirements: string
+    status: string
+    closes_at: string | null
+    version: number
+    created_by: string | null
+    created_at: string
+    updated_at: string
+  }
+  placement_memberships: {
+    id: string
+    track_id: string
+    student_id: string
+    completion_id: string
+    eligibility: string
+    status: string
+    mentor_id: string | null
+    version: number
+    eligible_at: string
+    updated_at: string
+  }
   placement_stories: {
     id: string
     first_name: string
@@ -635,6 +688,24 @@ export interface Rows {
     position: number
     created_at: string
     updated_at: string
+  }
+  placement_support_requests: {
+    id: string
+    membership_id: string
+    application_id: string | null
+    ticket_id: string
+    created_at: string
+  }
+  placement_tracks: {
+    id: string
+    course_id: string
+    title: string
+    description: string
+    active: boolean
+    auto_enroll: boolean
+    eligible_modes: string[]
+    version: number
+    created_at: string
   }
   post_likes: {
     post_id: string

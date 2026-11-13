@@ -1,3 +1,4 @@
+import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
 import { lazy, Suspense, useState, useMemo, useEffect, useCallback } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
@@ -36,6 +37,7 @@ interface SuperAdminPortalProps {
 }
 
 const NAV_PATHS: Record<string, string> = {
+  placements: "/super-admin/placements",
   // Academy Admin scope
   overview: "/super-admin/overview",
   courses: "/super-admin/courses",
@@ -297,6 +299,7 @@ export default function SuperAdminPortal({
               element={<ReportsView store={adminStore} onToast={onToast} />}
             />
 
+            <Route path="placements" element={<PlacementWorkspace role="Admin" />} />
             <Route path="*" element={<Navigate to="/super-admin/health" replace />} />
           </Routes>
         </Suspense>

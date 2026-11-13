@@ -16,7 +16,8 @@ This is a living report. **The full implementation is not complete.** Statuses b
 - Phase 6: dated timezone-aware recurrence, durable versioned generation, exact-batch protected provider links, persisted start/end/cancel/reschedule/override, join-click attendance and shared scheduling UI. Migration 0011 is additive. Validation: 150 tests passed, including six-month Mon/Tue/Wed dates, DST/weekends, duplicate generation, preserved exceptions, link validation, exact-batch/window denial, below-threshold starts and development-login hardening. Lint, typechecks and builds are recorded with this phase.
 - Phase 7: exact-batch recording uploads, durable processing, reviewed chapters, versioned replacement/publication, release/expiry enforcement and optional signed Zoom metadata notices. Migration 0012 is additive. Validation: 158 tests passed; lint, all typechecks and builds passed. External provider recording and full worker-image deployment remain manual integration checks.
 - Phase 8: reusable validated assessments, immutable per-context grading instances, explicit evaluator allocation, bounded preserved attempts, durable policy checks and immutable credential revisions. Migration 0013 preserves existing submissions and identifiers. Validation: 168 tests passed; lint, backend/frontend/infra typechecks and builds passed.
-- Phases 9-10: pending.
+- Phase 9: completion-event placement tracks/memberships, scoped mentors, published jobs, immutable submitted resumes, application history and support handoffs. Migration 0014 is additive. Validation: 177 tests passed; lint, all typechecks and builds passed.
+- Phase 10: pending.
 
 ## Finding status
 
@@ -86,3 +87,5 @@ Phase 6 scheduling, legacy timetable limits and the hardened one-click local log
 Phase 7 upload, review, feature flags and optional Zoom webhook setup: [RECORDINGS.md](docs/audit/RECORDINGS.md). Zoom notices contain metadata only and require explicit matching/upload; no provider recording is downloaded automatically. Migration 0012 has only been exercised on isolated databases.
 
 Phase 8 assessment authoring, legacy review, policy defaults and credential revocation/reissue: [ASSESSMENTS_COMPLETION.md](docs/audit/ASSESSMENTS_COMPLETION.md). Apply migration 0013 before using the new panels, and configure COMPLETION_SWEEP_SECONDS (default 30). Legacy assessments remain optional until their required status is reviewed; existing credentials remain unchanged.
+
+Phase 9 track configuration, mentor scope, job/application management and support handoffs: [PLACEMENT.md](docs/audit/PLACEMENT.md). Apply migration 0014, review eligible course modes, assign mentors and publish actual jobs. Historic certificates without a policy completion are not treated as proof of placement eligibility. No employer application was sent externally.

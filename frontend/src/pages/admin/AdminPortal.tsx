@@ -1,3 +1,4 @@
+import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
 import { lazy, Suspense, useState, useMemo, useCallback } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
@@ -45,6 +46,7 @@ interface AdminPortalProps {
 }
 
 const NAV_PATHS: Record<string, string> = {
+  placements: "/admin/placements",
   overview: "/admin/overview",
   approvals: "/admin/approvals",
   courses: "/admin/courses",
@@ -292,6 +294,7 @@ export default function AdminPortal({
               path="/settings"
               element={<SettingsView store={store} onToast={onToast} />}
             />
+            <Route path="placements" element={<PlacementWorkspace role="Admin" />} />
             <Route path="*" element={<Navigate to="/admin/overview" replace />} />
           </Routes>
         </Suspense>
