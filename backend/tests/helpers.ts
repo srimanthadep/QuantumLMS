@@ -79,6 +79,7 @@ export async function createHarness(): Promise<TestHarness> {
     STORAGE_DRIVER: "local",
     LOCAL_STORAGE_DIR: uploads,
     UPLOAD_SIGNING_SECRET: "test-upload-signing-secret",
+    REPLAY_ENABLED: "true", ZOOM_RECORDING_WEBHOOK_ENABLED: "false", ZOOM_RECORDING_WEBHOOK_SECRET: undefined,
     QUIZ_SWEEP_SECONDS: "0",
     SCHEDULE_SWEEP_SECONDS: "0",
     PAYMENT_SWEEP_SECONDS: "0",

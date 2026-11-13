@@ -1,3 +1,4 @@
+import { authorizeRecordingAsset } from "../recordings/access.js"
 import { and, eq, or, sql } from "drizzle-orm"
 import type { AppContext } from "../context.js"
 import type { AuthUser } from "../auth/users.js"
@@ -16,6 +17,10 @@ export function mediaKey(value: string | null | undefined, kind: "videos" | "mat
 }
 
 export async function authorizeMediaKey(ctx: AppContext, user: AuthUser, key: string, kind: "videos" | "materials") {
+  const assets = kind === "videos" ? await ctx.db.execute(sql`select distinct a.id from lms.media_assets a left join lms.media_variants v on v.asset_id=a.id where a.session_id is not null and (a.source_key=${key} or v.key=${key})`) : { rows: [] }
+  let seconds = 300
+  for (const asset of assets.rows) seconds = Math.min(seconds,await authorizeRecordingAsset(ctx,user,String(asset.id)) ?? 300)
+  if (assets.rows.length) return seconds
   const short = `/api/files/${key}`
   const doubled = `/api/files/${kind}/${key}`
   const sources = kind === "videos"
@@ -32,7 +37,7 @@ export async function authorizeMediaKey(ctx: AppContext, user: AuthUser, key: st
   for (const source of sources) await assertCourseAccess(ctx.db, user, source.course_id)
 }
 
-export async function signedMedia(ctx: AppContext, key: string) {
+export async function signedMedia(ctx: AppContext, key: string, expiresInSeconds = 300) {
   if (!(await ctx.storage.head(key))) throw notFound("Media is unavailable. Contact your instructor.")
-  return ctx.storage.createDownloadUrl(key, { expiresInSeconds: 300 })
+  return ctx.storage.createDownloadUrl(key, { expiresInSeconds })
 }

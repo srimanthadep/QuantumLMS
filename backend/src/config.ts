@@ -49,6 +49,9 @@ const schema = z.object({
   PAYMENT_RESERVATION_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   PAYMENT_SWEEP_SECONDS: z.coerce.number().int().min(0).default(30),
   PAYMENT_HTTP_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(15000),
+  REPLAY_ENABLED: bool.default(true),
+  ZOOM_RECORDING_WEBHOOK_ENABLED: bool.default(false),
+  ZOOM_RECORDING_WEBHOOK_SECRET: z.string().min(16).optional(),
   MEDIA_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().max(5 * 1024 ** 3).default(5 * 1024 ** 3),
   MEDIA_MAX_DURATION_SECONDS: z.coerce.number().int().positive().default(8 * 3600),
   MEDIA_TEMP_BUDGET_BYTES: z.coerce.number().int().positive().default(16 * 1024 ** 3),
@@ -88,6 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration:\n${lines.join("\n")}`)
   }
   const c = parsed.data
+  if (c.ZOOM_RECORDING_WEBHOOK_ENABLED && !c.ZOOM_RECORDING_WEBHOOK_SECRET) throw new Error("ZOOM_RECORDING_WEBHOOK_SECRET is required when enabled")
   if (c.RAZORPAY_KEY_ID && !c.RAZORPAY_KEY_ID.startsWith("rzp_test_")) throw new Error("Only Razorpay test-mode keys are supported.")
   if (Boolean(c.RAZORPAY_KEY_ID) !== Boolean(c.RAZORPAY_KEY_SECRET)) throw new Error("Set both Razorpay test key ID and secret.")
   if (c.DEV_FAKE_LOGIN && (c.NODE_ENV !== "development" || !c.DEMO_MODE)) throw new Error("DEV_FAKE_LOGIN requires development and DEMO_MODE=true.")

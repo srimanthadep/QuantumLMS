@@ -24,6 +24,9 @@ export interface AppStackProps extends StackProps {
   /** Complete ARN of the Secrets Manager secret that holds DATABASE_URL. */
   databaseSecretArn: string
   /** JSON secret containing test key ID, API secret and webhook secret. */
+  replayEnabled?: boolean
+  zoomWebhookEnabled?: boolean
+  zoomWebhookSecretArn?: string
   paymentsSecretArn?: string
   paymentReservationMinutes?: number
   paymentSweepSeconds?: number
@@ -76,6 +79,8 @@ export class AppStack extends Stack {
     const cluster = new ecs.Cluster(this, "Cluster", { vpc })
     const databaseUrl = secretsmanager.Secret.fromSecretCompleteArn(this, "DatabaseUrl", props.databaseSecretArn)
     const paymentSecret = props.paymentsSecretArn ? secretsmanager.Secret.fromSecretCompleteArn(this, "PaymentKeys", props.paymentsSecretArn) : undefined
+    if (props.zoomWebhookEnabled && !props.zoomWebhookSecretArn) throw new Error("Zoom webhook requires a separate Secrets Manager secret ARN")
+    const zoomSecret = props.zoomWebhookSecretArn ? secretsmanager.Secret.fromSecretCompleteArn(this, "ZoomWebhookSecret", props.zoomWebhookSecretArn) : undefined
     const apiLogs = new logs.LogGroup(this, "ApiLogs", { retention: logs.RetentionDays.ONE_MONTH, removalPolicy: RemovalPolicy.DESTROY })
     const api = new ecsPatterns.ApplicationLoadBalancedFargateService(this, "Api", {
       cluster,
@@ -97,6 +102,8 @@ export class AppStack extends Stack {
         environment: {
           NODE_ENV: "production",
           PORT: "4000",
+          REPLAY_ENABLED: String(props.replayEnabled ?? true),
+          ZOOM_RECORDING_WEBHOOK_ENABLED: String(props.zoomWebhookEnabled ?? false),
           PAYMENT_RESERVATION_MINUTES: String(props.paymentReservationMinutes ?? 15),
           SCHEDULE_SWEEP_SECONDS: String(props.scheduleSweepSeconds ?? 60),
           PAYMENT_SWEEP_SECONDS: String(props.paymentSweepSeconds ?? 30),
@@ -118,7 +125,7 @@ export class AppStack extends Stack {
           DEV_FAKE_LOGIN: "false",
           CAMPUS_TZ: props.campusTz,
         },
-        secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl), ...(paymentSecret ? {
+        secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl), ...(zoomSecret ? { ZOOM_RECORDING_WEBHOOK_SECRET: ecs.Secret.fromSecretsManager(zoomSecret) } : {}), ...(paymentSecret ? {
           RAZORPAY_KEY_ID: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_KEY_ID"),
           RAZORPAY_KEY_SECRET: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_KEY_SECRET"),
           RAZORPAY_WEBHOOK_SECRET: ecs.Secret.fromSecretsManager(paymentSecret, "RAZORPAY_WEBHOOK_SECRET"),

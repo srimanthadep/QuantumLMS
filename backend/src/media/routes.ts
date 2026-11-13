@@ -1,7 +1,8 @@
+import { authorizeRecordingAsset } from "../recordings/access.js"
 import { lessonPlayback } from "../storage/lesson-playback.js"
 import { contentChanged, lockCourse, snapshotLesson } from "../learning/content.js"
 import { randomUUID } from "node:crypto"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../context.js"
@@ -19,13 +20,14 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
   const getAsset = async (id: string, user: NonNullable<Parameters<typeof assertCourseAccess>[1]>) => {
     const asset = await ctx.db.query.media_assets.findFirst({ where: eq(media_assets.id, id) })
     if (!asset) throw notFound("Media asset not found")
-    await assertCourseAccess(ctx.db, user, asset.course_id)
+    if (asset.session_id) await authorizeRecordingAsset(ctx,user,asset.id)
+    else await assertCourseAccess(ctx.db, user, asset.course_id)
     return asset
   }
   app.get("/media", async req => {
     const input = parse(z.object({ courseId: z.string().min(1) }), req.query)
     await assertCourseAccess(ctx.db, req.user!, input.courseId)
-    return { assets: await ctx.db.select().from(media_assets).where(eq(media_assets.course_id, input.courseId)) }
+    return { assets: await ctx.db.select().from(media_assets).where(and(eq(media_assets.course_id, input.courseId), sql`${media_assets.session_id} is null`)) }
   })
   app.post("/media/uploads", async req => {
     const input = parse(z.object({ courseId: z.string().min(1), filename: z.string().min(1).max(200),
@@ -76,6 +78,8 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
     if (!preferred) throw badRequest("No playable variants exist")
     const lesson = await ctx.db.transaction(async tx => {
       await lockCourse(tx, asset.course_id)
+      const [freshAsset] = await tx.select().from(media_assets).where(eq(media_assets.id,asset.id)).for("update")
+      if (freshAsset.session_id) throw badRequest("Recordings cannot be attached to course lessons; use batch replay")
       const [current] = await tx.select().from(lessons).where(and(eq(lessons.id, input.lessonId), eq(lessons.course_id, asset.course_id)))
       if (!current || current.archived_at || current.type !== "video") throw badRequest("Select an active video lesson in this asset's course")
       await snapshotLesson(tx, current, req.user!.id, "replace-media")

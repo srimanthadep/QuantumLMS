@@ -352,15 +352,7 @@ export default function SettingsPage() {
               </Field>
             </div>
             <ul className="divide-y divide-border">
-              <ToggleRow id="c-record" title="Record classes automatically" detail="Recording starts when you start the class" checked={c.autoRecord} onChange={(v) => setC("autoRecord", v)} />
-              <ToggleRow
-                id="c-publish"
-                title="Publish recordings when ready"
-                detail="Skip the review step. You can still unpublish later."
-                checked={c.autoPublish}
-                disabled={!c.autoRecord}
-                onChange={(v) => setC("autoPublish", v)}
-              />
+              <li className="py-4 text-sm text-muted-foreground">Zoom and Google Meet manage meeting recording controls. After class, upload the recording from Live sessions or Recordings, review the transcript and chapters, then publish it to the batch. Automatic recording and publication are not enabled.</li>
               <ToggleRow id="c-insights" title="Live engagement insights" detail="Engagement score, pacing hints and attention moments in the studio" checked={c.insights} onChange={(v) => setC("insights", v)} />
               <ToggleRow id="c-waiting" title="Waiting room" detail="Learners wait until you let them in" checked={c.waitingRoom} onChange={(v) => setC("waitingRoom", v)} />
               <ToggleRow id="c-unmute" title="Learners can unmute themselves" detail="Otherwise they raise a hand and you call on them" checked={c.selfUnmute} onChange={(v) => setC("selfUnmute", v)} />

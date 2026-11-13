@@ -1216,6 +1216,7 @@ export const cohort_batches = lms.table("cohort_batches", {
   timezone: text().default("Asia/Kolkata").notNull(),
   max_seats: integer().default(100).notNull(),
   delivery_mode: text().default("Live + Replay").notNull(),
+  replay_enabled: boolean().notNull().default(true),
   replay_delay_hours: integer().default(2).notNull(),
   access_expiry_months: integer().default(12).notNull(),
   meeting_url: text(),
@@ -1308,6 +1309,7 @@ export const upload_intents = lms.table("upload_intents", {
 
 // Immutable upload identities. A lesson selects one ready asset; replacing it never rewrites another lesson.
 export const media_assets = lms.table("media_assets", {
+  session_id: text().references(() => live_sessions.id),
   id: text().primaryKey(),
   course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
   owner_id: uuid().notNull().references(() => users.id),
@@ -1422,3 +1424,28 @@ export const session_attendance = lms.table("session_attendance", {
   joined_at: timestamp({ withTimezone: true }).notNull().defaultNow(), last_joined_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   join_clicks: integer().notNull().default(1),
 }, t => [primaryKey({ columns: [t.session_id,t.student_id] }), index("attendance_student_idx").on(t.student_id)]);
+
+
+export const recordings = lms.table("recordings", {
+  id: text().primaryKey(), session_id: text().notNull().unique().references(() => live_sessions.id),
+  asset_id: text().notNull().unique().references(() => media_assets.id), title: text().notNull(), summary: text().notNull().default(""),
+  status: text().notNull().default("Draft"), version: integer().notNull().default(1), chapters_initialized: boolean().notNull().default(false),
+  release_at: timestamp({ withTimezone: true }).notNull(), expires_at: timestamp({ withTimezone: true }).notNull(),
+  published_at: timestamp({ withTimezone: true }), published_by: uuid().references(() => users.id),
+  provider_event_id: text().unique().references(() => recording_provider_events.id),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [check("recording_status", sql`${t.status} in ('Draft','Published','Archived')`), check("recording_window", sql`${t.expires_at}>${t.release_at}`)]);
+export const recording_chapters = lms.table("recording_chapters", {
+  id: text().primaryKey(), recording_id: text().notNull().references(() => recordings.id), position: integer().notNull(),
+  title: text().notNull(), start_seconds: integer().notNull(), end_seconds: integer().notNull(),
+}, t => [unique("recording_chapter_position").on(t.recording_id,t.position), check("recording_chapter_times", sql`${t.start_seconds}>=0 and ${t.end_seconds}>${t.start_seconds}`)]);
+export const recording_revisions = lms.table("recording_revisions", {
+  id: text().primaryKey(), recording_id: text().notNull().references(() => recordings.id), version: integer().notNull(), snapshot: jsonb().notNull(),
+  actor_id: uuid().references(() => users.id, { onDelete: "set null" }), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [unique("recording_revision_version").on(t.recording_id,t.version)]);
+// Signed provider notices contain metadata only. Upload/import is an explicit author action; no download tokens are retained.
+export const recording_provider_events = lms.table("recording_provider_events", {
+  id: text().primaryKey(), provider: text().notNull(), provider_key: text().notNull().unique(), body_hash: text().notNull(),
+  meeting_id: text().notNull(), meeting_uuid: text().notNull(), file_id: text().notNull(), title: text().notNull(), recording_start: timestamp({ withTimezone: true }),
+  state: text().notNull().default("Awaiting upload"), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});

@@ -1,3 +1,4 @@
+import { recordingModule } from "./recordings/routes.js"
 import { liveModule } from "./live/routes.js"
 import { scheduleSweep } from "./live/schedules.js"
 import { paymentModule } from "./payments/routes.js"
@@ -14,6 +15,7 @@ import { startQuizSweep } from "./modules/student/quizzes.js"
 
 /** Route modules registered by the server (and by tests through buildApp). */
 export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [
+  recordingModule,
   liveModule,
   paymentModule,
   studentModule,

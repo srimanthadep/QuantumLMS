@@ -165,6 +165,7 @@ export interface Rows {
     timezone: string
     max_seats: number
     delivery_mode: string
+    replay_enabled: boolean
     replay_delay_hours: number
     access_expiry_months: number
     meeting_url: string | null
@@ -433,6 +434,7 @@ export interface Rows {
     created_at: string
   }
   media_assets: {
+    session_id: string | null
     id: string
     course_id: string
     owner_id: string
@@ -640,6 +642,52 @@ export interface Rows {
     src: string
     offset_y: number
     position: number
+    created_at: string
+    updated_at: string
+  }
+  recording_chapters: {
+    id: string
+    recording_id: string
+    position: number
+    title: string
+    start_seconds: number
+    end_seconds: number
+  }
+  recording_provider_events: {
+    id: string
+    provider: string
+    provider_key: string
+    body_hash: string
+    meeting_id: string
+    meeting_uuid: string
+    file_id: string
+    title: string
+    recording_start: string | null
+    state: string
+    created_at: string
+  }
+  recording_revisions: {
+    id: string
+    recording_id: string
+    version: number
+    snapshot: Json
+    actor_id: string | null
+    created_at: string
+  }
+  recordings: {
+    id: string
+    session_id: string
+    asset_id: string
+    title: string
+    summary: string
+    status: string
+    version: number
+    chapters_initialized: boolean
+    release_at: string
+    expires_at: string
+    published_at: string | null
+    published_by: string | null
+    provider_event_id: string | null
     created_at: string
     updated_at: string
   }

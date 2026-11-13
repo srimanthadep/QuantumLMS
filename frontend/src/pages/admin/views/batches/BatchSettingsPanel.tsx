@@ -1,3 +1,4 @@
+import RecordingLibrary from "@/components/live/RecordingLibrary"
 import LiveSessionsPanel from "@/components/live/LiveSessionsPanel"
 import BatchAdmissionPanel from "./BatchAdmissionPanel"
 import { useEffect, useRef } from "react"
@@ -150,6 +151,7 @@ export default function BatchSettingsPanel({
           <BatchAdmissionPanel batchId={batch.id} courseId={batch.courseId} name={batch.name} onSaved={onAdmissionSaved} />
 
           <div className="mt-8"><LiveSessionsPanel role="Admin" batchId={batch.id} /></div>
+          <div className="mt-8"><RecordingLibrary role="Admin" batchId={batch.id} /></div>
 
           <details className="mt-8 rounded-xl border border-border bg-surface">
             <summary className="cursor-pointer px-5 py-4 text-xs font-medium text-muted-foreground">Advanced actions</summary>

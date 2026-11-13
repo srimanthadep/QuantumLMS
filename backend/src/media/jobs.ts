@@ -1,3 +1,4 @@
+import { initializeAssetRecordings } from "../recordings/service.js"
 import { randomUUID } from "node:crypto"
 import { and, eq, sql } from "drizzle-orm"
 import type { Db } from "../db/client.js"
@@ -46,6 +47,7 @@ export async function finishJob(db: Db, job: ClaimedJob, result: MediaResult) {
     await tx.delete(media_variants).where(eq(media_variants.asset_id, job.asset_id))
     await tx.insert(media_variants).values(result.variants.map(v => ({ ...v, asset_id: job.asset_id })))
     await tx.update(media_assets).set({ state: "ready", duration_seconds: Math.ceil(result.duration), transcript: result.transcript, draft_chapters: result.chapters, error: null }).where(eq(media_assets.id, job.asset_id))
+    await initializeAssetRecordings(tx,job.asset_id)
     await tx.update(processing_jobs).set({ state: "ready", completed_at: new Date(), lease_token: null, lease_until: null, error: null }).where(eq(processing_jobs.id, job.id))
     return true
   })

@@ -31,8 +31,8 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
     app.get<{ Params: { "*": string } }>(`/api/files/${kind}/*`, { preHandler: authenticate(ctx) }, async (req, reply) => {
       const key = mediaKey(req.params["*"], kind)
       if (!key) throw notFound("File not found.")
-      await authorizeMediaKey(ctx, me(req), key, kind)
-      const url = await signedMedia(ctx, key)
+      const expires = await authorizeMediaKey(ctx, me(req), key, kind)
+      const url = await signedMedia(ctx, key, expires ?? 300)
       reply.header("Cache-Control", "private, no-store")
       return req.headers.accept?.includes("application/json") ? { url } : reply.redirect(url, 302)
     })

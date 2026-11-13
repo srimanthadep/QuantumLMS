@@ -1,3 +1,4 @@
+import RecordingLibrary from "@/components/live/RecordingLibrary"
 import { useCallback, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
@@ -317,6 +318,7 @@ function CourseView({
 
           <Tabs value={tab} onValueChange={setTab} variant="underline">
             <TabsList aria-label="Course sections" className="w-full justify-start">
+              <TabsTrigger value="replays">Class replays</TabsTrigger>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="materials">
                 Materials <span className="tabular-nums text-subtle-foreground">{materials.data ? materialList.length : ""}</span>
@@ -327,6 +329,7 @@ function CourseView({
               <TabsTrigger value="qa">Q&amp;A</TabsTrigger>
             </TabsList>
 
+            <TabsContent value="replays" className="mt-5"><RecordingLibrary role="Student" courseId={course.id} /></TabsContent>
             <TabsContent value="overview" className="mt-5">
               <Overview course={course} modules={modules.map((m) => ({ title: m.title, done: m.lessons.every((l) => completed.has(l.id)) }))} />
             </TabsContent>

@@ -10,7 +10,6 @@ import type {
   LiveAttendanceRecord,
   LiveSessionItem,
   ModuleAssignmentItem,
-  RecordingReviewDataset,
   ReportItem,
   SessionRecordingItem,
   StudentItem,
@@ -112,8 +111,6 @@ interface TeacherData {
   doubts: DoubtItem[]
   events: CalendarEventItem[]
   recordings: SessionRecordingItem[]
-  reviews: Record<string, RecordingReviewDataset>
-  published: Set<string>
   reports: ReportItem[]
   suggestions: TeachingSuggestionItem[]
   attendance: LiveAttendanceRecord[]
@@ -129,7 +126,6 @@ interface TeacherData {
   addQuiz: (courseId: string, moduleId: string, input: { title: string; dueDate: string; maxMarks: number; timeLimitMins: number; passingMarks: number; attachments?: { name: string; size: string; type: string; url?: string }[]; questionsCount?: number }) => void
   addMaterial: (courseId: string, moduleId: string, lessonId: string, material: { title: string; type: LessonMaterial["type"]; sizeOrDuration: string; url?: string }) => void
   submitGradesForApproval: (key: string) => void
-  requestRecordingPublish: (recordingId: string, targetModuleId?: string, targetLessonId?: string) => void
 
 
 
@@ -139,8 +135,6 @@ interface TeacherData {
   addEvent: (e: Omit<CalendarEventItem, "id" | "isReadOnly">) => void
   deleteEvent: (id: string) => void
 
-  togglePublished: (recordingId: string) => void
-  updateSummary: (recordingId: string, text: string) => void
 
   addReport: (r: Omit<ReportItem, "id">) => void
   updateStudent: (id: string, patch: Partial<StudentItem>) => void
@@ -160,8 +154,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   const [doubts, setDoubts] = useState<DoubtItem[]>(() => load(KEYS.doubts, []))
   const [events, setEvents] = useState<CalendarEventItem[]>(() => load(KEYS.events, []))
   const [recordings, setRecordings] = useState<SessionRecordingItem[]>([])
-  const [reviews, setReviews] = useState<Record<string, RecordingReviewDataset>>({})
-  const [published, setPublished] = useState<Set<string>>(() => new Set())
   const [reports, setReports] = useState<ReportItem[]>([])
   const [suggestions, setSuggestions] = useState<TeachingSuggestionItem[]>([])
   const [assignments, setAssignments] = useState<Record<string, ModuleAssignmentItem>>({})
@@ -175,15 +167,17 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
     let cancelled = false
     async function fetchTeacherData() {
       try {
-        const [courseRes, cRes, dRes, eRes, sRes] = await Promise.allSettled([
+        const [courseRes, cRes, dRes, eRes, sRes, rRes] = await Promise.allSettled([
           api.get<{ courses: CourseItem[] }>("/teacher/courses"),
           api.get<{ classes: any[] }>("/teacher/classes"),
           api.get<{ doubts: any[] }>("/teacher/doubts"),
           api.get<{ events: any[] }>("/teacher/calendar"),
           api.get<{ students: any[] }>("/teacher/students"),
+          api.get<{ recordings: { id:string;session_id:string;title:string;course_title:string;course_code:string;starts_at:string;processing_state:string;duration_seconds:number|null }[] }>("/recordings", { bypassCache:true }),
         ])
         if (cancelled) return
 
+        if (rRes.status === "fulfilled") setRecordings(rRes.value.recordings.map(r=>({ id:r.id,sessionId:r.session_id,title:r.title,courseName:r.course_title,courseCode:r.course_code,sessionDate:r.starts_at.slice(0,10),duration:r.duration_seconds?`${Math.ceil(r.duration_seconds/60)} min`:"Pending",status:r.processing_state==="ready"?"Available":["queued","processing"].includes(r.processing_state)?"Processing":"Not Available",keyTakeaways:[] })))
         if (courseRes.status === "fulfilled" && Array.isArray(courseRes.value?.courses)) {
           setCourses(courseRes.value.courses.map(recompute))
         }
@@ -280,8 +274,10 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
         // Safe offline fallback
       }
     }
-    fetchTeacherData()
+    void fetchTeacherData()
+    const refresh = window.setInterval(() => void fetchTeacherData(), 30000)
     return () => {
+      window.clearInterval(refresh)
       cancelled = true
     }
   }, [])
@@ -396,26 +392,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       .catch(() => {})
   }, [])
   const deleteEvent = useCallback((id: string) => setEvents((list) => list.filter((e) => e.id !== id)), [])
-
-  const togglePublished = useCallback(
-    (recordingId: string) =>
-      setPublished((s) => {
-        const n = new Set(s)
-        if (n.has(recordingId)) n.delete(recordingId)
-        else n.add(recordingId)
-        return n
-      }),
-    [],
-  )
-  const updateSummary = useCallback(
-    (recordingId: string, text: string) =>
-      setReviews((r) =>
-        r[recordingId]
-          ? { ...r, [recordingId]: { ...r[recordingId], executiveSummary: { ...r[recordingId].executiveSummary, text, lastUpdated: "Edited just now" } } }
-          : r,
-      ),
-    [],
-  )
 
   const addReport = useCallback((r: Omit<ReportItem, "id">) => setReports((list) => [{ ...r, id: `r-${Date.now()}` }, ...list]), [])
   const updateStudent = useCallback((id: string, patch: Partial<StudentItem>) => setStudents((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s))), [])
@@ -575,20 +551,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
     [onToast],
   )
 
-  const requestRecordingPublish = useCallback(
-    (recordingId: string, targetModuleId?: string, targetLessonId?: string) => {
-      setRecordings((prev) =>
-        prev.map((r) =>
-          r.id === recordingId
-            ? { ...r, videoApprovalStatus: "Pending Approval", targetModuleId, targetLessonId }
-            : r,
-        ),
-      )
-      onToast("Live recording submitted for Admin video approval")
-    },
-    [onToast],
-  )
-
   const value = useMemo<TeacherData>(
     () => ({
       teacherName: user.name,
@@ -600,8 +562,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       doubts,
       events,
       recordings,
-      reviews,
-      published,
       reports,
       suggestions,
       attendance: [],
@@ -616,8 +576,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       setDoubtStatus,
       addEvent,
       deleteEvent,
-      togglePublished,
-      updateSummary,
       addReport,
       updateStudent,
       addStudent,
@@ -627,7 +585,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       addQuiz,
       addMaterial,
       submitGradesForApproval,
-      requestRecordingPublish,
     }),
     [
       user.name,
@@ -639,8 +596,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       doubts,
       events,
       recordings,
-      reviews,
-      published,
       reports,
       suggestions,
       assignments,
@@ -653,8 +608,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       setDoubtStatus,
       addEvent,
       deleteEvent,
-      togglePublished,
-      updateSummary,
       addReport,
       updateStudent,
       addStudent,
@@ -664,7 +617,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       addQuiz,
       addMaterial,
       submitGradesForApproval,
-      requestRecordingPublish,
     ],
   )
 

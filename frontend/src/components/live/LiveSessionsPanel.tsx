@@ -1,3 +1,4 @@
+import RecordingLibrary from "./RecordingLibrary"
 import { useCallback, useEffect, useState } from "react"
 import { CalendarDays, ExternalLink, RefreshCw, Video } from "lucide-react"
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@/components/ui"
@@ -18,6 +19,7 @@ export default function LiveSessionsPanel({ role, batchId, sessionId, attendance
   const [reason, setReason] = useState(""), [newStart, setNewStart] = useState(""), [newEnd, setNewEnd] = useState(""), [override, setOverride] = useState("Scheduled")
   const [links, setLinks] = useState<Links>({ provider: "zoom_link", join_url: "", host_url: "", passcode: "" })
   const [records, setRecords] = useState<{ student_id: string; name: string; joined_at: string; last_joined_at: string; join_clicks: number }[]>([])
+  const [replaySession, setReplaySession] = useState<string | null>(null)
   const [target, setTarget] = useState<{ url: string; passcode?: string | null } | null>(null)
   const reload = useCallback(async () => {
     try {
@@ -63,12 +65,14 @@ export default function LiveSessionsPanel({ role, batchId, sessionId, attendance
         {!attendanceOnly && <Button type="button" size="sm" disabled={Boolean(busy) || (author ? s.status === "Cancelled" : !joinOpen)} onClick={() => void openMeeting(s)} leftIcon={author ? <ExternalLink /> : <Video />}>{author ? "Open host link" : "Join class"}</Button>}
         {author && s.status === "Scheduled" && <Button type="button" size="sm" variant="outline" disabled={Boolean(busy) || clock < open || clock > Date.parse(s.ends_at)} onClick={() => void run(s.id, async () => { await api.post(`/sessions/${s.id}/action`, { action: "start" }); setMessage("Class marked Live on the server.") })}>Start class</Button>}
         {author && s.status === "Live" && <Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void run(s.id, async () => { await api.post(`/sessions/${s.id}/action`, { action: "end" }); setMessage("Class ended. Upload the recording when it is ready.") })}>End class</Button>}
+        {s.status === "Ended" && <Button type="button" size="sm" variant="outline" onClick={() => setReplaySession(replaySession === s.id ? null : s.id)}>{author ? "Manage recording" : "Watch replay"}</Button>}
         <Button type="button" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void openDetails(s, "attendance")}>Join records</Button>
         {author && eligible && <Button type="button" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void openDetails(s, "settings")}>Meeting settings</Button>}
         {author && s.status === "Scheduled" && clock < Date.parse(s.starts_at) && <><Button type="button" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void openDetails(s, "reschedule")}>Reschedule</Button><Button type="button" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void openDetails(s, "cancel")}>Cancel</Button></>}
         {role === "Admin" && <Button type="button" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void openDetails(s, "override")}>Override status</Button>}
       </div></div></article>
     })}</div>}
+    {replaySession && <div className="border-t border-border pt-5"><RecordingLibrary role={role} sessionId={replaySession} batchId={batchId} /></div>}
     <Dialog open={Boolean(selected)} onOpenChange={v => { if (!v) setSelected(null) }}><DialogContent><DialogHeader><DialogTitle>{operation === "attendance" ? "Join-click records" : operation === "settings" ? "Meeting settings" : `${operation[0].toUpperCase()}${operation.slice(1)} class`}</DialogTitle><DialogDescription>{selected?.title}</DialogDescription></DialogHeader>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {operation === "attendance" ? <div className="space-y-3"><p className="text-sm text-muted-foreground">These records count link clicks, not verified presence in the external meeting.</p>{records.length ? records.map(r => <div key={r.student_id} className="border-b border-border py-2 text-sm"><p className="font-medium">{r.name}</p><p className="text-muted-foreground">{dateLabel(r.joined_at)} · {r.join_clicks} click(s)</p></div>) : <p className="text-sm">No join clicks recorded.</p>}</div> : <div className="space-y-4">
