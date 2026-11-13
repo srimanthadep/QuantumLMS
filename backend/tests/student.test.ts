@@ -1,3 +1,4 @@
+import { outboxSweep } from "../src/reliability/notifications.js"
 // Student API against the real database: isolation between students, server-side rules and every write path.
 // Two throwaway students are created through first sign-in and deleted afterwards.
 import assert from "node:assert/strict"
@@ -41,6 +42,7 @@ describe("first sign-in", () => {
     const grades = await a.call("GET", "/api/student/grades")
     assert.equal(grades.body.certificates.length, 4)
     assert.ok(grades.body.certificates.every((c: { status: string }) => c.status === "In Progress"))
+    await outboxSweep(h.ctx)
     const notes = await a.call("GET", "/api/student/notifications")
     assert.deepEqual(notes.body.map((n: { title: string }) => n.title), ["Welcome to Quantum School"])
   })
@@ -105,6 +107,7 @@ describe("courses", () => {
     const checked=await a.call("POST","/api/student/completion/check",{course_id:"cat-1"})
     assert.equal(checked.status,200,JSON.stringify(checked.body))
     assert.ok(checked.body.results.some((r:{credential:{credential_id:string}|null})=>r.credential?.credential_id.startsWith("QAI-")))
+    await outboxSweep(h.ctx)
     assert.equal((await a.call("GET", "/api/student/notifications")).body[0].title, "Certificate earned")
   })
 
@@ -209,10 +212,10 @@ describe("support", () => {
     assert.equal((await b.call("POST", `/api/student/support/tickets/${ticket.id}/replies`, { content: "hi" })).status, 404)
   })
 
-  test("live chat stores both sides of the conversation", async () => {
+  test("chat labels its automated acknowledgement honestly", async () => {
     const r = await a.call("POST", "/api/student/support/chat", { body: "My GPU quota ran out" })
     assert.deepEqual(r.body.map((m: { sender: string }) => m.sender), ["student", "agent"])
-    assert.match(r.body[1].body, /GPU quota/)
+    assert.match(r.body[1].body, /Automated acknowledgement/)
   })
 })
 

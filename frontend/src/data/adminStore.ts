@@ -66,7 +66,7 @@ export interface BatchRosterStudent {
   status: BatchRosterStatus
   notes: string
   enrolledAt: string
-  attendanceRate: number
+  attendanceRate: number | null
   courseProgress: number
 }
 
@@ -212,203 +212,21 @@ export const INITIAL_ORDERS: AdminOrder[] = []
 
 export const INITIAL_ACADEMY_SETTINGS: AcademySettings = {
   name: "Quantum School of AI",
-  tagline: "Premier AI Engineering & Agentic Systems Academy",
-  domain: "quantumschool.ai",
-  supportEmail: "support@quantumschool.ai",
+  tagline: "",
+  domain: "",
+  supportEmail: "",
   timezone: "Asia/Kolkata (IST, UTC+5:30)",
   currency: "INR (₹)",
-  gstNumber: "29AABCS1429B1Z8",
-  certificateSignatory: "Srimanth, Founder & Lead Instructor",
+  gstNumber: "",
+  certificateSignatory: "",
   autoIssueCertificates: true,
   enablePublicVerification: true,
-  requireMfaForStaff: true,
+  requireMfaForStaff: false,
   notifyOnEnrolment: true,
   notifyOnLowBatchSeats: true,
   notifyOnRefundRequest: true,
 }
 
-// Super Admin Seed Data
-export const INITIAL_SERVICES_HEALTH: PlatformServiceHealth[] = [
-  {
-    id: "srv-1",
-    name: "Fastify 5 REST API Gateway",
-    endpoint: "https://api.quantumschool.ai/api/health",
-    category: "Core API",
-    status: "Healthy",
-    uptime: 99.99,
-    latencyMs: 14,
-    sparkline: [12, 14, 15, 13, 14, 14, 13, 14],
-  },
-  {
-    id: "srv-2",
-    name: "AWS MediaConvert Video Processor",
-    endpoint: "arn:aws:mediaconvert:eu-north-1:pipeline/hls",
-    category: "Media & Video",
-    status: "Healthy",
-    uptime: 99.96,
-    latencyMs: 46,
-    sparkline: [42, 45, 48, 44, 46, 49, 45, 46],
-  },
-  {
-    id: "srv-3",
-    name: "Whisper AI Auto-Transcription Engine",
-    endpoint: "https://transcribe.internal.ai/v1/jobs",
-    category: "AI Engine",
-    status: "Healthy",
-    uptime: 99.93,
-    latencyMs: 120,
-    sparkline: [110, 115, 125, 120, 118, 122, 120, 120],
-  },
-  {
-    id: "srv-4",
-    name: "Clover AI Real-Time Tutor (Gemini 2.5)",
-    endpoint: "https://ai-tutor.quantumschool.ai/v2/stream",
-    category: "AI Engine",
-    status: "Healthy",
-    uptime: 99.98,
-    latencyMs: 280,
-    sparkline: [290, 285, 275, 280, 278, 282, 280, 280],
-  },
-  {
-    id: "srv-5",
-    name: "Razorpay / Stripe Webhook Receiver",
-    endpoint: "https://api.quantumschool.ai/api/billing/webhooks",
-    category: "Billing",
-    status: "Healthy",
-    uptime: 100.0,
-    latencyMs: 82,
-    sparkline: [80, 84, 82, 85, 82, 81, 83, 82],
-  },
-  {
-    id: "srv-6",
-    name: "AWS S3 Multi-Region Course Storage",
-    endpoint: "s3://quantumschool-assets-prod",
-    category: "Database & Storage",
-    status: "Healthy",
-    uptime: 100.0,
-    latencyMs: 16,
-    sparkline: [16, 17, 15, 16, 16, 17, 16, 16],
-  },
-]
-
-export const INITIAL_RBAC: RbacPermissionRow[] = [
-  {
-    id: "p-1",
-    permission: "Manage Course Curriculum",
-    description: "Create, edit, publish and archive AI courses, modules and lessons",
-    category: "Curriculum",
-    superAdmin: true,
-    admin: true,
-    teacher: true,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-2",
-    permission: "Publish Class Recordings",
-    description: "Upload and publish processed HLS recordings and auto-generated transcripts",
-    category: "Classes & Video",
-    superAdmin: true,
-    admin: true,
-    teacher: true,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-3",
-    permission: "Host Live Classes",
-    description: "Start WebRTC / RTMP broadcast studio, share screen and host interactive doubts",
-    category: "Classes & Video",
-    superAdmin: true,
-    admin: true,
-    teacher: true,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-4",
-    permission: "Grade Assignments & Rubrics",
-    description: "Evaluate code submissions, assign scores per rubric criterion and release results",
-    category: "Evaluations",
-    superAdmin: true,
-    admin: true,
-    teacher: true,
-    evaluator: true,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-5",
-    permission: "Issue Refunds & Process Payments",
-    description: "View payment transaction details and trigger refunds through payment gateway",
-    category: "Finance",
-    superAdmin: true,
-    admin: true,
-    teacher: false,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-6",
-    permission: "Manage Platform Infrastructure",
-    description: "Configure system branding, database connection poolers, cloud storage, and AI models",
-    category: "Administration",
-    superAdmin: true,
-    admin: true,
-    teacher: false,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-7",
-    permission: "View Security Audit Logs",
-    description: "Inspect user access history, auth sessions, IP addresses and API security events",
-    category: "Administration",
-    superAdmin: true,
-    admin: true,
-    teacher: false,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-  {
-    id: "p-8",
-    permission: "Configure AI Engine & Models",
-    description: "Set primary LLM endpoints, temperature, strictness parameters and token caps",
-    category: "AI & Models",
-    superAdmin: true,
-    admin: false,
-    teacher: false,
-    evaluator: false,
-    support: false,
-    student: false,
-  },
-]
-
-export const INITIAL_AUDIT_LOGS: SecurityAuditLog[] = []
-
-export const INITIAL_AI_USAGE: AiUsageMetrics = {
-  totalTokensMonth: 45800000,
-  totalCostInr: 284200,
-  tokensByFeature: {
-    aiTutor: 22400000,
-    videoChaptering: 9200000,
-    transcription: 10400000,
-    evaluatorAssist: 3800000,
-  },
-  primaryModel: "Gemini 2.5 Flash",
-  fallbackModel: "Claude 3.5 Sonnet",
-  temperature: 0.35,
-  strictnessScore: 85,
-  monthlyBudgetCapInr: 500000,
-}
-
-// LocalStorage Keys
 const KEYS = {
   courses: "quantum_admin_courses_v2",
   batches: "quantum_admin_batches_v2",
@@ -474,7 +292,7 @@ function mapApiCourse(c: any): AdminCourse {
     price,
     revenue: Number(c.revenue ?? 0),
     rating: Number(c.rating) || 0,
-    completionRate: 88,
+    completionRate: Number(c.completion_rate ?? 0),
     status: (c.status as AdminCourse["status"]) || "Draft",
     cohortCount: Number(c.cohort_count ?? 0),
     updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
@@ -526,6 +344,7 @@ function mapApiOrder(o: any): AdminOrder {
 
 // Custom Hook for Admin Data
 export function useAdminStore() {
+  const [error,setError]=useState("")
   const [courses, setCourses] = useState<AdminCourse[]>(() => loadStorage(KEYS.courses, INITIAL_COURSES))
   const [batches, setBatches] = useState<AdminBatch[]>(() => loadStorage(KEYS.batches, INITIAL_BATCHES))
   const [teachers, setTeachers] = useState<AdminTeacher[]>(() => loadStorage(KEYS.teachers, INITIAL_TEACHERS))
@@ -556,6 +375,8 @@ export function useAdminStore() {
       api.get<{ settings: any }>("/admin/settings", { bypassCache: true }),
     ])
 
+    const failed=[bRes,tRes,sRes,oRes,setRes].find(r=>r.status==="rejected")
+    setError(failed&&failed.status==="rejected"?(failed.reason instanceof Error?failed.reason.message:"Unable to refresh academy records"):"")
     if (bRes.status === "fulfilled" && Array.isArray(bRes.value?.batches)) {
       setBatches(bRes.value.batches.map(mapApiBatch))
     }
@@ -587,15 +408,15 @@ export function useAdminStore() {
           name: s.name,
           email: s.email,
           avatar: s.avatar_url || "",
-          courseId: "c1",
-          courseTitle: "Autonomous Agent Architectures",
-          batchId: "b-1",
+          courseId: "",
+          courseTitle: s.course_title || "No active access",
+          batchId: "",
           batchName: s.batch_name || "Unassigned",
-          enrolledAt: "2026-10-15",
-          progress: 74,
-          attendanceRate: s.attendance_rate || 92,
-          evaluationScore: 94,
-          status: "Active",
+          enrolledAt: s.created_at,
+          progress: 0,
+          attendanceRate: 0,
+          evaluationScore: 0,
+          status: s.status,
         })),
       )
     }
@@ -611,8 +432,8 @@ export function useAdminStore() {
 
   // Sync courses & operations with Backend API on mount
   useEffect(() => {
-    refreshCourses().catch(() => {})
-    refreshOperations().catch(() => {})
+    refreshCourses().catch(e => setError(e.message??"Unable to load courses"))
+    refreshOperations().catch(e => setError(e.message??"Unable to load academy records"))
   }, [refreshCourses, refreshOperations])
 
   const addCourse = useCallback(
@@ -847,7 +668,7 @@ export function useAdminStore() {
         status: (s.status as BatchRosterStatus) || "Active",
         notes: String(s.notes ?? ""),
         enrolledAt: s.enrolled_at ? new Date(s.enrolled_at).toISOString().split("T")[0] : "",
-        attendanceRate: Number(s.attendance_rate ?? 92),
+        attendanceRate: s.attendance_rate == null ? null : Number(s.attendance_rate),
         courseProgress: Number(s.course_progress ?? 0),
       })),
       availableStudents: (res.available_students || []).map((a): BatchAvailableStudent => ({
@@ -994,17 +815,12 @@ export function useAdminStore() {
     [courses, batches, refreshCourses, refreshOperations],
   )
 
-  const updateStudent = useCallback((studentId: string, patch: Partial<AdminStudent>) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, ...patch } : s))
-    )
-    api.patch(`/admin/students/${studentId}`, patch).catch(() => {})
-  }, [])
-
-  const deleteStudent = useCallback((studentId: string) => {
-    setStudents((prev) => prev.filter((s) => s.id !== studentId))
-    api.delete(`/admin/students/${studentId}`).catch(() => {})
-  }, [])
+  const updateStudent = useCallback(async (studentId:string,patch:Partial<AdminStudent>)=>{
+    await api.patch(`/admin/students/${studentId}`,{name:patch.name});await refreshOperations()
+  },[refreshOperations])
+  const deleteStudent = useCallback(async (studentId:string)=>{
+    await api.delete(`/admin/students/${studentId}`);await refreshOperations()
+  },[refreshOperations])
 
   const refundOrder = useCallback(async (orderId: string, reason: string) => {
     await api.post(`/admin/orders/${orderId}/refund`, { reason })
@@ -1018,12 +834,13 @@ export function useAdminStore() {
     setOrders((prev) => prev.filter((o) => o.id !== orderId))
   }, [])
 
-  const updateSettings = useCallback((newSettings: Partial<AcademySettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }))
-    api.patch("/admin/settings", newSettings).catch(() => {})
+  const updateSettings = useCallback(async (newSettings: Partial<AcademySettings>) => {
+    const result=await api.patch<{settings:AcademySettings}>("/admin/settings", newSettings)
+    setSettings(result.settings)
   }, [])
 
   return {
+    error,
     courses,
     batches,
     teachers,
@@ -1058,158 +875,10 @@ export function useAdminStore() {
 
 // Custom Hook for Platform & Infrastructure Data in single-tenant architecture
 export function useSuperAdminStore() {
-  const [services, setServices] = useState<PlatformServiceHealth[]>(() => loadStorage(KEYS.services, INITIAL_SERVICES_HEALTH))
-  const [rbac, setRbac] = useState<RbacPermissionRow[]>(() => loadStorage(KEYS.rbac, INITIAL_RBAC))
-  const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(() => loadStorage(KEYS.audit, INITIAL_AUDIT_LOGS))
-  const [aiUsage, setAiUsage] = useState<AiUsageMetrics>(() => {
-    const loaded = loadStorage(KEYS.aiUsage, INITIAL_AI_USAGE)
-    return {
-      ...INITIAL_AI_USAGE,
-      ...(loaded || {}),
-      tokensByFeature: {
-        ...INITIAL_AI_USAGE.tokensByFeature,
-        ...(loaded?.tokensByFeature || {}),
-      },
-    }
-  })
-
-  useEffect(() => saveStorage(KEYS.services, services), [services])
-  useEffect(() => saveStorage(KEYS.rbac, rbac), [rbac])
-  useEffect(() => saveStorage(KEYS.audit, auditLogs), [auditLogs])
-  useEffect(() => saveStorage(KEYS.aiUsage, aiUsage), [aiUsage])
-
-  // Sync with Backend Platform endpoints
-  useEffect(() => {
-    let cancelled = false
-    async function fetchSuperAdminData() {
-      try {
-        const [hRes, rRes, aRes, aiRes] = await Promise.allSettled([
-          api.get<{ services: PlatformServiceHealth[] }>("/super-admin/health"),
-          api.get<{ matrix: RbacPermissionRow[] }>("/super-admin/rbac"),
-          api.get<{ logs: SecurityAuditLog[] }>("/super-admin/audit"),
-          api.get<AiUsageMetrics>("/super-admin/ai"),
-        ])
-        if (cancelled) return
-
-        if (hRes.status === "fulfilled" && hRes.value?.services?.length) {
-          setServices(hRes.value.services)
-        }
-        if (rRes.status === "fulfilled" && rRes.value?.matrix?.length) {
-          setRbac(rRes.value.matrix)
-        }
-        if (aRes.status === "fulfilled" && aRes.value?.logs?.length) {
-          setAuditLogs(aRes.value.logs)
-        }
-        if (aiRes.status === "fulfilled" && aiRes.value?.totalTokensMonth) {
-          setAiUsage({
-            ...INITIAL_AI_USAGE,
-            ...aiRes.value,
-            tokensByFeature: {
-              ...INITIAL_AI_USAGE.tokensByFeature,
-              ...(aiRes.value.tokensByFeature || {}),
-            },
-          })
-        }
-      } catch {
-        // Safe offline fallback
-      }
-    }
-    fetchSuperAdminData()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const toggleRbacPermission = useCallback((id: string, roleKey: "superAdmin" | "admin" | "teacher" | "evaluator" | "support" | "student") => {
-    setRbac((prev) =>
-      prev.map((row) => {
-        if (row.id !== id) return row
-        const updated = { ...row, [roleKey]: !row[roleKey] }
-        return updated
-      })
-    )
-    api.patch("/super-admin/rbac", { permission_id: id, role: roleKey }).catch(() => {})
-    // Add audit log entry
-    const log: SecurityAuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
-      actorName: "Kavya Rao",
-      actorRole: "Super Admin",
-      actorEmail: "superadmin@quantumschool.ai",
-      action: "PERMISSION_MODIFIED",
-      category: "RBAC",
-      target: `Permission #${id} for role ${roleKey}`,
-      ip: "49.37.142.88",
-      status: "Success",
-      details: `Toggled permission ${id} on role ${roleKey}`,
-    }
-    setAuditLogs((prev) => [log, ...prev])
-  }, [])
-
-  const flushCache = useCallback(() => {
-    api.post("/super-admin/flush-cache").catch(() => {})
-    const log: SecurityAuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
-      actorName: "Kavya Rao",
-      actorRole: "Super Admin",
-      actorEmail: "superadmin@quantumschool.ai",
-      action: "FLUSH_GLOBAL_REDIS_CACHE",
-      category: "Security",
-      target: "Fastify Gateway & CloudFront Edge",
-      ip: "49.37.142.88",
-      status: "Success",
-      details: "Cleared 1,420 cached session keys and invalidation markers",
-    }
-    setAuditLogs((prev) => [log, ...prev])
-  }, [])
-
-  const triggerSnapshot = useCallback(() => {
-    api.post("/super-admin/snapshot").catch(() => {})
-    const log: SecurityAuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
-      actorName: "Kavya Rao",
-      actorRole: "Super Admin",
-      actorEmail: "superadmin@quantumschool.ai",
-      action: "DATABASE_SNAPSHOT_MANUAL",
-      category: "Security",
-      target: "PostgreSQL Database (aws-0-eu-north-1)",
-      ip: "49.37.142.88",
-      status: "Success",
-      details: "Created full point-in-time snapshot with HMAC integrity seal",
-    }
-    setAuditLogs((prev) => [log, ...prev])
-  }, [])
-
-  const updateAiModelSettings = useCallback((updates: Partial<AiUsageMetrics>) => {
-    setAiUsage((prev) => ({ ...prev, ...updates }))
-    api.patch("/super-admin/ai", updates).catch(() => {})
-    const log: SecurityAuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST",
-      actorName: "Kavya Rao",
-      actorRole: "Super Admin",
-      actorEmail: "superadmin@quantumschool.ai",
-      action: "UPDATE_AI_CONFIG",
-      category: "AI Engine",
-      target: "Global LLM Inference Pipeline",
-      ip: "49.37.142.88",
-      status: "Success",
-      details: JSON.stringify(updates),
-    }
-    setAuditLogs((prev) => [log, ...prev])
-  }, [])
-
-  return {
-    services,
-    rbac,
-    auditLogs,
-    aiUsage,
-    toggleRbacPermission,
-    flushCache,
-    triggerSnapshot,
-    updateAiModelSettings,
-  }
+  const [rbac,setRbac]=useState<RbacPermissionRow[]>([])
+  const [auditLogs,setAuditLogs]=useState<SecurityAuditLog[]>([])
+  const [error,setError]=useState("")
+  const refresh=useCallback(async()=>{try{const [policy,audit]=await Promise.all([api.get<{matrix:RbacPermissionRow[]}>("/super-admin/rbac",{bypassCache:true}),api.get<{logs:SecurityAuditLog[]}>("/super-admin/audit",{bypassCache:true})]);setRbac(policy.matrix);setAuditLogs(audit.logs);setError("")}catch(e){setError(e instanceof Error?e.message:"Unable to load platform records")}},[])
+  useEffect(()=>{void refresh()},[refresh])
+  return {rbac,auditLogs,error,refresh}
 }
-

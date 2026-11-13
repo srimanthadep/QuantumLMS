@@ -583,6 +583,23 @@ export interface Rows {
     created_at: string
     updated_at: string
   }
+  notification_outbox: {
+    id: string
+    event_key: string
+    recipient_id: string
+    kind: string
+    title: string
+    message: string
+    link: string | null
+    preference: string | null
+    guard: Json
+    available_at: string
+    attempts: number
+    last_error: string | null
+    delivered_at: string | null
+    skipped_at: string | null
+    created_at: string
+  }
   notifications: {
     id: string
     student_id: string
@@ -796,6 +813,24 @@ export interface Rows {
     question_count: number
     available_from: string | null
     due_at: string
+  }
+  realtime_consumers: {
+    id: string
+    started_at: string
+    heartbeat_at: string
+  }
+  realtime_deliveries: {
+    consumer_id: string
+    event_id: string
+  }
+  realtime_events: {
+    id: string
+    channel: string
+    event: string
+    payload: Json
+    sender: Json | null
+    created_at: string
+    expires_at: string
   }
   recent_placements: {
     id: string

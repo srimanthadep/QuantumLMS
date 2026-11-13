@@ -1,3 +1,4 @@
+import { outboxSweep } from "../src/reliability/notifications.js"
 // Evaluator API against the real database: who can see what, the draft -> evaluated -> released lifecycle, claims
 // between evaluators, and re-evaluation requests from the student's side to the evaluator's decision.
 import assert from "node:assert/strict"
@@ -142,6 +143,7 @@ describe("evaluation lifecycle", () => {
     const row = core.body.submissions.find((s: { assignment_id: string }) => s.assignment_id === "asg-1")
     assert.deepEqual([row.status, row.score, row.grade], ["Graded", 88, "A"])
     assert.match(row.feedback, /Tighten the README/)
+    await outboxSweep(h.ctx)
     const notes = await student.call("GET", "/api/student/notifications")
     assert.ok(notes.body.some((n: { title: string; message: string }) => n.title === "Assignment graded" && /88\/100/.test(n.message)))
     const breakdown = await student.call("GET", "/api/student/assignments/asg-1/evaluation")
@@ -194,6 +196,7 @@ describe("re-evaluation requests", () => {
     const row = core.body.submissions.find((s: { assignment_id: string }) => s.assignment_id === "asg-1")
     assert.deepEqual([row.score, row.grade], [90, "A+"])
     assert.equal(core.body.reevaluations.find((r: { id: string }) => r.id === requestId).status, "Revised")
+    await outboxSweep(h.ctx)
     const notes = await student.call("GET", "/api/student/notifications")
     assert.ok(notes.body.some((n: { title: string; message: string }) => n.title === "Score revised" && /88 → 90/.test(n.message)))
     // Answered requests are closed.

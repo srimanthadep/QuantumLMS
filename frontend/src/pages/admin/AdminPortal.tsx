@@ -1,12 +1,12 @@
+import usePersistedNotifications from "@/lib/usePersistedNotifications"
 import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
-import { lazy, Suspense, useState, useMemo, useCallback } from "react"
+import { lazy, Suspense, useState } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
 import PageTransition from "@/components/motion/PageTransition"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import type { CurrentUser } from "@/types"
-import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
-import { useAdminStore, useSuperAdminStore } from "@/data/adminStore"
+import { useAdminStore } from "@/data/adminStore"
 import {
   AddTeacherModal,
   CreateBatchModal,
@@ -25,11 +25,6 @@ const SettingsView = lazy(() => import("./views/SettingsView"))
 const TeacherApprovalsView = lazy(() => import("./views/TeacherApprovalsView"))
 
 // Single-tenant platform operations views
-const PlatformHealthView = lazy(() => import("../super-admin/views/PlatformHealthView"))
-const RbacView = lazy(() => import("../super-admin/views/RbacView"))
-const AuditLogsView = lazy(() => import("../super-admin/views/AuditLogsView"))
-const AiUsageView = lazy(() => import("../super-admin/views/AiUsageView"))
-const RevenueView = lazy(() => import("../super-admin/views/RevenueView"))
 
 // Lazy load Super Admin in case role="Super Admin" is passed to AdminPortal
 const SuperAdminPortal = lazy(() => import("../super-admin/SuperAdminPortal"))
@@ -56,11 +51,6 @@ const NAV_PATHS: Record<string, string> = {
   alumni: "/admin/alumni",
   orders: "/admin/orders",
   reports: "/admin/reports",
-  health: "/admin/health",
-  access: "/admin/access",
-  audit: "/admin/audit",
-  ai: "/admin/ai",
-  revenue: "/admin/revenue",
   settings: "/admin/settings",
 }
 
@@ -84,56 +74,6 @@ function PageFallback() {
   )
 }
 
-function useAdminNotifications(batches: any[], orders: any[]): NotificationSource {
-  const [read, setRead] = useState<Set<string>>(new Set())
-
-  const entries = useMemo(() => {
-    const out: (ShellNotification & { to: string })[] = []
-
-    // High capacity batch notification
-    const fullBatches = batches.filter((b) => b.enrolledSeats / b.maxSeats >= 0.9)
-    if (fullBatches.length > 0) {
-      out.push({
-        id: `batch-cap-${fullBatches[0].id}`,
-        title: "Cohort Near Capacity",
-        message: `${fullBatches[0].name} has ${fullBatches[0].maxSeats - fullBatches[0].enrolledSeats} seats left`,
-        timestamp: "Now",
-        read: read.has(`batch-cap-${fullBatches[0].id}`),
-        kind: "class",
-        to: "/admin/batches",
-      })
-    }
-
-    // Recent paid orders
-    const latestOrder = orders.find((o) => o.status === "Paid")
-    if (latestOrder) {
-      out.push({
-        id: `ord-${latestOrder.id}`,
-        title: "New Tuition Payment",
-        message: `${latestOrder.studentName} enrolled in ${latestOrder.courseTitle}`,
-        timestamp: "10m ago",
-        read: read.has(`ord-${latestOrder.id}`),
-        kind: "grade",
-        to: "/admin/orders",
-      })
-    }
-
-    return out
-  }, [batches, orders, read])
-
-  const onSelect = useCallback((n: ShellNotification) => setRead((prev) => new Set([...prev, n.id])), [])
-  const onMarkAllRead = useCallback(() => setRead(new Set(entries.map((e) => e.id))), [entries])
-
-  return useMemo(
-    () => ({
-      items: entries,
-      onSelect,
-      onMarkAllRead,
-    }),
-    [entries, onSelect, onMarkAllRead],
-  )
-}
-
 export default function AdminPortal({
   role = "Admin",
   currentUser,
@@ -153,8 +93,7 @@ export default function AdminPortal({
   const activeId = navIdFor(location.pathname)
 
   const store = useAdminStore()
-  const superAdminStore = useSuperAdminStore()
-  const notifications = useAdminNotifications(store.batches, store.orders)
+  const notifications = usePersistedNotifications(onToast)
 
   // Global modals state
   const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false)
@@ -197,6 +136,7 @@ export default function AdminPortal({
       onNavigate={handleNavigate}
       notifications={notifications}
     >
+      {store.error&&<p role="alert" className="mb-4 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{store.error} Displayed records may be incomplete. Refresh to retry.</p>}
       <PageTransition>
         <Suspense fallback={<PageFallback />}>
           <Routes>
@@ -252,7 +192,7 @@ export default function AdminPortal({
             <Route
               path="/students"
               element={
-                <StudentsView
+                <StudentsView onToast={onToast}
                   store={store}
                   onOpenManualEnrol={() => setIsManualEnrolOpen(true)}
                 />
@@ -269,26 +209,6 @@ export default function AdminPortal({
             <Route
               path="/reports"
               element={<ReportsView store={store} onToast={onToast} />}
-            />
-            <Route
-              path="/health"
-              element={<PlatformHealthView store={superAdminStore} onToast={onToast} />}
-            />
-            <Route
-              path="/access"
-              element={<RbacView store={superAdminStore} onToast={onToast} />}
-            />
-            <Route
-              path="/audit"
-              element={<AuditLogsView store={superAdminStore} />}
-            />
-            <Route
-              path="/ai"
-              element={<AiUsageView store={superAdminStore} onToast={onToast} />}
-            />
-            <Route
-              path="/revenue"
-              element={<RevenueView store={superAdminStore} />}
             />
             <Route
               path="/settings"

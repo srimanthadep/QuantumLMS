@@ -49,10 +49,11 @@ export default function AuditLogsView({ store }: AuditLogsViewProps) {
 
   return (
     <div className="space-y-6">
+      {store.error&&<p role="alert" className="text-destructive">{store.error}</p>}
       {/* Page Header */}
       <PageHeader
         title="Security Audit Trail"
-        description="Immutable system logs, privilege escalations, authentication events, and administrative mutations."
+        description="Latest 200 persisted administrative and domain events."
         breadcrumb={[{ label: "Platform Console", href: "/super-admin" }, { label: "Audit Logs" }]}
       />
 
@@ -98,7 +99,7 @@ export default function AuditLogsView({ store }: AuditLogsViewProps) {
               </CardDescription>
             </div>
             <Badge tone="neutral" className="font-mono text-xs">
-              HMAC SHA-256 Verified
+              Persisted database records
             </Badge>
           </div>
         </CardHeader>

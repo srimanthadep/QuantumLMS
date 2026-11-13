@@ -92,7 +92,7 @@ export async function evaluateContext(tx:Tx,student:string,c:LearningContext,opt
   const [credential]=await tx.insert(completion_credentials).values({completion_id:completion.id,student_id:student,course_id:c.course_id,credential_id:`QAI-${randomUUID().replaceAll("-","").toUpperCase()}`,title:course.certificate_title||`${course.title} — Certificate of completion`,course_title:course.title,skills:course.certificate_skills,replaces_id:options.replaces?.id,issue_reason:options.reason??"Policy satisfied"}).returning()
   await tx.insert(completion_events).values({completion_id:completion.id,kind:"completed"})
   await tx.insert(audit_events).values({actor_id:student,actor_role:"Student",action:options.replaces?"certificate.reissued":"certificate.issued",target:credential.credential_id,outcome:`policy ${policy.id}, revision ${completion.revision}`})
-  await notify(tx,student,"grade","Certificate earned",`${course.title} is complete. Your certificate is ready to share.`,"certificates","grades")
+  await notify(tx,student,"grade","Certificate earned",`${course.title} is complete. Your certificate is ready to share.`,"certificates","grades",{key:`certificate:${credential.id}`,guard:{credential:credential.id}})
   return {context:c,policy,evidence,completion,credential}
 }
 export async function checkStudent(tx:Tx,student:string,course?:string) {

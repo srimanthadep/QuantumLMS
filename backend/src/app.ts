@@ -31,6 +31,8 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     routerOptions: { maxParamLength: 2048 },
   })
 
+  ctx.telemetry={startedAt:Date.now(),latencies:[],requests:0,errors:0}
+
   // Legacy small material uploads only; video uploads go directly to storage
   app.addContentTypeParser(
     [
@@ -83,6 +85,7 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
   })
 
   app.addHook("onResponse", async (req, reply) => {
+    const metrics=ctx.telemetry!;metrics.requests++;if(reply.statusCode>=500)metrics.errors++;metrics.latencies.push(reply.elapsedTime);if(metrics.latencies.length>1000)metrics.latencies.shift()
     if (!req.user || ["GET", "HEAD", "OPTIONS"].includes(req.method)) return
     await ctx.db.insert(audit_events).values({ actor_id: req.user.id, actor_role: req.user.role,
       action: `${req.method} ${req.routeOptions.url ?? "unknown"}`, target: req.url.split("?")[0].slice(0, 500),

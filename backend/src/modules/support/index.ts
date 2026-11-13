@@ -7,7 +7,7 @@ import { profiles, support_tickets, ticket_number_seq, ticket_replies, users } f
 import { notFound } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { notify } from "../student/notify.js"
-import { broadcastToChannel } from "../../ws.js"
+import { publishRealtime } from "../../reliability/realtime.js"
 
 export interface TicketStudentInfo {
   id: string
@@ -210,12 +210,12 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
             `Status was updated to ${b.status} by ${nextUpdater}.`,
             "support",
           )
-          broadcastToChannel("notifications", "ticket-status", {
+          await publishRealtime(tx,"notifications", "ticket-status", {
             ticketId: t.id,
             status: b.status,
             updatedBy: nextUpdater,
           })
-          broadcastToChannel(`chat:${t.id}`, "status-update", {
+          await publishRealtime(tx,`chat:${t.id}`, "status-update", {
             ticketId: t.id,
             status: b.status,
             updatedBy: nextUpdater,
@@ -278,7 +278,7 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
           "support",
         )
 
-        broadcastToChannel(`chat:${t.id}`, "message", {
+        await publishRealtime(tx,`chat:${t.id}`, "message", {
           id: String(reply.id),
           text: reply.content,
           sender: "agent",
@@ -393,4 +393,3 @@ export async function supportModule(app: FastifyInstance, ctx: AppContext) {
     })
   })
 }
-

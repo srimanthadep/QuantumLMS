@@ -202,7 +202,7 @@ export default function BatchRosterPanel({
       "Name",
       "Email",
       "Status",
-      "Attendance %",
+      "Join click %",
       "Progress %",
       "Joined",
     ]
@@ -214,7 +214,7 @@ export default function BatchRosterPanel({
           s.name,
           s.email,
           s.status,
-          s.attendanceRate,
+          s.attendanceRate ?? "",
           s.courseProgress,
           s.enrolledAt,
         ]
@@ -410,7 +410,7 @@ export default function BatchRosterPanel({
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         <span className="truncate">{student.email}</span>
-                        <span>· Attendance: {student.attendanceRate}%</span>
+                        <span>· Join clicks: {student.attendanceRate == null ? "No ended classes" : `${student.attendanceRate}%`}</span>
                         <span>· Progress: {student.courseProgress}%</span>
                         {student.enrolledAt && (
                           <span>· Joined {student.enrolledAt}</span>

@@ -1,10 +1,12 @@
+import { notifyCohort as notifyBatch } from "../reliability/notifications.js"
+export { notifyCohort as notifyBatch } from "../reliability/notifications.js"
 import { randomUUID } from "node:crypto"
 import { and, eq, sql } from "drizzle-orm"
 import type { AppContext } from "../context.js"
 import type { AuthUser } from "../auth/users.js"
 import { isAdmin } from "../auth/access.js"
 import type { Tx } from "../db/client.js"
-import { audit_events, batch_teachers, cohort_batches, live_sessions, notifications, schedule_exceptions, schedule_rule_versions, schedule_rules, users } from "../db/schema.js"
+import { audit_events, batch_teachers, cohort_batches, live_sessions, schedule_exceptions, schedule_rule_versions, schedule_rules, users } from "../db/schema.js"
 import { badRequest, conflict, notFound } from "../errors.js"
 import { lockBatch } from "../learning/admission.js"
 import { assertBatchAuthor } from "./access.js"
@@ -23,12 +25,6 @@ export async function chooseTeacher(tx: Tx, actor: AuthUser, batch: string, prop
   if (teacher?.role !== "Teacher" || teacher.disabled_at || teacher.provisioning_state !== "active") throw badRequest("Select an active teacher account")
   if (!isAdmin(actor) && id !== actor.id) throw badRequest("Teachers can schedule themselves; an administrator can assign another teacher")
   return id
-}
-export async function notifyBatch(tx: Tx, batchId: string, title: string, message: string) {
-  const recipients = await tx.execute(sql`select distinct br.student_id from lms.batch_registrations br join lms.profiles p on p.id=br.student_id
-    join lms.entitlement_grants g on g.student_id=br.student_id and g.batch_id=br.batch_id
-    where br.batch_id=${batchId} and br.state='confirmed' and g.revoked_at is null and g.starts_at<=now() and (g.expires_at is null or g.expires_at>now())`)
-  if (recipients.rows.length) await tx.insert(notifications).values(recipients.rows.map(r => ({ student_id: String(r.student_id), kind: "class", title, message, link: "schedule" })))
 }
 export async function saveRule(ctx: AppContext, actor: AuthUser, input: ScheduleInput) {
   const result = await ctx.db.transaction(async tx => {

@@ -1,3 +1,4 @@
+import { createRealtimeConsumer, publishRealtime } from "./reliability/realtime.js"
 import type { FastifyInstance, FastifyRequest } from "fastify"
 import type { WebSocket } from "ws"
 import { eq } from "drizzle-orm"
@@ -19,99 +20,6 @@ export interface WsMessagePayload {
   }
 }
 
-// Global active subscriptions map
-// channelName -> Set of WebSocket clients
-const channelSubscribers = new Map<string, Set<WebSocket>>()
-// client -> Set of channels it subscribed to
-const clientSubscriptions = new Map<WebSocket, Set<string>>()
-
-/**
- * Broadcast an event to all clients subscribed to a given channel.
- */
-export function broadcastToChannel(channel: string, event: string, payload: any, sender?: any) {
-  const subscribers = channelSubscribers.get(channel)
-  if (!subscribers || subscribers.size === 0) return
-
-  const message = JSON.stringify({
-    channel,
-    event,
-    payload: channel === "evaluators" ? { refresh: true } : payload,
-    sender,
-    timestamp: new Date().toISOString(),
-  })
-
-  for (const client of subscribers) {
-    if (client.readyState === 1 /* OPEN */) {
-      try {
-        client.send(message)
-      } catch {
-        // Cleaned up on socket close/error
-      }
-    }
-  }
-}
-
-/**
- * Subscribe a socket to a channel.
- */
-export function subscribeToChannel(socket: WebSocket, channel: string) {
-  if (!channelSubscribers.has(channel)) {
-    channelSubscribers.set(channel, new Set())
-  }
-  channelSubscribers.get(channel)!.add(socket)
-
-  if (!clientSubscriptions.has(socket)) {
-    clientSubscriptions.set(socket, new Set())
-  }
-  clientSubscriptions.get(socket)!.add(channel)
-}
-
-/**
- * Unsubscribe a socket from a channel.
- */
-export function unsubscribeFromChannel(socket: WebSocket, channel: string) {
-  const subs = channelSubscribers.get(channel)
-  if (subs) {
-    subs.delete(socket)
-    if (subs.size === 0) channelSubscribers.delete(channel)
-  }
-
-  clientSubscriptions.get(socket)?.delete(channel)
-}
-
-/**
- * Clean up all channel subscriptions for a disconnected socket.
- */
-export function cleanupSocket(socket: WebSocket) {
-  const channels = clientSubscriptions.get(socket)
-  if (channels) {
-    for (const ch of channels) {
-      const subs = channelSubscribers.get(ch)
-      if (subs) {
-        subs.delete(socket)
-        if (subs.size === 0) channelSubscribers.delete(ch)
-      }
-    }
-    clientSubscriptions.delete(socket)
-  }
-}
-
-/**
- * Get active connection statistics.
- */
-export function getWsStats() {
-  let totalSubscribers = 0
-  for (const set of channelSubscribers.values()) {
-    totalSubscribers += set.size
-  }
-  return {
-    activeSockets: clientSubscriptions.size,
-    totalChannels: channelSubscribers.size,
-    channelList: Array.from(channelSubscribers.keys()),
-    totalSubscribers,
-  }
-}
-
 /**
  * Register WebSocket routes on Fastify.
  */
@@ -129,6 +37,86 @@ export async function canSubscribe(ctx: AppContext, user: AuthUser, channel: str
 }
 
 export async function wsRoutes(app: FastifyInstance, ctx: AppContext) {
+// Global active subscriptions map
+// channelName -> Set of WebSocket clients
+const channelSubscribers = new Map<string, Set<WebSocket>>()
+// client -> Set of channels it subscribed to
+const clientSubscriptions = new Map<WebSocket, Set<string>>()
+
+/**
+ * Subscribe a socket to a channel.
+ */
+function subscribeToChannel(socket: WebSocket, channel: string) {
+  if (!channelSubscribers.has(channel)) {
+    channelSubscribers.set(channel, new Set())
+  }
+  channelSubscribers.get(channel)!.add(socket)
+
+  if (!clientSubscriptions.has(socket)) {
+    clientSubscriptions.set(socket, new Set())
+  }
+  clientSubscriptions.get(socket)!.add(channel)
+}
+
+/**
+ * Unsubscribe a socket from a channel.
+ */
+function unsubscribeFromChannel(socket: WebSocket, channel: string) {
+  const subs = channelSubscribers.get(channel)
+  if (subs) {
+    subs.delete(socket)
+    if (subs.size === 0) channelSubscribers.delete(channel)
+  }
+
+  clientSubscriptions.get(socket)?.delete(channel)
+}
+
+/**
+ * Clean up all channel subscriptions for a disconnected socket.
+ */
+function cleanupSocket(socket: WebSocket) {
+  const channels = clientSubscriptions.get(socket)
+  if (channels) {
+    for (const ch of channels) {
+      const subs = channelSubscribers.get(ch)
+      if (subs) {
+        subs.delete(socket)
+        if (subs.size === 0) channelSubscribers.delete(ch)
+      }
+    }
+    clientSubscriptions.delete(socket)
+  }
+}
+
+/**
+ * Get active connection statistics.
+ */
+function getWsStats() {
+  let totalSubscribers = 0
+  for (const set of channelSubscribers.values()) {
+    totalSubscribers += set.size
+  }
+  return {
+    activeSockets: clientSubscriptions.size,
+    totalChannels: channelSubscribers.size,
+    channelList: Array.from(channelSubscribers.keys()),
+    totalSubscribers,
+  }
+}
+
+
+  const validators=new Map<WebSocket,()=>Promise<void>>()
+  const consumer=await createRealtimeConsumer(ctx.db,async event=>{
+    for(const socket of [...(channelSubscribers.get(event.channel)??[])]) {
+      try { await validators.get(socket)?.(); if(!clientSubscriptions.get(socket)?.has(event.channel)||socket.readyState!==1)continue
+        socket.send(JSON.stringify({...event,event_id:event.id,timestamp:event.created_at}))
+      } catch {socket.close(1008,"Session expired");cleanupSocket(socket)}
+    }
+  })
+  const timer=ctx.config.REALTIME_POLL_MS?setInterval(()=>{void consumer.poll().catch(()=>app.log.error("Realtime delivery failed; will retry"))},ctx.config.REALTIME_POLL_MS):null
+  timer?.unref()
+  app.addHook("onClose",async()=>{if(timer)clearInterval(timer);for(const socket of clientSubscriptions.keys())socket.close();await consumer.close()})
+
   const connections = new Map<string, number>()
   const guard = async (req: FastifyRequest) => {
     if (!req.headers.authorization) {
@@ -149,6 +137,7 @@ export async function wsRoutes(app: FastifyInstance, ctx: AppContext) {
       if (closed) return
       closed = true
       cleanupSocket(socket)
+      validators.delete(socket)
       clearInterval(revalidate)
       connections.set(user.id, Math.max(0, (connections.get(user.id) ?? 1) - 1))
     }
@@ -158,6 +147,7 @@ export async function wsRoutes(app: FastifyInstance, ctx: AppContext) {
         if (!(await canSubscribe(ctx, user, channel))) unsubscribeFromChannel(socket, channel)
       }
     }
+    validators.set(socket,validate)
     const revalidate = setInterval(() => { void validate().catch(() => { socket.close(1008, "Session expired"); clean() }) }, 15_000)
     revalidate.unref()
     let queue = Promise.resolve()
@@ -177,7 +167,7 @@ export async function wsRoutes(app: FastifyInstance, ctx: AppContext) {
           subscribeToChannel(socket, channel)
           socket.send(JSON.stringify({ action: "subscribed", channel }))
         } else if (msg.action === "publish" && channel.startsWith("chat:") && msg.event === "typing") {
-          broadcastToChannel(channel, "typing", { typing: msg.payload?.typing === true }, { id: user.id, name: user.full_name, role: user.role })
+          await publishRealtime(ctx.db,channel, "typing", { typing: msg.payload?.typing === true }, { id: user.id, name: user.full_name, role: user.role })
         } else throw forbidden("This client event is not allowed.")
       }).catch(() => { if (!closed && socket.readyState === 1) socket.send(JSON.stringify({ action: "error", message: "Action denied." })) })
     })

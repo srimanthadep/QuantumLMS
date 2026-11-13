@@ -1,3 +1,4 @@
+import { outboxSweep } from "../src/reliability/notifications.js"
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { after, before, test } from "node:test"
@@ -68,6 +69,7 @@ test("Mon/Tue/Wed six-month preview and durable generation produce exact dates w
   assert.equal(list.body.sessions.length, expected.length); assert.ok(!JSON.stringify(list.body).includes("meet.google.com"))
   assert.equal((await otherStudent.call("GET", "/api/sessions")).body.sessions.length, 0)
   assert.equal((await outsider.call("GET", "/api/sessions")).body.sessions.length, 0)
+  await outboxSweep(h.ctx)
   assert.ok((await h.ctx.db.select().from(notifications).where(eq(notifications.student_id, studentId))).length > 0)
 })
 

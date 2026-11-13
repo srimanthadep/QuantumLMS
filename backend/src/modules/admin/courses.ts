@@ -62,9 +62,12 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
 
     const financial = await db.execute(sql`select o.course_id, coalesce(sum(p.amount-p.refunded_amount) filter(where p.captured_at is not null),0)::bigint as net from lms.orders o left join lms.payments p on p.order_id=o.id group by o.course_id`)
     const revenue = new Map(financial.rows.map(r => [String(r.course_id), Number(r.net) / 100]))
+    const completions=await db.execute(sql`select e.course_id,round(100.0*count(*) filter(where exists(select 1 from lms.completion_credentials c where c.student_id=e.student_id and c.course_id=e.course_id and c.revoked_at is null))/nullif(count(*),0))::int as pct from lms.enrollments e group by e.course_id`)
+    const completed=new Map(completions.rows.map(r=>[String(r.course_id),Number(r.pct)]))
     const detailedCourses = courseRows.map((c) => ({
       ...c,
       revenue: revenue.get(c.id) ?? 0,
+      completion_rate: completed.get(c.id) ?? 0,
       enrolled_students: enrolledMap.get(c.id) ?? 0,
       modules_count: moduleMap.get(c.id) ?? 0,
       lessons_count: lessonMap.get(c.id) ?? 0,

@@ -322,7 +322,7 @@ export function AuditDetailSheet({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">IP Address:</span>
-              <span className="font-mono text-foreground">{log.ip}</span>
+              <span className="font-mono text-foreground">{log.ip || "Not recorded"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status:</span>

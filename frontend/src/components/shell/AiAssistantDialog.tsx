@@ -23,23 +23,8 @@ const SUGGESTIONS: Record<UserRole, string[]> = {
   "Super Admin": ["Summarise AI token spend this week", "Any unusual audit events today?", "Which cohort grew fastest?"],
 }
 
-function cannedReply(role: UserRole, prompt: string): string {
-  const p = prompt.toLowerCase()
-  if (p.includes("summar") && (p.includes("class") || p.includes("live")))
-    return "Your last live class, “RAG Systems Lab”, had 9 chapters. The key ideas: chunk documents by semantic boundaries, embed with a consistent model, re-rank the top 20 hits, and evaluate with faithfulness and answer relevance. Chapter 6 (re-ranking) is worth a rewatch."
-  if (p.includes("quiz") || p.includes("revise"))
-    return "Focus on three areas: cosine vs dot-product similarity, chunk size trade-offs, and why hybrid search (BM25 + vectors) helps on rare terms. The replay chapters “Embeddings 101” and “Hybrid retrieval” cover all three in about 18 minutes."
-  if (p.includes("chapter"))
-    return "Suggested chapters: 00:00 Welcome and goals · 04:12 Why retrieval beats fine-tuning here · 11:40 Chunking strategies · 23:05 Embedding models compared · 34:18 Building the index · 47:52 Re-ranking · 58:30 Evaluating answers · 1:08:10 Q&A."
-  if (p.includes("behind") || p.includes("weak") || p.includes("flag"))
-    return "4 learners have not watched the last two replays and have an assessment due in 3 days: Diya S., Kabir R., Ishita V. and Rahul P. A short nudge with the chapter links usually brings them back."
-  if (p.includes("refund") || p.includes("transfer") || p.includes("reply"))
-    return "Draft: “Hi! I've moved you to the Weekend cohort starting 9 Nov. Your replays, notes and progress carry over, and live classes now appear in your schedule. Reply here if anything looks off.”"
-  if (p.includes("revenue") || p.includes("token") || p.includes("cohort") || p.includes("capacity"))
-    return "This week: ₹4.82L revenue (+18%), 1.42M AI tokens (62% chapter generation, 28% tutor, 10% grading assist). The October Generative AI cohort is at 92% capacity; consider opening a second batch."
-  return role === "Student"
-    ? "Good question. Here's a short answer, with a pointer to the replay chapter that covers it in depth. Ask a follow-up if you want an example in Python."
-    : "Here's a quick summary based on the latest activity in your workspace. Ask a follow-up to drill into a specific course, batch or learner."
+function cannedReply(_role:UserRole,_prompt:string):string {
+  return "The AI assistant is not connected to an inference service. I cannot inspect your learning records, report metrics or perform account actions. Use the relevant workspace or contact Support."
 }
 
 interface AiCtx {
@@ -138,14 +123,14 @@ export default function AiAssistantDialog({ open, onOpenChange, prefill }: { ope
           </span>
           <div>
             <DialogTitle className="text-base">Clover</DialogTitle>
-            <DialogDescription className="text-caption">Your course-aware learning companion. Demo responses.</DialogDescription>
+            <DialogDescription className="text-caption">AI inference is not configured. No account actions are performed.</DialogDescription>
           </div>
         </div>
 
         <div ref={listRef} className="min-h-[220px] flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
           {messages.length === 0 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Try one of these:</p>
+              <p className="text-sm text-muted-foreground">The assistant is unavailable until an inference service is connected.</p>
               <div className="flex flex-col gap-2">
                 {SUGGESTIONS[role].map((s, i) => (
                   <motion.button

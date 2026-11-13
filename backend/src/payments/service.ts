@@ -1,3 +1,4 @@
+import { notify } from "../modules/student/notify.js"
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto"
 import { and, eq, sql } from "drizzle-orm"
 import type { AppContext } from "../context.js"
@@ -122,6 +123,7 @@ export async function reconcilePayment(ctx: AppContext, remote: ProviderPayment)
         await tx.update(orders).set({ status: "refunded", updated_at: new Date() }).where(eq(orders.id, order.id))
       }
       await tx.update(refunds).set({ status: "processed", confirmed_at: new Date(), lease_token: null, lease_until: null }).where(eq(refunds.payment_id, payment.id))
+      await notify(tx,order.student_id,"payment","Refund confirmed","The payment provider has confirmed your full refund.","courses",undefined,{key:`refund-confirmed:${payment.id}`})
       return payment
     }
     if (!captured || old?.captured_at) return payment
@@ -151,6 +153,7 @@ export async function reconcilePayment(ctx: AppContext, remote: ProviderPayment)
       return payment
     }
     await tx.update(orders).set({ status: "paid", fulfilled_payment_id: payment.id, error: null, updated_at: new Date() }).where(eq(orders.id, order.id))
+    await notify(tx,order.student_id,"payment","Payment confirmed","Your payment is confirmed and learning access is ready.","courses",undefined,{key:`payment-confirmed:${payment.id}`})
     await tx.insert(audit_events).values({ actor_role: "System", action: "payment.confirmed", target: order.id, outcome: "success" })
     return payment
   })

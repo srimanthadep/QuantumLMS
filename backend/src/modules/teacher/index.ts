@@ -20,7 +20,6 @@ import {
 import { forbidden, notFound } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { assertCourseAccess, isAdmin, teacherCourseIds, teacherStudentPredicate } from "../../auth/access.js"
-import { broadcastToChannel } from "../../ws.js"
 
 export async function teacherModule(app: FastifyInstance, ctx: AppContext) {
   const db = ctx.db

@@ -10,6 +10,7 @@ import type { LocalStorage } from "./storage/local.js"
 
 /** Everything a route needs. Built once at startup; tests build it with fakes for Cognito and storage. */
 export interface AppContext {
+  telemetry?: { startedAt:number; latencies:number[]; requests:number; errors:number }
   payments?: PaymentProvider
   config: Config
   pool: pg.Pool

@@ -131,7 +131,7 @@ export async function publishRecording(ctx: AppContext, actor: AuthUser, id: str
     await revision(tx,r,actor)
     const [saved] = await tx.update(recordings).set({ status: publish ? "Published" : "Draft", published_at: publish ? new Date() : null, published_by: publish ? actor.id : null, version: r.version+1, updated_at: new Date() }).where(eq(recordings.id,id)).returning()
     await tx.insert(audit_events).values({ actor_id: actor.id, actor_role: actor.role, action: publish ? "recording.published" : "recording.unpublished", target: id, outcome: "success" })
-    if (publish) await notifyBatch(tx,batch.id,"Replay published",`${r.title} is available from ${r.release_at.toISOString()}.`)
+    if (publish) await notifyBatch(tx,batch.id,"Replay published",`${r.title} is ready to replay.`,{key:`replay:${r.id}:${saved.version}`,availableAt:r.release_at,link:"courses",guard:{recording:r.id,version:saved.version}})
     return saved
   })
 }

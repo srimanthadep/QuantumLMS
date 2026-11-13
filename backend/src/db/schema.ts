@@ -623,7 +623,7 @@ export const notifications = lms.table("notifications", {
   index("notifications_student_idx").using("btree", table.student_id, table.created_at.desc()),
   foreignKey({
       columns: [table.student_id],
-      foreignColumns: [profiles.id],
+      foreignColumns: [users.id],
       name: "notifications_student_id_fkey"
     }).onDelete("cascade"),
   check("notifications_kind_check", sql`kind = ANY (ARRAY['class'::text, 'doubt'::text, 'grade'::text, 'system'::text, 'payment'::text, 'assessment'::text])`),
@@ -1526,3 +1526,22 @@ export const job_application_events = lms.table("job_application_events", {
 export const placement_support_requests = lms.table("placement_support_requests", {
   id:uuid().defaultRandom().primaryKey(),membership_id:uuid().notNull().references(()=>placement_memberships.id),application_id:uuid().references(()=>job_applications.id),ticket_id:text().notNull().references(()=>support_tickets.id),created_at:timestamp({withTimezone:true}).notNull().defaultNow(),
 },t=>[unique("placement_support_ticket_key").on(t.ticket_id)]);
+
+/** Durable in-app delivery. Domain writes and enqueue share the same transaction. */
+export const notification_outbox = lms.table("notification_outbox", {
+  id: uuid().primaryKey().defaultRandom(), event_key: text().notNull().unique(), recipient_id: uuid().notNull().references(()=>users.id,{onDelete:"cascade"}),
+  kind:text().notNull(), title:text().notNull(), message:text().notNull(), link:text(), preference:text(), guard:jsonb().notNull().default({}),
+  available_at:timestamp({withTimezone:true}).notNull().defaultNow(), attempts:integer().notNull().default(0), last_error:text(),
+  delivered_at:timestamp({withTimezone:true}), skipped_at:timestamp({withTimezone:true}), created_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+},t=>[index("notification_outbox_pending_idx").on(t.available_at).where(sql`${t.delivered_at} is null and ${t.skipped_at} is null`)]);
+export const realtime_events = lms.table("realtime_events", {
+  id:uuid().primaryKey().defaultRandom(),channel:text().notNull(),event:text().notNull(),payload:jsonb().notNull(),sender:jsonb(),
+  created_at:timestamp({withTimezone:true}).notNull().defaultNow(),expires_at:timestamp({withTimezone:true}).notNull(),
+},t=>[index("realtime_events_expiry_idx").on(t.expires_at)]);
+export const realtime_consumers = lms.table("realtime_consumers", {
+  id:uuid().primaryKey(), started_at:timestamp({withTimezone:true}).notNull().defaultNow(), heartbeat_at:timestamp({withTimezone:true}).notNull().defaultNow(),
+});
+export const realtime_deliveries = lms.table("realtime_deliveries", {
+  consumer_id:uuid().notNull().references(()=>realtime_consumers.id,{onDelete:"cascade"}),
+  event_id:uuid().notNull().references(()=>realtime_events.id,{onDelete:"cascade"}),
+},t=>[primaryKey({columns:[t.consumer_id,t.event_id]})]);

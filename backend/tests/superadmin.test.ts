@@ -72,7 +72,11 @@ describe("super admin telemetry and governance workflow", () => {
     const res = await superAdmin.call("GET", "/api/super-admin/ai")
     assert.equal(res.status, 200)
     assert.ok(res.body.models)
-    assert.ok(typeof res.body.totalTokensMonth === "number")
+    assert.equal(res.body.totalTokensMonth,null)
+    assert.equal(res.body.available,false)
   })
 })
 
+
+ test("unconfigured platform mutations never claim success",async()=>{for(const [method,path] of [["POST","snapshot"],["POST","tenants"],["PATCH","settings"],["PATCH","ai"]] as const){const r=await superAdmin.call(method,`/api/super-admin/${path}`,{});assert.equal(r.status,501);assert.equal(r.body.error.code,"not_available")}})
+ test("health reports measured process and queue values",async()=>{const r=await superAdmin.call("GET","/api/super-admin/health");assert.equal(r.status,200);assert.equal(r.body.maxPoolClients,4);assert.ok(r.body.poolClients<=4);assert.ok(r.body.sampleSize>0);assert.equal(typeof r.body.queues.notifications_pending,"number");assert.equal(r.body.uptime,undefined);assert.equal(r.body.aiLatencyMs,undefined)})

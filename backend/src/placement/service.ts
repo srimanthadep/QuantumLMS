@@ -37,10 +37,17 @@ export async function reconcileMember(tx:Tx,student:string,course:string) {
   const completion=result.rows.find(c=>track.eligible_modes.includes(c.batch_id?"live":"self_paced"))
   const [current]=await tx.select().from(placement_memberships).where(and(eq(placement_memberships.student_id,student),eq(placement_memberships.track_id,track.id))).for("update")
   if(!completion){if(current&&current.eligibility!=="Revoked"){await tx.update(placement_memberships).set({eligibility:"Revoked",updated_at:new Date(),version:current.version+1}).where(eq(placement_memberships.id,current.id));await tx.insert(audit_events).values({actor_role:"System",action:"placement.eligibility-revoked",target:current.id,outcome:"No active qualifying credential"})}return}
-  if(current){if(current.completion_id!==completion.id||current.eligibility!=="Eligible")await tx.update(placement_memberships).set({completion_id:String(completion.id),eligibility:"Eligible",version:current.version+1,updated_at:new Date()}).where(eq(placement_memberships.id,current.id));return current.id}
+  if(current){
+    if(current.completion_id!==completion.id||current.eligibility!=="Eligible"){
+      await tx.update(placement_memberships).set({completion_id:String(completion.id),eligibility:"Eligible",version:current.version+1,updated_at:new Date()}).where(eq(placement_memberships.id,current.id))
+      await tx.insert(audit_events).values({actor_role:"System",action:"placement.eligibility-renewed",target:current.id,outcome:`completion ${completion.id}`})
+      if(track.active&&current.status==="Active")await notify(tx,student,"system","Placement eligibility renewed",`Your current credential qualifies you for ${track.title}.`,"placements",undefined,{key:`placement:${current.id}:${completion.id}`,guard:{placement:current.id}})
+    }
+    return current.id
+  }
   if(!track.active||!track.auto_enroll)return
   const [member]=await tx.insert(placement_memberships).values({track_id:track.id,student_id:student,completion_id:String(completion.id)}).returning()
-  await notify(tx,student,"system","Placement support unlocked",`Your verified completion qualifies you for ${track.title}. Explore Jobs & Applications and prepare your resume in Career Hub.`,"placements")
+  await notify(tx,student,"system","Placement support unlocked",`Your verified completion qualifies you for ${track.title}. Explore Jobs & Applications and prepare your resume in Career Hub.`,"placements",undefined,{key:`placement:${member.id}:${completion.id}`,guard:{placement:member.id}})
   await tx.insert(audit_events).values({actor_role:"System",action:"placement.eligible",target:member.id,outcome:`completion ${completion.id}`})
   return member.id
 }

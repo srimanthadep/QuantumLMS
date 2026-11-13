@@ -23,7 +23,7 @@ import { finalizeExpired } from "./quizzes.js"
 import { assertCourseAccess } from "../../auth/access.js"
 import { mediaKey, signedMedia } from "../../storage/protected.js"
 import { ownObject, studentProfile, trimmed } from "./shared.js"
-import { broadcastToChannel } from "../../ws.js"
+import { publishRealtime } from "../../reliability/realtime.js"
 
 const CATALOG_TTL_MS = 30_000
 let catalogCache: {
@@ -267,13 +267,13 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
         })
         .returning()
       await notify(tx, s.id, "assessment", "Submission received", `${a.title} was submitted for evaluation.`, "assessments")
-      broadcastToChannel("evaluators", "new-submission", {
+      await publishRealtime(tx,"evaluators", "new-submission", {
         assignmentId: a.id,
         assignmentTitle: a.title,
         studentId: s.id,
         submittedAt: now,
       })
-      broadcastToChannel("notifications", "submission", {
+      await publishRealtime(tx,"notifications", "submission", {
         title: "Assignment Submitted",
         message: `${s.full_name} submitted ${a.title}`,
       })

@@ -757,11 +757,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
           bs.status,
           bs.notes,
           bs.enrolled_at,
-          case
-            when count(distinct a.id) > 0
-            then round((count(distinct case when a.status in ('Present', 'Late') then a.id end)::numeric / count(distinct a.id)) * 100)::int
-            else 92
-          end as attendance_rate,
+          (select round(100.0*count(sa.student_id)/nullif(count(ls.id),0))::int from lms.live_sessions ls left join lms.session_attendance sa on sa.session_id=ls.id and sa.student_id=u.id where ls.batch_id=${batch.id} and ls.status='Ended' and ls.starts_at>=bs.enrolled_at) as attendance_rate,
           coalesce((
             select case when count(l.id) > 0
               then round((count(lp.lesson_id)::numeric / count(l.id)) * 100)::int
@@ -769,12 +765,11 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
             end
             from lms.lessons l
             left join lms.lesson_progress lp on lp.lesson_id = l.id and lp.student_id = u.id
-            where l.course_id = ${batch.course_id}
+            where l.course_id = ${batch.course_id} and l.archived_at is null
           ), 0)::int as course_progress
         from lms.batch_students bs
         join lms.users u on u.id = bs.student_id
         left join lms.profiles p on p.id = u.id
-        left join lms.attendance_records a on a.student_id = u.id
         where bs.batch_id = ${batch.id}
         group by u.id, u.full_name, u.email, u.avatar_url, p.roll_number, p.program, bs.status, bs.notes, bs.enrolled_at
         order by
@@ -927,4 +922,3 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
     },
   )
 }
-

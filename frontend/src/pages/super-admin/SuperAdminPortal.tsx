@@ -1,11 +1,11 @@
+import usePersistedNotifications from "@/lib/usePersistedNotifications"
 import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
-import { lazy, Suspense, useState, useMemo, useEffect, useCallback } from "react"
+import { lazy, Suspense, useState, useEffect } from "react"
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 import AppShell from "@/components/shell/AppShell"
 import PageTransition from "@/components/motion/PageTransition"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import type { CurrentUser } from "@/types"
-import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
 import { useAdminStore, useSuperAdminStore } from "@/data/adminStore"
 import {
   AddTeacherModal,
@@ -76,74 +76,6 @@ function PageFallback() {
   )
 }
 
-function useSuperAdminNotifications(
-  auditLogs: any[],
-  batches: any[],
-  orders: any[],
-): NotificationSource {
-  const [read, setRead] = useState<Set<string>>(new Set())
-
-  const entries = useMemo(() => {
-    const out: (ShellNotification & { to: string })[] = []
-
-    // Security warning or refused event
-    const recentWarning = auditLogs.find((l) => l.status === "Warning" || l.status === "Refused")
-    if (recentWarning) {
-      out.push({
-        id: `audit-${recentWarning.id}`,
-        title: `Security Event: ${recentWarning.action}`,
-        message: `${recentWarning.target} from ${recentWarning.ip}`,
-        timestamp: recentWarning.timestamp.split(" ")[1] || "Today",
-        read: read.has(`audit-${recentWarning.id}`),
-        kind: "assessment",
-        to: "/super-admin/audit",
-      })
-    }
-
-    // High capacity batch notification
-    const fullBatches = batches.filter((b) => b.enrolledSeats / b.maxSeats >= 0.9)
-    if (fullBatches.length > 0) {
-      out.push({
-        id: `batch-cap-${fullBatches[0].id}`,
-        title: "Cohort Near Capacity",
-        message: `${fullBatches[0].name} has ${fullBatches[0].maxSeats - fullBatches[0].enrolledSeats} seats left`,
-        timestamp: "Now",
-        read: read.has(`batch-cap-${fullBatches[0].id}`),
-        kind: "class",
-        to: "/super-admin/batches",
-      })
-    }
-
-    // Recent paid orders
-    const latestOrder = orders.find((o) => o.status === "Paid")
-    if (latestOrder) {
-      out.push({
-        id: `ord-${latestOrder.id}`,
-        title: "New Tuition Payment",
-        message: `${latestOrder.studentName} enrolled in ${latestOrder.courseTitle}`,
-        timestamp: "10m ago",
-        read: read.has(`ord-${latestOrder.id}`),
-        kind: "grade",
-        to: "/super-admin/orders",
-      })
-    }
-
-    return out
-  }, [auditLogs, batches, orders, read])
-
-  const onSelect = useCallback((n: ShellNotification) => setRead((prev) => new Set([...prev, n.id])), [])
-  const onMarkAllRead = useCallback(() => setRead(new Set(entries.map((e) => e.id))), [entries])
-
-  return useMemo(
-    () => ({
-      items: entries,
-      onSelect,
-      onMarkAllRead,
-    }),
-    [entries, onSelect, onMarkAllRead],
-  )
-}
-
 export default function SuperAdminPortal({
   currentUser,
   onToast,
@@ -154,11 +86,7 @@ export default function SuperAdminPortal({
 
   const adminStore = useAdminStore()
   const superAdminStore = useSuperAdminStore()
-  const notifications = useSuperAdminNotifications(
-    superAdminStore.auditLogs,
-    adminStore.batches,
-    adminStore.orders,
-  )
+  const notifications = usePersistedNotifications(onToast)
 
   // Seamlessly rewrite direct /admin/* paths to /super-admin/*
   useEffect(() => {
@@ -280,7 +208,7 @@ export default function SuperAdminPortal({
             <Route
               path="/students"
               element={
-                <StudentsView
+                <StudentsView onToast={onToast}
                   store={adminStore}
                   onOpenManualEnrol={() => setIsManualEnrolOpen(true)}
                 />

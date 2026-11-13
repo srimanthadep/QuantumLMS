@@ -1,20 +1,19 @@
+import { invalidateUserCache } from "../../auth/users.js"
+import { app_state, audit_events } from "../../db/schema.js"
 import { grantAccess } from "../../learning/entitlements.js"
-import { asc, desc, eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 import type { AppContext } from "../../context.js"
 import {
-  attendance_records,
   cohort_batches,
   courses,
   course_teachers,
   enrollments,
-  profiles,
-  timetable_slots,
   users,
 } from "../../db/schema.js"
 import { AppError, badRequest, notFound } from "../../errors.js"
-import { parse } from "../../http.js"
+import { me, parse } from "../../http.js"
 import { addStudentsToBatchTx, findOrCreateStudentInTx } from "./batches.js"
 
 export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -93,75 +92,28 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
   app.get("/students", async () => {
     const students = (
       await db.execute(sql`
-        select
-          u.id, u.full_name as name, u.email, u.avatar_url,
-          coalesce(p.batch, 'Cohort 7 (Evening)') as batch_name,
-          coalesce(p.roll_number, '') as roll_number,
-          coalesce(p.program, 'Artificial Intelligence') as program,
-          count(distinct e.course_id)::int as enrolled_courses,
-          case when count(a.id) > 0 then (count(case when a.status in ('Present', 'Late') then 1 end)::numeric / count(a.id) * 100)::int else 92 end as attendance_rate,
-          'Active' as status
-        from lms.users u
-        left join lms.profiles p on p.id = u.id
-        left join lms.enrollments e on e.student_id = u.id
-        left join lms.attendance_records a on a.student_id = u.id
-        where u.role = 'Student'
-        group by u.id, u.full_name, u.email, u.avatar_url, p.batch, p.roll_number, p.program
-        order by u.full_name asc
+        select u.id,u.full_name as name,u.email,u.avatar_url,u.created_at,
+          case when u.disabled_at is null then 'Active' else 'Paused' end as status,
+          (select string_agg(distinct c.title,', ' order by c.title) from lms.entitlement_grants g join lms.courses c on c.id=g.course_id where g.student_id=u.id and g.revoked_at is null and g.starts_at<=now() and (g.expires_at is null or g.expires_at>now())) as course_title,
+          (select string_agg(distinct b.name,', ' order by b.name) from lms.batch_registrations r join lms.cohort_batches b on b.id=r.batch_id where r.student_id=u.id and r.state in ('confirmed','paused')) as batch_name,
+          (select count(*)::int from lms.session_attendance where student_id=u.id) as join_clicks
+        from lms.users u where u.role='Student' order by u.full_name
       `)
     ).rows
 
     return { students }
   })
 
-  // 4b. Edit student
-  app.patch<{ Params: { id: string } }>("/students/:id", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().trim().min(2).max(120).optional(),
-        batch: z.string().trim().min(1).max(150).optional(),
-        status: z.enum(["Active", "Completed", "At Risk", "Paused"]).optional(),
-      }),
-      req.body,
-    )
-
-    const uuidOk = z.string().uuid().safeParse(req.params.id).success
-    if (!uuidOk) {
-      return { ok: true, id: req.params.id, student: b }
-    }
-
-    await db.transaction(async (tx) => {
-      if (b.name !== undefined) {
-        await tx
-          .update(users)
-          .set({ full_name: b.name, updated_at: new Date() })
-          .where(eq(users.id, req.params.id))
-      }
-      if (b.batch !== undefined) {
-        await tx
-          .update(profiles)
-          .set({ batch: b.batch, updated_at: new Date() })
-          .where(eq(profiles.id, req.params.id))
-      }
-    })
-
-    return { ok: true, id: req.params.id, student: b }
+  // Account edits do not silently transfer a learner or alter course completion.
+  app.patch<{Params:{id:string}}>("/students/:id",async req=>{
+    const id=parse(z.uuid(),req.params.id),b=parse(z.object({name:z.string().trim().min(1).max(120)}).strict(),req.body)
+    const [row]=await db.update(users).set({full_name:b.name,updated_at:new Date()}).where(and(eq(users.id,id),eq(users.role,"Student"))).returning()
+    if(!row)throw notFound("Student not found");invalidateUserCache(id);return {ok:true}
   })
-
-  // 4c. Delete student
-  app.delete<{ Params: { id: string } }>("/students/:id", async (req) => {
-    const uuidOk = z.string().uuid().safeParse(req.params.id).success
-    if (!uuidOk) {
-      return { ok: true, deleted: req.params.id }
-    }
-    const [existing] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1)
-    if (!existing) throw notFound("Student not found.")
-    if (existing.is_demo) {
-      await db.delete(enrollments).where(eq(enrollments.student_id, existing.id))
-      return { ok: true, deleted: existing.id }
-    }
-    await db.delete(users).where(eq(users.id, existing.id))
-    return { ok: true, deleted: existing.id }
+  app.delete<{Params:{id:string}}>("/students/:id",async req=>{
+    const id=parse(z.uuid(),req.params.id)
+    return db.transaction(async tx=>{const [row]=await tx.update(users).set({disabled_at:new Date(),updated_at:new Date()}).where(and(eq(users.id,id),eq(users.role,"Student"))).returning()
+      if(!row)throw notFound("Student not found");await tx.insert(audit_events).values({actor_id:me(req).id,actor_role:me(req).role,action:"student.disabled",target:id,outcome:"History retained"});invalidateUserCache(id);return {ok:true,disabled:id}})
   })
 
   // 5. Manually enroll student in a course (and optional cohort batch)
@@ -229,50 +181,17 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
 
   // Financial history must never be inferred from an enrollment. Phase 4 supplies persisted provider records.
 
-  // 8. Academy Settings
-  app.get("/settings", async () => {
-    return {
-      settings: {
-        name: "Quantum School of AI",
-        tagline: "Autonomous Agentic Systems & LLM Engineering",
-        domain: "quantumschool.ai",
-        supportEmail: "support@quantumschool.ai",
-        timezone: "Asia/Kolkata (IST)",
-        currency: "INR (₹)",
-        autoIssueCertificates: true,
-        enablePublicVerification: true,
-        requireMfaForStaff: true,
-      },
-    }
-  })
-
-  app.patch("/settings", async (req) => {
-    const b = parse(
-      z.object({
-        name: z.string().optional(),
-        tagline: z.string().optional(),
-        supportEmail: z.string().email().optional(),
-        timezone: z.string().optional(),
-        autoIssueCertificates: z.boolean().optional(),
-        enablePublicVerification: z.boolean().optional(),
-        requireMfaForStaff: z.boolean().optional(),
-      }),
-      req.body,
-    )
-
-    return {
-      settings: {
-        name: b.name ?? "Quantum School of AI",
-        tagline: b.tagline ?? "Autonomous Agentic Systems & LLM Engineering",
-        domain: "quantumschool.ai",
-        supportEmail: b.supportEmail ?? "support@quantumschool.ai",
-        timezone: b.timezone ?? "Asia/Kolkata (IST)",
-        currency: "INR (₹)",
-        autoIssueCertificates: b.autoIssueCertificates ?? true,
-        enablePublicVerification: b.enablePublicVerification ?? true,
-        requireMfaForStaff: b.requireMfaForStaff ?? true,
-      },
-      message: "Settings updated successfully.",
-    }
+  const defaults={name:"Quantum School of AI",tagline:"",domain:"",supportEmail:"",timezone:ctx.config.CAMPUS_TZ,currency:"INR"}
+  app.get("/settings",async()=>{const [row]=await db.select().from(app_state).where(eq(app_state.key,"academy_profile"));return {settings:{...defaults,...row?.value as object}}})
+  app.patch("/settings",async req=>{
+    const b=parse(z.object({name:z.string().trim().min(1).max(160).optional(),tagline:z.string().trim().max(300).optional(),domain:z.string().trim().max(254).optional(),supportEmail:z.union([z.email(),z.literal("")]).optional()}).strict(),req.body)
+    return db.transaction(async tx=>{
+      await tx.insert(app_state).values({key:"academy_profile",value:defaults}).onConflictDoNothing()
+      const [row]=await tx.select().from(app_state).where(eq(app_state.key,"academy_profile")).for("update")
+      const settings={...defaults,...row.value as object,...b}
+      await tx.update(app_state).set({value:settings,updated_at:new Date()}).where(eq(app_state.key,"academy_profile"))
+      await tx.insert(audit_events).values({actor_id:me(req).id,actor_role:me(req).role,action:"academy.profile-updated",target:"academy_profile",outcome:"success"})
+      return {settings}
+    })
   })
 }

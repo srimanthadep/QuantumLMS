@@ -1,11 +1,10 @@
-import { asc, desc, eq, sql } from "drizzle-orm"
+import { desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
-import { z } from "zod"
 import { invalidateUserCache } from "../../auth/users.js"
 import type { AppContext } from "../../context.js"
 import { audit_events, users } from "../../db/schema.js"
-import { forbidden } from "../../errors.js"
-import { authenticate, me, parse } from "../../http.js"
+import { AppError, forbidden } from "../../errors.js"
+import { authenticate } from "../../http.js"
 import { invalidateCatalogCache } from "../student/courses.js"
 
 export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
@@ -13,109 +12,30 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
 
   await app.register(
     async (scope) => {
-      // Allow Admin and Super Admin in single-tenant architecture
+      // Platform governance is reserved for Super Admin.
       scope.addHook("preHandler", authenticate(ctx, ["Super Admin"]))
 
-      // 1. Platform Health & Telemetry
-      scope.get("/health", async () => {
-        return {
-          uptime: 99.98,
-          p95LatencyMs: 24,
-          poolClients: 3,
-          maxPoolClients: ctx.config.DATABASE_POOL_MAX || 5,
-          aiLatencyMs: 420,
-          services: [
-            {
-              id: "svc-1",
-              name: "Fastify Edge API & Auth Cluster",
-              endpoint: "https://api.quantumschool.ai/api/health",
-              category: "Core API",
-              status: "Healthy",
-              uptime: 99.99,
-              latencyMs: 18,
-              sparkline: [22, 19, 21, 18, 20, 18, 17, 19],
-            },
-            {
-              id: "svc-2",
-              name: "PostgreSQL Primary Pooler",
-              endpoint: "postgres://db.internal:5432/postgres",
-              category: "Database & Storage",
-              status: "Healthy",
-              uptime: 99.98,
-              latencyMs: 8,
-              sparkline: [9, 8, 8, 7, 9, 8, 8, 8],
-            },
-            {
-              id: "svc-3",
-              name: "Vertex AI & Gemini Gateway",
-              endpoint: "https://generativelanguage.googleapis.com",
-              category: "AI Engine",
-              status: "Healthy",
-              uptime: 99.95,
-              latencyMs: 420,
-              sparkline: [460, 430, 410, 390, 440, 420, 410, 420],
-            },
-            {
-              id: "svc-4",
-              name: "CloudFront CDN & HLS Streaming",
-              endpoint: "https://stream.quantumschool.ai",
-              category: "Media & Video",
-              status: "Healthy",
-              uptime: 99.99,
-              latencyMs: 12,
-              sparkline: [14, 13, 12, 12, 11, 12, 13, 12],
-            },
-          ],
-        }
+      scope.get("/health",async()=>{
+        const started=performance.now();await db.execute(sql`select 1`);const databaseLatencyMs=performance.now()-started
+        const counts=(await db.execute(sql`select
+          (select count(*)::int from lms.processing_jobs where state='queued') as media_queued,
+          (select count(*)::int from lms.processing_jobs where state='processing' and lease_until>now()) as media_processing,
+          (select count(*)::int from lms.processing_jobs where state='failed') as media_failed,
+          (select count(*)::int from lms.notification_outbox where delivered_at is null and skipped_at is null) as notifications_pending,
+          (select count(*)::int from lms.notification_outbox where delivered_at is null and skipped_at is null and attempts>0) as notifications_retrying,
+          (select count(*)::int from lms.realtime_consumers where heartbeat_at>now()-interval '30 seconds') as realtime_instances`)).rows[0]
+        const t=ctx.telemetry,latencies=[...(t?.latencies??[])].sort((a,b)=>a-b)
+        return {observedAt:new Date().toISOString(),scope:"This API process and shared database queues",uptimeSeconds:(Date.now()-(t?.startedAt??Date.now()))/1000,
+          p95LatencyMs:latencies.length?latencies[Math.ceil(latencies.length*.95)-1]:null,sampleSize:latencies.length,requests:t?.requests??0,errors:t?.errors??0,
+          poolClients:ctx.pool.totalCount,poolIdle:ctx.pool.idleCount,poolWaiting:ctx.pool.waitingCount,maxPoolClients:ctx.config.DATABASE_POOL_MAX,
+          databaseLatencyMs,queues:counts,services:[{id:"api",name:"API process",status:"Responding"},{id:"database",name:"PostgreSQL",status:"Query succeeded"}],
+          limitations:"Request latency covers the latest 1,000 completed requests on this process. Queue counts are shared. Provider uptime, AI usage and CDN health are not monitored here."}
       })
-
-      // 2. Flush global cache
-      scope.post("/flush-cache", async (req) => {
-        const u = me(req)
-        invalidateCatalogCache()
-        invalidateUserCache()
-        return {
-          ok: true,
-          clearedAt: new Date().toISOString(),
-          flushedBy: u.full_name,
-          timestamp: new Date().toISOString(),
-          message: "Global Redis & Edge Cache flushed across all clusters.",
-        }
-      })
-
-      // 3. Trigger database snapshot
-      scope.post("/snapshot", async (req) => {
-        const u = me(req)
-        return {
-          ok: true,
-          snapshotId: `snap-${Date.now()}`,
-          triggeredBy: u.full_name,
-          timestamp: new Date().toISOString(),
-          message: "Point-in-time PostgreSQL snapshot created with HMAC seal.",
-        }
-      })
-
-      // 4. Single-tenant platform tenancy info
-      scope.get("/tenants", async () => {
-        return {
-          singleTenant: true,
-          organization: "Quantum AI Academy",
-          tenants: [],
-        }
-      })
-
-      // 4b. Legacy compatibility
-      scope.post("/tenants", async () => {
-        return { singleTenant: true, ok: true }
-      })
-
-      scope.patch<{ Params: { id: string } }>("/tenants/:id", async (req) => {
-        return { singleTenant: true, ok: true, id: req.params.id }
-      })
-
-      scope.delete<{ Params: { id: string } }>("/tenants/:id", async (req) => {
-        return { singleTenant: true, ok: true, deleted: req.params.id }
-      })
+      scope.post("/flush-cache",async()=>{invalidateCatalogCache();invalidateUserCache();return {ok:true,clearedAt:new Date().toISOString(),message:"In-process catalog and identity caches cleared on this API instance."}})
+      const unavailable=async()=>{throw new AppError(501,"not_available","This operation has no configured integration. No changes were made.")}
+      scope.post("/snapshot",unavailable)
+      scope.get("/tenants",async()=>({singleTenant:true,tenants:[]}))
+      scope.post("/tenants",unavailable);scope.patch("/tenants/:id",unavailable);scope.delete("/tenants/:id",unavailable)
 
       // 5. RBAC Permission Matrix
       scope.get("/rbac", async () => {
@@ -148,90 +68,20 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
           .from(audit_events).leftJoin(users, eq(users.id, audit_events.actor_id))
           .orderBy(desc(audit_events.created_at)).limit(200)
         const logs = rows.map(({ event, name, email }) => ({
-          id: event.id, timestamp: event.created_at.toISOString(), actorName: name ?? "Deleted account",
+          id: event.id, timestamp: event.created_at.toISOString(), actorName: name ?? (event.actor_id?"Deleted account":"System"),
           actorRole: event.actor_role, actorEmail: email ?? "", action: event.action, category: "Admin",
-          target: event.target, ip: "", status: event.outcome, details: "Persisted API request outcome; financial confirmation is tracked separately.",
+          target: event.target, ip: "", status: /^HTTP [45]/.test(event.outcome)?"Refused":"Success", details: event.outcome,
         }))
         return { logs }
       })
 
-      // 7. AI Usage Metrics
-      scope.get("/ai", async () => {
-        const usage = {
-          totalTokensMonth: 14_200_000,
-          totalCostInr: 68400,
-          tokensByFeature: {
-            aiTutor: 6_800_000,
-            videoChaptering: 2_400_000,
-            transcription: 3_200_000,
-            evaluatorAssist: 1_800_000,
-          },
-          primaryModel: "Gemini 2.5 Flash",
-          fallbackModel: "GPT-4o Mini",
-          temperature: 0.2,
-          strictnessScore: 0.85,
-          monthlyBudgetCapInr: 120000,
-          models: [
-            { id: "gemini-2.5", name: "Gemini 2.5 Flash", provider: "Google", latencyMs: 280, active: true },
-            { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI", latencyMs: 440, active: true },
-            { id: "claude-3-5", name: "Claude 3.5 Sonnet", provider: "Anthropic", latencyMs: 520, active: false },
-          ],
-        }
-        return {
-          aiUsage: usage,
-          models: usage.models,
-          totalTokensMonth: usage.totalTokensMonth,
-        }
-      })
+      scope.get("/ai",async()=>({available:false,totalTokensMonth:null,totalCostInr:null,models:[],message:"AI token usage and billing are not instrumented. Media transcription runs in the dedicated worker; its job states appear in Platform Health."}))
+      scope.patch("/ai",unavailable)
+      scope.get("/settings",async()=>({settings:{environment:ctx.config.NODE_ENV,poolerMaxClients:ctx.config.DATABASE_POOL_MAX,
+        databaseTls:ctx.config.DATABASE_SSL,demoMode:ctx.config.DEMO_MODE,replayEnabled:ctx.config.REPLAY_ENABLED,zoomRecordingWebhook:ctx.config.ZOOM_RECORDING_WEBHOOK_ENABLED,
+        notificationSweepSeconds:ctx.config.NOTIFICATION_SWEEP_SECONDS,realtimePollMs:ctx.config.REALTIME_POLL_MS},readOnly:true,message:"These settings are loaded from deployment configuration. Change them there and restart the service."}))
+      scope.patch("/settings",unavailable)
 
-      scope.patch("/ai", async (req) => {
-        const b = parse(
-          z.object({
-            primaryModel: z.string().optional(),
-            fallbackModel: z.string().optional(),
-            temperature: z.number().min(0).max(1).optional(),
-            strictnessScore: z.number().min(0).max(1).optional(),
-            monthlyBudgetCapInr: z.number().positive().optional(),
-          }),
-          req.body,
-        )
-
-        return {
-          message: "AI inference parameters updated successfully.",
-          settings: b,
-        }
-      })
-
-      // 8. Platform Console Settings
-      scope.get("/settings", async () => {
-        return {
-          settings: {
-            poolerMaxClients: ctx.config.DATABASE_POOL_MAX || 5,
-            jwtClockSkewSecs: 5,
-            maintenanceMode: false,
-            ipWhitelisting: true,
-            requireEncryptedSessions: true,
-          },
-        }
-      })
-
-      scope.patch("/settings", async (req) => {
-        const b = parse(
-          z.object({
-            poolerMaxClients: z.number().int().min(1).max(15).optional(),
-            jwtClockSkewSecs: z.number().int().min(0).max(60).optional(),
-            maintenanceMode: z.boolean().optional(),
-            ipWhitelisting: z.boolean().optional(),
-            requireEncryptedSessions: z.boolean().optional(),
-          }),
-          req.body,
-        )
-
-        return {
-          message: "Global cloud security settings synchronized.",
-          settings: b,
-        }
-      })
     },
     { prefix: "/api/super-admin" },
   )

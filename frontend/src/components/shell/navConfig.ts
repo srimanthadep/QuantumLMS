@@ -108,11 +108,6 @@ export const NAV: Record<UserRole, ShellNavItem[]> = {
     item("alumni", "Alumni Network", Briefcase, "main", ["placements", "stories", "directory", "graduates", "partners"]),
     item("orders", "Orders", CreditCard, "main", ["payments"]),
     item("reports", "Reports", FileText),
-    item("health", "Platform Health", Activity),
-    item("access", "Access Control", ShieldCheck, "main", ["rbac", "roles", "permissions"]),
-    item("audit", "Audit Logs", FileClock),
-    item("ai", "AI Usage", Bot, "main", ["tokens", "models"]),
-    item("revenue", "Revenue", Wallet),
     item("settings", "Settings", Settings, "secondary"),
   ],
   "Super Admin": [

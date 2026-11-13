@@ -74,6 +74,10 @@ const schema = z.object({
   DEMO_SUPER_ADMIN_EMAIL: z.string().email().default("superadmin@lms.com"),
   /** Grade quiz attempts that ran out of time while the student was away (seconds between runs, 0 = off). */
   SCHEDULE_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
+  NOTIFICATION_SWEEP_SECONDS: z.coerce.number().int().min(0).default(15),
+  REALTIME_POLL_MS: z.coerce.number().int().min(0).default(1000),
+  SESSION_REMINDER_MINUTES: z.coerce.number().int().min(1).max(1440).default(30),
+  ASSESSMENT_DUE_REMINDER_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   COMPLETION_SWEEP_SECONDS: z.coerce.number().int().min(0).default(30),
   QUIZ_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
 })

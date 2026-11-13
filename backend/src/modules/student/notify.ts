@@ -1,18 +1,9 @@
-import { eq } from "drizzle-orm"
+import { randomUUID } from "node:crypto"
 import type { Tx } from "../../db/client.js"
-import { notifications, profiles } from "../../db/schema.js"
-import { broadcastToChannel } from "../../ws.js"
-
+import { notification_outbox } from "../../db/schema.js"
 export type NotificationKind = "class" | "doubt" | "grade" | "system" | "payment" | "assessment"
-
-/** Adds a notification unless the student turned that category off (notification_prefs[pref] === false). */
-export async function notify(tx: Tx, studentId: string, kind: NotificationKind, title: string, message: string, link?: string | null, pref?: string) {
-  if (pref) {
-    const [p] = await tx.select({ prefs: profiles.notification_prefs }).from(profiles).where(eq(profiles.id, studentId)).limit(1)
-    const prefs = (p?.prefs ?? {}) as Record<string, unknown>
-    if (prefs[pref] === false || prefs[pref] === "false") return
-  }
-  const [row] = await tx.insert(notifications).values({ student_id: studentId, kind, title, message, link: link ?? null }).returning()
-  broadcastToChannel(`user:${studentId}`, "notification", row)
-  broadcastToChannel("notifications", "notification", row)
+export interface DeliveryOptions { key?:string; availableAt?:Date; guard?:Record<string,unknown>; link?:string }
+/** Caller supplies its domain transaction. Delivery and preference checks happen in the retrying worker. */
+export async function notify(tx:Tx,studentId:string,kind:NotificationKind,title:string,message:string,link?:string|null,pref?:string,options:DeliveryOptions={}) {
+  await tx.insert(notification_outbox).values({event_key:`${options.key??randomUUID()}:${studentId}`,recipient_id:studentId,kind,title,message,link:options.link??link??null,preference:pref,available_at:options.availableAt,guard:options.guard??{}}).onConflictDoNothing()
 }

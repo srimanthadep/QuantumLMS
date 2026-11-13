@@ -34,7 +34,7 @@ export interface AppStackProps extends StackProps {
   paymentHttpTimeoutMs?: number
   /** Optional PEM CA for a database with a private certificate chain. */
   databaseCaCert?: string
-  /** API tasks to run. Each keeps up to DATABASE_POOL_MAX (5) database connections. */
+  /** API tasks to run. Each keeps up to DATABASE_POOL_MAX (3) database connections. */
   apiTasks: number
   mediaWorkerEnabled?: boolean
   whisperModelRevision?: string
@@ -105,6 +105,10 @@ export class AppStack extends Stack {
           REPLAY_ENABLED: String(props.replayEnabled ?? true),
           ZOOM_RECORDING_WEBHOOK_ENABLED: String(props.zoomWebhookEnabled ?? false),
           PAYMENT_RESERVATION_MINUTES: String(props.paymentReservationMinutes ?? 15),
+          NOTIFICATION_SWEEP_SECONDS: "15",
+          REALTIME_POLL_MS: "1000",
+          SESSION_REMINDER_MINUTES: "30",
+          ASSESSMENT_DUE_REMINDER_HOURS: "24",
           COMPLETION_SWEEP_SECONDS: "30",
           SCHEDULE_SWEEP_SECONDS: String(props.scheduleSweepSeconds ?? 60),
           PAYMENT_SWEEP_SECONDS: String(props.paymentSweepSeconds ?? 30),

@@ -1,3 +1,4 @@
+import { enqueueReminders, outboxSweep, notificationRoutes } from "./reliability/notifications.js"
 import { placementModule } from "./placement/routes.js"
 import { placementSweep } from "./placement/service.js"
 import { assessmentModule } from "./assessments/routes.js"
@@ -19,6 +20,7 @@ import { startQuizSweep } from "./modules/student/quizzes.js"
 
 /** Route modules registered by the server (and by tests through buildApp). */
 export const modules: ((app: FastifyInstance, ctx: AppContext) => Promise<void>)[] = [
+  notificationRoutes,
   placementModule,
   assessmentModule,
   recordingModule,
@@ -47,6 +49,11 @@ export function startJobs(ctx: AppContext, log: FastifyBaseLogger): () => void {
   if(ctx.config.COMPLETION_SWEEP_SECONDS) {
     let running=false
     const timer=setInterval(async()=>{if(running)return;running=true;try{await completionSweep(ctx.db);await placementSweep(ctx.db)}catch{log.error("Completion check failed; will retry")}finally{running=false}},ctx.config.COMPLETION_SWEEP_SECONDS*1000)
+    timer.unref();stops.push(()=>clearInterval(timer))
+  }
+  if(ctx.config.NOTIFICATION_SWEEP_SECONDS) {
+    let running=false
+    const timer=setInterval(async()=>{if(running)return;running=true;try{await enqueueReminders(ctx);await outboxSweep(ctx)}catch{log.error("Notification delivery failed; will retry")}finally{running=false}},ctx.config.NOTIFICATION_SWEEP_SECONDS*1000)
     timer.unref();stops.push(()=>clearInterval(timer))
   }
   return () => stops.forEach((stop) => stop())

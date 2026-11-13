@@ -27,6 +27,7 @@ export default function RbacView({ store, onToast }: RbacViewProps) {
 
   return (
     <div className="space-y-6">
+      {store.error&&<p role="alert" className="text-destructive">{store.error}</p>}
       {/* Page Header */}
       <PageHeader
         title="Role-Based Access Control (RBAC)"

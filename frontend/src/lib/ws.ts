@@ -24,6 +24,7 @@ class WebSocketClient {
   private reconnectTimeout: any = null
   private heartbeatInterval: any = null
   private retryCount = 0
+  private seenEvents = new Set<string>()
 
   constructor() {
     // Connect lazily on first channel subscription instead of immediately on module import
@@ -95,6 +96,9 @@ class WebSocketClient {
         try {
           const msg = JSON.parse(event.data)
           if (msg.channel && msg.event) {
+            if (msg.event_id && this.seenEvents.has(msg.event_id)) return
+            if (msg.event_id) this.seenEvents.add(msg.event_id)
+            if (this.seenEvents.size > 2000) this.seenEvents.delete(this.seenEvents.values().next().value!)
             const subs = this.listeners.get(msg.channel)
             if (subs) {
               for (const listener of subs) {
@@ -230,4 +234,3 @@ export function useWsStatus() {
 
   return status
 }
-

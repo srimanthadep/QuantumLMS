@@ -8,16 +8,7 @@ import { badRequest, notFound } from "../../errors.js"
 import { me, parse } from "../../http.js"
 import { notify } from "./notify.js"
 import { ownObject } from "./shared.js"
-import { broadcastToChannel } from "../../ws.js"
-
-/** Live-chat replies from Learner Success (keyword routing, as before). */
-export function agentReply(text: string): string {
-  if (/(gpu|cluster|quota)/i.test(text)) return "For GPU quota, I can raise a priority request with DevOps. Could you share your namespace and the hours you need?"
-  if (/(attend|leave|absent)/i.test(text)) return "You can request leave from Schedule → Attendance. If it's medical, attach the slip and Academic Affairs will mark it excused."
-  if (/(assign|submit|deadline)/i.test(text)) return "Submissions can be updated until the deadline from the Assessments page. Want me to check an extension for you?"
-  if (/(certificate|transcript)/i.test(text)) return "Certificates and the PDF transcript are under Grades & Certificates. Each has a verification link you can share."
-  return "Thanks! I'm looking into it now. Could you share a little more detail so I can route this to the right team?"
-}
+import { publishRealtime } from "../../reliability/realtime.js"
 
 async function ownTicket(tx: Tx, studentId: string, id: string) {
   const r = await tx.execute(sql`select * from lms.support_tickets where id = ${id} and student_id = ${studentId}::uuid for update`)
@@ -126,27 +117,14 @@ export async function supportRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post("/api/student/support/chat", async (req) => {
     const s = me(req)
     const { body } = parse(z.object({ body: z.string().trim().min(1, "Write a message of up to 2,000 characters.").max(2000, "Write a message of up to 2,000 characters.") }), req.body)
-    const rows = await db
-      .insert(support_chat_messages)
-      .values([
-        { student_id: s.id, sender: "student", body },
-        { student_id: s.id, sender: "agent", body: agentReply(body) },
-      ])
-      .returning()
-
-    broadcastToChannel(`chat:${s.id}`, "message", {
-      id: String(rows[0].id),
-      text: rows[0].body,
-      sender: "student",
-      senderName: s.full_name,
-    })
-    broadcastToChannel(`chat:${s.id}`, "message", {
-      id: String(rows[1].id),
-      text: rows[1].body,
-      sender: "agent",
-      senderName: "Learner Success",
-    })
+    return db.transaction(async tx=>{
+    const rows=await tx.insert(support_chat_messages).values([
+      {student_id:s.id,sender:"student",body},
+      {student_id:s.id,sender:"agent",body:"Automated acknowledgement: your message is saved. For a staff response, open a support ticket."},
+    ]).returning()
+    for(const row of rows)await publishRealtime(tx,`chat:${s.id}`,"message",{id:String(row.id),text:row.body,sender:row.sender,senderName:row.sender==="student"?s.full_name:"Automated acknowledgement"})
 
     return rows
+    })
   })
 }
