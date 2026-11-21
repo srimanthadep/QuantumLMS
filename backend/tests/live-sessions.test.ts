@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto"
 import { after, before, test } from "node:test"
 import { and, eq, sql } from "drizzle-orm"
 import { createHarness, type TestHarness, type TestUser } from "./helpers.js"
-import { batch_teachers, cohort_batches, courses, live_sessions, notifications, schedule_exceptions, schedule_rules, schedule_rule_versions, session_attendance } from "../src/db/schema.js"
+import { batch_teachers, cohort_batches, course_offers, courses, live_sessions, notifications, schedule_exceptions, schedule_rules, schedule_rule_versions, session_attendance } from "../src/db/schema.js"
 import { admit } from "../src/learning/admission.js"
 import { grantAccess } from "../src/learning/entitlements.js"
 import { localInstant, occurrences } from "../src/live/calendar.js"
@@ -18,7 +18,9 @@ before(async () => {
   h = await createHarness(); admin = await h.user({ groups: ["admins"] }); teacher = await h.user({ groups: ["teachers"] }); outsider = await h.user({ groups: ["teachers"] }); student = await h.user(); otherStudent = await h.user()
   teacherId = (await teacher.call("GET", "/api/me")).body.id; studentId = (await student.call("GET", "/api/me")).body.id; otherId = (await otherStudent.call("GET", "/api/me")).body.id
   await h.ctx.db.insert(courses).values({ id: course, code: "LIVE-TEST", title: "Live testing", category: "AI", instructor: "Teacher", level: "Beginner" })
-  await h.ctx.db.insert(cohort_batches).values({ id: batch, name: "Live test batch", course_id: course, instructor: "Teacher", start_date: "2030-01-01", end_date: "2030-06-30", max_seats: 250, minimum_paid_registrations: 1, starts_at: new Date("2030-01-01T00:00:00Z"), ends_at: new Date("2030-07-01T00:00:00Z") })
+  // A paid batch carries its own live offer, which is what makes the paid-registration threshold apply.
+  await h.ctx.db.insert(course_offers).values({ id: "live-test-offer", course_id: null, mode: "live", title: "Live test batch", price: 100, status: "Published" })
+  await h.ctx.db.insert(cohort_batches).values({ id: batch, name: "Live test batch", course_id: course, offer_id: "live-test-offer", instructor: "Teacher", start_date: "2030-01-01", end_date: "2030-06-30", max_seats: 250, minimum_paid_registrations: 1, starts_at: new Date("2030-01-01T00:00:00Z"), ends_at: new Date("2030-07-01T00:00:00Z") })
   await h.ctx.db.insert(batch_teachers).values({ batch_id: batch, teacher_id: teacherId })
   await h.ctx.db.transaction(tx => admit(tx, { batchId: batch, student: studentId }))
   await h.ctx.db.transaction(tx => grantAccess(tx, { course, student: otherId, sourceType: "manual", sourceId: "course-only" }))

@@ -127,7 +127,6 @@ export class AppStack extends Stack {
           S3_BUCKET: uploads.bucketName,
           S3_REGION: this.region,
           DEMO_MODE: String(props.demoMode),
-          DEV_FAKE_LOGIN: "false",
           CAMPUS_TZ: props.campusTz,
         },
         secrets: { DATABASE_URL: ecs.Secret.fromSecretsManager(databaseUrl), ...(zoomSecret ? { ZOOM_RECORDING_WEBHOOK_SECRET: ecs.Secret.fromSecretsManager(zoomSecret) } : {}), ...(paymentSecret ? {

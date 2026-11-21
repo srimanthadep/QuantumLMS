@@ -13,8 +13,9 @@ export async function transitionBatch(tx: Tx, actor: AuthUser, batchId: string, 
   if (batch.lifecycle === next) return batch
   if (!transitions[batch.lifecycle]?.includes(next)) throw conflict(`Cannot change ${batch.lifecycle} to ${next}`)
   if (next === "Recruiting") {
-    const offers = await tx.execute(sql`select id from lms.course_offers where id = ${batch.offer_id} and course_id = ${batch.course_id} and mode = 'live' and status = 'Published'`)
-    if (!offers.rows.length || !batch.starts_at || !batch.ends_at || !batch.registration_deadline) throw conflict("Publish a live offer and configure batch dates and the registration deadline first")
+    // A free batch has no offer at all: the team admits learners directly. A priced batch needs its offer published.
+    const offers = batch.offer_id ? await tx.execute(sql`select id from lms.course_offers where id = ${batch.offer_id} and mode = 'live' and status = 'Published'`) : { rows: [{}] }
+    if (!offers.rows.length || !batch.starts_at || !batch.ends_at || !batch.registration_deadline) throw conflict("Set the batch dates and the registration deadline first, and publish the price if the batch is paid")
   }
   if (["Ready", "Scheduled", "Running"].includes(next)) {
     const prerequisites = await tx.execute(sql`select
@@ -22,7 +23,8 @@ export async function transitionBatch(tx: Tx, actor: AuthUser, batchId: string, 
       (select count(*) from lms.batch_teachers bt join lms.users u on u.id = bt.teacher_id where bt.batch_id = ${batch.id} and u.disabled_at is null and u.role = 'Teacher') as teachers,
       (select count(*) from lms.live_sessions where batch_id = ${batch.id} and status <> 'Cancelled' and starts_at >= ${batch.starts_at} and ends_at <= ${batch.ends_at}) as sessions`)
     const row = prerequisites.rows[0]
-    const minimum = batch.minimum_paid_registrations ?? Math.ceil(batch.max_seats * 0.6)
+    // Free batches have nothing to pay, so only priced batches carry a paid-registration minimum.
+    const minimum = batch.offer_id ? batch.minimum_paid_registrations ?? Math.ceil(batch.max_seats * 0.6) : 0
     if (Number(row.paid) < minimum) throw conflict(`This batch needs ${minimum} confirmed paid registrations before it can proceed`)
     if (!Number(row.teachers) || !Number(row.sessions)) throw conflict("Assign a teacher and save a schedule before this transition")
     if (next === "Running" && batch.starts_at && new Date() < batch.starts_at) throw conflict("The batch start date has not arrived")
@@ -30,6 +32,7 @@ export async function transitionBatch(tx: Tx, actor: AuthUser, batchId: string, 
   if (next === "Completed" && (!batch.ends_at || new Date() < batch.ends_at)) throw conflict("A batch cannot complete before its configured end")
   const [row] = await tx.update(cohort_batches).set({ lifecycle: next, status: next === "Running" ? "Active" : next === "Completed" ? "Completed" : next === "Cancelled" ? "Archived" : "Upcoming", updated_at: new Date() }).where(eq(cohort_batches.id, batch.id)).returning()
   await tx.insert(audit_events).values({ id: randomUUID(), actor_id: actor.id, actor_role: actor.role, action: `batch.${next.toLowerCase()}`, target: batch.id, outcome: "success" })
-  if(next === "Completed") await enqueueCourseCompletions(tx,batch.course_id)
+  // Only batches that still carry an older course link have course completions to evaluate.
+  if (next === "Completed" && batch.course_id) await enqueueCourseCompletions(tx, batch.course_id)
   return row
 }

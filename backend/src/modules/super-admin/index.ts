@@ -64,12 +64,29 @@ export async function superAdminModule(app: FastifyInstance, ctx: AppContext) {
       })
 
       scope.get("/audit", async () => {
+        const actionCategory = (action: string): "Auth" | "Course" | "Billing" | "RBAC" | "AI Engine" | "Security" => {
+          if (action.startsWith("auth.") || action.startsWith("session.")) return "Auth"
+          if (
+            action.startsWith("course.") ||
+            action.startsWith("batch.") ||
+            action.startsWith("recording.") ||
+            action.startsWith("assessment.") ||
+            action.startsWith("completion.") ||
+            action.startsWith("certificate.")
+          ) {
+            return "Course"
+          }
+          if (action.startsWith("payment.") || action.startsWith("refund.") || action.startsWith("order.")) return "Billing"
+          if (action.startsWith("teacher.") || action.startsWith("student.") || action.startsWith("user.") || action.startsWith("placement.")) return "RBAC"
+          if (action.startsWith("ai.")) return "AI Engine"
+          return "Security"
+        }
         const rows = await db.select({ event: audit_events, name: users.full_name, email: users.email })
           .from(audit_events).leftJoin(users, eq(users.id, audit_events.actor_id))
           .orderBy(desc(audit_events.created_at)).limit(200)
         const logs = rows.map(({ event, name, email }) => ({
           id: event.id, timestamp: event.created_at.toISOString(), actorName: name ?? (event.actor_id?"Deleted account":"System"),
-          actorRole: event.actor_role, actorEmail: email ?? "", action: event.action, category: "Admin",
+          actorRole: event.actor_role, actorEmail: email ?? "", action: event.action, category: actionCategory(event.action),
           target: event.target, ip: "", status: /^HTTP [45]/.test(event.outcome)?"Refused":"Success", details: event.outcome,
         }))
         return { logs }

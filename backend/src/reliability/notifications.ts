@@ -15,8 +15,7 @@ async function allowed(tx:Tx,ctx:AppContext,row:typeof notification_outbox.$infe
   if(row.preference&&[false,"false"].includes(prefs[row.preference] as boolean|string))return false
   const g=row.guard as Record<string,string>
   if(g.batch) {
-    const scope=await tx.execute(sql`select 1 from lms.batch_registrations br join lms.entitlement_grants eg on eg.student_id=br.student_id and eg.batch_id=br.batch_id
-      where br.student_id=${row.recipient_id}::uuid and br.batch_id=${g.batch} and br.state='confirmed' and eg.revoked_at is null and eg.starts_at<=now() and (eg.expires_at is null or eg.expires_at>now()) limit 1`)
+    const scope=await tx.execute(sql`select 1 from lms.batch_registrations br where br.student_id=${row.recipient_id}::uuid and br.batch_id=${g.batch} and br.state='confirmed' limit 1`)
     if(!scope.rows.length)return false
   }
   if(g.session) {
@@ -25,8 +24,8 @@ async function allowed(tx:Tx,ctx:AppContext,row:typeof notification_outbox.$infe
   }
   if(g.recording) {
     if(!ctx.config.REPLAY_ENABLED)return false
-    const replay=await tx.execute(sql`select 1 from lms.recordings r join lms.live_sessions s on s.id=r.session_id join lms.cohort_batches b on b.id=s.batch_id join lms.media_assets a on a.id=r.asset_id
-      where r.id=${g.recording} and r.version=${Number(g.version)} and r.status='Published' and a.state='ready' and b.replay_enabled and r.release_at<=now() and r.expires_at>now()`)
+    const replay=await tx.execute(sql`select 1 from lms.recordings r join lms.cohort_batches b on b.id=r.batch_id join lms.media_assets a on a.id=r.asset_id
+      where r.id=${g.recording} and r.version=${Number(g.version)} and r.status='Published' and a.state='ready' and (b.replay_enabled or r.session_id is null) and r.release_at<=now() and r.expires_at>now()`)
     if(!replay.rows.length)return false
   }
   if(g.assessment) {
@@ -63,7 +62,7 @@ export async function outboxSweep(ctx:AppContext,options:{limit?:number;beforeDe
   return count
 }
 export async function notifyCohort(tx:Tx,batch:string,title:string,message:string,options:DeliveryOptions={}) {
-  const rows=await tx.execute(sql`select distinct br.student_id from lms.batch_registrations br join lms.entitlement_grants g on g.student_id=br.student_id and g.batch_id=br.batch_id where br.batch_id=${batch} and br.state='confirmed' and g.revoked_at is null and g.starts_at<=now() and (g.expires_at is null or g.expires_at>now())`)
+  const rows=await tx.execute(sql`select distinct br.student_id from lms.batch_registrations br where br.batch_id=${batch} and br.state='confirmed'`)
   for(const row of rows.rows)await notify(tx,String(row.student_id),"class",title,message,"schedule","classes",{...options,guard:{batch,...options.guard}})
 }
 /** Polling also covers learners admitted after a release. Deterministic keys make repeated/overlapping sweeps harmless. */

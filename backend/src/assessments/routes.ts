@@ -11,8 +11,8 @@ import { checkEvaluators, createOffering, definitionInput, offeringInput, snapsh
 import { studentOfferings } from "./access.js"
 
 async function resolveContext(ctx:AppContext,key:string):Promise<LearningContext> {
-  if(key.startsWith("batch:")){const [b]=await ctx.db.select().from(cohort_batches).where(eq(cohort_batches.id,key.slice(6)));if(b)return {course_id:b.course_id,batch_id:b.id,offer_id:b.offer_id,context_key:key}}
-  if(key.startsWith("offer:")){const [o]=await ctx.db.select().from(course_offers).where(eq(course_offers.id,key.slice(6)));if(o&&o.mode==="self_paced")return {course_id:o.course_id,batch_id:null,offer_id:o.id,context_key:key}}
+  if(key.startsWith("batch:")){const [b]=await ctx.db.select().from(cohort_batches).where(eq(cohort_batches.id,key.slice(6)));if(b?.course_id)return {course_id:b.course_id,batch_id:b.id,offer_id:b.offer_id,context_key:key}}
+  if(key.startsWith("offer:")){const [o]=await ctx.db.select().from(course_offers).where(eq(course_offers.id,key.slice(6)));if(o?.course_id&&o.mode==="self_paced")return {course_id:o.course_id,batch_id:null,offer_id:o.id,context_key:key}}
   if(key.startsWith("legacy:")){const [c]=await ctx.db.select().from(courses).where(eq(courses.id,key.slice(7)));if(c)return {course_id:c.id,batch_id:null,offer_id:null,context_key:key}}
   throw notFound("Learning context not found")
 }

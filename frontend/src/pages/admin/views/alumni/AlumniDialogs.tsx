@@ -29,6 +29,63 @@ import {
 const LOCATION_SUGGESTIONS = ["Bangalore", "Hyderabad", "Pune", "Delhi / NCR", "Mumbai", "Chennai", "Luxembourg", "Remote"]
 const DEGREE_SUGGESTIONS = ["B.Tech / BE", "M.Tech / MS", "MCA / M.Sc", "B.Sc / BCA", "B.Com / BA / BBA", "MBA / PGDM"]
 
+function AutocompleteInput({
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+  required,
+}: {
+  value: string
+  onChange: (next: string) => void
+  suggestions: readonly string[]
+  placeholder?: string
+  required?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const filtered = suggestions.filter((s) => !value.trim() || s.toLowerCase().includes(value.trim().toLowerCase()))
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        placeholder={placeholder}
+        required={required}
+      />
+      {open && filtered.length > 0 && (
+        <ul
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-44 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-lg"
+        >
+          {filtered.map((item) => (
+            <li key={item}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={item.toLowerCase() === value.trim().toLowerCase()}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  onChange(item)
+                  setOpen(false)
+                }}
+                className="flex w-full items-center rounded-md px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-surface-2"
+              >
+                {item}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 const PLACEMENT_COLORS = [
   "#0F172A",
   "#1D4ED8",
@@ -248,25 +305,19 @@ export function AlumniProfileFormDialog({
             </FormField>
 
             <FormField label="Current Company" required>
-              <Input
+              <AutocompleteInput
                 value={currentCompany}
-                onChange={(e) => {
-                  const next = e.target.value
+                onChange={(next) => {
                   setCurrentCompany(next)
                   if (!companyLogo || KNOWN_COMPANY_LOGOS.some((l) => l.logo === companyLogo)) {
                     const matched = resolveCompanyLogo(next)
                     if (matched) setCompanyLogo(matched)
                   }
                 }}
+                suggestions={KNOWN_COMPANY_LOGOS.map((item) => item.name)}
                 placeholder="e.g. Uber, Flipkart, Razorpay"
-                list="alumni-company-suggestions"
                 required
               />
-              <datalist id="alumni-company-suggestions">
-                {KNOWN_COMPANY_LOGOS.map((item) => (
-                  <option key={item.name} value={item.name} />
-                ))}
-              </datalist>
             </FormField>
 
             <FormField label="Current Role" required>
@@ -295,33 +346,23 @@ export function AlumniProfileFormDialog({
             </FormField>
 
             <FormField label="Location" required>
-              <Input
+              <AutocompleteInput
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={setLocation}
+                suggestions={LOCATION_SUGGESTIONS}
                 placeholder="e.g. Bangalore"
-                list="alumni-location-suggestions"
                 required
               />
-              <datalist id="alumni-location-suggestions">
-                {LOCATION_SUGGESTIONS.map((loc) => (
-                  <option key={loc} value={loc} />
-                ))}
-              </datalist>
             </FormField>
 
             <FormField label="Academic Degree" required>
-              <Input
+              <AutocompleteInput
                 value={degree}
-                onChange={(e) => setDegree(e.target.value)}
+                onChange={setDegree}
+                suggestions={DEGREE_SUGGESTIONS}
                 placeholder="e.g. B.Tech / BE"
-                list="alumni-degree-suggestions"
                 required
               />
-              <datalist id="alumni-degree-suggestions">
-                {DEGREE_SUGGESTIONS.map((deg) => (
-                  <option key={deg} value={deg} />
-                ))}
-              </datalist>
             </FormField>
 
             <FormField label="Prior Role" hint="Before joining">
@@ -670,7 +711,7 @@ export function RecentPlacementFormDialog({
   const [role, setRole] = useState("")
   const [color, setColor] = useState(PLACEMENT_COLORS[0])
   const [src, setSrc] = useState("")
-  const [offsetY, setOffsetY] = useState(0)
+  const [offsetY, setOffsetY] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -683,14 +724,14 @@ export function RecentPlacementFormDialog({
       setRole(initialPlacement.role ?? "")
       setColor(initialPlacement.color ?? PLACEMENT_COLORS[0])
       setSrc(initialPlacement.src ?? "")
-      setOffsetY(initialPlacement.offsetY ?? 0)
+      setOffsetY(initialPlacement.offsetY ? String(initialPlacement.offsetY) : "")
     } else {
       setName("")
       setCompany("")
       setRole("")
       setColor(PLACEMENT_COLORS[0])
       setSrc("")
-      setOffsetY(0)
+      setOffsetY("")
     }
   }, [open, initialPlacement])
 
@@ -700,7 +741,7 @@ export function RecentPlacementFormDialog({
     if (!company.trim()) return setError("Company is required.")
     if (!isValidAssetOrUrl(src)) return setError("Photo URL must start with '/' or 'http(s)://'.")
 
-    const clampedOffset = Math.max(-250, Math.min(250, Math.round(Number(offsetY) || 0)))
+    const clampedOffset = offsetY.trim() === "" || offsetY.trim() === "-" ? 0 : Math.max(-250, Math.min(250, Math.round(Number(offsetY) || 0)))
     setError(null)
     setSaving(true)
     try {
@@ -803,11 +844,14 @@ export function RecentPlacementFormDialog({
 
             <FormField label="Vertical Offset (px)" hint="-250 to 250">
               <Input
-                type="number"
-                min={-250}
-                max={250}
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
                 value={offsetY}
-                onChange={(e) => setOffsetY(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (/^-?\d*$/.test(val)) setOffsetY(val.replace(/^(-?)0+(\d)/, "$1$2"))
+                }}
               />
             </FormField>
           </div>

@@ -114,6 +114,16 @@
   outline-offset: 2px;
 }
 
+/* Tabs live in a scrolling list, which clips an outside outline to its two side edges.
+   Draw the keyboard ring inside the tab instead, and never after a mouse click. */
+[role="tab"]:focus-visible {
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+[role="tab"][data-pointer]:focus-visible {
+  outline: none;
+}
+
 /* Skip link (rendered by the app shell). */
 .skip-link {
   position: fixed;

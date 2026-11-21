@@ -45,17 +45,32 @@ test("two simultaneous claims for the last seat cannot overbook, even with overr
   const registrations = await h.ctx.db.select().from(batch_registrations).where(eq(batch_registrations.batch_id, "race-batch"))
   assert.equal(registrations.length, 1)
 })
-test("generic enrollment rejects mismatched course and never grants waitlisted batch access", async () => {
+test("a batch place and course access are independent, and a waitlisted learner never holds a confirmed place", async () => {
   await batch("full-batch")
   await h.ctx.db.transaction(tx => admit(tx, { batchId: "full-batch", student: firstId }))
-  const mismatch = await admin.call("POST", "/api/admin/students/enrol", { student_id: secondId, course_id: "c-1", batch_id: "full-batch" })
-  assert.equal(mismatch.status, 400)
-  const waitlisted = await admin.call("POST", "/api/admin/students/enrol", { student_id: secondId, course_id: courseId, batch_id: "full-batch" })
-  assert.equal(waitlisted.status, 200, JSON.stringify(waitlisted.body))
-  assert.equal(waitlisted.body.admission.waitlistedCount, 1)
+  // The course is only an optional label: enrolling into a batch and a different course in one step is valid and grants each separately.
+  const mixed = await admin.call("POST", "/api/admin/students/enrol", { student_id: secondId, course_id: "c-1", batch_id: "full-batch" })
+  assert.equal(mixed.status, 200, JSON.stringify(mixed.body))
+  assert.equal(mixed.body.admission.waitlistedCount, 1)
+  assert.ok(mixed.body.enrollment, "the course enrollment is granted on its own")
+  assert.equal(await hasEntitlement(h.ctx.db, secondId, "c-1"), true)
+  const [registration] = await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id, "full-batch"), eq(batch_registrations.student_id, secondId)))
+  assert.equal(registration.state, "waitlisted")
+  // A batch registration never creates a course grant, confirmed or not.
   assert.equal(await hasEntitlement(h.ctx.db, secondId, courseId, "full-batch"), false)
+  assert.equal((await admin.call("POST", "/api/admin/students/enrol", { student_id: secondId })).status, 400, "a course or a batch is required")
   const promote = await admin.call("PATCH", `/api/admin/batches/full-batch/students/${secondId}`, { status: "Active", allow_over_capacity: true })
   assert.equal(promote.status, 409)
+})
+test("confirming a batch place grants no course lesson access; cancelling never touches a course enrollment", async () => {
+  await batch("standalone-batch")
+  const before = await h.ctx.db.select().from(entitlement_grants).where(eq(entitlement_grants.student_id, secondId))
+  await h.ctx.db.transaction(tx => admit(tx, { batchId: "standalone-batch", student: secondId }))
+  const [confirmed] = await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id, "standalone-batch"), eq(batch_registrations.student_id, secondId)))
+  assert.equal(confirmed.state, "confirmed")
+  assert.equal((await h.ctx.db.select().from(entitlement_grants).where(eq(entitlement_grants.student_id, secondId))).length, before.length, "no grant was created by the registration")
+  await h.ctx.db.transaction(tx => cancelRegistration(tx, "standalone-batch", secondId))
+  assert.equal((await h.ctx.db.select().from(entitlement_grants).where(and(eq(entitlement_grants.student_id, secondId), sql`${entitlement_grants.revoked_at} is null`))).length, before.filter(g => !g.revoked_at).length)
 })
 test("revoking one registration preserves an independent source; reservations occupy seats and expire", async () => {
   await batch("source-batch")
@@ -85,16 +100,17 @@ test("batch cannot become Ready below the paid threshold or without a teacher an
   await h.ctx.db.insert(live_sessions).values({ id: randomUUID(), batch_id: "launch-batch", teacher_id: teacherId, occurrence_key: "fixture-session", title: "First session", starts_at: starts, ends_at: new Date(starts.getTime() + 3600_000) })
   assert.equal((await admin.call("POST", "/api/admin/batches/launch-batch/transition", { state: "Ready" })).status, 200)
 })
-test("transfer and waitlist demotion revoke only the affected batch source", async () => {
+test("transfer and waitlist demotion move only the batch registration", async () => {
   await batch("transfer-from"); await batch("transfer-to")
+  const stateOf = async (batchId: string) => (await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id, batchId), eq(batch_registrations.student_id, firstId))))[0]?.state
   await h.ctx.db.transaction(tx => admit(tx, { batchId: "transfer-from", student: firstId }))
   const transfer = await admin.call("PATCH", `/api/admin/batches/transfer-from/students/${firstId}`, { target_batch_id: "transfer-to" })
   assert.equal(transfer.status, 200, JSON.stringify(transfer.body))
-  assert.equal(await hasEntitlement(h.ctx.db, firstId, courseId, "transfer-from"), false)
-  assert.equal(await hasEntitlement(h.ctx.db, firstId, courseId, "transfer-to"), true)
+  assert.equal(await stateOf("transfer-from"), "cancelled")
+  assert.equal(await stateOf("transfer-to"), "confirmed")
   assert.equal((await admin.call("PATCH", `/api/admin/batches/transfer-to/students/${firstId}`, { status: "Waitlisted" })).status, 200)
-  assert.equal(await hasEntitlement(h.ctx.db, firstId, courseId, "transfer-to"), false)
-  assert.equal(await hasEntitlement(h.ctx.db, firstId, courseId), true, "the independent legacy/manual source survives")
+  assert.equal(await stateOf("transfer-to"), "waitlisted")
+  assert.equal(await hasEntitlement(h.ctx.db, firstId, courseId), true, "the independent legacy/manual course source survives")
 })
 test("free self-paced enrollment enforces offer mode, publication and capacity", async () => {
   await h.ctx.db.insert(courses).values({ id: "free-seat-course", code: "FREE-SEAT", title: "Free course", category: "AI", instructor: "Teacher", level: "Beginner", status: "Published", capacity: 1, price: 0 })

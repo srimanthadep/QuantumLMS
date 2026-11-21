@@ -1,5 +1,3 @@
-import { z } from "zod"
-import { assertLocalLogin, devLoginEnabled, issueDevSession } from "./auth/dev-sessions.js"
 import Fastify, { type FastifyInstance } from "fastify"
 import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
@@ -10,9 +8,9 @@ import { gzipSync } from "node:zlib"
 import { eq, sql } from "drizzle-orm"
 import type { AppContext } from "./context.js"
 import { invalidateUserCache } from "./auth/users.js"
-import { audit_events, courses, users, ROLES } from "./db/schema.js"
+import { audit_events, users } from "./db/schema.js"
 import { AppError, forbidden, fromPgError } from "./errors.js"
-import { authenticate, me, parse } from "./http.js"
+import { authenticate, me } from "./http.js"
 import { fileRoutes } from "./routes/files.js"
 import { wsRoutes } from "./ws.js"
 
@@ -110,23 +108,15 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
     return { ok: true, time: new Date().toISOString() }
   })
 
+  // The course catalog sells one self-paced offer per course: free (price 0) to gain learners, or paid to convert them.
+  // Live batches are a separate product and are listed by /api/catalog/batches.
   app.get("/api/catalog/courses", async () => ({ courses: (await ctx.db.execute(sql`select c.id,c.code,c.title,c.category,c.image,c.description,c.instructor,c.instructor_role,c.level,c.credits,c.duration,c.rating,c.reviews,c.progress_color,
-    (select min(price) from lms.course_offers o where o.course_id=c.id and o.status='Published') as price,
+    o.id as offer_id,o.price,o.currency,(o.price=0) as is_free,
     (select count(*)::int from lms.course_modules m where m.course_id=c.id and m.archived_at is null) as modules_count,
     (select count(*)::int from lms.lessons l where l.course_id=c.id and l.archived_at is null) as lessons_count
-    from lms.courses c where c.status='Published' and c.deleted_at is null
-    and exists(select 1 from lms.course_offers o where o.course_id=c.id and o.status='Published') order by c.position,c.title`)).rows }))
+    from lms.courses c join lateral (select x.id,x.price,x.currency from lms.course_offers x where x.course_id=c.id and x.mode='self_paced' and x.status='Published' order by x.created_at,x.id limit 1) o on true
+    where c.status='Published' and c.deleted_at is null order by c.position,c.title`)).rows }))
 
-
-  if (devLoginEnabled(ctx.config)) app.post("/api/auth/fake-login", async (req, reply) => {
-    assertLocalLogin(req)
-    const body = parse(z.object({ email: z.string().email().max(254), role: z.enum(ROLES), name: z.string().trim().max(120).optional() }), req.body)
-    const { token, claims } = issueDevSession(body.email.trim().toLowerCase(), body.role, body.name)
-    const user = await ctx.resolveUser(claims)
-    reply.header("Cache-Control", "private, no-store")
-    await ctx.db.insert(audit_events).values({ actor_id: user.id, actor_role: user.role, action: "auth.development-login", target: user.id, outcome: "local-only" })
-    return { token, user: { id: user.id, email: user.email, full_name: user.full_name, avatar_url: user.avatar_url, role: user.role, is_demo: user.is_demo } }
-  })
 
   app.get("/api/me", { preHandler: authenticate(ctx) }, async (req) => {
     const u = me(req)

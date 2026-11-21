@@ -6,7 +6,7 @@ import { createHarness, type TestHarness, type TestUser } from "./helpers.js"
 import { admit } from "../src/learning/admission.js"
 import { grantAccess } from "../src/learning/entitlements.js"
 import { completionSweep } from "../src/completion/service.js"
-import { assignment_submissions, certificates, cohort_batches, completion_checks, completion_credentials, completions, course_offers, entitlement_grants, live_sessions, quiz_questions, session_attendance } from "../src/db/schema.js"
+import { assignment_submissions, batch_registrations, certificates, cohort_batches, completion_checks, completion_credentials, completions, course_offers, entitlement_grants, live_sessions, quiz_questions, session_attendance } from "../src/db/schema.js"
 
 let h:TestHarness,admin:TestUser,student:TestUser,other:TestUser,evaluator:TestUser,outsider:TestUser,studentId:string,otherId:string,evaluatorId:string,course:string,lesson:string,definition:string,quiz:string,assignment:string,assignmentDefinition:string,credential:string,credentialId:string
 const batch="assessment-batch",otherBatch="assessment-other-batch",offer="assessment-self",liveOffer="assessment-live",future=()=>new Date(Date.now()+86400000).toISOString()
@@ -20,6 +20,8 @@ before(async()=>{
   await h.ctx.db.insert(course_offers).values([{id:offer,course_id:course,title:"Self paced",mode:"self_paced",status:"Published"},{id:liveOffer,course_id:course,title:"Live",mode:"live",status:"Published"}])
   for(const id of [batch,otherBatch])await h.ctx.db.insert(cohort_batches).values({id,course_id:course,offer_id:liveOffer,name:id,instructor:"Teacher",start_date:"2026-01-01",end_date:"2030-01-01",starts_at:new Date(Date.now()-86400000),ends_at:new Date(Date.now()+86400000),lifecycle:"Running",allow_late_join:true})
   await h.ctx.db.transaction(tx=>admit(tx,{batchId:batch,student:studentId}));await h.ctx.db.transaction(tx=>admit(tx,{batchId:otherBatch,student:otherId}))
+  // New registrations no longer unlock course lessons. These grants reproduce access that older releases created for a batch, which stays valid.
+  for(const [batchId,student] of [[batch,studentId],[otherBatch,otherId]]){const [registration]=await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id,batchId),eq(batch_registrations.student_id,student)));await h.ctx.db.transaction(tx=>grantAccess(tx,{student,course,offer:liveOffer,batch:batchId,sourceType:"batch_registration",sourceId:registration.id}))}
 })
 after(async()=>{try{await h.ctx.db.delete(session_attendance).where(eq(session_attendance.student_id,studentId))}finally{await h.close()}})
 async function draft(kind:"quiz"|"assignment",body:unknown){const r=await admin.call("POST","/api/admin/assessments/definitions",{course_id:course,kind,title:`Required ${kind}`,config:body});assert.equal(r.status,200,JSON.stringify(r.body));return r.body.definition}

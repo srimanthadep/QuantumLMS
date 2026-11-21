@@ -1,12 +1,14 @@
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from "vite"
+import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import path from "node:path"
+import localPasswordAccounts, { allowsSavedAccounts } from "./localPasswordAccounts"
 
 import siteConfiguration from "./.figma/make/site.json"
 
 // Vite config — https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command, isPreview }) => {
+  const savedAccountsEnabled = allowsSavedAccounts(command, Boolean(isPreview), loadEnv(mode, __dirname))
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
   const emitSourcemaps = mode === "development"
   // The browser calls /api on its own origin: here Vite forwards it to the API server (`npm run dev` in backend/);
@@ -25,6 +27,7 @@ export default defineConfig(({ mode }) => {
       minify: !emitSourcemaps,
     },
     plugins: [
+      localPasswordAccounts(savedAccountsEnabled, path.resolve(__dirname, "../backend/.data/local-role-accounts.json")),
       react(),
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
@@ -38,7 +41,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
+      host: savedAccountsEnabled ? "127.0.0.1" : process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
       strictPort: true,
       watch: {

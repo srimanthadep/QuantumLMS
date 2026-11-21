@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { BookOpen, CheckCircle2, Clock, Compass, GraduationCap, Layers, Search, Star, X } from "lucide-react"
+import { BookOpen, CheckCircle2, Clock, Compass, GraduationCap, Layers, Radio, Search, Star, X } from "lucide-react"
 import {
   Badge,
   Button,
@@ -30,6 +30,8 @@ import AnimatedNumber from "@/components/motion/AnimatedNumber"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import CourseCover from "@/components/shared/CourseCover"
 import CourseCard from "@/components/student/CourseCard"
+import type { EnrollmentTarget } from "@/components/student/EnrollmentDialog"
+import LiveBatchesTab from "./LiveBatchesTab"
 import type { CourseItem, StudentNavPage } from "./studentTypes"
 import { coverCategory } from "./studentUtils"
 
@@ -38,6 +40,9 @@ interface MyCoursesPageProps {
   onToast: (msg: string) => void
   onSelectCourse: (id: string) => void
   onEnrollCourse: (course: CourseItem) => void
+  onJoinBatch: (target: Extract<EnrollmentTarget, { kind: "batch" }>) => void
+  /** Bumps after a batch is joined so the list reloads. */
+  batchRefreshKey: number
   courses: CourseItem[]
   catalog: CourseItem[]
 }
@@ -60,8 +65,9 @@ function matches(c: CourseItem, q: string) {
   return [c.title, c.category, c.instructor, c.description].some((v) => v.toLowerCase().includes(s))
 }
 
-export default function MyCoursesPage({ onNavigate, onEnrollCourse, courses, catalog }: MyCoursesPageProps) {
-  const [tab, setTab] = useState<"enrolled" | "catalog">("enrolled")
+export default function MyCoursesPage({ onNavigate, onEnrollCourse, onJoinBatch, batchRefreshKey, courses, catalog }: MyCoursesPageProps) {
+  const [tab, setTab] = useState<"enrolled" | "catalog" | "batches">("enrolled")
+  const [batchCount, setBatchCount] = useState<number | null>(null)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("All")
   const [sort, setSort] = useState<SortKey>("recent")
@@ -148,6 +154,11 @@ export default function MyCoursesPage({ onNavigate, onEnrollCourse, courses, cat
                   Explore
                   <span className="tabular-nums text-subtle-foreground">{catalog.length}</span>
                 </TabsTrigger>
+                <TabsTrigger value="batches">
+                  <Radio className="h-4 w-4" aria-hidden="true" />
+                  Live batches
+                  {batchCount !== null && <span className="tabular-nums text-subtle-foreground">{batchCount}</span>}
+                </TabsTrigger>
               </TabsList>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -231,6 +242,10 @@ export default function MyCoursesPage({ onNavigate, onEnrollCourse, courses, cat
                 </motion.div>
               )}
             </TabsContent>
+
+            <TabsContent value="batches" className="mt-5">
+              <LiveBatchesTab query={query} refreshKey={batchRefreshKey} onJoin={onJoinBatch} onNavigate={onNavigate} onCount={setBatchCount} />
+            </TabsContent>
           </Tabs>
         </StaggerItem>
       </Stagger>
@@ -279,7 +294,7 @@ export default function MyCoursesPage({ onNavigate, onEnrollCourse, courses, cat
                         onEnrollCourse(c)
                       }}
                     >
-                      Enroll and start
+                      {preview.price ? `Buy for ₹${preview.price.toLocaleString("en-IN")}` : "Start for free"}
                     </Button>
                   </div>
                 </DialogFooter>

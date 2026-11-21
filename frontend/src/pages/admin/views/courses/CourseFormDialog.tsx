@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/dialog"
 import type { AdminCourse } from "@/data/adminStore"
 import { CATEGORIES, STATUSES } from "./courseTheme"
+import CoursePricingField from "./CoursePricingField"
 
 export interface CourseFormValues {
   title: string
   category: AdminCourse["category"]
   instructor: string
   price: number
-  capacity: number
+  /** null means unlimited. */
+  capacity: number | null
   status: AdminCourse["status"]
 }
 
@@ -37,8 +39,8 @@ const EMPTY: CourseFormValues = {
   title: "",
   category: "LLM Engineering",
   instructor: "",
-  price: 39999,
-  capacity: 300,
+  price: 0,
+  capacity: null,
   status: "Published",
 }
 
@@ -85,6 +87,14 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
       setError("Instructor name is required.")
       return
     }
+    if (values.price !== 0 && (!Number.isInteger(values.price) || values.price < 1)) {
+      setError("Enter a valid price above ₹0, or switch Access to Free.")
+      return
+    }
+    if (values.capacity !== null && (!Number.isInteger(values.capacity) || values.capacity < 1)) {
+      setError("Enter a learner cap of at least 1, or turn off Limit learners.")
+      return
+    }
     setError(null)
     setSaving(true)
     try {
@@ -96,6 +106,11 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
     }
   }
 
+  const instructorList = Array.from(new Set([...instructors, values.instructor].map((n) => n.trim()).filter(Boolean)))
+  const instructorOptions = instructorList.map((n) => ({
+    value: n,
+    label: mode === "edit" && !instructors.includes(n) ? `${n} (current)` : n,
+  }))
   const Icon = mode === "create" ? BookOpen : Pencil
 
   return (
@@ -132,25 +147,24 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
               <CustomSelect value={values.category} onChange={(v) => set("category", v)} options={[...CATEGORIES]} />
             </FormField>
             <FormField label="Lead instructor">
-              {mode === "create" ? (
-                <CustomSelect value={values.instructor} onChange={(v) => set("instructor", v)} options={instructors} />
+              {instructorOptions.length > 0 ? (
+                <CustomSelect
+                  value={values.instructor}
+                  onChange={(v) => set("instructor", v)}
+                  placeholder="Select lead instructor"
+                  options={instructorOptions}
+                />
               ) : (
-                <Input required value={values.instructor} onChange={(e) => set("instructor", e.target.value)} />
+                <Input required value={values.instructor} onChange={(e) => set("instructor", e.target.value)} placeholder="Instructor name" />
               )}
             </FormField>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <FormField label="Tuition fee (₹)">
-              <Input type="number" min={0} value={values.price} onChange={(e) => set("price", Number(e.target.value))} />
-            </FormField>
-            <FormField label="Seat capacity">
-              <Input type="number" min={1} value={values.capacity} onChange={(e) => set("capacity", Number(e.target.value))} />
-            </FormField>
-            <FormField label="Status">
-              <CustomSelect value={values.status} onChange={(v) => set("status", v as AdminCourse["status"])} options={STATUSES} />
-            </FormField>
-          </div>
+          <CoursePricingField price={values.price} capacity={values.capacity} onChange={(next) => setValues((v) => ({ ...v, ...next }))} />
+
+          <FormField label="Status">
+            <CustomSelect value={values.status} onChange={(v) => set("status", v as AdminCourse["status"])} options={STATUSES} />
+          </FormField>
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>

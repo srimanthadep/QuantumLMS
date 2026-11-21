@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import type { AdminBatch, AdminCourse } from "@/data/adminStore"
 import { cn } from "@/lib/utils"
+import BatchCreateDialog from "./BatchCreateDialog"
 import BatchFormFields, { createBatchFields } from "./BatchFormFields"
 import {
   type BatchEditableFields,
@@ -33,7 +34,15 @@ const STEPS = [
   { id: "schedule", label: "Schedule" },
   { id: "access", label: "Learner experience" },
 ] as const
-export default function BatchFormDialog({
+/** Create opens the guided dialog; edit keeps the compact form. */
+export default function BatchFormDialog(props: BatchFormDialogProps) {
+  if (props.mode === "create") {
+    return <BatchCreateDialog open={props.open} onOpenChange={props.onOpenChange} courses={props.courses} instructors={props.instructors} onSubmit={props.onSubmit} />
+  }
+  return <BatchEditDialog {...props} />
+}
+
+function BatchEditDialog({
   open,
   onOpenChange,
   mode,
@@ -54,22 +63,18 @@ export default function BatchFormDialog({
     () =>
       Array.from(
         new Set(
-          [...instructors, ...courses.map((c) => c.instructor)].filter(Boolean),
+          instructors.map((name) => name.trim()).filter(Boolean),
         ),
       ),
-    [courses, instructors],
+    [instructors],
   )
   useEffect(() => {
     if (!open) return
     setError(null)
     setStep(0)
-    setFields(
-      createBatchFields(
-        mode === "edit" ? batch : null,
-        courses,
-        instructorSuggestions[0] || "",
-      ),
-    )
+    const initialFields = createBatchFields(mode === "edit" ? batch : null, courses)
+    if (mode === "create" && !instructorSuggestions.includes(initialFields.instructor)) initialFields.instructor = ""
+    setFields(initialFields)
   }, [open, mode, batch?.id])
   useEffect(() => {
     if (!open || !creating) return
@@ -89,10 +94,8 @@ export default function BatchFormDialog({
     if (creating && step === 0) {
       if (fields.name.trim().length < 2)
         return setError("Give your batch a name of at least 2 characters.")
-      if (!courses.some((c) => c.id === fields.courseId))
-        return setError("Choose a course for this batch.")
       if (fields.instructor.trim().length < 2)
-        return setError("Add the lead instructor's name.")
+        return setError("Select a lead instructor.")
       moveToStep(1)
       return
     }
@@ -100,7 +103,7 @@ export default function BatchFormDialog({
       fields,
       courses,
     )
-    if (validationError || !selectedCourse) {
+    if (validationError) {
       setError(validationError ?? "Please check the batch details.")
       return
     }
@@ -202,11 +205,12 @@ export default function BatchFormDialog({
                   {fields.name}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {courses.find((c) => c.id === fields.courseId)?.title}
+                  {fields.price > 0 ? `₹${fields.price.toLocaleString("en-IN")} one-time` : "Free · joined by invitation"}
+                  {courses.find((c) => c.id === fields.courseId) ? ` · ${courses.find((c) => c.id === fields.courseId)?.title}` : ""}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {formatShortDateRange(fields.startDate, fields.endDate)} ·{" "}
-                  {fields.maxSeats} seats · {fields.status}
+                  {fields.maxSeats} seats
                 </p>
               </div>
             )}
@@ -248,7 +252,6 @@ export default function BatchFormDialog({
             <Button
               type="submit"
               loading={saving}
-              disabled={!courses.length}
               rightIcon={creating && step < 2 ? <ArrowRight /> : undefined}
             >
               {creating

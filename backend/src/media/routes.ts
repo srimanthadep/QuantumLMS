@@ -20,8 +20,8 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
   const getAsset = async (id: string, user: NonNullable<Parameters<typeof assertCourseAccess>[1]>) => {
     const asset = await ctx.db.query.media_assets.findFirst({ where: eq(media_assets.id, id) })
     if (!asset) throw notFound("Media asset not found")
-    if (asset.session_id) await authorizeRecordingAsset(ctx,user,asset.id)
-    else await assertCourseAccess(ctx.db, user, asset.course_id)
+    if (asset.session_id || asset.batch_id) await authorizeRecordingAsset(ctx,user,asset.id)
+    else await assertCourseAccess(ctx.db, user, asset.course_id!)
     return asset
   }
   app.get("/media", async req => {
@@ -76,16 +76,18 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
     const qualities = Object.fromEntries(variants.map(v => [v.quality, { url: `/api/files/videos/${v.key}`, height: v.height }]))
     const preferred = variants.find(v => v.quality === "720p") ?? variants[0]
     if (!preferred) throw badRequest("No playable variants exist")
+    const courseId = asset.course_id
+    if (!courseId) throw badRequest("Batch videos belong to their batch and cannot be attached to a course lesson")
     const lesson = await ctx.db.transaction(async tx => {
-      await lockCourse(tx, asset.course_id)
+      await lockCourse(tx, courseId)
       const [freshAsset] = await tx.select().from(media_assets).where(eq(media_assets.id,asset.id)).for("update")
       if (freshAsset.session_id) throw badRequest("Recordings cannot be attached to course lessons; use batch replay")
-      const [current] = await tx.select().from(lessons).where(and(eq(lessons.id, input.lessonId), eq(lessons.course_id, asset.course_id)))
+      const [current] = await tx.select().from(lessons).where(and(eq(lessons.id, input.lessonId), eq(lessons.course_id, courseId)))
       if (!current || current.archived_at || current.type !== "video") throw badRequest("Select an active video lesson in this asset's course")
       await snapshotLesson(tx, current, req.user!.id, "replace-media")
       const [row] = await tx.update(lessons).set({ media_asset_id: asset.id, video_url: `/api/files/videos/${preferred.key}`,
         video_qualities: qualities, minutes: Math.ceil((asset.duration_seconds ?? 0) / 60) }).where(eq(lessons.id, current.id)).returning()
-      await contentChanged(tx, asset.course_id, req.user!.id, "lesson.media-replaced")
+      await contentChanged(tx, courseId, req.user!.id, "lesson.media-replaced")
       return row
     })
     invalidateCatalogCache()

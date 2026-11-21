@@ -1,11 +1,12 @@
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { after, before, test } from "node:test"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { createHarness, type TestHarness, type TestUser } from "./helpers.js"
 import { admit } from "../src/learning/admission.js"
 import { placementSweep } from "../src/placement/service.js"
-import { certificates, cohort_batches, completion_events, course_offers, job_application_events, job_applications, placement_jobs, placement_memberships, placement_support_requests, placement_tracks } from "../src/db/schema.js"
+import { grantAccess } from "../src/learning/entitlements.js"
+import { batch_registrations, certificates, cohort_batches, completion_events, course_offers, job_application_events, job_applications, placement_jobs, placement_memberships, placement_support_requests, placement_tracks } from "../src/db/schema.js"
 
 let h:TestHarness,admin:TestUser,student:TestUser,other:TestUser,mentor:TestUser,outsider:TestUser,studentId:string,otherId:string,mentorId:string,course:string,lesson:string,memberId:string,trackId:string,jobId:string,applicationId:string,credentialId:string
 const batch="placement-cohort",offer="placement-live-offer",resumeData={name:"Placement Learner",email:"learner@example.test",skills:["TypeScript"],summary:"I build tested applications.",experience:[],projects:[],education:[]}
@@ -17,7 +18,10 @@ before(async()=>{
   lesson=(await admin.call("POST",`/api/admin/courses/${course}/lessons`,{moduleId:module,title:"Complete this reading",type:"reading",summary:"Content"})).body.lesson.id
   await h.ctx.db.insert(course_offers).values({id:offer,course_id:course,title:"Live cohort",mode:"live",status:"Published"})
   await h.ctx.db.insert(cohort_batches).values({id:batch,course_id:course,offer_id:offer,name:"Completed cohort",instructor:"Teacher",start_date:"2026-01-01",end_date:"2026-02-01",starts_at:new Date(Date.now()-86400000),ends_at:new Date(Date.now()-3600000)})
-  await h.ctx.db.transaction(tx=>admit(tx,{batchId:batch,student:studentId}));await h.ctx.db.update(cohort_batches).set({lifecycle:"Completed"}).where(eq(cohort_batches.id,batch))
+  await h.ctx.db.transaction(tx=>admit(tx,{batchId:batch,student:studentId}))
+  // Older releases gave a batch place course access; those grants stay valid, and completion is judged against them.
+  const [registration]=await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id,batch),eq(batch_registrations.student_id,studentId)))
+  await h.ctx.db.transaction(tx=>grantAccess(tx,{student:studentId,course,offer,batch,sourceType:"batch_registration",sourceId:registration.id}));await h.ctx.db.update(cohort_batches).set({lifecycle:"Completed"}).where(eq(cohort_batches.id,batch))
 })
 after(async()=>{try{await h.ctx.db.delete(placement_support_requests);await h.ctx.db.delete(job_application_events);await h.ctx.db.delete(job_applications);await h.ctx.db.delete(placement_jobs);await h.ctx.db.delete(placement_memberships);await h.ctx.db.delete(placement_tracks)}finally{await h.close()}})
 async function member(){const r=await admin.call("GET","/api/placement/memberships");return r.body.memberships.find((m:{id:string})=>m.id===memberId)}

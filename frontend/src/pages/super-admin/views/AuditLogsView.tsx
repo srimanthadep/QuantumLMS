@@ -45,7 +45,10 @@ export default function AuditLogsView({ store }: AuditLogsViewProps) {
     })
   }, [auditLogs, search, categoryFilter])
 
-  const categories = ["All", "Security", "Admin", "Billing", "System", "Data"]
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(auditLogs.map((log) => log.category).filter(Boolean)))],
+    [auditLogs],
+  )
 
   return (
     <div className="space-y-6">

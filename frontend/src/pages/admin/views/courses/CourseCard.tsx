@@ -1,12 +1,13 @@
 import { memo } from "react"
-import { Star, Users } from "lucide-react"
+import { ArrowRight, BookOpen, Tag, Users } from "lucide-react"
+import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { AdminCourse } from "@/data/adminStore"
 import CourseActionsMenu from "./CourseActionsMenu"
-import { compactINR, formatINR, seatPercent, STATUS_TONE, themeFor } from "./courseTheme"
+import { compactINR, formatINR, isFreeCourse, seatPercent, STATUS_TONE } from "./courseTheme"
 
 interface CourseCardProps {
   course: AdminCourse
@@ -16,12 +17,15 @@ interface CourseCardProps {
   onDelete: (course: AdminCourse) => void
 }
 
-/** Catalog card. The whole card opens the full-screen course workspace. */
+const CHIP =
+  "rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur-sm"
+
+/** Catalog tile, styled like the learner course card. The whole tile opens the course page. */
 function CourseCard({ course, onOpen, onEdit, onToggleStatus, onDelete }: CourseCardProps) {
-  const { gradient, icon: Icon } = themeFor(course.category)
   const pct = seatPercent(course)
-  const full = pct >= 100
-  const nearlyFull = pct >= 85
+  const seatTone = pct >= 100 ? "danger" : pct >= 85 ? "warning" : "primary"
+  const chapters = course.modulesCount ?? 0
+  const lessons = course.lessonsCount ?? 0
 
   return (
     <article
@@ -30,98 +34,100 @@ function CourseCard({ course, onOpen, onEdit, onToggleStatus, onDelete }: Course
       aria-label={`Open ${course.title}`}
       onClick={() => onOpen(course)}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
           onOpen(course)
         }
       }}
       className={cn(
-        "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xs",
-        "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary-border hover:shadow-md",
+        "group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--elev-xs)]",
+        "transition-[translate,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]",
         "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
-        course.status === "Archived" && "opacity-75",
       )}
     >
-      {/* Cover */}
-      <div className={cn("relative h-28 overflow-hidden bg-gradient-to-br", gradient)}>
-        <Icon
-          className="absolute -bottom-4 -right-3 h-28 w-28 rotate-[-8deg] text-white/20 transition-transform duration-300 group-hover:scale-110"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" aria-hidden="true" />
-        <div className="absolute left-3 top-3">
-          <Badge tone={STATUS_TONE[course.status]} dot className="bg-surface/90 backdrop-blur">
-            {course.status}
-          </Badge>
-        </div>
+      <CourseCover title={course.title} category={course.category} showTitle={false} className={cn("aspect-[16/8]", course.status === "Archived" && "grayscale-[60%]")}>
+        <span className={cn(CHIP, "absolute left-3 top-3 z-10 max-w-[65%] truncate")}>{course.category}</span>
         <CourseActionsMenu
+          appearance="overlay"
           course={course}
           onOpen={onOpen}
           onEdit={onEdit}
           onToggleStatus={onToggleStatus}
           onDelete={onDelete}
-          className="absolute right-2 top-2 rounded-lg bg-surface/90 backdrop-blur"
+          className="absolute right-2.5 top-2.5 z-10"
         />
-        <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">
-          {course.category}
-        </span>
-      </div>
+        <div className="absolute inset-x-3 bottom-3 z-10 flex items-end justify-between gap-2">
+          <Badge tone={STATUS_TONE[course.status]} dot className="bg-ink-950/75 text-white ring-1 ring-white/15 backdrop-blur-md">
+            {course.status}
+          </Badge>
+          <span className="rounded-md bg-ink-950/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-white ring-1 ring-white/15 backdrop-blur-md">
+            {course.price > 0 ? formatINR(course.price) : "Free"}
+          </span>
+        </div>
+      </CourseCover>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-2">
-          <h3 className="line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-5 text-foreground">{course.title}</h3>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Avatar src={course.instructorAvatar} name={course.instructor} size="xs" />
-            <span className="truncate font-medium text-foreground/80">{course.instructor}</span>
-            <span aria-hidden="true">·</span>
-            <span className="shrink-0">
-              {course.cohortCount} {course.cohortCount === 1 ? "cohort" : "cohorts"}
-            </span>
+      <div className="flex flex-1 flex-col gap-3.5 p-4">
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-5 text-foreground" title={course.title}>
+            {course.title}
+          </h3>
+          <div className="mt-1.5 flex min-w-0 items-center gap-2">
+            <Avatar src={course.instructorAvatar || undefined} name={course.instructor} size="xs" />
+            <p className="truncate text-caption text-muted-foreground">{course.instructor}</p>
           </div>
         </div>
 
-        {/* Seats */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Users className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="font-semibold tabular-nums text-foreground">{course.enrolledStudents}</span>
-              <span className="tabular-nums">/ {course.capacity} seats</span>
-            </span>
-            <span className={cn("font-semibold tabular-nums", full ? "text-danger" : nearlyFull ? "text-warning" : "text-muted-foreground")}>
-              {pct}%
-            </span>
-          </div>
-          <Progress value={pct} size="sm" tone={full ? "danger" : nearlyFull ? "warning" : "primary"} label={`${pct}% of seats filled`} />
-        </div>
-
-        {/* Metrics */}
-        <dl className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-3">
-          <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle-foreground">Price</dt>
-            <dd className="truncate text-sm font-semibold tabular-nums text-foreground" title={formatINR(course.price)}>
-              {compactINR(course.price)}
+        <dl className="grid grid-cols-3 divide-x divide-border rounded-md border border-border bg-surface-2/60 text-center">
+          <div className="px-2 py-2">
+            <dt className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <BookOpen className="h-3 w-3" aria-hidden="true" /> Lessons
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground" title={`${chapters} chapters, ${lessons} lessons`}>
+              {lessons}
+              <span className="ml-1 text-[11px] font-normal text-subtle-foreground">/ {chapters} ch</span>
             </dd>
           </div>
-          <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle-foreground">Revenue</dt>
-            <dd className="truncate text-sm font-semibold tabular-nums text-primary-text" title={formatINR(course.revenue)}>
-              {compactINR(course.revenue)}
-            </dd>
+          <div className="px-2 py-2">
+            <dt className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <Tag className="h-3 w-3" aria-hidden="true" /> Access
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold text-foreground">{isFreeCourse(course) ? "Free" : "Paid"}</dd>
           </div>
-          <div className="min-w-0">
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle-foreground">Rating</dt>
-            <dd className="flex items-center gap-1 text-sm font-semibold tabular-nums text-foreground">
-              <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
-              {course.rating}
-            </dd>
+          <div className="px-2 py-2">
+            <dt className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <Users className="h-3 w-3" aria-hidden="true" /> Learners
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{course.enrolledStudents.toLocaleString("en-IN")}</dd>
           </div>
         </dl>
+
+        {course.capacity ? (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between text-caption">
+              <span className="text-muted-foreground">
+                Learner cap <span className="tabular-nums">{course.enrolledStudents.toLocaleString("en-IN")} / {course.capacity.toLocaleString("en-IN")}</span>
+              </span>
+              <span className="font-semibold tabular-nums text-foreground">{pct}%</span>
+            </div>
+            <Progress value={pct} tone={seatTone} size="xs" label={`${course.title} learner cap`} />
+          </div>
+        ) : (
+          <p className="text-caption text-muted-foreground">Open to everyone · no learner cap</p>
+        )}
+
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3">
+          <p className="min-w-0 truncate text-caption text-subtle-foreground">
+            Net collected · <span className="font-medium tabular-nums text-foreground">{compactINR(course.revenue)}</span>
+          </p>
+          <span className="flex shrink-0 items-center gap-1 text-caption font-medium text-primary-text">
+            Manage
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+          </span>
+        </div>
       </div>
     </article>
   )
 }
 
 export default memo(CourseCard)
-

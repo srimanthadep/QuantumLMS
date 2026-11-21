@@ -4,7 +4,6 @@ import { unauthorized } from "../errors.js"
 
 /** What the API needs from a verified Cognito access token. */
 export interface TokenClaims {
-  developmentIdentity?: { email: string; name?: string }
   sub: string
   username: string
   groups: string[]

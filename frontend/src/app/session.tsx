@@ -2,7 +2,6 @@ import { resetPrivateSession } from "@/lib/sessionBoundary"
 import { clearAll } from "@/lib/resource"
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 import type { CurrentUser, UserRole } from "@/types"
-import { getDemoAccount } from "@/data/demoAccounts"
 
 /** Home route per role. */
 export const ROLE_HOME: Record<UserRole, string> = {
@@ -36,7 +35,7 @@ interface SessionValue {
   login: (user: LoginInput) => void
   /** Ends the session, including the student's Cognito sign-in on this device. */
   logout: () => void
-  /** Switch to another role's demo account. Returns that role's home path. */
+  /** Return to sign-in to authenticate a different account. */
   switchRole: (role: UserRole) => string
   /** Updates the signed-in user's display fields (the student portal syncs them from the backend profile). */
   updateUser: (patch: Partial<Omit<CurrentUser, "role">>) => void
@@ -64,11 +63,6 @@ function write(key: string, value: string) {
   }
 }
 
-function userFromAccount(role: UserRole): CurrentUser {
-  const acc = getDemoAccount(role)
-  return { id: `u-${role.toLowerCase().replace(/\s+/g, "-")}`, name: acc.name, role, email: acc.email, avatar: acc.avatar, title: acc.title }
-}
-
 function loadInitial(): { isAuthenticated: boolean; user: CurrentUser } {
   const isAuthenticated = read(KEY_AUTH) === "true"
   const savedRole = read(KEY_ROLE) as UserRole | null
@@ -80,7 +74,7 @@ function loadInitial(): { isAuthenticated: boolean; user: CurrentUser } {
   } catch {
     user = null
   }
-  if (!user || user.role !== role) user = userFromAccount(role)
+  if (!user || user.role !== role) return { isAuthenticated: false, user: { id: "", name: "", role, email: "" } }
   return { isAuthenticated, user }
 }
 
@@ -101,8 +95,8 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
       name: input.name,
       role: input.role,
       email: input.email,
-      avatar: input.avatar ?? getDemoAccount(input.role).avatar,
-      title: input.title ?? getDemoAccount(input.role).title,
+      avatar: input.avatar,
+      title: input.title,
     }
     persist(true, user)
     setState({ isAuthenticated: true, user })
@@ -122,17 +116,9 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const switchRole = useCallback((role: UserRole) => {
-    if (!import.meta.env.DEV) return "/auth"
-    resetPrivateSession()
-    clearAll()
-    setState((s) => {
-      if (s.user.role === role && s.isAuthenticated) return s
-      const user = userFromAccount(role)
-      persist(true, user)
-      return { isAuthenticated: true, user }
-    })
-    return ROLE_HOME[role]
-  }, [])
+    logout()
+    return `/auth?role=${encodeURIComponent(role)}`
+  }, [logout])
 
   const updateUser = useCallback((patch: Partial<Omit<CurrentUser, "role">>) => {
     setState((s) => {

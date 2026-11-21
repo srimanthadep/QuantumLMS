@@ -1,4 +1,5 @@
 import { admit, cancelRegistration, lockBatch, availableSeats } from "../../learning/admission.js"
+import { setBatchPrice } from "../../learning/batch-offer.js"
 import { batch_registrations, seat_reservations } from "../../db/schema.js"
 import { asc, eq, inArray, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -9,6 +10,7 @@ import {
   app_state,
   batch_students,
   cohort_batches,
+  course_offers,
   courses,
   enrollments,
   profiles,
@@ -17,7 +19,6 @@ import {
 } from "../../db/schema.js"
 import { badRequest, conflict, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
-import { openCertificates } from "../../db/seed/index.js"
 
 const BATCHES_INITIALIZED_KEY = "batches_initialized"
 
@@ -221,22 +222,6 @@ export async function seedBatchesDefaults(dbOrTx: Db | Tx, { force = false } = {
 
   await dbOrTx.insert(cohort_batches).values(rowsToInsert).onConflictDoNothing()
 
-  // Seed initial batch_students links from existing course enrollments on first bootstrap.
-  const [{ existingLinks }] = (
-    await dbOrTx.execute(sql`select count(*)::int as "existingLinks" from lms.batch_students`)
-  ).rows as { existingLinks: number }[]
-
-  if ((existingLinks ?? 0) === 0) {
-    await dbOrTx.execute(sql`
-      insert into lms.batch_students (batch_id, student_id, status)
-      select distinct on (cb.id, e.student_id) cb.id, e.student_id, 'Active'
-      from lms.cohort_batches cb
-      join lms.enrollments e on e.course_id = cb.course_id
-      order by cb.id, e.student_id, cb.position asc
-      on conflict do nothing
-    `)
-  }
-
   await dbOrTx
     .insert(app_state)
     .values({ key: BATCHES_INITIALIZED_KEY, value: true, updated_at: new Date() })
@@ -386,7 +371,6 @@ export async function addStudentsToBatchTx(tx: Tx, input: AddStudentsTxInput) {
     else {
       addedCount++
       await tx.update(profiles).set({ batch: batch.name, updated_at: new Date() }).where(eq(profiles.id, studentId))
-      await openCertificates(tx, studentId, [batch.course_id])
     }
   }
   return { addedCount, waitlistedCount, skippedCount }
@@ -401,7 +385,7 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
   if (filters?.q?.trim()) {
     const like = `%${filters.q.trim().toLowerCase()}%`
     whereClauses.push(
-      sql`(lower(cb.name) like ${like} or lower(cb.instructor) like ${like} or lower(c.title) like ${like})`,
+      sql`(lower(cb.name) like ${like} or lower(cb.instructor) like ${like} or lower(coalesce(c.title, '')) like ${like})`,
     )
   }
 
@@ -431,15 +415,17 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
       null::text as meeting_url,
       cb.features,
       cb.status, cb.lifecycle, cb.offer_id, cb.minimum_paid_registrations,
+      case when o.status = 'Published' then o.price else 0 end::int as price,
       cb.notes,
       cb.position,
       cb.created_at,
       cb.updated_at
     from lms.cohort_batches cb
-    join lms.courses c on c.id = cb.course_id
+    left join lms.courses c on c.id = cb.course_id
+    left join lms.course_offers o on o.id = cb.offer_id
     left join lms.batch_students bs on bs.batch_id = cb.id
     ${whereSql}
-    group by cb.id, c.code, c.title, c.category
+    group by cb.id, c.code, c.title, c.category, o.status, o.price
     order by cb.position asc, cb.created_at desc
   `)
 
@@ -447,7 +433,9 @@ async function queryBatches(db: Db, filters?: { courseId?: string; status?: stri
     id: String(row.id),
     name: String(row.name),
     lifecycle: row.lifecycle, offer_id: row.offer_id, minimum_paid_registrations: row.minimum_paid_registrations,
-    course_id: String(row.course_id),
+    // The course is only an optional topic label. A batch stands on its own price, seats, classes and videos.
+    course_id: row.course_id ? String(row.course_id) : null,
+    price: Number(row.price ?? 0),
     course_code: String(row.course_code ?? ""),
     course_title: String(row.course_title ?? ""),
     course_category: String(row.course_category ?? ""),
@@ -483,7 +471,8 @@ const dateField = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must use
 
 const createBatchSchema = z.object({
   name: z.string().trim().min(2, "Batch name must be at least 2 characters.").max(150),
-  course_id: z.string().trim().min(1, "Linked course is required."),
+  course_id: z.string().trim().min(1).nullable().optional(),
+  price: z.number().int().min(0).max(10_000_000).default(0),
   instructor: z.string().trim().min(2, "Lead instructor is required.").max(120).optional(),
   instructor_avatar: z.string().trim().max(300).optional(),
   start_date: dateField.optional(),
@@ -503,7 +492,8 @@ const createBatchSchema = z.object({
 
 const patchBatchSchema = z.object({
   name: z.string().trim().min(2, "Batch name must be at least 2 characters.").max(150).optional(),
-  course_id: z.string().trim().min(1).optional(),
+  course_id: z.string().trim().min(1).nullable().optional(),
+  price: z.number().int().min(0).max(10_000_000).optional(),
   instructor: z.string().trim().min(2).max(120).optional(),
   instructor_avatar: z.string().trim().max(300).optional(),
   start_date: dateField.optional(),
@@ -541,8 +531,8 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post("/batches", async (req, reply) => {
     const b = parse(createBatchSchema, req.body)
 
-    const [course] = await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1)
-    if (!course) throw notFound("Course not found.")
+    const [course] = b.course_id ? await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1) : []
+    if (b.course_id && !course) throw notFound("Course not found.")
 
     const startDate = b.start_date ?? defaultStartDate(7)
     const endDate = b.end_date ?? defaultEndDate(startDate, 90)
@@ -558,8 +548,8 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
       await tx.insert(cohort_batches).values({
         id: batchId,
         name: b.name,
-        course_id: course.id,
-        instructor: b.instructor || course.instructor || "Srimanth",
+        course_id: course?.id ?? null,
+        instructor: b.instructor || course?.instructor || "Srimanth",
         instructor_avatar: b.instructor_avatar ?? "",
         start_date: startDate,
         end_date: endDate,
@@ -575,6 +565,10 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         notes: b.notes,
         position: (minPos ?? 0) - 1,
       })
+      if (b.price > 0) {
+        const offerId = await setBatchPrice(tx, await lockBatch(tx, batchId), b.price)
+        await tx.update(cohort_batches).set({ offer_id: offerId }).where(eq(cohort_batches.id, batchId))
+      }
 
       if (b.student_ids?.length) {
         await addStudentsToBatchTx(tx, {
@@ -638,6 +632,12 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         notes: source.notes,
         position: source.position,
       })
+      // The copy gets its own offer at the same price; two batches never share one.
+      const [sourceOffer] = source.offer_id ? await tx.select().from(course_offers).where(eq(course_offers.id, source.offer_id)) : []
+      if (sourceOffer && sourceOffer.status === "Published" && sourceOffer.price > 0) {
+        const offerId = await setBatchPrice(tx, await lockBatch(tx, duplicateId), sourceOffer.price)
+        await tx.update(cohort_batches).set({ offer_id: offerId }).where(eq(cohort_batches.id, duplicateId))
+      }
 
       if (b.copy_students) {
         const existingStudents = await tx
@@ -667,7 +667,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
     const [existing] = await db.select().from(cohort_batches).where(eq(cohort_batches.id, req.params.id)).limit(1)
     if (!existing) throw notFound("Batch not found.")
 
-    if (b.course_id !== undefined && b.course_id !== existing.course_id) {
+    if (b.course_id && b.course_id !== existing.course_id) {
       const [c] = await db.select({ id: courses.id }).from(courses).where(eq(courses.id, b.course_id)).limit(1)
       if (!c) throw notFound("Course not found.")
     }
@@ -680,11 +680,16 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
       const locked = await lockBatch(tx, existing.id)
       const available = await availableSeats(tx, locked)
       if (b.max_seats !== undefined && (b.max_seats < locked.max_seats - available || b.max_seats < (locked.minimum_paid_registrations ?? 0))) throw conflict("Capacity cannot be below allocated seats or the configured minimum")
-      if (b.course_id && b.course_id !== locked.course_id) {
-        const history = await tx.select().from(batch_registrations).where(eq(batch_registrations.batch_id, locked.id)).limit(1)
-        if (history.length || locked.offer_id) throw conflict("A batch with an offer or registration history cannot change course")
-      }
       const updateSet: Record<string, unknown> = { updated_at: new Date() }
+      const currentPrice = locked.offer_id
+        ? (await tx.select({ price: course_offers.price, status: course_offers.status }).from(course_offers).where(eq(course_offers.id, locked.offer_id)))[0]
+        : undefined
+      const priceChanged = b.price !== undefined && b.price !== (currentPrice && currentPrice.status === "Published" ? currentPrice.price : 0)
+      if (b.price !== undefined && priceChanged) {
+        if (locked.lifecycle === "Running") throw conflict("The price of a running batch is locked")
+        if (["Completed", "Cancelled"].includes(locked.lifecycle)) throw conflict("This batch is closed")
+        updateSet.offer_id = await setBatchPrice(tx, locked, b.price)
+      }
       if (b.name !== undefined) updateSet.name = b.name
       if (b.course_id !== undefined) updateSet.course_id = b.course_id
       if (b.instructor !== undefined) updateSet.instructor = b.instructor
@@ -884,7 +889,10 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         for (const id of [batchId, b.target_batch_id!].sort()) await lockBatch(tx, id)
         const [sourceRegistration] = await tx.select().from(batch_registrations).where(sql`${batch_registrations.batch_id} = ${batchId} and ${batch_registrations.student_id} = ${studentId}::uuid`)
         const source = await lockBatch(tx, batchId), target = await lockBatch(tx, b.target_batch_id!)
-        if (sourceRegistration?.paid_at && source.course_id !== target.course_id) throw conflict("Refund the original offer before moving a paid registration to another course")
+        if (sourceRegistration?.paid_at) {
+          const priceOf = async (offerId: string | null) => offerId ? (await tx.select({ price: course_offers.price }).from(course_offers).where(eq(course_offers.id, offerId)))[0]?.price ?? 0 : 0
+          if (await priceOf(source.offer_id) !== await priceOf(target.offer_id)) throw conflict("Refund the original payment before moving a paid registration to a batch with a different price")
+        }
         const result = await admit(tx, { batchId: target.id, student: studentId, status: b.status ?? existing.status,
           notes: b.notes ?? existing.notes, orderId: sourceRegistration?.order_id ?? undefined, paidAt: sourceRegistration?.paid_at ?? undefined, source: sourceRegistration?.source_type })
         if (result.skipped) throw conflict("This student is already registered in the target batch")
@@ -901,11 +909,10 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
   })
 
   // 10. Remove a student from a batch
-  app.delete<{ Params: { id: string; studentId: string }; Querystring: { unenrol_course?: string } }>(
+  app.delete<{ Params: { id: string; studentId: string } }>(
     "/batches/:id/students/:studentId",
     async (req) => {
       const { id: batchId, studentId } = req.params
-      const unenrolCourse = req.query.unenrol_course === "true"
 
       const [batch] = await db.select().from(cohort_batches).where(eq(cohort_batches.id, batchId)).limit(1)
       if (!batch) throw notFound("Batch not found.")

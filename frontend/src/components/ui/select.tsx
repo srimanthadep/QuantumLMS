@@ -137,12 +137,18 @@ export interface SelectOption {
   disabled?: boolean
 }
 
+export interface SelectOptionGroup {
+  label: string
+  options: readonly (string | SelectOption)[]
+}
+
 export interface CustomSelectProps {
   value?: string
   defaultValue?: string
   onChange?: (value: string) => void
   onValueChange?: (value: string) => void
   options?: readonly (string | SelectOption)[]
+  groups?: readonly SelectOptionGroup[]
   placeholder?: string
   disabled?: boolean
   className?: string
@@ -155,6 +161,12 @@ export interface CustomSelectProps {
   children?: React.ReactNode
 }
 
+const EMPTY_OPTION_SENTINEL = "__quantum_empty_option__"
+
+function hasEmptyOptionIn(list?: readonly (string | SelectOption)[]): boolean {
+  return Boolean(list?.some((opt) => typeof opt !== "string" && opt.value === ""))
+}
+
 const CustomSelect = React.forwardRef<HTMLButtonElement, CustomSelectProps>(
   (
     {
@@ -163,6 +175,7 @@ const CustomSelect = React.forwardRef<HTMLButtonElement, CustomSelectProps>(
       onChange,
       onValueChange,
       options,
+      groups,
       placeholder = "Select an option...",
       disabled = false,
       className,
@@ -176,17 +189,43 @@ const CustomSelect = React.forwardRef<HTMLButtonElement, CustomSelectProps>(
     },
     ref
   ) => {
+    const hasEmptyOption = React.useMemo(
+      () => hasEmptyOptionIn(options) || Boolean(groups?.some((g) => hasEmptyOptionIn(g.options))),
+      [options, groups],
+    )
+
+    const encode = (v: string | undefined) => {
+      if (v === undefined) return undefined
+      if (v === "" && hasEmptyOption) return EMPTY_OPTION_SENTINEL
+      return v
+    }
+
+    const decode = (v: string) => (v === EMPTY_OPTION_SENTINEL ? "" : v)
+
     const handleChange = (val: string) => {
-      onChange?.(val)
-      onValueChange?.(val)
+      const next = decode(val)
+      onChange?.(next)
+      onValueChange?.(next)
+    }
+
+    const renderOption = (opt: string | SelectOption) => {
+      const rawVal = typeof opt === "string" ? opt : opt.value
+      const val = rawVal === "" ? EMPTY_OPTION_SENTINEL : rawVal
+      const label = typeof opt === "string" ? opt : opt.label
+      const optDisabled = typeof opt === "string" ? false : opt.disabled
+      return (
+        <SelectItem key={val} value={val} disabled={optDisabled}>
+          {label}
+        </SelectItem>
+      )
     }
 
     return (
       <div className={cn("relative inline-block w-full", className)}>
         {name && <input type="hidden" name={name} value={value || ""} required={required} disabled={disabled} />}
         <Select
-          value={value}
-          defaultValue={defaultValue}
+          value={encode(value)}
+          defaultValue={encode(defaultValue)}
           onValueChange={handleChange}
           disabled={disabled}
         >
@@ -200,17 +239,13 @@ const CustomSelect = React.forwardRef<HTMLButtonElement, CustomSelectProps>(
           </SelectTrigger>
           <SelectContent className={contentClassName}>
             {children}
-            {options?.map((opt) => {
-              const val = typeof opt === "string" ? opt : opt.value
-              const label = typeof opt === "string" ? opt : opt.label
-              const optDisabled = typeof opt === "string" ? false : opt.disabled
-
-              return (
-                <SelectItem key={val} value={val} disabled={optDisabled}>
-                  {label}
-                </SelectItem>
-              )
-            })}
+            {options?.map(renderOption)}
+            {groups?.map((group) => (
+              <SelectGroup key={group.label}>
+                <SelectLabel>{group.label}</SelectLabel>
+                {group.options.map(renderOption)}
+              </SelectGroup>
+            ))}
           </SelectContent>
         </Select>
       </div>

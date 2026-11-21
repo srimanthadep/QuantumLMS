@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import CognitoGate, { FullPageError } from "@/app/CognitoGate"
 import RouteFallback from "@/app/RouteFallback"
 import { useSession } from "@/app/session"
-import { DEMO_EVALUATOR } from "@/lib/api"
 import { mutate, prime, refresh, useResource } from "@/lib/resource"
 import { useChannel } from "@/lib/ws"
 import * as api from "./api"
@@ -153,7 +152,7 @@ export default function EvaluatorDataProvider({ children }: { children: ReactNod
     return p
   }, [])
   return (
-    <CognitoGate demo={DEMO_EVALUATOR} load={load} errorTitle="The evaluation desk can't connect">
+    <CognitoGate load={load} errorTitle="The evaluation desk can't connect">
       {(uid) => (
         <DataLoader key={uid} uid={uid}>
           {children}

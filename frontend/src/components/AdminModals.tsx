@@ -24,10 +24,12 @@ import {
 import type {
   AdminCourse,
   AdminBatch,
+  AdminTeacher,
   AdminOrder,
   SecurityAuditLog,
 } from "../data/adminStore"
 import BatchFormDialog, { type BatchFormValues } from "../pages/admin/views/batches/BatchFormDialog"
+import { batchInstructorNames } from "../pages/admin/views/batches/batchTheme"
 
 // 1. Add Teacher / Instructor Modal
 export function AddTeacherModal({ isOpen, onClose, onAdd, courses }: {
@@ -66,11 +68,13 @@ export function CreateBatchModal({
   onClose,
   onCreate,
   courses,
+  teachers,
 }: {
   isOpen: boolean
   onClose: () => void
   onCreate: (batch: BatchFormValues) => Promise<void> | void
   courses: AdminCourse[]
+  teachers: AdminTeacher[]
 }) {
   return (
     <BatchFormDialog
@@ -78,6 +82,7 @@ export function CreateBatchModal({
       onOpenChange={(open) => !open && onClose()}
       mode="create"
       courses={courses}
+      instructors={batchInstructorNames(teachers)}
       onSubmit={onCreate}
     />
   )
@@ -90,12 +95,15 @@ export function ManualEnrolModal({
   onEnrol,
   courses,
   batches,
+  initialCourseId = "",
 }: {
   isOpen: boolean
   onClose: () => void
   onEnrol: (data: { name: string; email: string; courseId: string; batchId: string }) => Promise<void> | void
   courses: AdminCourse[]
   batches: AdminBatch[]
+  /** Preselects a course, e.g. when opened from that course's Learners tab. */
+  initialCourseId?: string
 }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -103,30 +111,31 @@ export function ManualEnrolModal({
   const [batchId, setBatchId] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
+  const [formError, setFormError] = useState("")
+
   useEffect(() => {
     if (!isOpen) return
-    const initialCourseId = courses[0]?.id || ""
     setCourseId(initialCourseId)
-    const matching = batches.find((b) => b.courseId === initialCourseId) || batches[0]
-    setBatchId(matching?.id || "")
-  }, [isOpen, courses, batches])
-
-  const relevantBatches = batches.filter((b) => b.courseId === courseId)
+    setBatchId("")
+    setFormError("")
+  }, [isOpen, initialCourseId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !email.trim()) return
+    if (!courseId && !batchId) {
+      setFormError("Choose a course, a batch, or both.")
+      return
+    }
     setSubmitting(true)
+    setFormError("")
     try {
-      await onEnrol({
-        name: name.trim(),
-        email: email.trim(),
-        courseId: courseId || courses[0]?.id || "",
-        batchId: batchId || relevantBatches[0]?.id || batches[0]?.id || "",
-      })
+      await onEnrol({ name: name.trim(), email: email.trim(), courseId, batchId })
       setName("")
       setEmail("")
       onClose()
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not enrol this learner.")
     } finally {
       setSubmitting(false)
     }
@@ -142,7 +151,7 @@ export function ManualEnrolModal({
             </div>
             <div>
               <DialogTitle>Manual Learner Enrolment</DialogTitle>
-              <DialogDescription>Enrol a student directly into an active cohort batch</DialogDescription>
+              <DialogDescription>Give a learner access to a course, a live batch, or both</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -170,30 +179,33 @@ export function ManualEnrolModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Select Course</label>
+            <label className="text-xs font-semibold text-foreground">Course (self-paced lessons)</label>
             <CustomSelect
               value={courseId}
-              onChange={(val) => {
-                setCourseId(val)
-                const nextBatch = batches.find((b) => b.courseId === val)
-                if (nextBatch) setBatchId(nextBatch.id)
-              }}
-              options={courses.map((c) => ({ value: c.id, label: c.title }))}
+              onChange={setCourseId}
+              placeholder="No course"
+              options={[{ value: "", label: "No course" }, ...courses.map((c) => ({ value: c.id, label: c.title }))]}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Assigned Cohort Batch</label>
+            <label className="text-xs font-semibold text-foreground">Live batch (classes and recordings)</label>
             <CustomSelect
               value={batchId}
               onChange={setBatchId}
-              placeholder={relevantBatches.length > 0 ? "Select batch" : "No active batches for this course"}
-              options={relevantBatches.map((b) => ({
-                value: b.id,
-                label: `${b.name} (${b.enrolledSeats}/${b.maxSeats} seats)`,
-              }))}
+              placeholder="No batch"
+              options={[
+                { value: "", label: "No batch" },
+                ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.enrolledSeats}/${b.maxSeats} seats)` })),
+              ]}
             />
           </div>
+          <p className="text-[11px] text-subtle-foreground">Courses and batches are separate. Pick either one, or both.</p>
+          {formError && (
+            <p role="alert" className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-xs text-danger">
+              {formError}
+            </p>
+          )}
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose}>

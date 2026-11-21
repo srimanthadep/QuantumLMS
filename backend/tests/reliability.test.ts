@@ -3,13 +3,14 @@ import { buildApp } from "../src/app.js"
 import { users } from "../src/db/schema.js"
 import assert from "node:assert/strict"
 import { after,before,test } from "node:test"
-import { eq,sql } from "drizzle-orm"
+import { and,eq,sql } from "drizzle-orm"
 import { createHarness,type TestHarness,type TestUser } from "./helpers.js"
 import { notify } from "../src/modules/student/notify.js"
 import { enqueueReminders,outboxSweep } from "../src/reliability/notifications.js"
 import { createRealtimeConsumer,publishRealtime } from "../src/reliability/realtime.js"
-import { notification_outbox,notifications,profiles,cohort_batches,courses,live_sessions,assessment_definitions,assessment_offerings,course_offers,recordings,media_assets,quizzes } from "../src/db/schema.js"
+import { batch_registrations,notification_outbox,notifications,profiles,cohort_batches,courses,live_sessions,assessment_definitions,assessment_offerings,course_offers,recordings,media_assets,quizzes } from "../src/db/schema.js"
 import { admit } from "../src/learning/admission.js"
+import { grantAccess } from "../src/learning/entitlements.js"
 let h:TestHarness,student:TestUser,admin:TestUser,id:string
 before(async()=>{h=await createHarness();student=await h.user();admin=await h.user({groups:["admins"]});id=(await student.call("GET","/api/me")).body.id;await admin.call("GET","/api/me");await outboxSweep(h.ctx)})
 after(async()=>{await h.ctx.db.delete(recordings);await h.ctx.db.delete(media_assets);await h.close()})
@@ -51,6 +52,9 @@ test("reminders and threshold alerts persist once; cancelled sessions and unpubl
  await h.ctx.db.insert(course_offers).values({id:"notify-offer",course_id:course,title:"Live",mode:"live",status:"Published",price:0})
  await h.ctx.db.insert(cohort_batches).values({id:batch,course_id:course,offer_id:"notify-offer",name:"Cohort",instructor:"Teacher",start_date:"2026-01-01",end_date:"2030-01-01",starts_at:new Date(now-86400000),ends_at:new Date(now+86400000),registration_deadline:new Date(now+3600000),max_seats:250,minimum_paid_registrations:1,lifecycle:"Recruiting"})
  await h.ctx.db.transaction(tx=>admit(tx,{batchId:batch,student:id,paidAt:new Date()}))
+ // Batch-context assessments follow course access that older releases granted through a batch place; new registrations do not create it.
+ const [registration]=await h.ctx.db.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id,batch),eq(batch_registrations.student_id,id)))
+ await h.ctx.db.transaction(tx=>grantAccess(tx,{student:id,course,offer:"notify-offer",batch,sourceType:"batch_registration",sourceId:registration.id}))
  await h.ctx.db.insert(live_sessions).values({id:session,batch_id:batch,occurrence_key:session,title:"Upcoming class",starts_at:new Date(now+600000),ends_at:new Date(now+3600000)})
  const [def]=await h.ctx.db.insert(assessment_definitions).values({course_id:course,kind:"quiz",title:"Quiz"}).returning()
  await h.ctx.db.insert(quizzes).values({id:"notify-quiz",course_id:course,title:"Quiz",duration_minutes:30,passing_pct:40,due_at:new Date(now+3600000)})
@@ -62,7 +66,7 @@ test("reminders and threshold alerts persist once; cancelled sessions and unpubl
  assert.equal(notes.filter(n=>n.title==="Assessment released").length,1);assert.equal(notes.filter(n=>n.title==="Assessment due soon").length,1);assert.equal(notes.filter(n=>n.title==="Class starting soon").length,0)
  const staff=(await admin.call("GET","/api/notifications")).body as {title:string}[];assert.equal(staff.filter(n=>n.title==="Registration target reached").length,1)
  await h.ctx.db.insert(media_assets).values({id:"notify-asset",course_id:course,owner_id:id,session_id:session,source_key:"videos/notify.mp4",state:"ready"})
- await h.ctx.db.insert(recordings).values({id:"notify-replay",asset_id:"notify-asset",session_id:session,title:"Replay",release_at:new Date(now-1000),expires_at:new Date(now+3600000),status:"Draft"})
+ await h.ctx.db.insert(recordings).values({id:"notify-replay",asset_id:"notify-asset",session_id:session,batch_id:batch,title:"Replay",release_at:new Date(now-1000),expires_at:new Date(now+3600000),status:"Draft"})
  await notify(h.ctx.db,id,"class","Replay published","x",undefined,undefined,{key:"replay-suppressed",guard:{batch,recording:"notify-replay",version:1}});await outboxSweep(h.ctx)
  assert.equal((await h.ctx.db.select().from(notifications).where(eq(notifications.title,"Replay published"))).length,0)
  await h.ctx.db.update(recordings).set({status:"Published"}).where(eq(recordings.id,"notify-replay"));await notify(h.ctx.db,id,"class","Replay ready","x",undefined,undefined,{key:"replay-ready",guard:{batch,recording:"notify-replay",version:1}});await outboxSweep(h.ctx)

@@ -39,16 +39,20 @@ export function compactINR(n: number): string {
   return formatINR(n)
 }
 
+/** Learner-cap fill. Courses are uncapped by default, so this is 0 unless an admin set a limit. */
 export const seatPercent = (c: Pick<AdminCourse, "enrolledStudents" | "capacity">) =>
-  c.capacity > 0 ? Math.min(100, Math.round((c.enrolledStudents / c.capacity) * 100)) : 0
+  c.capacity && c.capacity > 0 ? Math.min(100, Math.round((c.enrolledStudents / c.capacity) * 100)) : 0
 
-export type SortKey = "default" | "enrollment" | "revenue" | "rating" | "price" | "title"
+/** A course with price 0 is free to enroll; anything above goes through checkout. */
+export const isFreeCourse = (c: Pick<AdminCourse, "price">) => c.price <= 0
+
+export type SortKey = "default" | "updated" | "enrollment" | "revenue" | "price" | "title"
 
 export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "default", label: "Default order" },
+  { value: "updated", label: "Recently updated" },
   { value: "enrollment", label: "Most enrolled" },
-  { value: "revenue", label: "Highest revenue" },
-  { value: "rating", label: "Top rated" },
+  { value: "revenue", label: "Highest net collected" },
   { value: "price", label: "Price: high to low" },
   { value: "title", label: "Title A–Z" },
 ]

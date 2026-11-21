@@ -65,7 +65,6 @@ const schema = z.object({
   CAMPUS_TZ: z.string().default("Asia/Kolkata"),
   /** Demo accounts, quick-launch sign-in and "Reset demo data". */
   DEMO_MODE: bool.default(false),
-  DEV_FAKE_LOGIN: bool.default(false),
   DEMO_STUDENT_EMAIL: z.string().email().default("niharika@lms.com"),
   DEMO_EVALUATOR_EMAIL: z.string().email().default("eval@lms.com"),
   DEMO_TEACHER_EMAIL: z.string().email().default("shanmuk@lms.com"),
@@ -99,7 +98,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (c.ZOOM_RECORDING_WEBHOOK_ENABLED && !c.ZOOM_RECORDING_WEBHOOK_SECRET) throw new Error("ZOOM_RECORDING_WEBHOOK_SECRET is required when enabled")
   if (c.RAZORPAY_KEY_ID && !c.RAZORPAY_KEY_ID.startsWith("rzp_test_")) throw new Error("Only Razorpay test-mode keys are supported.")
   if (Boolean(c.RAZORPAY_KEY_ID) !== Boolean(c.RAZORPAY_KEY_SECRET)) throw new Error("Set both Razorpay test key ID and secret.")
-  if (c.DEV_FAKE_LOGIN && (c.NODE_ENV !== "development" || !c.DEMO_MODE)) throw new Error("DEV_FAKE_LOGIN requires development and DEMO_MODE=true.")
   if (c.NODE_ENV === "production" && c.DEMO_MODE) throw new Error("DEMO_MODE is forbidden in production.")
   if (c.NODE_ENV === "production" && c.DATABASE_SSL !== "verify") throw new Error("Production requires certificate-verifying database TLS.")
   if (c.STORAGE_DRIVER === "s3" && !c.S3_BUCKET) throw new Error("Invalid configuration:\n  S3_BUCKET is required with STORAGE_DRIVER=s3")

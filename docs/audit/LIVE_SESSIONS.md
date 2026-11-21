@@ -17,14 +17,12 @@ Attendance records store first/last join click and click count, unique per stude
 
 Legacy weekday-only timetable rows lack actual dates and exact batch identity. They are retained but no longer delivered as live classes; an assigned teacher/admin must create and preview a dated rule. No six-month recurrence, teacher identity, or paid registration history was guessed. own_stream is an unavailable server provider and is hidden in scheduling controls.
 
-## Development login hardening
+## Local password accounts
 
-The user-added unsigned fake-token email/role format was rejected because it bypassed the strict auth boundary. The /fake-login, /dev/login and /fake screens are retained in development builds only. Local login now calls POST /api/auth/fake-login and uses a random server-issued session, valid for four hours or until API restart. Browser storage is session-scoped; production builds do not use it. Profile-load failure never opens the portal.
+Fake-login pages, passwordless development sessions, and implicit demo-account sign-ins have been removed. Every role uses Cognito password authentication and API-verified group membership. Visiting another role's URL does not change the signed-in account.
 
-Enable locally with NODE_ENV=development, DEMO_MODE=true and DEV_FAKE_LOGIN=true. DEV_FAKE_LOGIN defaults false and production configuration refuses it. The current git-ignored local backend .env was updated to opt in at the user's request; AWS explicitly sets it false. The issuing endpoint checks the actual loopback socket, Host and browser Origin. User-entered tokens are rejected. Real accounts cannot be replaced, existing demo account roles cannot be changed, disabled accounts stay disabled, and configured demo accounts keep their Cognito association. Custom demo accounts must use separate email addresses per role. Normal Cognito authentication remains available.
+Run `npm --prefix backend run cognito:accounts:local` with the local Cognito emulator and API running to provision the six test accounts. The script writes generated passwords to git-ignored `backend/.data/local-role-accounts.json` and verifies their API identities. It refuses AWS pools and unknown existing accounts.
 
-Runtime localhost smoke check: /api/health on ports 4000 and 8443 returned 200; handwritten Admin token returned 401; server-issued development Admin session and /api/me returned 200. No token was printed or committed.
+At `/auth` or `/login`, select a saved account to sign in immediately, or use the email/password form. Saved buttons are available only from the loopback Vite development server with a local Cognito pool and endpoint. Builds and preview servers export an empty account list; saved passwords are not included in production output. Passwords are verified by Cognito, and MFA/email confirmation challenges still use the normal flow.
 
-If an earlier unsigned fake login already rewrote a demo account's Cognito subject, that historical identity cannot be recovered from the new session token. Re-link the configured demo account by normal Cognito sign-in, or review the original Cognito subject explicitly. Do not guess a real user's identity.
-
-Automated coverage: live-sessions.test.ts, updated teacher.test.ts/admin-batches.test.ts, auth.test.ts and security.test.ts. Full provider meeting availability and a visual browser walkthrough remain manual integration checks.
+Automated coverage includes rejection of the removed endpoint and legacy tokens, verified roles for all six groups, and production exclusion of saved credentials. Earlier unsigned fake logins may have changed legacy identity links; review known Cognito account data rather than guessing a subject.

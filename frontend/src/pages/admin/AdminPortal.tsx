@@ -12,10 +12,13 @@ import {
   CreateBatchModal,
   ManualEnrolModal,
 } from "@/components/AdminModals"
+import { usePendingApprovals } from "./views/shared/usePendingApprovals"
 
 const OverviewView = lazy(() => import("./views/OverviewView"))
 const CoursesView = lazy(() => import("./views/CoursesView"))
 const BatchesView = lazy(() => import("./views/BatchesView"))
+const CourseWorkspacePage = lazy(() => import("./views/courses/CourseWorkspacePage"))
+const BatchWorkspacePage = lazy(() => import("./views/batches/BatchWorkspacePage"))
 const TeachersView = lazy(() => import("./views/TeachersView"))
 const StudentsView = lazy(() => import("./views/StudentsView"))
 const OrdersView = lazy(() => import("./views/OrdersView"))
@@ -94,6 +97,7 @@ export default function AdminPortal({
 
   const store = useAdminStore()
   const notifications = usePersistedNotifications(onToast)
+  const pendingApprovals = usePendingApprovals()
 
   // Global modals state
   const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false)
@@ -117,7 +121,7 @@ export default function AdminPortal({
   const handleManualEnrol = async (data: any) => {
     try {
       await store.enrolStudent(data)
-      onToast(`Enrolled ${data.name} into cohort`)
+      onToast(`Enrolled ${data.name}`)
     } catch (err) {
       onToast(err instanceof Error ? err.message : "Could not enrol student.")
       throw err
@@ -135,6 +139,7 @@ export default function AdminPortal({
       activeId={activeId}
       onNavigate={handleNavigate}
       notifications={notifications}
+      badges={{ approvals: pendingApprovals || undefined }}
     >
       {store.error&&<p role="alert" className="mb-4 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{store.error} Displayed records may be incomplete. Refresh to retry.</p>}
       <PageTransition>
@@ -167,6 +172,10 @@ export default function AdminPortal({
               element={<CoursesView store={store} onToast={onToast} />}
             />
             <Route
+              path="/courses/:courseId"
+              element={<CourseWorkspacePage store={store} onToast={onToast} />}
+            />
+            <Route
               path="/approvals"
               element={<TeacherApprovalsView onToast={onToast} />}
             />
@@ -179,6 +188,10 @@ export default function AdminPortal({
                   onToast={onToast}
                 />
               }
+            />
+            <Route
+              path="/batches/:batchId"
+              element={<BatchWorkspacePage store={store} onToast={onToast} />}
             />
             <Route
               path="/teachers"
@@ -226,6 +239,7 @@ export default function AdminPortal({
         onClose={() => setIsCreateBatchOpen(false)}
         onCreate={handleCreateBatch}
         courses={store.courses}
+        teachers={store.teachers}
       />
 
       <ManualEnrolModal

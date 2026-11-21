@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from "react"
-import { Bot, Brain, Code2, Eye, MessageSquareText, Network, Server, Sparkles, type LucideIcon } from "lucide-react"
+import { Bot, Brain, Code2, Eye, Layers, MessageSquareText, Network, Server, Sparkles, type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /** AI course categories (mirrors the domain model). */
@@ -12,6 +12,7 @@ export type CourseCategoryName =
   | "MLOps"
   | "Prompt Engineering"
   | "Python for AI"
+  | "AI Foundations"
 
 const ART: Record<CourseCategoryName, { icon: LucideIcon; from: string; to: string; accent: string }> = {
   "Generative AI": { icon: Sparkles, from: "#2a1b6b", to: "#0b0a1f", accent: "#8b7cff" },
@@ -22,6 +23,15 @@ const ART: Record<CourseCategoryName, { icon: LucideIcon; from: string; to: stri
   MLOps: { icon: Server, from: "#3a2a10", to: "#100b04", accent: "#fbbf24" },
   "Prompt Engineering": { icon: Network, from: "#3f1530", to: "#12060d", accent: "#fb7185" },
   "Python for AI": { icon: Code2, from: "#1d3a1a", to: "#081107", accent: "#a3e635" },
+  "AI Foundations": { icon: Layers, from: "#262052", to: "#090a17", accent: "#a5b4fc" },
+}
+
+export function getCourseCoverArt(category?: string) {
+  const art = ART[(category as CourseCategoryName) ?? "Generative AI"] ?? ART["Generative AI"]
+  return {
+    ...art,
+    background: `radial-gradient(120% 90% at 85% 10%, ${art.accent}55 0%, transparent 55%), linear-gradient(140deg, ${art.from} 0%, ${art.to} 100%)`,
+  }
 }
 
 interface CourseCoverProps {

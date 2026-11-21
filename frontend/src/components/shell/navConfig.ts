@@ -99,7 +99,7 @@ export const NAV: Record<UserRole, ShellNavItem[]> = {
   ],
   Admin: [
     item("overview", "Overview", LayoutDashboard),
-    item("approvals", "Teacher Approvals", ClipboardCheck, "main", ["approvals", "schedule", "assignments", "grades", "curriculum"]),
+    item("approvals", "Approvals", ClipboardCheck, "main", ["teacher approvals", "requests", "recordings", "publish", "review"]),
     item("courses", "Courses", BookOpen),
     item("batches", "Batches", Layers, "main", ["cohorts", "schedules"]),
     item("teachers", "Teachers", GraduationCap, "main", ["instructors", "faculty"]),
@@ -112,7 +112,7 @@ export const NAV: Record<UserRole, ShellNavItem[]> = {
   ],
   "Super Admin": [
     item("overview", "Overview", LayoutDashboard),
-    item("approvals", "Teacher Approvals", ClipboardCheck, "main", ["approvals", "schedule", "assignments", "grades", "curriculum"]),
+    item("approvals", "Approvals", ClipboardCheck, "main", ["teacher approvals", "requests", "recordings", "publish", "review"]),
     item("courses", "Courses", BookOpen),
     item("batches", "Batches", Layers, "main", ["cohorts", "schedules"]),
     item("teachers", "Teachers", GraduationCap, "main", ["instructors", "faculty"]),

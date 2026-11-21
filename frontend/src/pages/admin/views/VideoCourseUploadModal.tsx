@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Film, Loader2, Upload } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { CustomSelect } from "@/components/ui/select"
 import { api } from "@/lib/api"
 import type { AdminCourse } from "@/data/adminStore"
 
@@ -97,18 +98,48 @@ export default function VideoCourseUploadModal(props: Props) {
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to attach video") }
     finally { setBusy(false) }
   }
-  const selectClass = "h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
   return <Dialog open={props.open} onOpenChange={open => { if (!busy) props.onOpenChange(open) }}>
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle className="flex items-center gap-2"><Film className="h-5 w-5 text-primary" /> Course video</DialogTitle>
         <DialogDescription>Upload a video, review the processed result, then attach it to a lesson. Replacements preserve lesson progress and the previous content history.</DialogDescription></DialogHeader>
       <div className="space-y-5 py-2">
         <label className="block space-y-2 text-sm font-medium">Course
-          <select className={selectClass} value={courseId} disabled={busy || !!props.initialCourseId} onChange={e => { setCourseId(e.target.value); setAssetId(""); setDetail(null); setLessonId("") }}>
-            <option value="">Create a draft course</option>{props.existingCourses?.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select></label>
+          <CustomSelect
+            value={courseId}
+            disabled={busy || !!props.initialCourseId}
+            placeholder="Create a draft course"
+            onChange={(val) => {
+              setCourseId(val)
+              setAssetId("")
+              setDetail(null)
+              setLessonId("")
+            }}
+            options={[
+              { value: "", label: "Create a draft course" },
+              ...(props.existingCourses?.map((c) => ({ value: c.id, label: c.title })) ?? []),
+            ]}
+          />
+        </label>
         {!courseId && <label className="block space-y-2 text-sm font-medium">Instructor<Input value={instructor} onChange={e => setInstructor(e.target.value)} /></label>}
-        {courseId && lessons.length > 0 && <label className="block space-y-2 text-sm font-medium">Upload destination<select className={selectClass} value={replaceLessonId} disabled={busy} onChange={e => { setReplaceLessonId(e.target.value); const lesson = lessons.find(l => l.id === e.target.value); if (lesson) setTitle(lesson.title) }}><option value="">Create a new video lesson</option>{lessons.map(l => <option key={l.id} value={l.id}>Replace video: {l.title}</option>)}</select></label>}
+        {courseId && lessons.length > 0 && (
+          <label className="block space-y-2 text-sm font-medium">
+            Upload destination
+            <CustomSelect
+              value={replaceLessonId}
+              disabled={busy}
+              placeholder="Create a new video lesson"
+              onChange={(val) => {
+                setReplaceLessonId(val)
+                const lesson = lessons.find((l) => l.id === val)
+                if (lesson) setTitle(lesson.title)
+              }}
+              options={[
+                { value: "", label: "Create a new video lesson" },
+                ...lessons.map((l) => ({ value: l.id, label: `Replace video: ${l.title}` })),
+              ]}
+            />
+          </label>
+        )}
         <label className="block space-y-2 text-sm font-medium">Lesson title<Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Building your first AI workflow" /></label>
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-7 text-center">
           <Upload className="h-6 w-6 text-primary" /><span className="text-sm font-medium">{file?.name ?? "Choose a video"}</span>
@@ -118,8 +149,20 @@ export default function VideoCourseUploadModal(props: Props) {
         <Button onClick={() => void upload()} disabled={busy || !file || title.trim().length < 3 || (!courseId && instructor.trim().length < 2)} className="w-full">
           {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {progress < 100 ? `Uploading ${progress}%` : "Saving…"}</> : "Upload and process"}
         </Button>
-        {assets.length > 0 && <label className="block space-y-2 text-sm font-medium">Resume a previous upload
-          <select className={selectClass} value={assetId} onChange={e => { setAssetId(e.target.value); setAttached(false) }}><option value="">Select upload</option>{assets.map(a => <option key={a.id} value={a.id}>{new Date(a.created_at).toLocaleString()} · {a.state}</option>)}</select></label>}
+        {assets.length > 0 && (
+          <label className="block space-y-2 text-sm font-medium">
+            Resume a previous upload
+            <CustomSelect
+              value={assetId}
+              placeholder="Select upload"
+              onChange={(val) => {
+                setAssetId(val)
+                setAttached(false)
+              }}
+              options={assets.map((a) => ({ value: a.id, label: `${new Date(a.created_at).toLocaleString()} · ${a.state}` }))}
+            />
+          </label>
+        )}
         {detail && <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4" aria-live="polite">
           <p className="text-sm font-semibold capitalize">Processing: {detail.asset.state}</p>
           {["queued", "processing"].includes(detail.asset.state) && <p className="text-sm text-muted-foreground">You can close this window. Processing continues on the server; reopen this course to check the result.</p>}
@@ -127,7 +170,15 @@ export default function VideoCourseUploadModal(props: Props) {
           {detail.asset.state === "failed" && <Button variant="outline" onClick={async () => { try { await api.post(`/admin/media/${assetId}/retry`, {}); setDetail({ ...detail, asset: { ...detail.asset, state: "queued" } }) } catch (e) { setError(e instanceof Error ? e.message : "Retry failed") } }}>Retry processing</Button>}
           {detail.asset.state === "ready" && <>
             <video controls className="w-full rounded-xl bg-black" src={detail.variants[0]?.url} />
-            <label className="block space-y-2 text-sm">Attach to lesson<select value={lessonId} onChange={e => setLessonId(e.target.value)} className={selectClass}><option value="">Select a lesson</option>{lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}</select></label>
+            <label className="block space-y-2 text-sm">
+              Attach to lesson
+              <CustomSelect
+                value={lessonId}
+                placeholder="Select a lesson"
+                onChange={setLessonId}
+                options={lessons.map((l) => ({ value: l.id, label: l.title }))}
+              />
+            </label>
             <Button disabled={!lessonId || busy || attached} onClick={() => void attach()}>{attached ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Attached</> : "Attach this video"}</Button>
           </>}
         </div>}

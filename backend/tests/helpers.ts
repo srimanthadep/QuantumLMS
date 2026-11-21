@@ -71,7 +71,7 @@ export async function createHarness(): Promise<TestHarness> {
     DATABASE_URL: databaseUrl,
     DATABASE_SSL: "disable",
     DATABASE_CA_CERT: undefined,
-    DEMO_MODE: "false", DEV_FAKE_LOGIN: "false",
+    DEMO_MODE: "false",
     LOG_LEVEL: "silent",
     COGNITO_USER_POOL_ID: "test-pool",
     COGNITO_CLIENT_ID: CLIENT_ID,

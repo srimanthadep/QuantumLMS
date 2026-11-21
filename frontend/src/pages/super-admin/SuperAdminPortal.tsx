@@ -12,6 +12,7 @@ import {
   CreateBatchModal,
   ManualEnrolModal,
 } from "@/components/AdminModals"
+import { usePendingApprovals } from "../admin/views/shared/usePendingApprovals"
 
 // Super Admin platform console views
 const PlatformHealthView = lazy(() => import("./views/PlatformHealthView"))
@@ -25,6 +26,9 @@ const SuperAdminSettingsView = lazy(() => import("./views/SuperAdminSettingsView
 const OverviewView = lazy(() => import("../admin/views/OverviewView"))
 const CoursesView = lazy(() => import("../admin/views/CoursesView"))
 const BatchesView = lazy(() => import("../admin/views/BatchesView"))
+const CourseWorkspacePage = lazy(() => import("../admin/views/courses/CourseWorkspacePage"))
+const BatchWorkspacePage = lazy(() => import("../admin/views/batches/BatchWorkspacePage"))
+const TeacherApprovalsView = lazy(() => import("../admin/views/TeacherApprovalsView"))
 const TeachersView = lazy(() => import("../admin/views/TeachersView"))
 const StudentsView = lazy(() => import("../admin/views/StudentsView"))
 const OrdersView = lazy(() => import("../admin/views/OrdersView"))
@@ -40,6 +44,7 @@ const NAV_PATHS: Record<string, string> = {
   placements: "/super-admin/placements",
   // Academy Admin scope
   overview: "/super-admin/overview",
+  approvals: "/super-admin/approvals",
   courses: "/super-admin/courses",
   batches: "/super-admin/batches",
   teachers: "/super-admin/teachers",
@@ -87,6 +92,7 @@ export default function SuperAdminPortal({
   const adminStore = useAdminStore()
   const superAdminStore = useSuperAdminStore()
   const notifications = usePersistedNotifications(onToast)
+  const pendingApprovals = usePendingApprovals()
 
   // Seamlessly rewrite direct /admin/* paths to /super-admin/*
   useEffect(() => {
@@ -118,7 +124,7 @@ export default function SuperAdminPortal({
   const handleManualEnrol = async (data: any) => {
     try {
       await adminStore.enrolStudent(data)
-      onToast(`Enrolled ${data.name} into cohort`)
+      onToast(`Enrolled ${data.name}`)
     } catch (err) {
       onToast(err instanceof Error ? err.message : "Could not enrol student.")
       throw err
@@ -136,6 +142,7 @@ export default function SuperAdminPortal({
       activeId={activeId}
       onNavigate={handleNavigate}
       notifications={notifications}
+      badges={{ approvals: pendingApprovals || undefined }}
     >
       <PageTransition transitionKey={location.pathname}>
         <Suspense fallback={<PageFallback />}>
@@ -187,6 +194,14 @@ export default function SuperAdminPortal({
               element={<CoursesView store={adminStore} onToast={onToast} />}
             />
             <Route
+              path="/courses/:courseId"
+              element={<CourseWorkspacePage store={adminStore} onToast={onToast} />}
+            />
+            <Route
+              path="/approvals"
+              element={<TeacherApprovalsView onToast={onToast} />}
+            />
+            <Route
               path="/batches"
               element={
                 <BatchesView
@@ -195,6 +210,10 @@ export default function SuperAdminPortal({
                   onToast={onToast}
                 />
               }
+            />
+            <Route
+              path="/batches/:batchId"
+              element={<BatchWorkspacePage store={adminStore} onToast={onToast} />}
             />
             <Route
               path="/teachers"
@@ -239,6 +258,7 @@ export default function SuperAdminPortal({
         onClose={() => setIsCreateBatchOpen(false)}
         onCreate={handleCreateBatch}
         courses={adminStore.courses}
+        teachers={adminStore.teachers}
       />
 
       <ManualEnrolModal

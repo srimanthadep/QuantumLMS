@@ -5,7 +5,7 @@ import { useSession } from "@/app/session"
 import { useToast } from "@/components/ui/toast"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { getDemoAccount } from "@/data/demoAccounts"
+import { isDemoStudentEmail, isDemoEvaluatorEmail } from "@/lib/api"
 import CloverAssistantButton from "./CloverAssistantButton"
 import { useAiAssistant } from "./AiAssistantDialog"
 import CommandPalette from "./CommandPalette"
@@ -103,7 +103,7 @@ export default function AppShell({
   const switchRole = useCallback(
     (r: UserRole) => {
       navigate(session.switchRole(r))
-      toast.show(`Switched to the ${r} portal`)
+      toast.show(`Sign in to your ${r} account`)
     },
     [navigate, session, toast],
   )
@@ -115,7 +115,7 @@ export default function AppShell({
 
   // Students and evaluators keep their data in their account; only the shared demo accounts have demo data to restore.
   const hasAccount = role === "Student" || role === "Evaluator"
-  const canReset = !hasAccount || session.user.email.toLowerCase() === getDemoAccount(role).email
+  const canReset = !hasAccount || (role === "Student" ? isDemoStudentEmail(session.user.email) : isDemoEvaluatorEmail(session.user.email))
   const resetDemo = useCallback(() => {
     toast.show(hasAccount ? "Restoring the demo account's data…" : "Resetting demo data…")
     session.resetDemoData().catch((e: Error) => toast.error(e.message || "The demo data couldn't be reset."))
@@ -131,7 +131,7 @@ export default function AppShell({
 
   return (
     <TooltipProvider delayDuration={250}>
-      <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground">
+      <div className="relative flex h-dvh w-full overflow-hidden overflow-clip bg-background text-foreground">
         <a href="#main" className="skip-link">
           Skip to content
         </a>
@@ -168,7 +168,7 @@ export default function AppShell({
           >
             {topBarSlot}
           </TopBar>
-          <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
+          <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
             <div className={cn("mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:py-6", contentClassName)}>{children}</div>
           </main>
         </div>

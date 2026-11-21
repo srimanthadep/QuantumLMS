@@ -106,31 +106,26 @@ describe("sign out of all devices", () => {
   })
 })
 
- test("passwordless development login is absent under strict auth", async () => {
-   const result = await h.app.inject({ method: "POST", url: "/api/auth/fake-login", payload: { email: "admin@lms.com", role: "Admin" } })
-   assert.equal(result.statusCode, 404)
- })
+test("passwordless login is removed even in development with demo data enabled", async () => {
+  const old = { NODE_ENV: h.ctx.config.NODE_ENV, DEMO_MODE: h.ctx.config.DEMO_MODE }
+  Object.assign(h.ctx.config, { NODE_ENV: "development", DEMO_MODE: true })
+  const app = await buildApp(h.ctx, { logger: false })
+  try {
+    const response = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000", origin: "http://localhost:8443" }, payload: { email: "admin@lms.com", role: "Admin" } })
+    assert.equal(response.statusCode, 404)
+    for (const token of ["fake-token:admin@lms.com:Admin", "dev-session:" + "a".repeat(64)]) {
+      const profile = await app.inject({ method: "GET", url: "/api/me", headers: { authorization: `Bearer ${token}` } })
+      assert.equal(profile.statusCode, 401)
+    }
+  } finally { Object.assign(h.ctx.config, old); await app.close() }
+})
 
- test("local development sessions are server-issued, role-stable and cannot take over real users", async () => {
-   const old = { NODE_ENV: h.ctx.config.NODE_ENV, DEMO_MODE: h.ctx.config.DEMO_MODE, DEV_FAKE_LOGIN: h.ctx.config.DEV_FAKE_LOGIN }
-   Object.assign(h.ctx.config, { NODE_ENV: "development", DEMO_MODE: true, DEV_FAKE_LOGIN: true })
-   const app = await buildApp(h.ctx, { logger: false })
-   const email = `dev-${randomUUID()}@test.quantumlms.dev`
-   try {
-     const response = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000", origin: "http://localhost:8443" }, payload: { email, role: "Teacher" } })
-     assert.equal(response.statusCode, 200, response.body)
-     const token = response.json().token
-     assert.match(token, /^dev-session:[a-f0-9]{64}$/)
-     const profile = await app.inject({ method: "GET", url: "/api/me", headers: { authorization: `Bearer ${token}` } })
-     assert.equal(profile.statusCode, 200); assert.equal(profile.json().role, "Teacher")
-     const roleChange = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000" }, payload: { email, role: "Admin" } })
-     assert.equal(roleChange.statusCode, 403)
-     const remote = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000", origin: "https://outside.example" }, payload: { email, role: "Teacher" } })
-     assert.equal(remote.statusCode, 403)
-     const real = await h.user(); await real.call("GET", "/api/me")
-     const impersonate = await app.inject({ method: "POST", url: "/api/auth/fake-login", headers: { host: "localhost:4000" }, payload: { email: real.email, role: "Student" } })
-     assert.equal(impersonate.statusCode, 403)
-     h.ctx.config.DEV_FAKE_LOGIN = false
-     assert.equal((await app.inject({ method: "GET", url: "/api/me", headers: { authorization: `Bearer ${token}` } })).statusCode, 401)
-   } finally { Object.assign(h.ctx.config, old); await app.close(); await h.ctx.db.delete(users).where(eq(users.email, email)) }
- })
+test("all six roles resolve from verified Cognito groups", async () => {
+  for (const [group, role] of [["super-admins", "Super Admin"], ["admins", "Admin"], ["teachers", "Teacher"], ["evaluators", "Evaluator"], ["support", "Support"], ["students", "Student"]]) {
+    const user = await h.user({ groups: [group] })
+    const response = await user.call("GET", "/api/me")
+    assert.equal(response.status, 200)
+    assert.equal(response.body.role, role)
+    assert.equal(response.body.is_demo, false)
+  }
+})

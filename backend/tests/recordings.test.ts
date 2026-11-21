@@ -64,7 +64,9 @@ test("chapter review validates bounds/order and publishing uses an explicit pers
   assert.equal((await teacher.call("PATCH",`/api/recordings/${recordingId}`,{...input,chapters:[{title:"First",start_seconds:20,end_seconds:40},{title:"Overlap",start_seconds:30,end_seconds:60}]})).status,400)
   const edited=await teacher.call("PATCH",`/api/recordings/${recordingId}`,input);assert.equal(edited.status,200,JSON.stringify(edited.body));assert.equal(edited.body.recording.status,"Draft")
   assert.equal((await teacher.call("POST",`/api/recordings/${recordingId}/publish`,{expected_version:1,publish:true})).status,409)
-  const saved=await teacher.call("POST",`/api/recordings/${recordingId}/publish`,{expected_version:edited.body.recording.version,publish:true});assert.equal(saved.status,200,JSON.stringify(saved.body));assert.equal(saved.body.recording.status,"Published")
+  // A teacher's publish opens an approval request; the recording goes live only when an administrator approves it.
+  const requested=await teacher.call("POST",`/api/recordings/${recordingId}/publish`,{expected_version:edited.body.recording.version,publish:true});assert.equal(requested.status,200,JSON.stringify(requested.body));assert.equal(requested.body.recording.status,"Draft");assert.equal(requested.body.approval.state,"Pending")
+  const saved=await admin.call("POST",`/api/admin/approvals/${requested.body.approval.id}/approve`,{});assert.equal(saved.status,200,JSON.stringify(saved.body));assert.equal(saved.body.recording.status,"Published");assert.equal(saved.body.approval.state,"Approved")
 })
 test("released playback requires exact-batch entitlement; catalogs/list metadata and generic media cannot bypass replay scope",async()=>{
   const playback=await student.call("POST",`/api/recordings/${recordingId}/playback`,{});assert.equal(playback.status,200,JSON.stringify(playback.body));assert.equal(playback.body.chapters.length,2);assert.equal(playback.body.expires_in,300)

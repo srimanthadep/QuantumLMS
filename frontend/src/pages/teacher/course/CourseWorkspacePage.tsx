@@ -447,7 +447,7 @@ function AddQuizDialog({
   const [timeLimitMins, setTimeLimitMins] = useState("30")
   const [passingMarks, setPassingMarks] = useState("60")
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; size: string; type: string }[]>([])
-  const [questionsCount, setQuestionsCount] = useState(10)
+  const [questionsCount, setQuestionsCount] = useState("10")
   const [error, setError] = useState<string | null>(null)
 
   const handleQuizFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -463,7 +463,7 @@ function AddQuizDialog({
       }
     })
     setAttachedFiles((prev) => [...prev, ...newItems])
-    setQuestionsCount((prev) => Math.max(prev, 15))
+    setQuestionsCount((prev) => String(Math.max(Number(prev) || 0, 15)))
   }
 
   const removeFile = (idx: number) => {
@@ -486,7 +486,7 @@ function AddQuizDialog({
               timeLimitMins: Number(timeLimitMins) || 30,
               passingMarks: Number(passingMarks) || 60,
               attachments: attachedFiles,
-              questionsCount,
+              questionsCount: Math.max(1, Math.min(100, Number(questionsCount) || 10)),
             })
             onOpenChange(false)
           }}
@@ -574,8 +574,9 @@ function AddQuizDialog({
                     type="number"
                     min={1}
                     max={100}
+                    placeholder="10"
                     value={questionsCount}
-                    onChange={(e) => setQuestionsCount(Number(e.target.value) || 1)}
+                    onChange={(e) => setQuestionsCount(e.target.value)}
                     wrapperClassName="w-20"
                     className="text-right h-8 text-xs"
                   />

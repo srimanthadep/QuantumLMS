@@ -113,6 +113,20 @@
       "when": 1794550526589,
       "tag": "0015_reliability_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794908520092,
+      "tag": "0016_approval_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794976114418,
+      "tag": "0017_independent_courses_batches",
+      "breakpoints": true
     }
   ]
 }

@@ -48,6 +48,21 @@ export interface Rows {
     value: Json
     updated_at: string
   }
+  approval_requests: {
+    id: string
+    kind: string
+    target_id: string
+    target_version: number
+    batch_id: string | null
+    requested_by: string | null
+    note: string
+    state: string
+    decided_by: string | null
+    decision_note: string
+    decided_at: string | null
+    created_at: string
+    updated_at: string
+  }
   assessment_definition_versions: {
     id: string
     definition_id: string
@@ -183,7 +198,7 @@ export interface Rows {
   cohort_batches: {
     id: string
     name: string
-    course_id: string
+    course_id: string | null
     offer_id: string | null
     lifecycle: string
     minimum_paid_registrations: number | null
@@ -312,7 +327,7 @@ export interface Rows {
   }
   course_offers: {
     id: string
-    course_id: string
+    course_id: string | null
     mode: string
     title: string
     price: number
@@ -365,7 +380,7 @@ export interface Rows {
     is_starter: boolean
     position: number
     price: number
-    capacity: number
+    capacity: number | null
     status: string
   }
   enrollments: {
@@ -553,7 +568,8 @@ export interface Rows {
   media_assets: {
     session_id: string | null
     id: string
-    course_id: string
+    course_id: string | null
+    batch_id: string | null
     owner_id: string
     source_key: string
     state: string
@@ -614,7 +630,7 @@ export interface Rows {
     id: string
     student_id: string
     offer_id: string
-    course_id: string
+    course_id: string | null
     batch_id: string | null
     idempotency_key: string
     provider: string
@@ -875,7 +891,8 @@ export interface Rows {
   }
   recordings: {
     id: string
-    session_id: string
+    session_id: string | null
+    batch_id: string
     asset_id: string
     title: string
     summary: string

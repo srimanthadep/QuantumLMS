@@ -4,7 +4,7 @@ import { Hub } from "aws-amplify/utils"
 import { CloudOff, RotateCcw } from "lucide-react"
 import { Button, EmptyState } from "@/components/ui"
 import { toApiError } from "@/lib/api"
-import { currentSignIn, getFakeAuthToken, isAuthConfigured, signInWithEmail } from "@/lib/auth"
+import { currentSignIn, isAuthConfigured } from "@/lib/auth"
 import { clearAll } from "@/lib/resource"
 import { useSession } from "./session"
 import RouteFallback from "./RouteFallback"
@@ -36,8 +36,6 @@ export function FullPageError({ title, message, onRetry, onBack }: { title: stri
 }
 
 interface CognitoGateProps {
-  /** The shared demo account of this portal, signed in for demo sessions (role switcher, quick launch). */
-  demo: { email: string; password: string }
   /** Loads the portal's own profile; its id scopes the portal's cached data. */
   load: () => Promise<{ id: string }>
   /** Heading of the error screen, e.g. "The student portal can't connect". */
@@ -45,12 +43,8 @@ interface CognitoGateProps {
   children: (uid: string) => ReactNode
 }
 
-/**
- * Makes sure the right Cognito account is signed in before a backend portal renders. Demo sessions sign in the
- * portal's shared demo account (also when another account is signed in on this device, e.g. after switching role);
- * a real account whose sign-in expired goes back to the sign-in page.
- */
-export default function CognitoGate({ demo, load, errorTitle, children }: CognitoGateProps) {
+/** Requires an existing Cognito session before rendering a portal. */
+export default function CognitoGate({ load, errorTitle, children }: CognitoGateProps) {
   const session = useSession()
   const navigate = useNavigate()
   const location = useLocation()
@@ -70,34 +64,16 @@ export default function CognitoGate({ demo, load, errorTitle, children }: Cognit
 
   const check = useCallback(async () => {
     setState({ status: "checking" })
-    const fake = getFakeAuthToken()
-    if (fake) {
-      try {
-        const profile = await loadRef.current()
-        uidRef.current = profile.id
-        setState({ status: "ready", uid: profile.id })
-      } catch (e) {
-        const err = toApiError(e, "Development sign-in failed. Check the API and try again.")
-        uidRef.current = null
-        setState({ status: "error", message: err.message })
-      }
-      return
-    }
     if (!isAuthConfigured) {
       setState({ status: "error", message: "Sign-in isn't configured. Set VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID in frontend/.env.local." })
       return
     }
     try {
       const want = sessionRef.current.user.email.trim().toLowerCase()
-      const isDemo = import.meta.env.DEV && Boolean(want) && want === demo.email.toLowerCase()
       const signedIn = await currentSignIn()
       if (!signedIn || signedIn.email !== want) {
-        if (!isDemo) {
-          toSignIn()
-          return
-        }
-        if ((await signInWithEmail(demo.email, demo.password)) !== "done") throw new Error("The demo account couldn't be signed in.")
-        clearAll()
+        toSignIn()
+        return
       }
       const profile = await loadRef.current()
       uidRef.current = profile.id
@@ -110,7 +86,7 @@ export default function CognitoGate({ demo, load, errorTitle, children }: Cognit
       }
       setState({ status: "error", message: err.message })
     }
-  }, [demo.email, demo.password, toSignIn])
+  }, [toSignIn])
 
   useEffect(() => {
     void check()

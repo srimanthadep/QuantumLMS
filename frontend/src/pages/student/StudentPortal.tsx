@@ -1,5 +1,5 @@
 import PlacementWorkspace from "@/components/placement/PlacementWorkspace"
-import EnrollmentDialog from "@/components/student/EnrollmentDialog"
+import EnrollmentDialog, { type EnrollmentTarget } from "@/components/student/EnrollmentDialog"
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import AppShell from "@/components/shell/AppShell"
 import type { NotificationSource, ShellNotification } from "@/components/shell/NotificationsMenu"
@@ -236,6 +236,8 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
   const { courses, catalog, assignments, quizzes } = data.view
   const [activeTab, setActiveTabState] = useState<StudentNavPage>(() => parseInitialTab())
   const [enrollmentCourse, setEnrollmentCourse] = useState<CourseItem | null>(null)
+  const [enrollmentBatch, setEnrollmentBatch] = useState<Extract<EnrollmentTarget, { kind: "batch" }> | null>(null)
+  const [batchRefreshKey, setBatchRefreshKey] = useState(0)
   const [selectedCourseId, setSelectedCourseId] = useState<string>(() => courseFromUrl() ?? courses[0]?.id ?? catalog[0]?.id ?? "")
 
   // Navigate helper that updates URL history cleanly
@@ -296,6 +298,8 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
             onToast={onToast}
             onSelectCourse={setSelectedCourseId}
             onEnrollCourse={handleEnrollCourse}
+            onJoinBatch={setEnrollmentBatch}
+            batchRefreshKey={batchRefreshKey}
             courses={courses}
             catalog={catalog}
           />
@@ -391,7 +395,8 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
 
   return (
     <AppShell role="Student" activeId={navIdFor(activeTab)} onNavigate={(id) => navigateTo(NAV_TO_PAGE[id] ?? "Dashboard")} notifications={notifications}>
-      {enrollmentCourse && <EnrollmentDialog key={enrollmentCourse.id} course={enrollmentCourse} onClose={() => setEnrollmentCourse(null)} onEnrolled={async () => { await data.reloadCore(); onToast("Your enrollment is confirmed."); navigateTo("Course Details", enrollmentCourse.id) }} />}
+      {enrollmentCourse && <EnrollmentDialog key={enrollmentCourse.id} target={{ kind: "course", id: enrollmentCourse.id, title: enrollmentCourse.title }} onClose={() => setEnrollmentCourse(null)} onEnrolled={async () => { await data.reloadCore(); onToast("Your enrollment is confirmed."); navigateTo("Course Details", enrollmentCourse.id) }} />}
+      {enrollmentBatch && <EnrollmentDialog key={enrollmentBatch.id} target={enrollmentBatch} onClose={() => setEnrollmentBatch(null)} onEnrolled={async () => { setBatchRefreshKey((k) => k + 1); onToast("You have joined the batch."); setEnrollmentBatch(null) }} />}
       <PageTransition transitionKey={activeTab === "Course Details" ? `course-${selectedCourseId}` : activeTab} className="w-full">
         <Suspense fallback={<StudentPageFallback />}>{renderPage()}</Suspense>
       </PageTransition>

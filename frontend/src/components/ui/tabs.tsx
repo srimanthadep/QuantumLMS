@@ -65,13 +65,22 @@ TabsList.displayName = TabsPrimitive.List.displayName
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, children, value, ...props }, ref) => {
+>(({ className, children, value, onPointerDown, onBlur, ...props }, ref) => {
   const ctx = React.useContext(TabsContext)
   const active = ctx.value === value
   return (
     <TabsPrimitive.Trigger
       ref={ref}
       value={value}
+      onPointerDown={(e) => {
+        // A mouse or touch activation should not draw the keyboard focus ring.
+        e.currentTarget.dataset.pointer = "1"
+        onPointerDown?.(e)
+      }}
+      onBlur={(e) => {
+        delete e.currentTarget.dataset.pointer
+        onBlur?.(e)
+      }}
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground hover:text-foreground",
         ctx.variant === "pill" ? "h-full rounded-[7px] px-3" : "h-full px-0.5",

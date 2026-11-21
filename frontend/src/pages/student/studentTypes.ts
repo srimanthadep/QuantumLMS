@@ -95,6 +95,8 @@ export interface CourseItem {
   level: "Beginner" | "Intermediate" | "Advanced"
   credits: number
   description: string
+  /** One-time price in rupees; 0 or missing means free. */
+  price?: number
 }
 
 export interface LessonItem {

@@ -5,6 +5,7 @@ import type { FastifyInstance } from "fastify"
 import type { AppContext } from "../../context.js"
 import { authenticate } from "../../http.js"
 import { adminAlumniRoutes } from "./alumni.js"
+import { adminApprovalRoutes } from "./approvals.js"
 import { adminBatchRoutes } from "./batches.js"
 import { adminCoursesRoutes } from "./courses.js"
 import { adminOperationsRoutes } from "./operations.js"
@@ -21,6 +22,7 @@ export async function adminModule(app: FastifyInstance, ctx: AppContext) {
       await adminOperationsRoutes(scope, ctx)
       await paymentAdminRoutes(scope, ctx)
       await adminAlumniRoutes(scope, ctx)
+      await adminApprovalRoutes(scope, ctx)
     },
     { prefix: "/api/admin" }
   )

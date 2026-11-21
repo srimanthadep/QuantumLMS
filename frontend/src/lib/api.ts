@@ -9,19 +9,9 @@ const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replac
 
 export type { Json, StudentProfile, Tables } from "./api.types"
 
-/** The shared demo accounts behind the quick-launch buttons. */
-export const DEMO_STUDENT = import.meta.env.DEV ? { email: "niharika@lms.com", password: "123456" } : { email: "", password: "" }
-export const DEMO_EVALUATOR = import.meta.env.DEV ? { email: "eval@lms.com", password: "123456" } : { email: "", password: "" }
-export const DEMO_SUPPORT = import.meta.env.DEV ? { email: "maheshwar@lms.com", password: "123456" } : { email: "", password: "" }
-export const DEMO_ADMIN = import.meta.env.DEV ? { email: "admin@lms.com", password: "123456" } : { email: "", password: "" }
-export const DEMO_SUPER_ADMIN = import.meta.env.DEV ? { email: "superadmin@lms.com", password: "123456" } : { email: "", password: "" }
-export const DEMO_TEACHER = import.meta.env.DEV ? { email: "shanmuk@lms.com", password: "123456" } : { email: "", password: "" }
-export const isDemoStudentEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_STUDENT.email
-export const isDemoEvaluatorEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_EVALUATOR.email
-export const isDemoSupportEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_SUPPORT.email
-export const isDemoAdminEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_ADMIN.email
-export const isDemoSuperAdminEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_SUPER_ADMIN.email
-export const isDemoTeacherEmail = (email?: string | null) => (email ?? "").trim().toLowerCase() === DEMO_TEACHER.email
+/** Legacy seeded profiles may expose the reset-data action, but never supply login credentials. */
+export const isDemoStudentEmail = (email?: string | null) => import.meta.env.DEV && email?.trim().toLowerCase() === "niharika@lms.com"
+export const isDemoEvaluatorEmail = (email?: string | null) => import.meta.env.DEV && email?.trim().toLowerCase() === "eval@lms.com"
 
 /** Error with a message that is safe to show. */
 export class ApiError extends Error {

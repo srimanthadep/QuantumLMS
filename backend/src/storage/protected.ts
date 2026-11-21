@@ -17,7 +17,7 @@ export function mediaKey(value: string | null | undefined, kind: "videos" | "mat
 }
 
 export async function authorizeMediaKey(ctx: AppContext, user: AuthUser, key: string, kind: "videos" | "materials") {
-  const assets = kind === "videos" ? await ctx.db.execute(sql`select distinct a.id from lms.media_assets a left join lms.media_variants v on v.asset_id=a.id where a.session_id is not null and (a.source_key=${key} or v.key=${key})`) : { rows: [] }
+  const assets = kind === "videos" ? await ctx.db.execute(sql`select distinct a.id from lms.media_assets a left join lms.media_variants v on v.asset_id=a.id where (a.session_id is not null or a.batch_id is not null) and (a.source_key=${key} or v.key=${key})`) : { rows: [] }
   let seconds = 300
   for (const asset of assets.rows) seconds = Math.min(seconds,await authorizeRecordingAsset(ctx,user,String(asset.id)) ?? 300)
   if (assets.rows.length) return seconds

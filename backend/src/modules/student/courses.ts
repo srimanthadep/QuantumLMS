@@ -173,8 +173,10 @@ export async function courseRoutes(app: FastifyInstance, ctx: AppContext) {
     const input = parse(z.object({ course_id: z.string().min(1).max(100).optional(), offer_id: z.string().min(1).optional() }).refine(v => v.course_id || v.offer_id, "Choose an offer"), req.body)
     return db.transaction(async tx => {
       const offer = await enrollFree(tx, s.id, { courseId: input.course_id, offerId: input.offer_id })
-      await openCertificates(tx, s.id, [offer.course_id])
-      const [row] = await tx.select().from(enrollments).where(and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, offer.course_id)))
+      const courseId = offer.course_id
+      if (!courseId) throw forbidden("Choose a published self-paced offer")
+      await openCertificates(tx, s.id, [courseId])
+      const [row] = await tx.select().from(enrollments).where(and(eq(enrollments.student_id, s.id), eq(enrollments.course_id, courseId)))
       return { enrolled_at: row.enrolled_at, offer_id: offer.id }
     })
   })

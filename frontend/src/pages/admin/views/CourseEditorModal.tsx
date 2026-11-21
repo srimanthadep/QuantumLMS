@@ -2,18 +2,19 @@ import AssessmentAuthoringPanel from "@/components/admin/AssessmentAuthoringPane
 import SelfPacedOfferPanel from "./courses/SelfPacedOfferPanel"
 import { useState, useEffect } from "react"
 import {
-  BookOpen,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ClipboardCheck,
   Plus,
   Trash2,
   Edit2,
   Video,
   FileText,
   Upload,
-  File,
   Download,
   Sparkles,
   Layers,
-  GraduationCap,
   X,
   FileCode,
   Database,
@@ -40,7 +41,8 @@ import { CustomSelect } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
-import { formatINR, seatPercent, themeFor, CATEGORIES, STATUSES } from "./courses/courseTheme"
+import CourseCover from "@/components/shared/CourseCover"
+import { formatINR, seatPercent, STATUS_TONE, CATEGORIES, STATUSES } from "./courses/courseTheme"
 import { NavItem, PanelHeader, WorkspaceEmpty } from "./courses/WorkspaceParts"
 import LessonPlayer from "@/pages/student/course/LessonPlayer"
 import type { AdminCourse } from "@/data/adminStore"
@@ -143,8 +145,8 @@ export default function CourseEditorModal({
   const [editTitle, setEditTitle] = useState("")
   const [editCategory, setEditCategory] = useState<any>("LLM Engineering")
   const [editInstructor, setEditInstructor] = useState("")
-  const [editPrice, setEditPrice] = useState(39999)
-  const [editCapacity, setEditCapacity] = useState(300)
+  const [editPrice, setEditPrice] = useState("")
+  const [editCapacity, setEditCapacity] = useState("")
   const [editLevel, setEditLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Intermediate")
   const [editDuration, setEditDuration] = useState("12 Weeks")
   const [editStatus, setEditStatus] = useState<AdminCourse["status"]>("Published")
@@ -194,7 +196,9 @@ export default function CourseEditorModal({
       setOpenModules(new Set(res.modules.map(m => m.id)))
       setEditTitle(res.course.title); setEditCategory(res.course.category); setEditInstructor(res.course.instructor)
       setEditLevel(res.course.level); setEditDuration(res.course.duration); setEditDescription(res.course.description)
-      setEditPrice(Number(res.course.price)); setEditCapacity(Number(res.course.capacity)); setEditStatus(res.course.status)
+      setEditPrice(Number(res.course.price) > 0 ? String(res.course.price) : "")
+      setEditCapacity(res.course.capacity == null ? "" : String(res.course.capacity))
+      setEditStatus(res.course.status)
     } catch (error) { setLoadError((error as Error).message) }
     finally { setLoading(false) }
   }
@@ -224,7 +228,7 @@ export default function CourseEditorModal({
     const neighbor = siblings[siblings.indexOf(id) + direction]
     const target = ids.indexOf(neighbor)
     if (target < 0 || target >= ids.length) return
-    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+      ;[ids[index], ids[target]] = [ids[target], ids[index]]
     await mutateContent(() => api.put(`/admin/courses/${course.id}/order`, { module_ids: kind === "module" ? ids : modules.map(m => m.id), lesson_ids: kind === "lesson" ? ids : lessons.map(l => l.id) }), "Lesson order saved. Learner progress is preserved.")
   }
   const handleCreateModule = async (e: React.FormEvent) => {
@@ -326,6 +330,9 @@ export default function CourseEditorModal({
     e.preventDefault()
     if (!editTitle.trim()) return
 
+    const parsedPrice = editPrice.trim() === "" ? 0 : Math.max(0, Math.floor(Number(editPrice)) || 0)
+    const parsedCapacity = editCapacity.trim() === "" ? null : Math.max(1, Math.floor(Number(editCapacity)) || 1)
+
     try {
       await api.patch(`/admin/courses/${course.id}`, {
         title: editTitle.trim(),
@@ -334,8 +341,8 @@ export default function CourseEditorModal({
         level: editLevel,
         duration: editDuration.trim(),
         description: editDescription.trim(),
-        price: Math.max(0, Number(editPrice) || 0),
-        capacity: Math.max(1, Number(editCapacity) || 250),
+        price: parsedPrice,
+        capacity: parsedCapacity,
         status: editStatus,
       })
 
@@ -344,8 +351,8 @@ export default function CourseEditorModal({
         title: editTitle.trim(),
         category: editCategory,
         instructor: editInstructor.trim(),
-        price: Number(editPrice),
-        capacity: Number(editCapacity),
+        price: parsedPrice,
+        capacity: parsedCapacity,
         status: editStatus,
       }
       onCourseUpdated(updated)
@@ -360,7 +367,6 @@ export default function CourseEditorModal({
   const runtimeLabel = totalMinutes >= 60 ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` : `${totalMinutes}m`
   const videoLessons = lessons.filter((l) => l.type === "video")
   const videosReady = videoLessons.filter((l) => l.video_url).length
-  const { gradient, icon: CourseIcon } = themeFor(course.category)
   const seatPct = seatPercent(course)
   const allOpen = modules.length > 0 && openModules.size === modules.length
 
@@ -372,15 +378,13 @@ export default function CourseEditorModal({
       return next
     })
 
-  const tabs: { id: EditorTab; label: string; icon: LucideIcon; count?: number }[] = [
-    { id: "curriculum", label: "Chapters & Videos", icon: Layers, count: modules.length },
-    { id: "materials", label: "Materials", icon: FileText, count: materials.length },
-    { id: "assignments", label: "Assessments & completion", icon: GraduationCap },
-    { id: "enrollment", label: "Enrollment & publishing", icon: GraduationCap },
-    { id: "settings", label: "Course Settings", icon: Settings2 },
+  const tabs: { id: EditorTab; label: string; hint: string; icon: LucideIcon; count?: number }[] = [
+    { id: "curriculum", label: "Curriculum", hint: "Chapters & videos", icon: Layers, count: modules.length },
+    { id: "materials", label: "Materials", hint: "Slides & datasets", icon: FileText, count: materials.length },
+    { id: "assignments", label: "Assessments", hint: "Quizzes & projects", icon: ClipboardCheck },
+    { id: "enrollment", label: "Self-paced offer", hint: "Enrollment & publish", icon: Sparkles },
+    { id: "settings", label: "Course settings", hint: "Metadata & pricing", icon: Settings2 },
   ]
-
-  const statusDot = editStatus === "Published" ? "bg-emerald-300" : editStatus === "Draft" ? "bg-amber-300" : "bg-slate-300"
 
   const handleLessonClick = (lesson: LessonRowItem, moduleTitle: string) => {
     if (lessonHasPlayableVideo(lesson)) {
@@ -398,61 +402,66 @@ export default function CourseEditorModal({
       <DialogContent
         hideClose
         containerClassName="p-0 sm:p-0"
-        className="w-screen h-dvh max-w-none max-h-dvh flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-none border-0 bg-background text-foreground shadow-none"
+        className="flex h-dvh w-screen max-h-dvh max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 text-foreground shadow-none sm:rounded-none"
       >
-        {/* ===== Hero Header (title, category, published ALL on ONE LINE) ===== */}
-        <header className={cn("relative shrink-0 overflow-hidden bg-gradient-to-r text-white", gradient)}>
-          <CourseIcon className="pointer-events-none absolute -right-6 -top-8 h-56 w-56 rotate-[-10deg] text-white/10" aria-hidden="true" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden="true" />
-          <div className="relative px-5 py-5 sm:px-7 sm:py-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              {/* Left: Icon + Title/Status row stacked above category */}
-              <div className="flex items-center gap-3.5 min-w-0">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white shadow-xs">
-                  <BookOpen className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-                    <DialogTitle className="truncate text-2xl font-bold tracking-tight text-white sm:text-[28px] leading-tight">
-                      {course.title}
-                    </DialogTitle>
-                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur sm:text-[13px]">
-                      <span className={cn("h-2 w-2 rounded-full", statusDot)} aria-hidden="true" />
-                      {editStatus}
-                    </span>
-                  </div>
-                  <div className="mt-1">
-                    <span className="inline-flex shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur">
-                      {course.category}
-                    </span>
-                  </div>
+        {/* ===== Workspace Topbar ===== */}
+        <header className="shrink-0 border-b border-border bg-surface px-4 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                aria-label="Back to courses"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">All courses</span>
+              </button>
+              <span className="hidden h-5 w-px shrink-0 bg-border sm:block" aria-hidden="true" />
+              <CourseCover
+                title={course.title}
+                category={course.category}
+                showTitle={false}
+                hoverZoom={false}
+                className="hidden h-9 w-14 shrink-0 rounded-md ring-1 ring-border/60 sm:block"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <DialogTitle className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                    {course.title}
+                  </DialogTitle>
+                  <Badge tone={STATUS_TONE[editStatus]} dot size="sm" className="shrink-0">
+                    {editStatus}
+                  </Badge>
                 </div>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {course.category} · {course.instructor}
+                </p>
               </div>
+            </div>
 
-              {/* Right: Quick telemetry pills + close X */}
-              <div className="flex items-center gap-3 shrink-0">
-                <dl className="hidden md:flex items-center gap-2.5">
-                  {[
-                    { label: "Chapters", value: String(modules.length) },
-                    { label: "Lessons", value: String(lessons.length) },
-                    { label: "Runtime", value: runtimeLabel },
-                    { label: "Videos ready", value: `${videosReady}/${videoLessons.length}` },
-                  ].map((s) => (
-                    <div key={s.label} className="min-w-[88px] rounded-xl bg-white/15 px-3.5 py-2 text-center backdrop-blur">
-                      <dt className="text-[11px] font-semibold uppercase tracking-wider text-white/75">{s.label}</dt>
-                      <dd className="mt-0.5 text-base font-bold tabular-nums leading-tight">{s.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="rounded-xl p-2 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
-                  aria-label="Close workspace"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <dl className="hidden items-center divide-x divide-border text-xs xl:flex">
+                {[
+                  { label: "Chapters", value: String(modules.length) },
+                  { label: "Lessons", value: String(lessons.length) },
+                  { label: "Runtime", value: runtimeLabel },
+                  { label: "Videos", value: `${videosReady}/${videoLessons.length}` },
+                ].map((s) => (
+                  <div key={s.label} className="px-3 first:pl-0 last:pr-0">
+                    <dt className="text-[10px] font-medium uppercase tracking-wider text-subtle-foreground">{s.label}</dt>
+                    <dd className="mt-0.5 font-semibold tabular-nums text-foreground">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                aria-label="Close workspace"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </header>
@@ -461,6 +470,9 @@ export default function CourseEditorModal({
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           {/* Desktop & Tablet Left Sidebar */}
           <aside className="hidden w-[var(--shell-sidebar-w)] shrink-0 flex-col overflow-y-auto border-r border-border bg-surface p-3 md:flex">
+            <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-subtle-foreground">
+              Course workspace
+            </p>
             <nav aria-label="Workspace sections">
               <ul className="flex flex-col gap-0.5">
                 {tabs.map((t) => (
@@ -468,7 +480,9 @@ export default function CourseEditorModal({
                     <NavItem
                       icon={t.icon}
                       label={t.label}
+                      hint={t.hint}
                       count={t.count}
+                      layoutId="course-workspace-nav"
                       active={activeTab === t.id}
                       onClick={() => setActiveTab(t.id)}
                     />
@@ -477,9 +491,9 @@ export default function CourseEditorModal({
               </ul>
             </nav>
 
-            <div className="mx-2 my-3 h-px bg-border" role="separator" />
+            <div className="mx-1.5 my-3.5 h-px bg-border" role="separator" />
 
-            <div className="space-y-3 rounded-xl border border-border bg-surface-2/50 p-3.5">
+            <div className="space-y-3 rounded-lg border border-border bg-surface-2/50 p-3.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle-foreground">Course snapshot</p>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
@@ -488,7 +502,7 @@ export default function CourseEditorModal({
                     {course.enrolledStudents} / {course.capacity}
                   </span>
                 </div>
-                <Progress value={seatPct} size="sm" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
+                <Progress value={seatPct} size="xs" tone={seatPct >= 100 ? "danger" : seatPct >= 85 ? "warning" : "primary"} label={`${seatPct}% of seats filled`} />
               </div>
               <dl className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -503,7 +517,7 @@ export default function CourseEditorModal({
                   <dt className="text-muted-foreground">Rating</dt>
                   <dd className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
                     <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden="true" />
-                    {course.rating}
+                    {course.rating > 0 ? course.rating.toFixed(1) : "—"}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
@@ -511,7 +525,7 @@ export default function CourseEditorModal({
                   <dd className="font-semibold tabular-nums text-foreground">{course.completionRate}%</dd>
                 </div>
               </dl>
-              <p className="truncate border-t border-border pt-3 text-[11px] font-mono tabular-nums text-subtle-foreground" title={course.id}>
+              <p className="truncate border-t border-border pt-2.5 text-[11px] font-mono tabular-nums text-subtle-foreground" title={course.id}>
                 ID · {course.id}
               </p>
             </div>
@@ -527,49 +541,65 @@ export default function CourseEditorModal({
           {/* Right Main Content Panel */}
           <main className="min-h-0 flex-1 overflow-y-auto bg-background">
             <div className="w-full space-y-6 px-5 py-6 sm:px-8">
-            {loadError ? <div role="alert" className="rounded-xl border border-danger/30 p-5"><p>{loadError}</p><Button variant="outline" onClick={() => void fetchDetails()}>Retry</Button></div> : loading ? (
-              <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface-2/60" />
-                ))}
-              </div>
-            ) : (
-              <>
-                {/* ---------- CURRICULUM ---------- */}
-                {activeTab === "curriculum" && (
-                  <div className="space-y-5">
-                    <PanelHeader
-                      title="Course Curriculum"
-                      description="Organize chapters and upload video lectures with neural transcripts."
-                    >
-                      {modules.length > 1 && (
+              {loadError ? (
+                <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft/50 p-4 text-sm text-danger">
+                  <p>{loadError}</p>
+                  <Button size="sm" variant="outline" onClick={() => void fetchDetails()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : loading ? (
+                <div className="space-y-3" aria-busy="true" aria-label="Loading course details">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-lg border border-border bg-surface-2/60" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* ---------- CURRICULUM ---------- */}
+                  {activeTab === "curriculum" && (
+                    <div className="space-y-5">
+                      <PanelHeader
+                        title="Course curriculum"
+                        description="Organize chapters, sequence lessons, and attach video lectures with neural transcripts."
+                      >
+                        {modules.length > 1 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            leftIcon={<ChevronsUpDown aria-hidden="true" />}
+                            onClick={() => setOpenModules(allOpen ? new Set() : new Set(modules.map((m) => m.id)))}
+                            className="shrink-0"
+                          >
+                            {allOpen ? "Collapse all" : "Expand all"}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          variant="ghost"
-                          leftIcon={<ChevronsUpDown aria-hidden="true" />}
-                          onClick={() => setOpenModules(allOpen ? new Set() : new Set(modules.map((m) => m.id)))}
+                          variant="outline"
+                          leftIcon={<Plus aria-hidden="true" />}
+                          onClick={() => setIsAddModuleOpen(true)}
                           className="shrink-0"
                         >
-                          {allOpen ? "Collapse all" : "Expand all"}
+                          Add chapter
                         </Button>
-                      )}
-                      <Button
-                        size="md"
-                        leftIcon={<Video className="h-4 w-4" aria-hidden="true" />}
-                        onClick={() => onOpenVideoUpload(course.id)}
-                        className="shrink-0 rounded-[14px]! px-4 shadow-xs"
-                      >
-                        Upload Video Chapter
-                      </Button>
-                    </PanelHeader>
+                        <Button
+                          size="sm"
+                          leftIcon={<Video aria-hidden="true" />}
+                          onClick={() => onOpenVideoUpload(course.id)}
+                          className="shrink-0"
+                        >
+                          Upload video chapter
+                        </Button>
+                      </PanelHeader>
 
                       {modules.length === 0 ? (
                         <WorkspaceEmpty icon={Layers} title="No chapters yet" description="Add a chapter to group lessons, or upload a video lecture to get started.">
                           <Button size="sm" variant="outline" onClick={() => setIsAddModuleOpen(true)}>
                             Add chapter
                           </Button>
-                          <Button size="md" leftIcon={<Video className="h-4 w-4" aria-hidden="true" />} className="rounded-[14px]! px-4 shadow-xs" onClick={() => onOpenVideoUpload(course.id)}>
-                            Upload Video Chapter
+                          <Button size="sm" leftIcon={<Video aria-hidden="true" />} onClick={() => onOpenVideoUpload(course.id)}>
+                            Upload video chapter
                           </Button>
                         </WorkspaceEmpty>
                       ) : (
@@ -578,15 +608,15 @@ export default function CourseEditorModal({
                             const moduleLessons = lessons.filter((l) => l.module_id === m.id)
                             const isOpen = openModules.has(m.id)
                             return (
-                              <li key={m.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-xs">
-                                <div className="flex items-center gap-2 px-3 py-2.5 sm:px-4">
+                              <li key={m.id} className="overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--elev-xs)]">
+                                <div className="flex items-center gap-2 px-3.5 py-2.5 sm:px-4">
                                   <button
                                     type="button"
                                     onClick={() => toggleModule(m.id)}
                                     aria-expanded={isOpen}
-                                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                                    className="flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
                                   >
-                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary-text">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-soft/80 text-xs font-semibold tabular-nums text-primary-text ring-1 ring-inset ring-primary/15">
                                       {mIdx + 1}
                                     </span>
                                     <span className="min-w-0 flex-1">
@@ -595,7 +625,7 @@ export default function CourseEditorModal({
                                         {moduleLessons.length} {moduleLessons.length === 1 ? "lesson" : "lessons"} · {m.duration || "1 Hour"}
                                       </span>
                                     </span>
-                                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />
+                                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150", isOpen && "rotate-180")} aria-hidden="true" />
                                   </button>
 
                                   <div className="flex shrink-0 items-center gap-0.5">
@@ -634,14 +664,32 @@ export default function CourseEditorModal({
                                     >
                                       <Edit2 aria-hidden="true" />
                                     </Button>
-                                    <Button size="icon-sm" variant="ghost" aria-label={`Move ${m.title} earlier`} disabled={mIdx === 0} onClick={() => void moveContent("module", m.id, -1)}>↑</Button>
-                                    <Button size="icon-sm" variant="ghost" aria-label={`Move ${m.title} later`} disabled={mIdx === modules.length-1} onClick={() => void moveContent("module", m.id, 1)}>↓</Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Move ${m.title} earlier`}
+                                      title="Move up"
+                                      disabled={mIdx === 0}
+                                      onClick={() => void moveContent("module", m.id, -1)}
+                                    >
+                                      <ArrowUp aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Move ${m.title} later`}
+                                      title="Move down"
+                                      disabled={mIdx === modules.length - 1}
+                                      onClick={() => void moveContent("module", m.id, 1)}
+                                    >
+                                      <ArrowDown aria-hidden="true" />
+                                    </Button>
                                     <Button
                                       size="icon-sm"
                                       variant="ghost"
                                       aria-label={`Delete ${m.title}`}
                                       title="Delete chapter"
-                                      className="text-danger hover:bg-danger/10 hover:text-danger"
+                                      className="text-danger hover:bg-danger-soft/60 hover:text-danger"
                                       onClick={() => handleDeleteModule(m.id, m.title)}
                                     >
                                       <Trash2 aria-hidden="true" />
@@ -652,9 +700,9 @@ export default function CourseEditorModal({
                                 {isOpen && (
                                   <div className="border-t border-border bg-surface-2/30">
                                     {moduleLessons.length === 0 ? (
-                                      <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+                                      <div className="flex flex-col items-center gap-2.5 px-4 py-6 text-center">
                                         <p className="text-xs text-muted-foreground">This chapter has no lessons yet.</p>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-wrap justify-center gap-2">
                                           <Button
                                             size="sm"
                                             variant="outline"
@@ -672,28 +720,28 @@ export default function CourseEditorModal({
                                         </div>
                                       </div>
                                     ) : (
-                                      <ul className="divide-y divide-border/60">
+                                      <ul className="divide-y divide-border/70">
                                         {moduleLessons.map((l, lIdx) => {
                                           const playable = lessonHasPlayableVideo(l)
                                           return (
-                                            <li key={l.id} className="group flex items-center gap-2 px-3 py-2 transition-colors hover:bg-surface-2/60 sm:px-4">
+                                            <li key={l.id} className="group flex items-center gap-2 px-3.5 py-2.5 transition-colors hover:bg-surface-2/60 sm:px-4">
                                               <button
                                                 type="button"
                                                 onClick={() => handleLessonClick(l, m.title)}
                                                 title={playable ? `Play ${l.title}` : `Open ${l.title}`}
-                                                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-0.5 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 cursor-pointer"
+                                                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md py-0.5 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
                                               >
-                                                <span className="w-5 shrink-0 text-center tabular-nums text-[11px] font-medium text-subtle-foreground">{lIdx + 1}</span>
+                                                <span className="w-5 shrink-0 text-center text-[11px] font-medium tabular-nums text-subtle-foreground">{lIdx + 1}</span>
                                                 <span
                                                   className={cn(
-                                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset transition-colors",
                                                     l.type === "video"
                                                       ? playable
-                                                        ? "bg-primary-soft text-primary-text group-hover:bg-primary group-hover:text-primary-foreground"
-                                                        : "bg-primary-soft text-primary-text"
+                                                        ? "bg-primary-soft text-primary-text ring-primary/15 group-hover:bg-primary group-hover:text-primary-foreground"
+                                                        : "bg-primary-soft text-primary-text ring-primary/15"
                                                       : l.type === "lab"
-                                                        ? "bg-warning-soft text-warning"
-                                                        : "bg-info-soft text-info",
+                                                        ? "bg-warning-soft text-warning ring-warning/20"
+                                                        : "bg-info-soft text-info ring-info/20",
                                                   )}
                                                 >
                                                   {l.type === "video" ? (
@@ -729,16 +777,35 @@ export default function CourseEditorModal({
                                                   ))}
                                               </button>
                                               <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                                                <Button size="icon-sm" variant="ghost" aria-label={`Move ${l.title} earlier`} disabled={lIdx === 0} onClick={() => void moveContent("lesson", l.id, -1)}>↑</Button>
-                                                <Button size="icon-sm" variant="ghost" aria-label={`Move ${l.title} later`} disabled={lIdx === moduleLessons.length-1} onClick={() => void moveContent("lesson", l.id, 1)}>↓</Button>
-                                                <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} onClick={() => setEditingLesson(l)}>
+                                                <Button
+                                                  size="icon-sm"
+                                                  variant="ghost"
+                                                  aria-label={`Move ${l.title} earlier`}
+                                                  title="Move up"
+                                                  disabled={lIdx === 0}
+                                                  onClick={() => void moveContent("lesson", l.id, -1)}
+                                                >
+                                                  <ArrowUp aria-hidden="true" />
+                                                </Button>
+                                                <Button
+                                                  size="icon-sm"
+                                                  variant="ghost"
+                                                  aria-label={`Move ${l.title} later`}
+                                                  title="Move down"
+                                                  disabled={lIdx === moduleLessons.length - 1}
+                                                  onClick={() => void moveContent("lesson", l.id, 1)}
+                                                >
+                                                  <ArrowDown aria-hidden="true" />
+                                                </Button>
+                                                <Button size="icon-sm" variant="ghost" aria-label={`Edit ${l.title}`} title="Edit lesson" onClick={() => setEditingLesson(l)}>
                                                   <Edit2 aria-hidden="true" />
                                                 </Button>
                                                 <Button
                                                   size="icon-sm"
                                                   variant="ghost"
                                                   aria-label={`Delete ${l.title}`}
-                                                  className="text-danger hover:bg-danger/10 hover:text-danger"
+                                                  title="Delete lesson"
+                                                  className="text-danger hover:bg-danger-soft/60 hover:text-danger"
                                                   onClick={() => handleDeleteLesson(l.id, l.title)}
                                                 >
                                                   <Trash2 aria-hidden="true" />
@@ -761,7 +828,7 @@ export default function CourseEditorModal({
                         <button
                           type="button"
                           onClick={() => setIsAddModuleOpen(true)}
-                          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary-border hover:bg-primary-soft/40 hover:text-primary-text"
+                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface/50 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary-border hover:bg-primary-soft/40 hover:text-primary-text"
                         >
                           <Plus className="h-4 w-4" aria-hidden="true" />
                           Add another chapter
@@ -791,17 +858,17 @@ export default function CourseEditorModal({
                             const MatIcon = mat.type === "Code Notebook" ? FileCode : mat.type === "Dataset" ? Database : mat.type === "Slides" ? Presentation : FileText
                             const matTone =
                               mat.type === "Code Notebook"
-                                ? "bg-success-soft text-success"
+                                ? "bg-success-soft text-success ring-success/20"
                                 : mat.type === "Dataset"
-                                  ? "bg-info-soft text-info"
+                                  ? "bg-info-soft text-info ring-info/20"
                                   : mat.type === "Slides"
-                                    ? "bg-warning-soft text-warning"
-                                    : "bg-primary-soft text-primary-text"
+                                    ? "bg-warning-soft text-warning ring-warning/20"
+                                    : "bg-primary-soft text-primary-text ring-primary/15"
                             return (
-                              <li key={mat.id} className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xs transition-colors hover:border-primary-border">
+                              <li key={mat.id} className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-[var(--elev-xs)] transition-colors hover:border-primary-border">
                                 <div className="flex items-start gap-3">
-                                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", matTone)}>
-                                    <MatIcon className="h-5 w-5" aria-hidden="true" />
+                                  <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset", matTone)}>
+                                    <MatIcon className="h-4 w-4" aria-hidden="true" />
                                   </span>
                                   <div className="min-w-0 flex-1">
                                     <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{mat.title}</h3>
@@ -829,7 +896,7 @@ export default function CourseEditorModal({
                                     size="icon-sm"
                                     variant="ghost"
                                     aria-label={`Delete ${mat.title}`}
-                                    className="text-danger hover:bg-danger/10 hover:text-danger"
+                                    className="text-danger hover:bg-danger-soft/60 hover:text-danger"
                                     onClick={() => handleDeleteMaterial(mat.id, mat.title)}
                                   >
                                     <Trash2 aria-hidden="true" />
@@ -851,8 +918,11 @@ export default function CourseEditorModal({
                     <form onSubmit={handleSaveCourseSettings} className="space-y-5">
                       <PanelHeader title="Course settings" description="Catalog details, delivery format and pricing." />
 
-                      <section className="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <h3 className="text-sm font-semibold text-foreground">Basics</h3>
+                      <section className="space-y-4 rounded-lg border border-border bg-surface p-5 shadow-[var(--elev-xs)]">
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">Basics</h3>
+                          <p className="mt-0.5 text-xs text-muted-foreground">Catalog identity and instructor ownership.</p>
+                        </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-foreground">Course title</label>
                           <Input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
@@ -879,8 +949,11 @@ export default function CourseEditorModal({
                         </div>
                       </section>
 
-                      <section className="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <h3 className="text-sm font-semibold text-foreground">Delivery & pricing</h3>
+                      <section className="space-y-4 rounded-lg border border-border bg-surface p-5 shadow-[var(--elev-xs)]">
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">Delivery & pricing</h3>
+                          <p className="mt-0.5 text-xs text-muted-foreground">Difficulty tier, catalog visibility, tuition, and seat cap.</p>
+                        </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-foreground">Difficulty</label>
@@ -896,16 +969,28 @@ export default function CourseEditorModal({
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-foreground">Tuition fee (₹)</label>
-                            <Input type="number" min={0} value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} />
+                            <Input
+                              type="number"
+                              min={0}
+                              placeholder="0 (free)"
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(e.target.value)}
+                            />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-foreground">Seat capacity</label>
-                            <Input type="number" min={10} value={editCapacity} onChange={(e) => setEditCapacity(Number(e.target.value))} />
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Unlimited"
+                              value={editCapacity}
+                              onChange={(e) => setEditCapacity(e.target.value)}
+                            />
                           </div>
                         </div>
                       </section>
 
-                      <div className="flex justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2 rounded-lg border border-border bg-surface px-4 py-3 shadow-[var(--elev-xs)]">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                           Close
                         </Button>
@@ -1250,7 +1335,7 @@ export default function CourseEditorModal({
                       moduleTitle={moduleTitle}
                       poster="/assets/course_genai.jpg"
                       completed={false}
-                      onComplete={() => {}}
+                      onComplete={() => { }}
                       autoPlay
                     />
                   )}

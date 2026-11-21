@@ -15,7 +15,7 @@ const root = fileURLToPath(new URL("../", import.meta.url))
 const parent = path.resolve(root, ".data", "isolated-tests")
 mkdirSync(parent, { recursive: true })
 const cluster = mkdtempSync(path.join(parent, "run-"))
-const cleanEnv: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "test", DEMO_MODE: "false", DEV_FAKE_LOGIN: "false", DATABASE_SSL: "disable" }
+const cleanEnv: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "test", DEMO_MODE: "false", DATABASE_SSL: "disable" }
 delete cleanEnv.DATABASE_URL
 delete cleanEnv.DATABASE_CA_CERT
 delete cleanEnv.NODE_OPTIONS

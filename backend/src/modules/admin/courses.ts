@@ -1,4 +1,5 @@
 import { contentChanged, lockCourse, reorderContent, snapshotLesson } from "../../learning/content.js"
+import { syncCourseOffer } from "../../learning/course-offer.js"
 import { randomUUID } from "node:crypto"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -11,7 +12,6 @@ import {
   lesson_revisions,
   course_materials,
   assignments,
-  cohort_batches,
   enrollments,
   profiles,
 } from "../../db/schema.js"
@@ -26,7 +26,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
   // 1. List all courses with stats
   app.get("/courses", async () => {
     // Query courses, enrollments count, modules count, lessons count and cohort count in parallel
-    const [courseRows, enrolledCounts, moduleCounts, lessonCounts, cohortCounts] = await Promise.all([
+    const [courseRows, enrolledCounts, moduleCounts, lessonCounts] = await Promise.all([
       db.select().from(courses).where(sql`${courses.deleted_at} is null`).orderBy(asc(courses.position), asc(courses.title)),
       db.execute(sql`
         select course_id, count(*)::int as count
@@ -43,10 +43,6 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         from lms.lessons where archived_at is null
         group by course_id
       `),
-      db
-        .select({ course_id: cohort_batches.course_id, count: sql<number>`count(*)::int` })
-        .from(cohort_batches)
-        .groupBy(cohort_batches.course_id),
     ])
 
     const enrolledMap = new Map<string, number>(
@@ -58,9 +54,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     const lessonMap = new Map<string, number>(
       (lessonCounts.rows as { course_id: string; count: number }[]).map((r) => [r.course_id, r.count])
     )
-    const cohortMap = new Map<string, number>(cohortCounts.map((r) => [r.course_id, r.count]))
 
-    const financial = await db.execute(sql`select o.course_id, coalesce(sum(p.amount-p.refunded_amount) filter(where p.captured_at is not null),0)::bigint as net from lms.orders o left join lms.payments p on p.order_id=o.id group by o.course_id`)
+    const financial = await db.execute(sql`select o.course_id, coalesce(sum(p.amount-p.refunded_amount) filter(where p.captured_at is not null),0)::bigint as net from lms.orders o left join lms.payments p on p.order_id=o.id where o.batch_id is null and o.course_id is not null group by o.course_id`)
     const revenue = new Map(financial.rows.map(r => [String(r.course_id), Number(r.net) / 100]))
     const completions=await db.execute(sql`select e.course_id,round(100.0*count(*) filter(where exists(select 1 from lms.completion_credentials c where c.student_id=e.student_id and c.course_id=e.course_id and c.revoked_at is null))/nullif(count(*),0))::int as pct from lms.enrollments e group by e.course_id`)
     const completed=new Map(completions.rows.map(r=>[String(r.course_id),Number(r.pct)]))
@@ -71,7 +66,6 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       enrolled_students: enrolledMap.get(c.id) ?? 0,
       modules_count: moduleMap.get(c.id) ?? 0,
       lessons_count: lessonMap.get(c.id) ?? 0,
-      cohort_count: cohortMap.get(c.id) ?? 0,
     }))
 
     return { courses: detailedCourses }
@@ -125,6 +119,52 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     }
   })
 
+  // 2b. Learners enrolled in a course (any batch, any route: paid, free or added by the team)
+  app.get<{ Params: { id: string } }>("/courses/:id/learners", async (req) => {
+    const courseId = req.params.id
+    const [course] = await db.select({ id: courses.id }).from(courses).where(and(eq(courses.id, courseId), sql`${courses.deleted_at} is null`)).limit(1)
+    if (!course) throw notFound("Course not found.")
+    const res = await db.execute(sql`
+      select
+        u.id,
+        u.full_name as name,
+        u.email,
+        u.avatar_url,
+        coalesce(p.roll_number, '') as roll_number,
+        e.enrolled_at,
+        (select count(*)::int from lms.lessons l where l.course_id = e.course_id and l.archived_at is null) as total_lessons,
+        (select count(*)::int from lms.lesson_progress lp join lms.lessons l on l.id = lp.lesson_id and l.archived_at is null where lp.student_id = e.student_id and lp.course_id = e.course_id) as completed_lessons,
+        (select max(lp.completed_at) from lms.lesson_progress lp where lp.student_id = e.student_id and lp.course_id = e.course_id) as last_activity,
+        exists(select 1 from lms.completion_credentials c where c.student_id = e.student_id and c.course_id = e.course_id and c.revoked_at is null) as certified,
+        exists(select 1 from lms.orders o join lms.payments pay on pay.order_id = o.id where o.student_id = e.student_id and o.course_id = e.course_id and o.batch_id is null and pay.captured_at is not null) as paid
+      from lms.enrollments e
+      join lms.users u on u.id = e.student_id
+      left join lms.profiles p on p.id = u.id
+      where e.course_id = ${courseId}
+      order by e.enrolled_at desc, u.full_name asc
+    `)
+    type Row = { id: string; name: string | null; email: string; avatar_url: string | null; roll_number: string; enrolled_at: Date | string; total_lessons: number; completed_lessons: number; last_activity: Date | string | null; certified: boolean; paid: boolean }
+    const learners = (res.rows as Row[]).map((r) => {
+      const total = Number(r.total_lessons)
+      const done = Math.min(Number(r.completed_lessons), total)
+      return {
+        id: r.id,
+        name: r.name ?? r.email,
+        email: r.email,
+        avatar_url: r.avatar_url,
+        roll_number: r.roll_number,
+        enrolled_at: new Date(r.enrolled_at).toISOString(),
+        last_activity: r.last_activity ? new Date(r.last_activity).toISOString() : null,
+        completed_lessons: done,
+        total_lessons: total,
+        progress: total > 0 ? Math.round((done / total) * 100) : 0,
+        certified: Boolean(r.certified),
+        source: r.paid ? "paid" : "free_or_added",
+      }
+    })
+    return { learners }
+  })
+
   // 3. Create a new course
   const createSchema = z.object({
     title: z.string().trim().min(3, "Title must be at least 3 characters.").max(150),
@@ -141,7 +181,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     certificate_skills: z.array(z.string().trim()).optional(),
     is_starter: z.boolean().default(false),
     price: z.number().int().min(0).max(10_000_000).default(39999),
-    capacity: z.number().int().min(1).max(100_000).default(250),
+    capacity: z.number().int().min(1).max(100_000).nullable().default(null),
     status: z.enum(["Published", "Draft", "Archived"]).default("Draft"),
   })
 
@@ -175,7 +215,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       .from(courses)
     const nextPos = (maxPosRow?.max ?? 0) + 1
 
-    const [created] = await db
+    const created = await db.transaction(async tx => {
+      const [row] = await tx
       .insert(courses)
       .values({
         id: courseId,
@@ -201,6 +242,9 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         position: nextPos,
       })
       .returning()
+      await syncCourseOffer(tx, row.id)
+      return row
+    })
 
     invalidateCatalogCache()
 
@@ -212,7 +256,6 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
         enrolled_students: 0,
         modules_count: 0,
         lessons_count: 0,
-        cohort_count: 0,
       },
     }
   })
@@ -233,7 +276,7 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     is_starter: z.boolean().optional(),
     position: z.number().int().optional(),
     price: z.number().int().min(0).max(10_000_000).optional(),
-    capacity: z.number().int().min(1).max(100_000).optional(),
+    capacity: z.number().int().min(1).max(100_000).nullable().optional(),
     status: z.enum(["Published", "Draft", "Archived"]).optional(),
   })
 
@@ -246,6 +289,8 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
       if (!Object.keys(patch).length) return existing
       if (patch.status === "Published") await assertPublishable(tx, req.params.id)
       const [row] = await tx.update(courses).set(patch).where(eq(courses.id, req.params.id)).returning()
+      // Price, title and publication flow straight into the course's single offer so the catalog never disagrees with the editor.
+      await syncCourseOffer(tx, req.params.id)
       return row
     })
     invalidateCatalogCache()
@@ -261,13 +306,18 @@ export async function adminCoursesRoutes(app: FastifyInstance, ctx: AppContext) 
     await db.transaction(async tx => {
       await lockCourse(tx, req.params.id)
       await tx.update(courses).set({ deleted_at: new Date(), status: "Archived" }).where(eq(courses.id, req.params.id))
+      await syncCourseOffer(tx, req.params.id)
     })
     invalidateCatalogCache()
     return { ok: true, deleted: existing.id }
   })
 
   app.post<{ Params: { id: string } }>("/courses/:id/restore", async req => {
-    const [course] = await db.update(courses).set({ deleted_at: null, status: "Draft" }).where(eq(courses.id, req.params.id)).returning()
+    const course = await db.transaction(async tx => {
+      const [row] = await tx.update(courses).set({ deleted_at: null, status: "Draft" }).where(eq(courses.id, req.params.id)).returning()
+      if (row) await syncCourseOffer(tx, row.id)
+      return row
+    })
     if (!course) throw notFound("Course not found")
     invalidateCatalogCache(); return { course }
   })

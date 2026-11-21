@@ -20,7 +20,11 @@ test("an empty install can author and publish a self-paced offer without seeded 
   module = (await admin.call("POST", `/api/admin/courses/${course}/modules`, { title: "Foundations" })).body.module.id
   first = (await admin.call("POST", `/api/admin/courses/${course}/lessons`, { moduleId: module, title: "Read the introduction", type: "reading", summary: "Original learning content" })).body.lesson.id
   second = (await admin.call("POST", `/api/admin/courses/${course}/lessons`, { moduleId: module, title: "Watch the demonstration", type: "video" })).body.lesson.id
-  offer = (await admin.call("POST", "/api/admin/offers", { course_id: course, title: "Fresh self-paced learning", mode: "self_paced", price: 250 })).body.offer.id
+  // A course owns exactly one offer, created with it. Its price is the course price.
+  assert.equal((await admin.call("POST", "/api/admin/offers", { course_id: course, title: "Second offer", mode: "self_paced", price: 5 })).status, 409)
+  assert.equal((await admin.call("PATCH", `/api/admin/courses/${course}`, { price: 250 })).status, 200)
+  offer = (await h.ctx.db.select().from(course_offers).where(and(eq(course_offers.course_id, course), eq(course_offers.mode, "self_paced"))))[0].id
+  assert.equal((await h.ctx.db.select().from(course_offers).where(eq(course_offers.id, offer)))[0].price, 250)
   assert.equal((await admin.call("PATCH", `/api/admin/offers/${offer}`, { status: "Published" })).status, 400)
   const asset = randomUUID(), key = `videos/assets/${asset}/720p.mp4`
   await h.ctx.storage.put(key, Buffer.from("ready-video-fixture"), "video/mp4")

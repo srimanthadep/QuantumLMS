@@ -25,7 +25,8 @@ export async function selfPacedSeat(tx: Tx, courseId: string, student: string) {
       select student_id from lms.entitlement_grants where course_id=${course.id} and revoked_at is null and starts_at<=now() and (expires_at is null or expires_at>now())
       union select student_id from lms.seat_reservations where course_id=${course.id} and batch_id is null and state='active' and expires_at>now()
     ) seats where student_id<>${student}::uuid`)
-    if (Number(used.rows[0].used) >= course.capacity) throw conflict("This course has reached its learner capacity")
+    // A NULL capacity means the course is open to everyone, like any Coursera-style catalog course.
+    if (course.capacity !== null && Number(used.rows[0].used) >= course.capacity) throw conflict("This course has reached its learner capacity")
   }
   return course
 }
@@ -44,10 +45,11 @@ export async function checkout(ctx: AppContext, student: string, input: { offer_
     }
     const [hint] = await tx.select().from(course_offers).where(eq(course_offers.id, input.offer_id))
     if (!hint) throw badRequest("Choose a published paid offer")
-    const [course] = await tx.select().from(courses).where(eq(courses.id, hint.course_id)).for("update")
+    // Only a self-paced offer belongs to a course. A live offer belongs to exactly one batch and never touches a course.
+    const [course] = hint.course_id ? await tx.select().from(courses).where(eq(courses.id, hint.course_id)).for("update") : []
     const [offer] = await tx.select().from(course_offers).where(eq(course_offers.id, input.offer_id)).for("update")
     if (!offer || offer.status !== "Published" || offer.price <= 0) throw badRequest("Choose a published paid offer")
-    if (course?.status !== "Published" || course.deleted_at) throw conflict("This course is not published")
+    if (offer.mode === "self_paced" && (!course || course.status !== "Published" || course.deleted_at)) throw conflict("This course is not published")
     if ((offer.mode === "live") !== Boolean(input.batch_id)) throw badRequest("Live checkout requires its batch; self-paced checkout has no batch")
     const expiry = new Date(Date.now() + ctx.config.PAYMENT_RESERVATION_MINUTES * 60_000)
     const [row] = await tx.insert(orders).values({ id: randomUUID(), student_id: student, offer_id: offer.id, course_id: offer.course_id,
@@ -60,9 +62,10 @@ export async function checkout(ctx: AppContext, student: string, input: { offer_
     }
     if (input.batch_id) {
       const [batch] = await tx.select().from(cohort_batches).where(eq(cohort_batches.id, input.batch_id)).for("update")
-      if (batch?.offer_id !== offer.id || batch.course_id !== offer.course_id) throw badRequest("Batch and offer do not match")
+      if (batch?.offer_id !== offer.id) throw badRequest("Batch and offer do not match")
       await reserveSeat(tx, { batchId: batch.id, student, orderId: row.id, minutes: ctx.config.PAYMENT_RESERVATION_MINUTES })
     } else {
+      if (!course) throw badRequest("Choose a published paid offer")
       await selfPacedSeat(tx, course.id, student)
       const pending = await tx.select().from(seat_reservations).where(and(eq(seat_reservations.offer_id, offer.id), eq(seat_reservations.student_id, student), eq(seat_reservations.state, "active"), sql`${seat_reservations.expires_at}>now()`))
       if (pending.length) throw conflict("You already have a pending checkout for this offer")
@@ -97,7 +100,7 @@ async function removePaymentAccess(tx: Tx, order: typeof orders.$inferSelect, pa
   // Find by order, including registrations moved to another batch. Never revoke an unrelated purchase/manual source.
   const registrations = await tx.select().from(batch_registrations).where(and(eq(batch_registrations.order_id, order.id), eq(batch_registrations.student_id, order.student_id), sql`${batch_registrations.state}<>'cancelled'`))
   for (const registration of registrations.sort((a,b) => a.batch_id.localeCompare(b.batch_id))) await cancelRegistration(tx, registration.batch_id, registration.student_id)
-  await revokeSource(tx, order.student_id, order.course_id, "payment", payment.id)
+  if (order.course_id) await revokeSource(tx, order.student_id, order.course_id, "payment", payment.id)
 }
 
 /** Canonical provider state, not the event snapshot, determines access. Serializing the order makes all ingress paths idempotent. */
@@ -136,9 +139,10 @@ export async function reconcilePayment(ctx: AppContext, remote: ProviderPayment)
         if (order.batch_id) {
           const [existing] = await admissionTx.select().from(batch_registrations).where(and(eq(batch_registrations.batch_id, order.batch_id), eq(batch_registrations.student_id, order.student_id)))
           if (existing && ["confirmed", "paused"].includes(existing.state)) throw conflict("The learner already has a place in this batch")
-          const result = await admit(admissionTx, { batchId: order.batch_id, student: order.student_id, course: order.course_id, source: "payment", orderId: order.id, paidAt: new Date(), allowUpdate: true })
+          const result = await admit(admissionTx, { batchId: order.batch_id, student: order.student_id, source: "payment", orderId: order.id, paidAt: new Date(), allowUpdate: true })
           if (result.skipped) throw conflict("The learner already has a registration")
         } else {
+          if (!order.course_id) throw conflict("This order has no course to unlock")
           await selfPacedSeat(admissionTx, order.course_id, order.student_id)
           const existingPurchase = await admissionTx.execute(sql`select id from lms.entitlement_grants where student_id=${order.student_id}::uuid and offer_id=${order.offer_id} and source_type='payment' and revoked_at is null and (expires_at is null or expires_at>now())`)
           if (existingPurchase.rows.length) throw conflict("This offer has already been purchased")

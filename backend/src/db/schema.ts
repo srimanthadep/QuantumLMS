@@ -106,7 +106,8 @@ export const courses = lms.table("courses", {
   is_starter: boolean().default(false).notNull(),
   position: integer().default(0).notNull(),
   price: integer().default(39999).notNull(),
-  capacity: integer().default(250).notNull(),
+  /** Optional cap on self-paced enrollments. NULL means unlimited (the Coursera-style default). */
+  capacity: integer(),
   status: text().default("Draft").notNull(),
 }, (table) => [
   unique("courses_code_key").on(table.code),
@@ -1187,19 +1188,21 @@ export const recent_placements = lms.table("recent_placements", {
 ]);
 
 export const course_offers = lms.table("course_offers", {
-  id: text().primaryKey(), course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  /** Self-paced offers always belong to a course. A live offer is owned by exactly one batch and has no course. */
+  id: text().primaryKey(), course_id: text().references(() => courses.id, { onDelete: "cascade" }),
   mode: text().notNull(), title: text().notNull(), price: integer().notNull().default(0), currency: text().notNull().default("INR"),
   status: text().notNull().default("Draft"),
   completion_policy: jsonb().notNull().default({ requiredLessonsPercent: 100, requiredAssessments: true, passMark: 40, batchEnded: true, attendancePercent: 0 }),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-}, t => [unique("offers_id_course_key").on(t.id, t.course_id), check("offer_mode", sql`${t.mode} in ('live','self_paced')`),
+}, t => [unique("offers_id_course_key").on(t.id, t.course_id), check("offer_mode", sql`${t.mode} in ('live','self_paced')`), check("offer_self_paced_needs_course", sql`${t.mode} <> 'self_paced' or ${t.course_id} is not null`),
   check("offer_status", sql`${t.status} in ('Draft','Published','Archived')`), check("offer_price", sql`${t.price} >= 0`)]);
 
 /** Cohort batches owned by admins and linked to courses. */
 export const cohort_batches = lms.table("cohort_batches", {
   id: text().primaryKey().notNull(),
   name: text().notNull(),
-  course_id: text().notNull(),
+  /** Optional topic label only. A batch never grants course lessons and a course never lists batches. */
+  course_id: text(),
   offer_id: text().references(() => course_offers.id),
   lifecycle: text().notNull().default("Draft"),
   minimum_paid_registrations: integer(),
@@ -1229,7 +1232,6 @@ export const cohort_batches = lms.table("cohort_batches", {
   created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updated_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull(),
 }, (table) => [
-  foreignKey({ columns: [table.offer_id, table.course_id], foreignColumns: [course_offers.id, course_offers.course_id], name: "batch_offer_course_fkey" }),
   check("batch_lifecycle", sql`${table.lifecycle} in ('Draft','Recruiting','Ready','Scheduled','Running','Completed','Cancelled')`),
   check("batch_provider", sql`${table.live_provider} in ('zoom_link','meet_link','own_stream')`),
   check("batch_threshold", sql`${table.minimum_paid_registrations} is null or ${table.minimum_paid_registrations} between 0 and ${table.max_seats}`),
@@ -1239,7 +1241,7 @@ export const cohort_batches = lms.table("cohort_batches", {
     columns: [table.course_id],
     foreignColumns: [courses.id],
     name: "cohort_batches_course_id_fkey",
-  }).onDelete("cascade"),
+  }).onDelete("set null"),
   check("cohort_batches_name_check", sql`(char_length(name) >= 2) AND (char_length(name) <= 150)`),
   check("cohort_batches_max_seats_check", sql`max_seats > 0`),
   check("cohort_batches_delivery_mode_check", sql`delivery_mode = ANY (ARRAY['Live + Replay'::text, 'Replay Only'::text, 'Self-Paced'::text])`),
@@ -1313,7 +1315,9 @@ export const upload_intents = lms.table("upload_intents", {
 export const media_assets = lms.table("media_assets", {
   session_id: text().references(() => live_sessions.id),
   id: text().primaryKey(),
-  course_id: text().notNull().references(() => courses.id, { onDelete: "cascade" }),
+  /** Course library uploads carry a course. Batch-only videos carry a batch instead. */
+  course_id: text().references(() => courses.id, { onDelete: "cascade" }),
+  batch_id: text().references(() => cohort_batches.id, { onDelete: "cascade" }),
   owner_id: uuid().notNull().references(() => users.id),
   source_key: text().notNull().unique(),
   state: text().notNull().default("uploading"),
@@ -1322,7 +1326,7 @@ export const media_assets = lms.table("media_assets", {
   draft_chapters: jsonb().$type<{ start: number; title: string }[]>().notNull().default([]),
   error: text(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-}, t => [check("media_asset_state", sql`${t.state} in ('uploading','queued','processing','failed','ready')`)]);
+}, t => [check("media_asset_state", sql`${t.state} in ('uploading','queued','processing','failed','ready')`), check("media_asset_scope", sql`${t.course_id} is not null or ${t.batch_id} is not null`)]);
 export const media_variants = lms.table("media_variants", {
   asset_id: text().notNull().references(() => media_assets.id, { onDelete: "cascade" }),
   quality: text().notNull(), key: text().notNull().unique(),
@@ -1374,7 +1378,7 @@ export const live_sessions = lms.table("live_sessions", {
 
 export const orders = lms.table("orders", {
   id: text().primaryKey(), student_id: uuid().notNull().references(() => users.id), offer_id: text().notNull().references(() => course_offers.id),
-  course_id: text().notNull().references(() => courses.id), batch_id: text().references(() => cohort_batches.id),
+  course_id: text().references(() => courses.id), batch_id: text().references(() => cohort_batches.id),
   idempotency_key: text().notNull(), provider: text().notNull().default("razorpay"), provider_order_id: text().unique(),
   amount: integer().notNull(), currency: text().notNull().default("INR"), offer_title: text().notNull(), mode: text().notNull(),
   status: text().notNull().default("creating"), fulfilled_payment_id: text(), error: text(),
@@ -1429,7 +1433,8 @@ export const session_attendance = lms.table("session_attendance", {
 
 
 export const recordings = lms.table("recordings", {
-  id: text().primaryKey(), session_id: text().notNull().unique().references(() => live_sessions.id),
+  /** session_id is null for a batch-only video the teacher uploaded outside a live class. */
+  id: text().primaryKey(), session_id: text().unique().references(() => live_sessions.id), batch_id: text().notNull().references(() => cohort_batches.id),
   asset_id: text().notNull().unique().references(() => media_assets.id), title: text().notNull(), summary: text().notNull().default(""),
   status: text().notNull().default("Draft"), version: integer().notNull().default(1), chapters_initialized: boolean().notNull().default(false),
   release_at: timestamp({ withTimezone: true }).notNull(), expires_at: timestamp({ withTimezone: true }).notNull(),
@@ -1545,3 +1550,30 @@ export const realtime_deliveries = lms.table("realtime_deliveries", {
   consumer_id:uuid().notNull().references(()=>realtime_consumers.id,{onDelete:"cascade"}),
   event_id:uuid().notNull().references(()=>realtime_events.id,{onDelete:"cascade"}),
 },t=>[primaryKey({columns:[t.consumer_id,t.event_id]})]);
+
+/**
+ * Teacher actions that wait for an administrator. One open request per target; a decided request is kept as history.
+ * recording.publish: target_id is the recording, target_version the reviewed version the teacher asked to publish.
+ */
+export const approval_requests = lms.table("approval_requests", {
+  id: uuid().primaryKey().defaultRandom(),
+  kind: text().notNull(),
+  target_id: text().notNull(),
+  target_version: integer().notNull(),
+  batch_id: text().references(() => cohort_batches.id, { onDelete: "set null" }),
+  requested_by: uuid().references(() => users.id, { onDelete: "set null" }),
+  note: text().notNull().default(""),
+  state: text().notNull().default("Pending"),
+  decided_by: uuid().references(() => users.id, { onDelete: "set null" }),
+  decision_note: text().notNull().default(""),
+  decided_at: timestamp({ withTimezone: true }),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  check("approval_kind", sql`${t.kind} in ('recording.publish')`),
+  check("approval_state", sql`${t.state} in ('Pending','Approved','Rejected','Withdrawn','Superseded')`),
+  check("approval_decision", sql`(${t.state}='Pending') = (${t.decided_at} is null)`),
+  uniqueIndex("approval_one_open_per_target").on(t.kind, t.target_id).where(sql`${t.state}='Pending'`),
+  index("approval_state_time_idx").on(t.state, t.created_at),
+  index("approval_target_idx").on(t.kind, t.target_id, t.created_at),
+]);

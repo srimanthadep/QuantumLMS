@@ -16,6 +16,7 @@ import {
   Field,
   Input,
   DatePicker,
+  TimePicker,
   PageHeader,
   Popover,
   PopoverContent,
@@ -177,11 +178,11 @@ function NewEventDialog({ open, onOpenChange, date }: { open: boolean; onOpenCha
               <DatePicker value={day} onChange={setDay} />
             </Field>
             <Field label={deadline ? "Due at" : "Starts"}>
-              <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+              <TimePicker value={start} onChange={setStart} clearable={false} />
             </Field>
             {!deadline && (
               <Field label="Ends" error={errors.time}>
-                <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+                <TimePicker value={end} onChange={setEnd} clearable={false} />
               </Field>
             )}
           </div>

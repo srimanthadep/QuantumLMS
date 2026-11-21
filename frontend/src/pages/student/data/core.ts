@@ -14,7 +14,7 @@ export type AttemptRow = Pick<
 >
 type LessonRow = Pick<Tables<"lessons">, "id" | "module_id" | "course_id" | "position" | "title" | "duration" | "minutes" | "type" | "summary" | "video_url" | "video_qualities">
 
-type CatalogCourse = Pick<Tables<"courses">, "id" | "code" | "title" | "category" | "image" | "instructor" | "instructor_role" | "description" | "level" | "credits" | "duration" | "rating" | "reviews" | "progress_color"> & { modules_count: number; lessons_count: number }
+type CatalogCourse = Pick<Tables<"courses">, "id" | "code" | "title" | "category" | "image" | "instructor" | "instructor_role" | "description" | "level" | "credits" | "duration" | "rating" | "reviews" | "progress_color"> & { modules_count: number; lessons_count: number; price?: number; is_free?: boolean; offer_id?: string }
 export interface CoreRaw {
   catalog?: CatalogCourse[]
   uid: string
@@ -293,6 +293,7 @@ export function deriveCore(raw: CoreRaw, now = Date.now()): CoreView {
       rating: c.rating,
       reviews: c.reviews,
       progressColor: c.progress_color,
+      price: Number(c.price ?? 0),
       totalModules: "modules_count" in c ? c.modules_count : mods.length,
       completedModules: modules.filter((m) => m.status === "Completed").length,
       totalLessons: "lessons_count" in c ? c.lessons_count : total,

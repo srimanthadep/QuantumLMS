@@ -19,7 +19,7 @@ test("250 admitted students concurrently join and request exact-batch replay wit
   await h.ctx.db.insert(live_sessions).values([{id:live,batch_id:batch,occurrence_key:live,title:"Live class",starts_at:new Date(now-60000),ends_at:new Date(now+3600000),status:"Live",provider:"meet_link",join_url:"https://meet.google.com/abc-defg-hij"},{id:ended,batch_id:batch,occurrence_key:ended,title:"Replay class",starts_at:new Date(now-3600000),ends_at:new Date(now-1800000),status:"Ended",actual_end:new Date(now-1800000)}])
   await h.ctx.db.insert(media_assets).values({id:asset,course_id:course,owner_id:ids[0],session_id:ended,source_key:"videos/load-source.mp4",state:"ready",duration_seconds:60})
   await h.ctx.db.insert(media_variants).values({asset_id:asset,quality:"720p",key:"videos/load-720.mp4",bytes:20,height:720})
-  await h.ctx.db.insert(recordings).values({id:replay,session_id:ended,asset_id:asset,title:"Published replay",status:"Published",release_at:new Date(now-60000),expires_at:new Date(now+3600000)})
+  await h.ctx.db.insert(recordings).values({id:replay,session_id:ended,batch_id:batch,asset_id:asset,title:"Published replay",status:"Published",release_at:new Date(now-60000),expires_at:new Date(now+3600000)})
   const times:number[]=[],started=performance.now()
   await Promise.all(learners.flatMap(user=>[`/api/sessions/${live}/join`,`/api/recordings/${replay}/playback`].map(async path=>{const at=performance.now();const r=await user.call("POST",path,{});times.push(performance.now()-at);assert.equal(r.status,200,`${path}: ${JSON.stringify(r.body)}`)})))
   times.sort((a,b)=>a-b)

@@ -3,7 +3,7 @@ import { useSession } from "@/app/session"
 import CognitoGate, { FullPageError } from "@/app/CognitoGate"
 import RouteFallback from "@/app/RouteFallback"
 import { useToast } from "@/components/ui/toast"
-import { api, DEMO_STUDENT, isDemoStudentEmail, toApiError } from "@/lib/api"
+import { isDemoStudentEmail, toApiError } from "@/lib/api"
 import { mutate, peek, prime, refresh, useResource, type Resource } from "@/lib/resource"
 import { useChannel } from "@/lib/ws"
 import type { CourseItem } from "../studentTypes"
@@ -246,7 +246,7 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
 /** Signs the student in (when needed) and loads their data before rendering the portal. */
 export default function StudentDataProvider({ children }: { children: ReactNode }) {
   return (
-    <CognitoGate demo={DEMO_STUDENT} load={loadInitialStudentData} errorTitle="The student portal can't connect">
+    <CognitoGate load={loadInitialStudentData} errorTitle="The student portal can't connect">
       {(uid) => (
         <DataLoader key={uid} uid={uid}>
           {children}

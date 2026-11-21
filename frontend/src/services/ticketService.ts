@@ -1,5 +1,5 @@
-import { api, DEMO_SUPPORT } from "@/lib/api"
-import { accessToken, isAuthConfigured, signInWithEmail } from "@/lib/auth"
+import { api } from "@/lib/api"
+import { accessToken } from "@/lib/auth"
 
 export interface SupportTicket {
   id: string
@@ -82,25 +82,10 @@ function notifyTicketListeners() {
   }
 }
 
-/**
- * Ensures an active Cognito authentication session exists.
- * If not signed in and auth is configured, quietly signs in the shared demo support account.
- */
+/** Uses the current authenticated account; never signs in a different user implicitly. */
 export const ensureAuthSession = async () => {
   const token = await accessToken()
-  if (token) return { token }
-
-  if (isAuthConfigured) {
-    try {
-      await signInWithEmail(DEMO_SUPPORT.email, DEMO_SUPPORT.password)
-      const freshToken = await accessToken()
-      return freshToken ? { token: freshToken } : null
-    } catch (err) {
-      console.warn("Could not establish auth session:", err)
-    }
-  }
-
-  return null
+  return token ? { token } : null
 }
 
 /**

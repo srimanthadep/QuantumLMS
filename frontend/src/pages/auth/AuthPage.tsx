@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -24,7 +24,7 @@ import {
   Layers3,
   CirclePlay,
 } from "lucide-react"
-import { demoAccounts, ALL_DEMO_ACCOUNTS } from "@/data/demoAccounts"
+import savedAccounts from "virtual:local-password-accounts"
 import type { UserRole } from "@/types"
 import {
   accountConfirmEmail,
@@ -35,7 +35,6 @@ import {
   accountVerifyCode,
   cancelAccountSignIn,
   studentSignUp,
-  usesAccounts,
   type AccountStep,
 } from "./accountAuth"
 
@@ -103,21 +102,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const initialMode =
     searchParams.get("mode") === "signup" ? "signup" : "signin"
   const paramRole = searchParams.get("role") as UserRole | null
-  const defaultAccount =
-    demoAccounts.find((d) => d.role === (paramRole || "Student")) ??
-    ALL_DEMO_ACCOUNTS.Student
-
   const [mode, setMode] = useState<"signin" | "signup">(initialMode)
-  const [role, setRole] = useState<UserRole>(defaultAccount.role)
-  const [email, setEmail] = useState(
-    initialMode === "signin" ? defaultAccount.email : "",
-  )
-  const [password, setPassword] = useState(
-    initialMode === "signin" ? defaultAccount.password : "",
-  )
-  const [fullName, setFullName] = useState(
-    initialMode === "signin" ? defaultAccount.name : "",
-  )
+  const [role, setRole] = useState<UserRole>(paramRole && paramRole in ROLE_ICONS ? paramRole : "Student")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const signingIn = useRef(false)
   const [phone, setPhone] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -166,27 +156,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }
   }, [searchParams, onLogin])
 
-  const handleRoleSelect = (targetRole: UserRole) => {
-    setRole(targetRole)
-    setErrorMessage(null)
-    setInfoMessage(null)
-    if (codeStep) {
-      setCodeStep(null)
-      void cancelAccountSignIn()
-    }
-    const account = demoAccounts.find((d) => d.role === targetRole) || ALL_DEMO_ACCOUNTS[targetRole]
-    if (account) {
-      setEmail(account.email)
-      setPassword(account.password)
-      setFullName(account.name)
-    }
-  }
-
   /** Runs an async Cognito/API auth step and handles completion */
   const runAccount = async (
     step: () => Promise<AccountStep>,
-    fallbackDemoRole?: UserRole,
   ) => {
+    if (signingIn.current) return
+    signingIn.current = true
     setIsLoading(true)
     setErrorMessage(null)
     try {
@@ -210,38 +185,20 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
           "Authentication failed. Please check your credentials.",
       )
     } finally {
+      signingIn.current = false
       setIsLoading(false)
     }
   }
 
-  /** Direct 1-click launch for a demo account */
-  const handleQuickLaunch = (targetRole: UserRole) => {
-    const account = demoAccounts.find((d) => d.role === targetRole) || ALL_DEMO_ACCOUNTS[targetRole]
-    if (!account) return
-
-    setRole(targetRole)
+  /** Uses the saved password through the same Cognito flow as the email form. */
+  const handleQuickLaunch = (account: (typeof savedAccounts)[number]) => {
+    if (isLoading || signingIn.current) return
+    setRole(account.role)
     setEmail(account.email)
     setPassword(account.password)
-    setFullName(account.name)
     setErrorMessage(null)
     setInfoMessage(null)
-
-    if (usesAccounts(targetRole)) {
-      void runAccount(
-        () => accountSignIn(account.email, account.password),
-        targetRole,
-      )
-      return
-    }
-
-    onLogin({
-      id: account.role.toLowerCase(),
-      name: account.name,
-      role: account.role,
-      email: account.email,
-      avatar: account.avatar,
-      title: account.title,
-    })
+    void runAccount(() => accountSignIn(account.email, account.password))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -268,28 +225,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     }
 
     if (mode === "signin") {
-      const trimmedEmail = email.trim().toLowerCase()
-      const matchedDemo =
-        demoAccounts.find((d) => d.email.toLowerCase() === trimmedEmail) ||
-        Object.values(ALL_DEMO_ACCOUNTS).find((d) => d.email.toLowerCase() === trimmedEmail)
-      const effectiveRole = matchedDemo ? matchedDemo.role : role
-
-      if (!usesAccounts(effectiveRole) && matchedDemo) {
-        onLogin({
-          id: matchedDemo.role.toLowerCase(),
-          name: matchedDemo.name,
-          role: matchedDemo.role,
-          email: matchedDemo.email,
-          avatar: matchedDemo.avatar,
-          title: matchedDemo.title,
-        })
-        return
-      }
-
-      void runAccount(
-        () => accountSignIn(email, password),
-        effectiveRole,
-      )
+      void runAccount(() => accountSignIn(email, password))
       return
     }
 
@@ -472,12 +408,9 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                       setFullName("")
                       setPhone("")
                     } else {
-                      const acc =
-                        demoAccounts.find((d) => d.role === role) ??
-                        ALL_DEMO_ACCOUNTS.Student
-                      setEmail(acc.email)
-                      setPassword(acc.password)
-                      setFullName(acc.name)
+                      setEmail("")
+                      setPassword("")
+                      setFullName("")
                     }
                   }}
                   className="font-semibold text-[#5749d2] transition hover:text-[#3930a5]"
@@ -514,92 +447,46 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
               </p>
             </div>
 
-            {/* 1-Click Instant Demo Portals */}
-            {import.meta.env.DEV && !codeStep && mode === "signin" && (
-              <div className="mb-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-[#626472]">
-                    <Zap className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                    <span>Instant 1-Click Demo Portals</span>
-                  </span>
-                  <a
-                    href="/fake-login"
-                    className="inline-flex items-center gap-1 rounded-full bg-[#eeecff] px-2.5 py-0.5 text-[10.5px] font-semibold text-[#5749d2] transition-colors hover:bg-[#dedaff]"
-                  >
-                    ⚡ Fake Login Route →
-                  </a>
+            {!codeStep && mode === "signin" && savedAccounts.length > 0 && (
+              <section aria-labelledby="saved-accounts-heading" className="mb-5">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <h3 id="saved-accounts-heading" className="flex items-center gap-1.5 text-[12px] font-semibold text-[#454755]">
+                    <Zap className="h-3.5 w-3.5 text-[#5749d2]" aria-hidden="true" />
+                    Saved accounts
+                  </h3>
+                  <span className="rounded-full bg-[#eeecff] px-2 py-0.5 text-[10px] font-medium text-[#5749d2]">Local testing</span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  {demoAccounts.map((acc) => {
-                    const RoleIcon = ROLE_ICONS[acc.role]
-                    const isSelected = role === acc.role
-
+                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                  {savedAccounts.map((account) => {
+                    const RoleIcon = ROLE_ICONS[account.role]
+                    const active = isLoading && role === account.role
                     return (
-                      <div
-                        key={acc.role}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleRoleSelect(acc.role)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            handleRoleSelect(acc.role)
-                          }
-                        }}
-                        className={`group relative flex cursor-pointer flex-col justify-between rounded-xl border p-2.5 text-left transition-all ${
-                          isSelected
-                            ? "border-[#5749d2] bg-[#eeecff]/60 shadow-xs ring-2 ring-[#5749d2]/15"
-                            : "border-[#e4e5eb] bg-white hover:border-[#c8cad6] hover:bg-white/90"
-                        }`}
+                      <button
+                        key={account.email}
+                        type="button"
+                        aria-label={`Sign in as ${account.role}`}
+                        disabled={isLoading}
+                        onClick={() => handleQuickLaunch(account)}
+                        className="group flex min-w-0 items-center gap-2.5 rounded-xl border border-[#e4e5eb] bg-white p-3 text-left transition hover:border-[#b5acec] hover:bg-[#f4f2ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5749d2] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
                       >
-                        <div className="flex w-full items-start justify-between gap-1">
-                          <div
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold"
-                            style={{
-                              backgroundColor: `${acc.accentColor}18`,
-                              color: acc.accentColor,
-                            }}
-                          >
-                            <RoleIcon className="h-3.5 w-3.5" />
-                          </div>
-                          <span
-                            className="truncate rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-                            style={{
-                              backgroundColor: `${acc.accentColor}15`,
-                              color: acc.accentColor,
-                            }}
-                          >
-                            {acc.badge}
-                          </span>
-                        </div>
-
-                        <div className="mt-1.5 min-w-0">
-                          <div className="truncate text-[12px] font-bold text-[#171923]">
-                            {acc.role}
-                          </div>
-                          <div className="truncate text-[10px] text-[#777987]">
-                            {acc.name}
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleQuickLaunch(acc.role)
-                          }}
-                          className="mt-1.5 flex w-full items-center justify-between border-t border-[#e4e5eb]/80 pt-1 text-[10px] font-semibold text-[#5749d2] transition hover:text-[#3930a5] disabled:opacity-50"
-                        >
-                          <span>Launch</span>
-                          <ArrowRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5" />
-                        </button>
-                      </div>
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eeecff] text-[#5749d2]">
+                          {active ? <RotateCcw className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RoleIcon className="h-4 w-4" aria-hidden="true" />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12px] font-semibold text-[#171923]">{active ? "Signing in…" : account.role}</span>
+                          <span className="mt-0.5 block truncate text-[10px] text-[#777987]" title={account.email}>{account.email}</span>
+                        </span>
+                      </button>
                     )
                   })}
                 </div>
-              </div>
+                <p className="mt-2.5 text-[11px] leading-4 text-[#777987]">Choose an account to sign in with its saved password.</p>
+                <div className="mt-4 flex items-center gap-3 text-[10px] text-[#858794]">
+                  <span className="h-px flex-1 bg-[#e4e5eb]" />
+                  Or sign in with email
+                  <span className="h-px flex-1 bg-[#e4e5eb]" />
+                </div>
+              </section>
             )}
 
             <AnimatePresence mode="wait">
@@ -627,11 +514,6 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <div className="flex-1">
                     <span>{errorMessage}</span>
-                    {import.meta.env.DEV && <div className="mt-1">
-                      <a href="/fake-login" className="font-semibold underline hover:opacity-80">
-                        Open local development login →
-                      </a>
-                    </div>}
                   </div>
                 </motion.div>
               )}
@@ -850,7 +732,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                       {codeStep
                         ? CODE_COPY[codeStep].submit.replace(" →", "")
                         : mode === "signin"
-                          ? `Sign in as ${role}`
+                          ? "Sign in"
                           : "Create account"}
                     </span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

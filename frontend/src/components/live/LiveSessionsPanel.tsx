@@ -1,7 +1,7 @@
 import RecordingLibrary from "./RecordingLibrary"
 import { useCallback, useEffect, useState } from "react"
 import { CalendarDays, ExternalLink, RefreshCw, Video } from "lucide-react"
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@/components/ui"
+import { Button, CustomSelect, DateTimePicker, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@/components/ui"
 import { api } from "@/lib/api"
 import SessionScheduleForm, { ProviderFields, ScheduleField, type Links } from "./SessionScheduleForm"
 
@@ -77,8 +77,8 @@ export default function LiveSessionsPanel({ role, batchId, sessionId, attendance
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {operation === "attendance" ? <div className="space-y-3"><p className="text-sm text-muted-foreground">These records count link clicks, not verified presence in the external meeting.</p>{records.length ? records.map(r => <div key={r.student_id} className="border-b border-border py-2 text-sm"><p className="font-medium">{r.name}</p><p className="text-muted-foreground">{dateLabel(r.joined_at)} · {r.join_clicks} click(s)</p></div>) : <p className="text-sm">No join clicks recorded.</p>}</div> : <div className="space-y-4">
         {operation === "settings" ? <><ProviderFields value={links} onChange={setLinks} /><Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void run(selected!.id, async () => { await api.post("/live/validate-link", links); setMessage("Link format is valid.") })}>Test link format</Button>{message && <p role="status" className="text-sm">{message}</p>}</> : <>
-          {operation === "reschedule" && <><p className="text-xs text-muted-foreground">Enter times in your device timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}. The batch bounds still apply.</p><ScheduleField label="New start"><Input type="datetime-local" value={newStart} onChange={e => setNewStart(e.target.value)} /></ScheduleField><ScheduleField label="New end"><Input type="datetime-local" value={newEnd} onChange={e => setNewEnd(e.target.value)} /></ScheduleField></>}
-          {operation === "override" && <ScheduleField label="Status"><select className="rounded-lg border border-border bg-surface p-2" value={override} onChange={e => setOverride(e.target.value)}>{["Scheduled", "Live", "Ended", "Cancelled"].map(v => <option key={v}>{v}</option>)}</select></ScheduleField>}
+          {operation === "reschedule" && <><p className="text-xs text-muted-foreground">Enter times in your device timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}. The batch bounds still apply.</p><ScheduleField label="New start"><DateTimePicker value={newStart} onChange={setNewStart} placeholder="Select new start" /></ScheduleField><ScheduleField label="New end"><DateTimePicker value={newEnd} min={newStart || undefined} onChange={setNewEnd} placeholder="Select new end" /></ScheduleField></>}
+          {operation === "override" && <ScheduleField label="Status"><CustomSelect value={override} onChange={setOverride} options={["Scheduled", "Live", "Ended", "Cancelled"]} /></ScheduleField>}
           <ScheduleField label="Reason"><Input value={reason} onChange={e => setReason(e.target.value)} /></ScheduleField>
         </>}
         <Button type="button" disabled={Boolean(busy) || (operation !== "settings" && !reason.trim())} onClick={() => void run(selected!.id, async () => {

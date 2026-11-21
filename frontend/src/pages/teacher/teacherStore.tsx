@@ -173,11 +173,11 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
           api.get<{ doubts: any[] }>("/teacher/doubts"),
           api.get<{ events: any[] }>("/teacher/calendar"),
           api.get<{ students: any[] }>("/teacher/students"),
-          api.get<{ recordings: { id:string;session_id:string;title:string;course_title:string;course_code:string;starts_at:string;processing_state:string;duration_seconds:number|null }[] }>("/recordings", { bypassCache:true }),
+          api.get<{ recordings: { id:string;session_id:string;title:string;course_title:string|null;course_code:string|null;starts_at:string|null;processing_state:string;duration_seconds:number|null }[] }>("/recordings", { bypassCache:true }),
         ])
         if (cancelled) return
 
-        if (rRes.status === "fulfilled") setRecordings(rRes.value.recordings.map(r=>({ id:r.id,sessionId:r.session_id,title:r.title,courseName:r.course_title,courseCode:r.course_code,sessionDate:r.starts_at.slice(0,10),duration:r.duration_seconds?`${Math.ceil(r.duration_seconds/60)} min`:"Pending",status:r.processing_state==="ready"?"Available":["queued","processing"].includes(r.processing_state)?"Processing":"Not Available",keyTakeaways:[] })))
+        if (rRes.status === "fulfilled") setRecordings(rRes.value.recordings.map(r=>({ id:r.id,sessionId:r.session_id??"",title:r.title,courseName:r.course_title??"Batch video",courseCode:r.course_code??"",sessionDate:(r.starts_at??"").slice(0,10),duration:r.duration_seconds?`${Math.ceil(r.duration_seconds/60)} min`:"Pending",status:r.processing_state==="ready"?"Available":["queued","processing"].includes(r.processing_state)?"Processing":"Not Available",keyTakeaways:[] })))
         if (courseRes.status === "fulfilled" && Array.isArray(courseRes.value?.courses)) {
           setCourses(courseRes.value.courses.map(recompute))
         }

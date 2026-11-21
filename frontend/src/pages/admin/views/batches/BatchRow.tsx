@@ -1,111 +1,80 @@
 import type { LucideIcon } from "lucide-react"
 import { Video } from "lucide-react"
+import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import type { AdminBatch } from "@/data/adminStore"
 import { cn } from "@/lib/utils"
 import BatchActionsMenu from "./BatchActionsMenu"
-import {
-  BATCH_STATUS_TONE,
-  SHORT_DELIVERY_MODE,
-  formatShortDateRange,
-  safeHref,
-  seatTone,
-  seatUtilization,
-} from "./batchTheme"
+import { batchPriceLabel, batchStatusTone, batchTimeline, formatShortDateRange, safeHref, SHORT_DELIVERY_MODE, seatTone, seatUtilization } from "./batchTheme"
+
 interface BatchRowProps {
   batch: AdminBatch
-  theme: { icon: LucideIcon }
+  theme: { icon: LucideIcon; category?: string }
   onOpen: () => void
   onEdit: () => void
   onDuplicate: () => void
   onToggleArchive: () => void
   onDelete: () => void
 }
-/** Dense table row for cohort batches list view, matching CourseRow. */
-export default function BatchRow({
-  batch,
-  theme,
-  onOpen,
-  onEdit,
-  onDuplicate,
-  onToggleArchive,
-  onDelete,
-}: BatchRowProps) {
-  const Icon = theme.icon
+
+/** Dense table row for the batches list view. The whole row opens the batch page. */
+export default function BatchRow({ batch, theme, onOpen, onEdit, onDuplicate, onToggleArchive, onDelete }: BatchRowProps) {
   const pct = seatUtilization(batch.enrolledSeats, batch.maxSeats)
   const meetingHref = safeHref(batch.meetingUrl)
+  const timeline = batchTimeline(batch)
   return (
-    <tr className="group border-b border-border transition-colors last:border-b-0 hover:bg-surface-2/60">
-      <td className="py-4 pl-4 pr-3">
+    <tr
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${batch.name}`}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+      className="group cursor-pointer border-b border-border transition-colors last:border-b-0 hover:bg-surface-2/70 focus-visible:bg-surface-2 focus-visible:outline-none"
+    >
+      <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-primary-text",
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-          </div>
+          <CourseCover title={batch.name} category={theme.category} showTitle={false} hoverZoom={false} className="aspect-auto h-10 w-16 shrink-0 rounded-md" />
           <div className="min-w-0">
-            <button
-              type="button"
-              onClick={onOpen}
-              className="rounded text-left font-semibold text-foreground hover:text-primary-text"
-              aria-label={`Open ${batch.name}`}
-            >
-              {batch.name}
-            </button>
-            <div className="truncate text-xs text-muted-foreground">
-              {batch.courseTitle}
-              {batch.courseCode ? ` · ${batch.courseCode}` : ""}
-            </div>
+            <p className="max-w-[240px] truncate text-sm font-semibold text-foreground group-hover:text-primary-text">{batch.name}</p>
+            <p className="max-w-[240px] truncate text-caption text-muted-foreground">
+              {batchPriceLabel(batch.price)}
+              {batch.courseTitle ? ` · ${batch.courseTitle}` : ""}
+            </p>
           </div>
         </div>
       </td>
-      <td className="hidden px-3 py-4 md:table-cell">
-        <div className="flex items-center gap-2 text-xs text-foreground">
-          <Avatar
-            src={batch.instructorAvatar}
-            name={batch.instructor}
-            size="xs"
-          />
-          <span className="truncate">{batch.instructor}</span>
+      <td className="hidden px-3 py-3 md:table-cell">
+        <div className="flex items-center gap-2 text-caption text-foreground">
+          <Avatar src={batch.instructorAvatar || undefined} name={batch.instructor || "?"} size="xs" />
+          <span className="max-w-[140px] truncate">{batch.instructor || "Not assigned"}</span>
         </div>
       </td>
-      <td className="hidden px-3 py-4 text-xs lg:table-cell">
-        <div className="font-medium text-foreground">
-          {formatShortDateRange(batch.startDate, batch.endDate)}
-        </div>
-        <div className="max-w-[200px] truncate text-muted-foreground">
-          {batch.schedule}
-        </div>
+      <td className="hidden px-3 py-3 text-caption lg:table-cell">
+        <div className="font-medium text-foreground">{formatShortDateRange(batch.startDate, batch.endDate)}</div>
+        <div className={cn("max-w-[200px] truncate", timeline.phase === "running" ? "text-success" : "text-muted-foreground")}>{timeline.label}</div>
       </td>
-      <td className="px-3 py-4">
-        <div className="w-32 space-y-1">
-          <div className="flex items-center justify-between text-xs tabular-nums">
+      <td className="px-3 py-3">
+        <div className="w-32 space-y-1.5">
+          <div className="flex items-center justify-between text-caption tabular-nums">
             <span className="font-medium text-foreground">
-              {batch.enrolledSeats}/{batch.maxSeats}
+              {batch.enrolledSeats} / {batch.maxSeats}
             </span>
             <span className="text-muted-foreground">{pct}%</span>
           </div>
-          <Progress
-            value={pct}
-            size="xs"
-            tone={seatTone(pct)}
-            label={`${batch.name} seats`}
-          />
-          {batch.waitlistedSeats > 0 && (
-            <div className="text-[11px] font-medium text-warning">
-              +{batch.waitlistedSeats} waitlisted
-            </div>
-          )}
+          <Progress value={pct} size="xs" tone={seatTone(pct)} label={`${batch.name} seats`} />
+          {batch.waitlistedSeats > 0 && <div className="text-[11px] font-medium text-warning">+{batch.waitlistedSeats} waitlisted</div>}
         </div>
       </td>
-      <td className="hidden px-3 py-4 text-xs sm:table-cell">
-        <div className="font-medium text-foreground">
-          {SHORT_DELIVERY_MODE[batch.deliveryMode]}
-        </div>
+      <td className="hidden px-3 py-3 text-caption sm:table-cell">
+        <div className="font-medium text-foreground">{SHORT_DELIVERY_MODE[batch.deliveryMode]}</div>
         {meetingHref ? (
           <a
             href={meetingHref}
@@ -114,31 +83,19 @@ export default function BatchRow({
             onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-text hover:underline"
           >
-            <Video className="h-3 w-3" /> Live link
+            <Video className="h-3 w-3" aria-hidden="true" /> Class link
           </a>
         ) : (
-          <span className="text-[11px] text-muted-foreground">
-            {batch.timezone}
-          </span>
+          <span className="text-[11px] text-muted-foreground">{batch.schedule || batch.timezone}</span>
         )}
       </td>
-      <td className="px-3 py-4">
-        <Badge tone={BATCH_STATUS_TONE[batch.status]} dot>
+      <td className="px-3 py-3">
+        <Badge tone={batchStatusTone(batch)} dot>
           {batch.lifecycle ?? batch.status}
         </Badge>
       </td>
-      <td
-        className="py-4 pl-2 pr-4 text-right"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <BatchActionsMenu
-          batch={batch}
-          onOpenWorkspace={onOpen}
-          onEdit={onEdit}
-          onDuplicate={onDuplicate}
-          onToggleArchive={onToggleArchive}
-          onDelete={onDelete}
-        />
+      <td className="py-3 pl-2 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+        <BatchActionsMenu batch={batch} onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />
       </td>
     </tr>
   )

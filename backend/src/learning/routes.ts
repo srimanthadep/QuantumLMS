@@ -12,6 +12,7 @@ import { parse, me } from "../http.js"
 import { assertPublishable } from "../media/publication.js"
 import { admit, availableSeats, cancelRegistration, lockBatch } from "./admission.js"
 import { transitionBatch } from "./lifecycle.js"
+import { setBatchPrice } from "./batch-offer.js"
 
 const policy = z.object({ requiredLessonsPercent: z.number().min(0).max(100).default(100), requiredAssessments: z.boolean().default(true),
   passMark: z.number().min(0).max(100).default(40), batchEnded: z.boolean().default(true), attendancePercent: z.number().min(0).max(100).default(0) })
@@ -19,11 +20,27 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
   const db = ctx.db
   app.get("/offers", async () => ({ offers: await db.select().from(course_offers) }))
   app.post("/offers", async req => {
-    const input = parse(z.object({ course_id: z.string().min(1), title: z.string().min(2).max(150), mode: z.enum(["live", "self_paced"]),
+    const input = parse(z.object({ course_id: z.string().min(1).optional(), title: z.string().min(2).max(150), mode: z.enum(["live", "self_paced"]),
       price: z.number().int().min(0).max(10_000_000), currency: z.literal("INR").default("INR"), completion_policy: policy.optional() }), req.body)
-    const [course] = await db.select().from(courses).where(eq(courses.id, input.course_id))
-    if (!course) throw notFound("Course not found")
-    const [offer] = await db.insert(course_offers).values({ id: randomUUID(), ...input }).returning()
+    if (input.mode === "self_paced") {
+      if (!input.course_id) throw badRequest("A course offer needs a course")
+      const created = await db.transaction(async tx => {
+        await lockCourse(tx, input.course_id!)
+        const [course] = await tx.select().from(courses).where(eq(courses.id, input.course_id!))
+        if (!course) throw notFound("Course not found")
+        const [existing] = await tx.select({ id: course_offers.id }).from(course_offers).where(and(eq(course_offers.course_id, course.id), eq(course_offers.mode, "self_paced"), sql`${course_offers.status} <> 'Archived'`))
+        if (existing) throw conflict("This course already has its offer. Change the price on the course instead.")
+        const [offer] = await tx.insert(course_offers).values({ id: randomUUID(), ...input, course_id: course.id }).returning()
+        return offer
+      })
+      return { offer: created }
+    }
+    // Live offers belong to a batch, not a course, so no course is needed. Batches normally manage theirs through a price field.
+    if (input.course_id) {
+      const [course] = await db.select().from(courses).where(eq(courses.id, input.course_id))
+      if (!course) throw notFound("Course not found")
+    }
+    const [offer] = await db.insert(course_offers).values({ id: randomUUID(), ...input, course_id: input.course_id ?? null }).returning()
     return { offer }
   })
   app.patch<{ Params: { id: string } }>("/offers/:id", async req => {
@@ -32,14 +49,16 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
     const offer = await db.transaction(async tx => {
       const [hint] = await tx.select().from(course_offers).where(eq(course_offers.id, req.params.id))
       if (!hint) throw notFound("Offer not found")
-      await lockCourse(tx, hint.course_id)
+      if (hint.course_id) await lockCourse(tx, hint.course_id)
       const [current] = await tx.select().from(course_offers).where(eq(course_offers.id, req.params.id)).for("update")
       if (!current) throw notFound("Offer not found")
-      if (patch.status === "Published") {
+      if (current.course_id && patch.status === "Published") {
         await lockCourse(tx, current.course_id)
         if (current.mode === "self_paced") await assertPublishable(tx, current.course_id)
         await tx.update(courses).set({ status: "Published" }).where(eq(courses.id, current.course_id))
       }
+      // The course price is the single source for a course offer, so an offer edit moves the course price with it.
+      if (current.course_id && current.mode === "self_paced" && patch.price !== undefined) await tx.update(courses).set({ price: patch.price }).where(eq(courses.id, current.course_id))
       const [row] = await tx.update(course_offers).set(patch).where(eq(course_offers.id, current.id)).returning()
       return row
     })
@@ -51,10 +70,11 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
     const teachers = await db.select({ id: users.id, name: users.full_name }).from(batch_teachers).innerJoin(users, eq(users.id, batch_teachers.teacher_id)).where(eq(batch_teachers.batch_id, batch.id))
     const paid = await db.execute(sql`select count(*)::int as count from lms.batch_registrations where batch_id = ${batch.id} and state = 'confirmed' and paid_at is not null`)
     const { meeting_url: _protected, default_host_url: _host, default_passcode: _passcode, ...safe } = batch
-    return { batch: safe, teachers, paid: paid.rows[0].count, available: await availableSeats(db, batch) }
+    const [offer] = batch.offer_id ? await db.select().from(course_offers).where(eq(course_offers.id, batch.offer_id)) : []
+    return { batch: safe, teachers, paid: paid.rows[0].count, available: await availableSeats(db, batch), price: offer && offer.status === "Published" ? offer.price : 0, currency: offer?.currency ?? "INR" }
   })
   app.patch<{ Params: { id: string } }>("/batches/:id/admission", async req => {
-    const input = parse(z.object({ offer_id: z.string().optional(), minimum_paid_registrations: z.number().int().min(0).optional(),
+    const input = parse(z.object({ offer_id: z.string().optional(), price: z.number().int().min(0).max(10_000_000).optional(), minimum_paid_registrations: z.number().int().min(0).optional(),
       starts_at: z.string().datetime({ offset: true }).optional(), ends_at: z.string().datetime({ offset: true }).optional(), registration_deadline: z.string().datetime({ offset: true }).optional(),
       allow_late_join: z.boolean().optional(), underfilled_action: z.enum(["admin_decides", "extend", "merge", "refund", "cancel"]).optional(),
       live_provider: z.enum(["zoom_link", "meet_link"]).optional(), join_before_minutes: z.number().int().min(0).max(1440).optional(), join_after_minutes: z.number().int().min(0).max(1440).optional(),
@@ -64,19 +84,22 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
       if (["Completed", "Cancelled"].includes(batch.lifecycle)) throw conflict("This batch is closed")
       if (input.offer_id) {
         const [offer] = await tx.select().from(course_offers).where(eq(course_offers.id, input.offer_id))
-        if (!offer || offer.course_id !== batch.course_id || offer.mode !== "live") throw badRequest("Select a live offer for this course")
+        if (!offer || offer.mode !== "live") throw badRequest("Select a live offer")
+        const [owner] = await tx.select({ id: cohort_batches.id }).from(cohort_batches).where(and(eq(cohort_batches.offer_id, offer.id), sql`${cohort_batches.id} <> ${batch.id}`))
+        if (owner) throw badRequest("That offer already belongs to another batch")
       }
       if ((input.minimum_paid_registrations ?? batch.minimum_paid_registrations ?? 0) > batch.max_seats) throw badRequest("The minimum cannot exceed capacity")
       const start = input.starts_at ? new Date(input.starts_at) : batch.starts_at
       const end = input.ends_at ? new Date(input.ends_at) : batch.ends_at
       if (start && end && start >= end) throw badRequest("The end must follow the start")
-      if (batch.lifecycle === "Running" && (input.starts_at || input.ends_at || input.offer_id)) throw conflict("Running batch dates and offer are locked")
+      if (batch.lifecycle === "Running" && (input.starts_at || input.ends_at || input.offer_id || input.price !== undefined)) throw conflict("Running batch dates, price and offer are locked")
       const deadline = input.registration_deadline ? new Date(input.registration_deadline) : batch.registration_deadline ?? (start ? new Date(start.getTime() - 3 * 86400_000) : null)
       if (deadline && start && deadline > start && !(input.allow_late_join ?? batch.allow_late_join)) throw badRequest("Registration must close by the start unless late joining is enabled")
-      const { teacher_ids, starts_at: _s, ends_at: _e, registration_deadline: _d, ...rest } = input
-      await tx.update(cohort_batches).set({ ...rest, starts_at: start, ends_at: end, registration_deadline: deadline,
+      const { teacher_ids, price, starts_at: _s, ends_at: _e, registration_deadline: _d, ...rest } = input
+      const offerId = price === undefined ? undefined : await setBatchPrice(tx, batch, price)
+      await tx.update(cohort_batches).set({ ...rest, ...(offerId !== undefined ? { offer_id: offerId } : {}), starts_at: start, ends_at: end, registration_deadline: deadline,
         ...(start ? { start_date: localDay(start, input.timezone ?? batch.timezone) } : {}), ...(end ? { end_date: localDay(end, input.timezone ?? batch.timezone) } : {}),
-        minimum_paid_registrations: input.minimum_paid_registrations ?? batch.minimum_paid_registrations ?? Math.ceil(batch.max_seats * 0.6), updated_at: new Date() }).where(eq(cohort_batches.id, batch.id))
+        minimum_paid_registrations: input.minimum_paid_registrations ?? batch.minimum_paid_registrations ?? ((offerId !== undefined ? offerId : batch.offer_id) ? Math.ceil(batch.max_seats * 0.6) : 0), updated_at: new Date() }).where(eq(cohort_batches.id, batch.id))
       if (teacher_ids) {
         const names: string[] = []
         for (const id of teacher_ids) {

@@ -1,11 +1,36 @@
 import type { BadgeTone } from "@/components/ui/badge"
-import type { AdminBatch, AdminCourse } from "@/data/adminStore"
+import type { AdminBatch, AdminCourse, AdminTeacher } from "@/data/adminStore"
 import { themeFor } from "../courses/courseTheme"
+
+export function batchInstructorNames(teachers: AdminTeacher[]): string[] {
+  return Array.from(new Set(teachers
+    .filter((teacher) => teacher.role === "Lead Instructor" && (teacher.status === "Available" || teacher.status === "Live Now"))
+    .map((teacher) => teacher.name.trim())
+    .filter(Boolean))).sort((a, b) => a.localeCompare(b))
+}
+
 export const BATCH_STATUS_TONE: Record<AdminBatch["status"], BadgeTone> = {
   Active: "success",
   Upcoming: "warning",
   Completed: "info",
   Archived: "neutral",
+}
+export function batchStatusTone(
+  batch: Pick<AdminBatch, "status" | "lifecycle">,
+): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    Draft: "neutral",
+    Recruiting: "info",
+    Ready: "success",
+    Scheduled: "info",
+    Running: "success",
+    Completed: "neutral",
+    Cancelled: "danger",
+  }
+  return (
+    (batch.lifecycle && tones[batch.lifecycle]) ||
+    BATCH_STATUS_TONE[batch.status]
+  )
 }
 export const BATCH_STATUS_OPTIONS: {
   value: AdminBatch["status"]
@@ -67,8 +92,13 @@ export function resolveBatchTheme(batch: AdminBatch, courses: AdminCourse[]) {
   }
   return {
     ...themeFor(course?.category ?? ""),
+    category: course?.category ?? "Generative AI",
     gradient: BATCH_GRADIENTS[(hash >>> 0) % BATCH_GRADIENTS.length],
   }
+}
+/** "₹4,999" or "Free" for a batch's one-time fee. */
+export function batchPriceLabel(price: number): string {
+  return price > 0 ? `₹${price.toLocaleString("en-IN")}` : "Free"
 }
 export function formatShortDateRange(
   startDate: string,
@@ -90,7 +120,10 @@ export function formatShortDateRange(
 }
 export interface BatchEditableFields {
   name: string
+  /** Optional topic label — empty when the batch is not tied to a course. */
   courseId: string
+  /** One-time fee in rupees. 0 = free, admitted by the team only. */
+  price: number
   instructor: string
   startDate: string
   endDate: string
@@ -120,11 +153,8 @@ export function validateBatchFields(
   if (fields.name.trim().length < 2) {
     return { error: "Batch name must be at least 2 characters.", field: "name" }
   }
-  if (!selectedCourse?.id) {
-    return {
-      error: "Please select or create a linked course first.",
-      field: "courseId",
-    }
+  if (!Number.isInteger(fields.price) || fields.price < 0 || fields.price > 10_000_000) {
+    return { error: "Price must be a whole number of rupees, 0 or more.", field: "price" }
   }
   if (fields.instructor.trim().length < 2) {
     return { error: "Lead instructor name is required.", field: "instructor" }
@@ -204,14 +234,15 @@ export function validateBatchFields(
 }
 export function toBatchPayload(
   fields: BatchEditableFields,
-  selectedCourse: AdminCourse,
+  selectedCourse?: AdminCourse,
 ) {
   const cleanInstructor = fields.instructor.trim()
   const cleanMeetingUrl = fields.meetingUrl.trim()
   return {
     name: fields.name.trim(),
-    courseId: selectedCourse.id,
-    courseTitle: selectedCourse.title,
+    courseId: selectedCourse?.id ?? "",
+    courseTitle: selectedCourse?.title ?? "",
+    price: Math.max(0, Math.round(Number(fields.price) || 0)),
     instructor: cleanInstructor,
     instructorAvatar:
       cleanInstructor === "Srimanth" ? "/assets/srimanth.png" : "",
@@ -232,5 +263,39 @@ export function toBatchPayload(
     },
     status: fields.status,
     notes: fields.notes.trim(),
+  }
+}
+
+/** Where a batch is in its run, for cards and the batch page: "Starts in 5 days", "Week 3 of 12", "Ended 2 Mar 2026". */
+export function batchTimeline(
+  batch: Pick<AdminBatch, "startDate" | "endDate" | "status">,
+  now: Date = new Date(),
+): { label: string; pct: number | null; phase: "unscheduled" | "before" | "running" | "after" } {
+  const day = 86_400_000
+  const parse = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00`)
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+  const start = batch.startDate ? parse(batch.startDate) : null
+  const end = batch.endDate ? parse(batch.endDate) : null
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  if (!start) return { label: "Dates not set", pct: null, phase: "unscheduled" }
+  if (today < start) {
+    const days = Math.round((start.getTime() - today.getTime()) / day)
+    return { label: days === 1 ? "Starts tomorrow" : `Starts in ${days} days`, pct: 0, phase: "before" }
+  }
+  if (!end || today <= end) {
+    if (!end) return { label: "In progress", pct: null, phase: "running" }
+    const total = Math.max(1, end.getTime() - start.getTime())
+    const elapsed = today.getTime() - start.getTime()
+    const weeks = Math.max(1, Math.ceil((total + day) / (7 * day)))
+    const week = Math.min(weeks, Math.floor(elapsed / (7 * day)) + 1)
+    if (elapsed === 0) return { label: "Starts today", pct: 0, phase: "running" }
+    return { label: `Week ${week} of ${weeks}`, pct: Math.min(100, Math.round((elapsed / total) * 100)), phase: "running" }
+  }
+  return {
+    label: `Ended ${end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`,
+    pct: 100,
+    phase: "after",
   }
 }

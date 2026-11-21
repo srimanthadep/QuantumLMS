@@ -46,3 +46,5 @@ logs/
 /modal_*.png
 /reports_*.png
 /students_*.png
+
+/Claude outputs/

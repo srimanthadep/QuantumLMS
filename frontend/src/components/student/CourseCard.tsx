@@ -87,6 +87,7 @@ export default function CourseCard({ course, onOpen, variant = "enrolled", onEnr
                   {course.duration}
                 </span>
               </div>
+              <span className={cn("text-sm font-semibold tabular-nums", course.price ? "text-foreground" : "text-success")}>{course.price ? `₹${course.price.toLocaleString("en-IN")}` : "Free"}</span>
               {onEnroll && (
                 <Button
                   size="sm"
@@ -95,7 +96,7 @@ export default function CourseCard({ course, onOpen, variant = "enrolled", onEnr
                     onEnroll()
                   }}
                 >
-                  Enroll
+                  {course.price ? "Buy" : "Start free"}
                 </Button>
               )}
             </div>

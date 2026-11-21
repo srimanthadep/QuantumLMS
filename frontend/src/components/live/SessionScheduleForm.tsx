@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react"
-import { Button, Input } from "@/components/ui"
+import { Button, CustomSelect, DatePicker, Input, TimePicker } from "@/components/ui"
 import { api } from "@/lib/api"
 
 export type Links = { provider: "zoom_link" | "meet_link"; join_url: string; host_url: string; passcode: string }
 type Batch = { id: string; name: string; course_id: string; timezone: string; starts_at: string | null; ends_at: string | null }
 type Rule = Links & { id: string; version: number; title: string; teacher_id: string; timezone: string; weekdays: number[]; local_start: string; duration_minutes: number; start_date: string; end_date: string; generation_error: string | null }
-const selectClass = "h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
 export function ScheduleField({ label, children }: { label: string; children: React.ReactNode }) { return <label className="grid gap-1.5 text-sm font-medium">{label}{children}</label> }
 export function ProviderFields({ value, onChange }: { value: Links; onChange: (v: Links) => void }) {
   return <div className="grid gap-3 sm:grid-cols-2">
-    <ScheduleField label="Meeting provider"><select className={selectClass} value={value.provider} onChange={e => onChange({ provider: e.target.value as Links["provider"], join_url: "", host_url: "", passcode: "" })}><option value="zoom_link">Zoom</option><option value="meet_link">Google Meet</option></select></ScheduleField>
+    <ScheduleField label="Meeting provider">
+      <CustomSelect
+        value={value.provider}
+        onChange={(v) => onChange({ provider: v as Links["provider"], join_url: "", host_url: "", passcode: "" })}
+        options={[
+          { value: "zoom_link", label: "Zoom" },
+          { value: "meet_link", label: "Google Meet" },
+        ]}
+      />
+    </ScheduleField>
     <ScheduleField label="Student meeting link"><Input type="url" value={value.join_url} onChange={e => onChange({ ...value, join_url: e.target.value })} placeholder={value.provider === "zoom_link" ? "https://zoom.us/j/123456789" : "https://meet.google.com/abc-defg-hij"} /></ScheduleField>
     {value.provider === "zoom_link" && <><ScheduleField label="Host link (optional)"><Input type="url" value={value.host_url} onChange={e => onChange({ ...value, host_url: e.target.value })} /></ScheduleField><ScheduleField label="Passcode (optional)"><Input value={value.passcode} onChange={e => onChange({ ...value, passcode: e.target.value })} /></ScheduleField></>}
   </div>
@@ -45,25 +53,57 @@ export default function SessionScheduleForm({ batchId, courseId, onSaved }: { ba
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}{message && <p role="status" className="text-sm text-success">{message}</p>}
     <fieldset disabled={busy} className="min-w-0 space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
-        <ScheduleField label="Batch"><select className={selectClass} disabled={Boolean(batchId) || Boolean(rule)} value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose an assigned batch</option>{batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></ScheduleField>
+        <ScheduleField label="Batch">
+          <CustomSelect
+            disabled={Boolean(batchId) || Boolean(rule)}
+            value={selected}
+            placeholder="Choose an assigned batch"
+            onChange={setSelected}
+            options={batches.map((b) => ({ value: b.id, label: b.name }))}
+          />
+        </ScheduleField>
         <ScheduleField label="Session title"><Input value={title} onChange={e => setTitle(e.target.value)} /></ScheduleField>
-        <ScheduleField label="Assigned teacher"><select className={selectClass} value={teacher} onChange={e => setTeacher(e.target.value)}><option value="">Choose a teacher</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></ScheduleField>
+        <ScheduleField label="Assigned teacher">
+          <CustomSelect
+            value={teacher}
+            placeholder="Choose a teacher"
+            onChange={setTeacher}
+            options={teachers.map((t) => ({ value: t.id, label: t.name }))}
+          />
+        </ScheduleField>
         <ScheduleField label="Timezone (IANA)"><Input value={timezone} onChange={e => setTimezone(e.target.value)} placeholder="Asia/Kolkata" /></ScheduleField>
       </div>
       <ProviderFields value={links} onChange={setLinks} />
       <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" onClick={() => void run(async () => { await api.post("/live/validate-link", links); setMessage("Valid link format. Open the host link to check the meeting with its provider.") })}>Test link format</Button><Button type="button" variant="outline" size="sm" disabled={!selected} onClick={() => void run(async () => { await api.put(`/live/batches/${selected}/settings`, links); setMessage("Batch defaults saved for new sessions. Existing sessions keep their links.") })}>Save as batch defaults</Button></div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={repeat} disabled={Boolean(rule)} onChange={e => setRepeat(e.target.checked)} />Repeat weekly</label>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <ScheduleField label={repeat ? "First date" : "Class date"}><Input type="date" value={start} onChange={e => setStart(e.target.value)} /></ScheduleField>
-        {repeat && <ScheduleField label="Last date"><Input type="date" value={end} onChange={e => setEnd(e.target.value)} /></ScheduleField>}
-        <ScheduleField label="Local start time"><Input type="time" value={time} onChange={e => setTime(e.target.value)} /></ScheduleField>
-        <ScheduleField label="Duration (minutes)"><Input type="number" min={1} max={720} value={duration} onChange={e => setDuration(Number(e.target.value))} /></ScheduleField>
+        <ScheduleField label={repeat ? "First date" : "Class date"}>
+          <DatePicker value={start} onChange={setStart} placeholder={repeat ? "First date" : "Class date"} clearable={false} />
+        </ScheduleField>
+        {repeat && (
+          <ScheduleField label="Last date">
+            <DatePicker value={end} min={start || undefined} onChange={setEnd} placeholder="Last date" />
+          </ScheduleField>
+        )}
+        <ScheduleField label="Local start time">
+          <TimePicker value={time} onChange={setTime} placeholder="Start time" clearable={false} />
+        </ScheduleField>
+        <ScheduleField label="Duration (minutes)">
+          <Input
+            type="number"
+            min={1}
+            max={720}
+            placeholder="90"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value === "" ? Number.NaN : Number(e.target.value))}
+          />
+        </ScheduleField>
       </div>
       {repeat && <div className="flex flex-wrap gap-2" aria-label="Weekdays">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => <Button type="button" size="sm" key={day} variant={days.includes(i) ? "primary" : "outline"} aria-pressed={days.includes(i)} onClick={() => setDays(days.includes(i) ? days.filter(d => d !== i) : [...days, i])}>{day}</Button>)}</div>}
       {rule && <p className="rounded-lg bg-warning-soft p-3 text-sm">Saving changes future sessions only. Past classes, cancellations, and individually rescheduled classes stay unchanged.</p>}
-      {repeat && <Button type="button" variant="outline" disabled={!selected} onClick={() => void run(async () => { const r = await api.post<{ occurrences: NonNullable<typeof preview>["rows"]; future_count: number }>("/live/rules/preview", payload); setPreview({ key, rows: r.occurrences, future: r.future_count }) })}>Preview dates</Button>}
+      {repeat && <Button type="button" variant="outline" disabled={!selected || !Number.isInteger(duration) || duration < 1} onClick={() => void run(async () => { const r = await api.post<{ occurrences: NonNullable<typeof preview>["rows"]; future_count: number }>("/live/rules/preview", payload); setPreview({ key, rows: r.occurrences, future: r.future_count }) })}>Preview dates</Button>}
       {repeat && preview?.key === key && <div className="rounded-xl border border-border p-3"><p className="mb-2 text-sm font-medium">{preview.future} future classes · {preview.rows.length} dates in range</p><div className="max-h-44 overflow-auto text-xs text-muted-foreground">{preview.rows.map(o => <p key={o.local_date} className="py-1">{o.local_date} · {time} {timezone} · UTC {new Date(o.starts_at).toISOString().slice(11, 16)}</p>)}</div><p className="mt-2 text-xs text-muted-foreground">Clock changes: nonexistent times are rejected; repeated times use the earlier instant.</p></div>}
-      <Button type="button" disabled={!selected || !teacher || title.trim().length < 3 || (repeat && (preview?.key !== key || !preview.future))} onClick={() => void run(async () => {
+      <Button type="button" disabled={!selected || !teacher || title.trim().length < 3 || !Number.isInteger(duration) || duration < 1 || (repeat && (preview?.key !== key || !preview.future))} onClick={() => void run(async () => {
         if (repeat) { const result = await api.post<{ rule: Rule }>("/live/rules", { ...payload, id, expected_version: rule?.version, apply_to: "future" }); setRule(result.rule); setRules(current => [...current.filter(r => r.id !== result.rule.id), result.rule]); setMessage(result.rule.generation_error ?? "Schedule saved. Future class dates are ready.") }
         else { await api.post("/sessions", { ...payload, id, date: start }); setId(crypto.randomUUID()); setMessage("Class saved.") }
         onSaved()

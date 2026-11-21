@@ -16,14 +16,7 @@ import {
   startPasswordReset,
 } from "@/lib/auth"
 
-/**
- * Sign-in with Amazon Cognito for the portals that run on the API (students and evaluators). The portal a person
- * lands in follows their Cognito group, whichever role tab they signed in from. The other portals still run on demo
- * data and keep the demo sign-in.
- */
-export const usesAccounts = (role: UserRole) =>
-  role === "Student" || role === "Evaluator" || role === "Support" || role === "Admin" || role === "Super Admin"
-
+/** All roles authenticate with Cognito; the API determines their portal from verified groups. */
 export type AccountStep = LoginInput | "mfa" | "confirm"
 
 function ensureConfigured() {

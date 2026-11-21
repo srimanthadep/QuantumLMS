@@ -11,13 +11,17 @@ export interface AdminCourse {
   instructor: string
   instructorAvatar: string
   enrolledStudents: number
-  capacity: number
+  /** Optional cap on learners. null means unlimited, which is the default for a course. */
+  capacity: number | null
+  /** Course price in rupees. 0 means the course is free to enroll. */
   price: number
   revenue: number
   rating: number
   completionRate: number
   status: "Published" | "Draft" | "Archived"
-  cohortCount: number
+  /** Chapter and lesson counts from GET /admin/courses (0 when the API omits them). */
+  modulesCount?: number
+  lessonsCount?: number
   updatedAt: string
   videoUrl?: string
   videoKey?: string
@@ -27,9 +31,12 @@ export interface AdminCourse {
 export interface AdminBatch {
   id: string
   name: string
+  /** Optional topic label. Empty when the batch is not tied to any course. */
   courseId: string
   courseCode?: string
   courseTitle: string
+  /** Batch price in rupees. 0 means admins add learners themselves. */
+  price: number
   instructor: string
   instructorAvatar: string
   startDate: string
@@ -288,13 +295,14 @@ function mapApiCourse(c: any): AdminCourse {
     instructor: c.instructor || "Srimanth",
     instructorAvatar: c.instructor === "Srimanth" ? "/assets/srimanth.png" : "",
     enrolledStudents: enrolled,
-    capacity: Number(c.capacity ?? 250),
+    capacity: c.capacity === null || c.capacity === undefined ? null : Number(c.capacity),
     price,
     revenue: Number(c.revenue ?? 0),
     rating: Number(c.rating) || 0,
     completionRate: Number(c.completion_rate ?? 0),
     status: (c.status as AdminCourse["status"]) || "Draft",
-    cohortCount: Number(c.cohort_count ?? 0),
+    modulesCount: Number(c.modules_count ?? 0),
+    lessonsCount: Number(c.lessons_count ?? 0),
     updatedAt: c.updated_at ? new Date(c.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   }
 }
@@ -306,7 +314,8 @@ function mapApiBatch(b: any): AdminBatch {
     name: String(b.name),
     courseId: String(b.course_id ?? ""),
     courseCode: b.course_code ? String(b.course_code) : undefined,
-    courseTitle: String(b.course_title ?? "AI Engineering"),
+    courseTitle: String(b.course_title ?? ""),
+    price: Number(b.price ?? 0),
     instructor: String(b.instructor ?? "Srimanth"),
     instructorAvatar: b.instructor_avatar || (b.instructor === "Srimanth" ? "/assets/srimanth.png" : ""),
     startDate: String(b.start_date ?? "2026-11-10"),
@@ -440,7 +449,7 @@ export function useAdminStore() {
     async (
       newCourse: Omit<
         AdminCourse,
-        "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "cohortCount" | "updatedAt"
+        "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "updatedAt"
       >,
     ) => {
       try {
@@ -528,7 +537,8 @@ export function useAdminStore() {
       if (!isOfflineError(err)) throw err
     }
     setCourses((prev) => prev.filter((c) => c.id !== courseId))
-    setBatches((prev) => prev.filter((b) => b.courseId !== courseId))
+    // Batches do not belong to a course. Deleting one only clears the optional topic label.
+    setBatches((prev) => prev.map((b) => (b.courseId === courseId ? { ...b, courseId: "", courseTitle: "", courseCode: undefined } : b)))
   }, [])
 
   const addBatch = useCallback(
@@ -538,7 +548,8 @@ export function useAdminStore() {
       try {
         const res = await api.post<{ ok: boolean; batch: any }>("/admin/batches", {
           name: batchData.name,
-          course_id: batchData.courseId,
+          course_id: batchData.courseId || null,
+          price: batchData.price ?? 0,
           instructor: batchData.instructor,
           start_date: batchData.startDate,
           end_date: batchData.endDate,
@@ -556,9 +567,6 @@ export function useAdminStore() {
         if (res?.batch) {
           const created = mapApiBatch(res.batch)
           setBatches((prev) => [created, ...prev])
-          setCourses((prev) =>
-            prev.map((c) => (c.id === created.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
-          )
           return created
         }
       } catch (err) {
@@ -573,9 +581,6 @@ export function useAdminStore() {
         timezone: batchData.timezone || "Asia/Kolkata",
       }
       setBatches((prev) => [fallbackBatch, ...prev])
-      setCourses((prev) =>
-        prev.map((c) => (c.id === fallbackBatch.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
-      )
       return fallbackBatch
     },
     [],
@@ -587,9 +592,6 @@ export function useAdminStore() {
       if (res?.batch) {
         const created = mapApiBatch(res.batch)
         setBatches((prev) => [created, ...prev])
-        setCourses((prev) =>
-          prev.map((c) => (c.id === created.courseId ? { ...c, cohortCount: c.cohortCount + 1 } : c)),
-        )
         return created
       }
     } catch (err) {
@@ -601,7 +603,8 @@ export function useAdminStore() {
   const updateBatch = useCallback(async (batchId: string, patch: Partial<AdminBatch>) => {
     const apiPayload: Record<string, unknown> = {}
     if (patch.name !== undefined) apiPayload.name = patch.name
-    if (patch.courseId !== undefined) apiPayload.course_id = patch.courseId
+    if (patch.courseId !== undefined) apiPayload.course_id = patch.courseId || null
+    if (patch.price !== undefined) apiPayload.price = patch.price
     if (patch.instructor !== undefined) apiPayload.instructor = patch.instructor
     if (patch.startDate !== undefined) apiPayload.start_date = patch.startDate
     if (patch.endDate !== undefined) apiPayload.end_date = patch.endDate
@@ -633,21 +636,13 @@ export function useAdminStore() {
   }, [refreshCourses, refreshOperations])
 
   const deleteBatch = useCallback(async (batchId: string) => {
-    const existing = batches.find((b) => b.id === batchId)
     try {
       await api.delete(`/admin/batches/${batchId}`)
     } catch (err) {
       if (!isOfflineError(err)) throw err
     }
     setBatches((prev) => prev.filter((b) => b.id !== batchId))
-    if (existing) {
-      setCourses((prev) =>
-        prev.map((c) =>
-          c.id === existing.courseId ? { ...c, cohortCount: Math.max(0, c.cohortCount - 1) } : c,
-        ),
-      )
-    }
-  }, [batches])
+  }, [])
 
   const fetchBatchStudents = useCallback(async (batchId: string) => {
     const res = await api.get<{
@@ -773,7 +768,7 @@ export function useAdminStore() {
         await api.post("/admin/students/enrol", {
           name: studentData.name,
           email: studentData.email,
-          course_id: studentData.courseId,
+          ...(studentData.courseId ? { course_id: studentData.courseId } : {}),
           ...(studentData.batchId ? { batch_id: studentData.batchId } : {}),
         })
         await Promise.allSettled([refreshCourses(), refreshOperations()])

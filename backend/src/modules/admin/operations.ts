@@ -110,6 +110,80 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
     const [row]=await db.update(users).set({full_name:b.name,updated_at:new Date()}).where(and(eq(users.id,id),eq(users.role,"Student"))).returning()
     if(!row)throw notFound("Student not found");invalidateUserCache(id);return {ok:true}
   })
+  // Everything about one learner in a single read: courses, batches, payments, recent activity.
+  app.get<{ Params: { id: string } }>("/students/:id/360", async (req) => {
+    const id = parse(z.uuid(), req.params.id)
+    const who = await db.execute(sql`
+      select u.id, u.full_name as name, u.email, u.avatar_url, u.created_at, u.disabled_at,
+        coalesce(p.roll_number, '') as roll_number, coalesce(p.phone, '') as phone, coalesce(p.location, '') as location
+      from lms.users u left join lms.profiles p on p.id = u.id
+      where u.id = ${id}::uuid and u.role = 'Student'`)
+    const student = who.rows[0] as { id: string; name: string; email: string; avatar_url: string | null; created_at: Date | string; disabled_at: Date | string | null; roll_number: string; phone: string; location: string } | undefined
+    if (!student) throw notFound("Student not found")
+    const [courseRes, batchRes, payRes, timelineRes, activityRes] = await Promise.all([
+      db.execute(sql`
+        select c.id, c.title, c.category, e.enrolled_at,
+          (select count(*)::int from lms.lessons l where l.course_id = e.course_id and l.archived_at is null) as total_lessons,
+          (select count(*)::int from lms.lesson_progress lp join lms.lessons l on l.id = lp.lesson_id and l.archived_at is null where lp.student_id = e.student_id and lp.course_id = e.course_id) as completed_lessons,
+          (select max(lp.completed_at) from lms.lesson_progress lp where lp.student_id = e.student_id and lp.course_id = e.course_id) as last_activity,
+          exists(select 1 from lms.completion_credentials cc where cc.student_id = e.student_id and cc.course_id = e.course_id and cc.revoked_at is null) as certified,
+          exists(select 1 from lms.orders o join lms.payments pay on pay.order_id = o.id where o.student_id = e.student_id and o.course_id = e.course_id and o.batch_id is null and pay.captured_at is not null) as paid
+        from lms.enrollments e join lms.courses c on c.id = e.course_id
+        where e.student_id = ${id}::uuid order by e.enrolled_at desc`),
+      db.execute(sql`
+        select b.id, b.name, b.instructor, b.lifecycle, bs.status, bs.enrolled_at, b.start_date, b.end_date,
+          (select count(*)::int from lms.live_sessions ls where ls.batch_id = b.id and ls.status = 'Ended' and ls.starts_at >= bs.enrolled_at) as sessions_held,
+          (select count(*)::int from lms.live_sessions ls join lms.session_attendance sa on sa.session_id = ls.id and sa.student_id = bs.student_id where ls.batch_id = b.id and ls.status = 'Ended' and ls.starts_at >= bs.enrolled_at) as sessions_attended
+        from lms.batch_students bs join lms.cohort_batches b on b.id = bs.batch_id
+        where bs.student_id = ${id}::uuid order by bs.enrolled_at desc`),
+      db.execute(sql`
+        select o.id, o.offer_title as title, o.amount, o.status, o.created_at, o.batch_id is not null as is_batch,
+          pay.captured_at, coalesce(pay.refunded_amount, 0) as refunded, pay.method
+        from lms.orders o left join lms.payments pay on pay.order_id = o.id and pay.captured_at is not null
+        where o.student_id = ${id}::uuid and o.status <> 'creating' order by o.created_at desc limit 20`),
+      db.execute(sql`
+        select * from (
+          select 'lesson' as kind, l.title, c.title as detail, lp.completed_at as at from lms.lesson_progress lp join lms.lessons l on l.id = lp.lesson_id join lms.courses c on c.id = lp.course_id where lp.student_id = ${id}::uuid
+          union all select 'session', ls.title, b.name, sa.joined_at from lms.session_attendance sa join lms.live_sessions ls on ls.id = sa.session_id join lms.cohort_batches b on b.id = ls.batch_id where sa.student_id = ${id}::uuid
+          union all select 'certificate', cc.title, cc.course_title, cc.issued_at from lms.completion_credentials cc where cc.student_id = ${id}::uuid and cc.revoked_at is null
+          union all select 'payment', o.offer_title, null, pay.captured_at from lms.orders o join lms.payments pay on pay.order_id = o.id where o.student_id = ${id}::uuid and pay.captured_at is not null
+          union all select 'enrolled', c.title, null, e.enrolled_at from lms.enrollments e join lms.courses c on c.id = e.course_id where e.student_id = ${id}::uuid
+        ) t order by at desc limit 15`),
+      db.execute(sql`select to_char(day, 'YYYY-MM-DD') as day, minutes, lessons from lms.study_activity where student_id = ${id}::uuid and day >= current_date - 13`),
+    ])
+    const iso = (v: Date | string | null | undefined) => (v ? new Date(v).toISOString() : null)
+    const courseRows = (courseRes.rows as { id: string; title: string; category: string; enrolled_at: Date | string; total_lessons: number; completed_lessons: number; last_activity: Date | string | null; certified: boolean; paid: boolean }[]).map((r) => {
+      const total = Number(r.total_lessons), done = Math.min(Number(r.completed_lessons), total)
+      return { id: r.id, title: r.title, category: r.category, enrolled_at: iso(r.enrolled_at), last_activity: iso(r.last_activity), completed_lessons: done, total_lessons: total, progress: total > 0 ? Math.round((done / total) * 100) : 0, certified: Boolean(r.certified), source: r.paid ? "paid" : "free_or_added" }
+    })
+    const batchRows = (batchRes.rows as { id: string; name: string; instructor: string; lifecycle: string; status: string; enrolled_at: Date | string; start_date: string; end_date: string; sessions_held: number; sessions_attended: number }[]).map((r) => {
+      const held = Number(r.sessions_held), attended = Math.min(Number(r.sessions_attended), held)
+      return { id: r.id, name: r.name, instructor: r.instructor, lifecycle: r.lifecycle, status: r.status, enrolled_at: iso(r.enrolled_at), start_date: r.start_date, end_date: r.end_date, sessions_held: held, sessions_attended: attended, attendance: held > 0 ? Math.round((attended / held) * 100) : null }
+    })
+    const payments = (payRes.rows as { id: string; title: string; amount: number; status: string; created_at: Date | string; is_batch: boolean; captured_at: Date | string | null; refunded: number; method: string | null }[]).map((r) => ({
+      id: r.id, title: r.title, kind: r.is_batch ? "batch" : "course", amount: Number(r.amount) / 100, refunded: Number(r.refunded) / 100, status: r.captured_at ? (Number(r.refunded) > 0 ? "refunded" : "paid") : r.status, method: r.method, at: iso(r.captured_at ?? r.created_at),
+    }))
+    const byDay = new Map((activityRes.rows as { day: string; minutes: number; lessons: number }[]).map((r) => [r.day, r]))
+    const activity: { day: string; minutes: number; lessons: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - i)
+      const key = d.toISOString().slice(0, 10), hit = byDay.get(key)
+      activity.push({ day: key, minutes: Number(hit?.minutes ?? 0), lessons: Number(hit?.lessons ?? 0) })
+    }
+    const held = batchRows.reduce((n, b) => n + b.sessions_held, 0), attended = batchRows.reduce((n, b) => n + b.sessions_attended, 0)
+    return {
+      student: { id: student.id, name: student.name, email: student.email, avatar_url: student.avatar_url, roll_number: student.roll_number, phone: student.phone, location: student.location, joined_at: iso(student.created_at), disabled: Boolean(student.disabled_at) },
+      totals: {
+        courses: courseRows.length, batches: batchRows.length,
+        lessons_completed: courseRows.reduce((n, c) => n + c.completed_lessons, 0),
+        certificates: courseRows.filter((c) => c.certified).length,
+        attendance: held > 0 ? Math.round((attended / held) * 100) : null,
+        paid: payments.filter((p) => p.status === "paid" || p.status === "refunded").reduce((n, p) => n + p.amount - p.refunded, 0),
+      },
+      courses: courseRows, batches: batchRows, payments, activity,
+      timeline: (timelineRes.rows as { kind: string; title: string; detail: string | null; at: Date | string }[]).map((r) => ({ kind: r.kind, title: r.title, detail: r.detail, at: iso(r.at) })),
+    }
+  })
   app.delete<{Params:{id:string}}>("/students/:id",async req=>{
     const id=parse(z.uuid(),req.params.id)
     return db.transaction(async tx=>{const [row]=await tx.update(users).set({disabled_at:new Date(),updated_at:new Date()}).where(and(eq(users.id,id),eq(users.role,"Student"))).returning()
@@ -123,14 +197,15 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
         student_id: z.string().uuid().optional(),
         name: z.string().trim().min(2).max(120).optional(),
         email: z.string().trim().email().max(200).optional(),
-        course_id: z.string().min(1),
+        course_id: z.string().min(1).optional(),
         batch_id: z.string().trim().min(1).optional(),
-      }),
+      }).refine(v => v.course_id || v.batch_id, "Choose a course or a batch"),
       req.body,
     )
 
-    const [c] = await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1)
-    if (!c) throw notFound("Course not found.")
+    // A course and a batch are separate products, so either (or both) can be given and neither has to match the other.
+    const [c] = b.course_id ? await db.select().from(courses).where(eq(courses.id, b.course_id)).limit(1) : []
+    if (b.course_id && !c) throw notFound("Course not found.")
 
     let targetBatchName: string | undefined
     if (b.batch_id) {
@@ -140,7 +215,6 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
         .where(eq(cohort_batches.id, b.batch_id))
         .limit(1)
       if (!batchRow) throw notFound("Batch not found")
-      if (batchRow.course_id !== c.id) throw badRequest("Batch and course do not match")
       targetBatchName = batchRow.name
     }
 
@@ -160,19 +234,20 @@ export async function adminOperationsRoutes(app: FastifyInstance, ctx: AppContex
         throw badRequest("Provide a student_id UUID or both name and email.")
       }
 
+      let admission: Awaited<ReturnType<typeof addStudentsToBatchTx>> | undefined
       if (b.batch_id && targetBatchName) {
-        const admission = await addStudentsToBatchTx(tx, {
+        admission = await addStudentsToBatchTx(tx, {
           batchId: b.batch_id,
           studentIds: [studentId],
           status: "Active",
           autoWaitlistWhenFull: true,
         })
-        return { admission }
       }
+      if (!c) return { admission }
 
       await grantAccess(tx, { student: studentId, course: c.id, sourceType: "manual", sourceId: `admin:${c.id}` })
       const [enrollment] = await tx.select().from(enrollments).where(sql`${enrollments.student_id} = ${studentId}::uuid and ${enrollments.course_id} = ${c.id}`)
-      return { enrollment }
+      return admission ? { admission, enrollment } : { enrollment }
 
     })
 

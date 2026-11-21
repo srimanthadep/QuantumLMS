@@ -21,6 +21,7 @@ import {
   Switch,
   Textarea,
   ThemeControls,
+  TimePicker,
 } from "@/components/ui"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import { cn } from "@/lib/utils"
@@ -298,10 +299,10 @@ export default function SettingsPage() {
               </ul>
               <div className="mt-3 grid max-w-sm grid-cols-2 gap-3">
                 <Field label="From">
-                  <Input type="time" value={n.quietFrom} disabled={!n.quiet} onChange={(e) => setN("quietFrom", e.target.value)} />
+                  <TimePicker value={n.quietFrom} disabled={!n.quiet} onChange={(v) => setN("quietFrom", v)} clearable={false} />
                 </Field>
                 <Field label="To">
-                  <Input type="time" value={n.quietTo} disabled={!n.quiet} onChange={(e) => setN("quietTo", e.target.value)} />
+                  <TimePicker value={n.quietTo} disabled={!n.quiet} onChange={(v) => setN("quietTo", v)} clearable={false} />
                 </Field>
               </div>
             </section>
