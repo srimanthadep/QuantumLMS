@@ -65,7 +65,7 @@ try {
     writeFileSync(passwordFile, password, { mode: 0o600 })
     await run(executable("initdb"), ["-D", path.join(cluster, "data"), "-U", "quantumlms_test", "--pwfile", passwordFile, "-A", "scram-sha-256", "--encoding=UTF8", "--locale=C"])
     rmSync(passwordFile)
-    await run(executable("pg_ctl"), ["-D", path.join(cluster, "data"), "-l", path.join(cluster, "postgres.log"), "-o", `-h 127.0.0.1 -p ${port} -c max_connections=20`, "-w", "start"])
+    await run(executable("pg_ctl"), ["-D", path.join(cluster, "data"), "-l", path.join(cluster, "postgres.log"), "-o", `-h 127.0.0.1 -p ${port} -c max_connections=20 -c unix_socket_directories=''`, "-w", "start"])
     started = true
     adminUrl = `postgresql://quantumlms_test:${password}@127.0.0.1:${port}/postgres`
   }
