@@ -1,3 +1,4 @@
+import { apiWebSocketUrl } from "./api"
 import { accessToken } from "./auth"
 import { onSessionReset, sessionGeneration } from "./sessionBoundary"
 import { useEffect, useRef, useState, useCallback } from "react"
@@ -46,9 +47,7 @@ class WebSocketClient {
   }
 
   private getUrl(): string {
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-    const host = window.location.host
-    return `${proto}//${host}/api/ws`
+    return apiWebSocketUrl()
   }
 
   private setStatus(newStatus: "connected" | "connecting" | "disconnected") {

@@ -52,11 +52,16 @@ test("cross-batch quiz denial and failed required assessment block a lesson-comp
   assert.equal((await other.call("POST",`/api/student/quizzes/${quiz}/start`,{})).status,403)
   assert.ok(!(await other.call("GET","/api/student/core")).body.quizzes.some((q:{id:string})=>q.id===quiz))
   const failed=await finishQuiz(0);assert.equal(failed.attempt.passed,false)
+  // One of two attempts is left, so the answer key must stay on the server.
+  assert.equal(failed.answers_released,false);assert.ok(failed.questions.every((q:Record<string,unknown>)=>!("correct_index" in q)&&!("explanation" in q)))
+  const hidden=await student.call("GET",`/api/student/quiz-attempts/${failed.attempt.id}/review`);assert.equal(hidden.status,200);assert.equal(hidden.body.answers_released,false);assert.equal("correct_index" in hidden.body.questions[0],false)
   const progress=await student.call("POST",`/api/student/lessons/${lesson}/complete`,{done:true});assert.equal(progress.status,200);assert.equal(progress.body.certificate,null)
   const result=(await check()).find(r=>r.context.batch_id===batch);assert.equal(result.credential,null);assert.ok(result.evidence.reasons.some((s:string)=>s.includes("Pass Required quiz")));assert.ok(result.evidence.reasons.some((s:string)=>s.includes("batch")))
 })
 test("passed quiz still cannot certify an unfinished batch; attempts are bounded independently per offering",async()=>{
   const passed=await finishQuiz(1);assert.equal(passed.attempt.passed,true)
+  // Both attempts are used, so the review now includes the key.
+  assert.equal(passed.answers_released,true);assert.equal(passed.questions[0].correct_index,1)
   assert.equal((await student.call("POST",`/api/student/quizzes/${quiz}/start`,{})).status,400)
   assert.equal((await check()).find(r=>r.context.batch_id===batch).credential,null)
   await h.ctx.db.update(cohort_batches).set({lifecycle:"Completed",ends_at:new Date(Date.now()-1000)}).where(eq(cohort_batches.id,batch))

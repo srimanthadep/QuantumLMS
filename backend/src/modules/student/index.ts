@@ -12,7 +12,7 @@ import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
 import { badRequest, forbidden } from "../../errors.js"
 import { authenticate, me, parse } from "../../http.js"
 import { beginUpload, verifyUpload } from "../../storage/uploads.js"
-import { BUCKETS, objectKey, keyOwner, type Bucket } from "../../storage/storage.js"
+import { allowedContentType, BUCKETS, objectKey, keyOwner, type Bucket } from "../../storage/storage.js"
 import { campusRoutes, publicCertificateRoutes } from "./campus.js"
 import { courseRoutes, invalidateCatalogCache } from "./courses.js"
 import { evaluationRoutes } from "./evaluation.js"
@@ -78,7 +78,7 @@ export async function studentModule(app: FastifyInstance, ctx: AppContext) {
       )
       const rule = BUCKETS[b.bucket]
       if (b.size > rule.maxBytes) throw badRequest(`Files here can be up to ${Math.round(rule.maxBytes / 1024 / 1024)} MB.`, "too_large")
-      if (rule.types && !(rule.types as readonly string[]).includes(b.content_type)) throw badRequest("Use a PNG, JPG, WebP or GIF image.")
+      if (!allowedContentType(b.bucket, b.content_type)) throw badRequest(`This file type is not allowed. Upload ${rule.label}.`, "file_type")
       return beginUpload(ctx, s.id, { key: objectKey(b.bucket, s.id, b.folder, b.filename), bucket: b.bucket, type: b.content_type, size: b.size })
     })
 

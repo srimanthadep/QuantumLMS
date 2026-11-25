@@ -132,7 +132,7 @@ export async function learningAdminRoutes(app: FastifyInstance, ctx: AppContext)
         let requested = 0
         for (const order of relatedOrders) {
           const captured = await tx.select().from(payments).where(and(eq(payments.order_id, order.id), sql`${payments.captured_at} is not null`))
-          for (const payment of captured) { await queueRefund(tx, payment, "Underfilled batch refund", me(req).id); requested++ }
+          for (const payment of captured) { await queueRefund(tx, payment, "Underfilled batch refund", me(req).id, { retryFailed: true }); requested++ }
         }
         if (!requested) throw conflict("No verified captured payments exist for this batch. Legacy registrations require manual reconciliation.")
         await tx.update(cohort_batches).set({ underfilled_action: "refund", registration_deadline: new Date() }).where(eq(cohort_batches.id, batch.id))

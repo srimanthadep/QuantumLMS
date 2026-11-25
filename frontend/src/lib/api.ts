@@ -5,7 +5,15 @@ import { accessToken } from "./auth"
  * The Quantum LMS API. Requests go to /api on the same origin: Vite proxies it to the API in development, and
  * CloudFront routes it to the API service in AWS. VITE_API_URL points elsewhere when needed.
  */
-const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "") + "/api"
+const API_ORIGIN = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "")
+const BASE = API_ORIGIN + "/api"
+
+/** The realtime socket lives next to the API: on this site's /api, or on VITE_API_URL when that is set. */
+export function apiWebSocketUrl(): string {
+  const url = new URL(`${BASE}/ws`, window.location.href)
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
+  return url.toString()
+}
 
 export type { Json, StudentProfile, Tables } from "./api.types"
 
@@ -109,13 +117,21 @@ function clearStorageCache(pathPrefix?: string) {
 }
 
 /**
+ * Bumped on every invalidation. A GET that started before the bump doesn't store its response, so a read that was
+ * already in flight when a write landed can't put the old data back into the cache.
+ */
+let cacheEpoch = 0
+
+/**
  * Invalidate cached responses for matching paths or prefixes across memory and storage.
  */
 export function invalidateCache(pathPrefix?: string) {
+  cacheEpoch++
   clearStorageCache(pathPrefix)
   if (!pathPrefix) {
     memoryCache.clear()
     etagCache.clear()
+    inFlightGet.clear()
     return
   }
   for (const key of memoryCache.keys()) {
@@ -124,16 +140,20 @@ export function invalidateCache(pathPrefix?: string) {
       etagCache.delete(key)
     }
   }
+  // Later reads start a fresh request instead of joining one that began before the write.
+  for (const key of inFlightGet.keys()) {
+    if (key.includes(pathPrefix)) inFlightGet.delete(key)
+  }
 }
 
+/**
+ * A write can change any read in the same area: releasing results changes /evaluator/queue, registering for an
+ * event changes /student/campus-feed. So a write clears the whole area ("/student", "/evaluator", ...).
+ */
 function invalidateCacheForMutation(method: Method, path: string) {
   if (method === "GET") return
-  const segments = path.split("/").filter(Boolean)
-  if (segments.length >= 2) {
-    invalidateCache(`/${segments[0]}/${segments[1]}`)
-  } else {
-    invalidateCache(path)
-  }
+  const area = path.split(/[/?#]/).filter(Boolean)[0]
+  invalidateCache(area ? `/${area}` : undefined)
 }
 
 let verifiedSession: { token: string; id: string } | null = null
@@ -191,6 +211,7 @@ export async function request<T>(
     }
   }
 
+  const epoch = cacheEpoch
   const exec = async (): Promise<T> => {
     let res: Response
     try {
@@ -200,8 +221,8 @@ export async function request<T>(
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       }
 
-      // Attach conditional ETag header if available in browser cache
-      if (method === "GET" && etagCache.has(key)) {
+      // Attach the conditional ETag header only when there is cached data a 304 could reuse.
+      if (method === "GET" && etagCache.has(key) && (memoryCache.has(key) || readStorageCache(key) !== null)) {
         headers["If-None-Match"] = etagCache.get(key)!
       }
 
@@ -220,13 +241,15 @@ export async function request<T>(
     if (res.status === 304) {
       const cached = memoryCache.get(key)?.data ?? readStorageCache<T>(key)
       if (cached) {
-        const ttl = options.ttl ?? 30_000
-        memoryCache.set(key, {
-          data: cached,
-          etag: etagCache.get(key),
-          expiresAt: Date.now() + ttl,
-        })
-        writeStorageCache(key, cached, ttl)
+        if (epoch === cacheEpoch) {
+          const ttl = options.ttl ?? 30_000
+          memoryCache.set(key, {
+            data: cached,
+            etag: etagCache.get(key),
+            expiresAt: Date.now() + ttl,
+          })
+          writeStorageCache(key, cached, ttl)
+        }
         return cached as T
       }
     }
@@ -236,6 +259,11 @@ export async function request<T>(
       return undefined as T
     }
 
+    // An HTML page means /api reached the web host instead of the API (for example a static host with no /api
+    // route). Fail loudly instead of handing null to the page as if it were data.
+    if ((res.headers.get("content-type") ?? "").includes("text/html")) {
+      throw new ApiError("Can't reach the server. Check your connection and try again.", "network", res.status)
+    }
     const data = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
     assertCurrentSession(generation)
     if (!res.ok) {
@@ -250,8 +278,8 @@ export async function request<T>(
       )
     }
 
-    // Store in browser cache on successful GET
-    if (method === "GET") {
+    // Store in browser cache on successful GET, unless a write invalidated the cache while this read was in flight.
+    if (method === "GET" && epoch === cacheEpoch) {
       const etag = res.headers.get("etag")
       if (etag) etagCache.set(key, etag)
 
@@ -264,7 +292,7 @@ export async function request<T>(
         })
         writeStorageCache(key, data, ttl)
       }
-    } else {
+    } else if (method !== "GET") {
       // Automatically purge stale cached entries on mutations
       invalidateCacheForMutation(method, path)
     }
@@ -273,8 +301,9 @@ export async function request<T>(
   }
 
   if (method === "GET") {
-    const p = exec().finally(() => {
-      inFlightGet.delete(key)
+    const p: Promise<T> = exec().finally(() => {
+      // Only remove this request's entry; a newer request for the same key may have replaced it.
+      if (inFlightGet.get(key) === p) inFlightGet.delete(key)
     })
     inFlightGet.set(key, p)
     return p

@@ -17,6 +17,8 @@ const schema = z.object({
   PUBLIC_API_URL: z.string().url().default("http://localhost:4000"),
   /** Comma-separated browser origins allowed to call the API. */
   CORS_ORIGINS: z.string().default("http://localhost:8443"),
+  /** How many proxies sit in front of the API and may set X-Forwarded-For: 1 for the Vite dev proxy, 2 for CloudFront + ALB. */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required (postgres://user:password@host:5432/db)"),

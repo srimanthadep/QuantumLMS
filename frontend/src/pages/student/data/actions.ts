@@ -129,12 +129,17 @@ export interface QuizReview {
   row: AttemptRow
   attempt: AssessmentAttempt
   questions: AssessmentQuestion[]
+  /** False while the student still has attempts left and the quiz is open: the server withholds the answer key. */
+  answersReleased: boolean
 }
 
-function toReview(json: { attempt: AttemptRow; questions: QuestionJson[] }, uid: string, name?: string): QuizReview {
+type ReviewJson = { attempt: AttemptRow; answers_released?: boolean; questions: QuestionJson[] }
+
+function toReview(json: ReviewJson, uid: string, name?: string): QuizReview {
   return {
     row: json.attempt,
     attempt: toAttempt(json.attempt, uid, name),
+    answersReleased: json.answers_released ?? json.questions.every((q) => q.correct_index !== undefined),
     questions: json.questions.map((q) => ({
       id: q.position,
       question: q.question,
@@ -148,7 +153,7 @@ function toReview(json: { attempt: AttemptRow; questions: QuestionJson[] }, uid:
 }
 
 export async function submitQuiz(uid: string, attemptId: string, answers: Record<number, number>, name?: string): Promise<QuizReview> {
-  const res = await api.post<{ attempt: AttemptRow; questions: QuestionJson[] }>(
+  const res = await api.post<ReviewJson>(
     `/student/quiz-attempts/${encodeURIComponent(attemptId)}/submit`,
     { answers: toJsonAnswers(answers) },
     "The quiz couldn't be submitted. Your answers are saved; try again.",
@@ -157,7 +162,7 @@ export async function submitQuiz(uid: string, attemptId: string, answers: Record
 }
 
 export async function getQuizReview(uid: string, attemptId: string, name?: string): Promise<QuizReview> {
-  return toReview(await api.get(`/student/quiz-attempts/${encodeURIComponent(attemptId)}/review`, "The review couldn't be loaded."), uid, name)
+  return toReview(await api.get<ReviewJson>(`/student/quiz-attempts/${encodeURIComponent(attemptId)}/review`, "The review couldn't be loaded."), uid, name)
 }
 
 /* --------------------------------- Profile -------------------------------- */

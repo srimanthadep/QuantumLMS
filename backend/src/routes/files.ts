@@ -69,6 +69,10 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext) {
     }
     reply.header("Content-Type", info.contentType ?? TYPES[ext] ?? "application/octet-stream")
     reply.header("Content-Length", String(info.size))
+    // These files are served from the API's own origin. Even if one is rendered as a page, it gets no script,
+    // no same-origin access and no type sniffing.
+    reply.header("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox")
+    reply.header("X-Content-Type-Options", "nosniff")
     if (t.name) reply.header("Content-Disposition", `inline; filename="${t.name.replace(/["\\\r\n]/g, "_")}"`)
     if (info.size === 0) return reply.send(Buffer.alloc(0))
     const result = await local.stream!(t.key, req.headers.range)

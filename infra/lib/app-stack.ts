@@ -116,6 +116,8 @@ export class AppStack extends Stack {
           LOG_LEVEL: "info",
           // CloudFront serves the site and /api on one origin, so no other origin needs CORS.
           CORS_ORIGINS: "",
+          // CloudFront, then the load balancer, each append to X-Forwarded-For.
+          TRUST_PROXY_HOPS: "2",
           DATABASE_SSL: "verify",
           ...(props.databaseCaCert ? { DATABASE_CA_CERT: props.databaseCaCert } : {}),
           // Connections per task. Supabase's session pooler allows 15 clients in total on its smallest size.

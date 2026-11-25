@@ -1,4 +1,5 @@
 import { registerLegacyAssessments } from "../../assessments/access.js"
+import { grantAccess } from "../../learning/entitlements.js"
 import { eq, sql } from "drizzle-orm"
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core"
 import type { Tx } from "../client.js"
@@ -128,6 +129,8 @@ export async function seedStudentDemo(tx: Tx, studentId: string, anchor: Date, t
       { course_id: "c-4", days: 49 },
     ].map((e) => ({ student_id: studentId, course_id: e.course_id, enrolled_at: time.ago({ days: e.days }) })),
   )
+  // Course access is decided by entitlement grants; an enrollment row alone no longer opens a course.
+  for (const course of ["c-1", "c-2", "c-3", "c-4"]) await grantAccess(tx, { student: studentId, course, sourceType: "seed", sourceId: "demo" })
   await openCertificates(tx, studentId, ["c-1", "c-2", "c-3", "c-4"])
 
   // Completed lessons in course order; the last one per course is the most recent study session.

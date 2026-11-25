@@ -53,7 +53,7 @@ export async function processRefund(ctx: AppContext) {
   try {
     const [payment] = await ctx.db.select().from(payments).where(eq(payments.id, String(job.payment_id)))
     const gateway = provider(ctx)
-    const remote = job.provider_refund_id ? await gateway.fetchRefund(String(job.provider_refund_id)) : await gateway.refund({ paymentId: payment.provider_payment_id, amount: Number(job.amount), idempotencyKey: String(job.id) })
+    const remote = job.provider_refund_id ? await gateway.fetchRefund(String(job.provider_refund_id)) : await gateway.refund({ paymentId: payment.provider_payment_id, amount: Number(job.amount), idempotencyKey: Number(job.retry_round) ? `${job.id}:retry-${job.retry_round}` : String(job.id) })
     if (remote.payment_id !== payment.provider_payment_id || remote.amount !== Number(job.amount) || remote.currency !== job.currency) throw new Error("Refund does not match the requested payment")
     // Store the provider reference before polling payment state; subsequent retries never create a second refund.
     await ctx.db.update(refunds).set({ provider_refund_id: remote.id, status: remote.status === "failed" ? "failed" : "processing", error: remote.status === "failed" ? "Provider rejected this refund. Review it in Razorpay." : null,

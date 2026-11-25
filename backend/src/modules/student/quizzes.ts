@@ -132,21 +132,44 @@ async function attemptPayload(tx: Tx, a: Attempt) {
   }
 }
 
-async function ownAttempt(tx: Tx, studentId: string, attemptId: string, lock = false): Promise<Attempt> {
+type Access = Awaited<ReturnType<typeof assessmentAccess>>
+
+async function ownAttemptWithAccess(tx: Tx, studentId: string, attemptId: string, lock = false): Promise<{ attempt: Attempt; access: Access }> {
   const rows = lock
     ? ((await tx.execute(sql`select * from lms.quiz_attempts where id = ${attemptId} and student_id = ${studentId}::uuid for update`)).rows as unknown as Attempt[])
     : await tx.select().from(quiz_attempts).where(and(eq(quiz_attempts.id, attemptId), eq(quiz_attempts.student_id, studentId))).limit(1)
   const a = rows[0]
   if (!a) throw notFound("Quiz attempt not found.")
-  await assessmentAccess(tx,studentId,"quiz",a.quiz_id)
-  return { ...a, deadline_at: new Date(a.deadline_at), started_at: new Date(a.started_at), submitted_at: a.submitted_at ? new Date(a.submitted_at) : null }
+  const access = await assessmentAccess(tx,studentId,"quiz",a.quiz_id)
+  return { attempt: { ...a, deadline_at: new Date(a.deadline_at), started_at: new Date(a.started_at), submitted_at: a.submitted_at ? new Date(a.submitted_at) : null }, access }
+}
+
+async function ownAttempt(tx: Tx, studentId: string, attemptId: string, lock = false): Promise<Attempt> {
+  return (await ownAttemptWithAccess(tx, studentId, attemptId, lock)).attempt
+}
+
+/**
+ * The answer key is released only when the student can't use it on a later attempt: every attempt is used up and
+ * none is still running, or the quiz has closed.
+ */
+async function answersReleased(tx: Tx, studentId: string, quizId: string, access: Access, now = new Date()): Promise<boolean> {
+  const q = await tx.query.quizzes.findFirst({ where: eq(quizzes.id, quizId) })
+  if (!q) return false
+  const due = access.offering.context === "legacy" ? q.due_at : access.due ?? q.due_at
+  if (due && now > due) return true
+  const [{ used, open }] = await tx
+    .select({ used: sql<number>`count(*)::int`, open: sql<number>`count(*) filter (where ${quiz_attempts.submitted_at} is null)::int` })
+    .from(quiz_attempts)
+    .where(and(eq(quiz_attempts.student_id, studentId), eq(quiz_attempts.quiz_id, quizId)))
+  return used >= q.max_attempts && open === 0
 }
 
 async function review(tx: Tx, studentId: string, attemptId: string) {
-  const a = await ownAttempt(tx, studentId, attemptId)
+  const { attempt: a, access } = await ownAttemptWithAccess(tx, studentId, attemptId)
   if (!a.submitted_at) throw badRequest("Submit the quiz to see the answers.")
   const { student_id: _omit, ...attempt } = a
-  return { attempt, questions: await questionsFor(tx, a.quiz_id, true) }
+  const released = await answersReleased(tx, studentId, a.quiz_id, access)
+  return { attempt, answers_released: released, questions: await questionsFor(tx, a.quiz_id, released) }
 }
 
 export async function quizRoutes(app: FastifyInstance, ctx: AppContext) {

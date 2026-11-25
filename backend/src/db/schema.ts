@@ -1400,6 +1400,8 @@ export const refunds = lms.table("refunds", {
   provider_refund_id: text().unique(), amount: integer().notNull(), currency: text().notNull(), reason: text().notNull(), actor_id: uuid().references(() => users.id),
   status: text().notNull().default("pending"), attempts: integer().notNull().default(0), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
   available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(), created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), confirmed_at: timestamp({ withTimezone: true }),
+  // Bumped when an admin retries a refund the provider rejected, so the retry sends a new idempotency key.
+  retry_round: integer().notNull().default(0),
 }, t => [index("refund_queue_idx").on(t.status, t.available_at)]);
 
 export const lesson_revisions = lms.table("lesson_revisions", {

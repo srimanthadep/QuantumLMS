@@ -3,7 +3,6 @@ import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
-import { createHash } from "node:crypto"
 import { gzipSync } from "node:zlib"
 import { eq, sql } from "drizzle-orm"
 import type { AppContext } from "./context.js"
@@ -23,7 +22,9 @@ export interface AppOptions {
 export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: opts.logger === false ? false : { level: ctx.config.LOG_LEVEL, redact: ["req.headers.authorization", "req.headers.sec-websocket-protocol"] },
-    trustProxy: true,
+    // Trust only the proxies in front of the API (CloudFront + load balancer in AWS, Vite in development), so a
+    // client can't pick its own req.ip with a forged X-Forwarded-For.
+    trustProxy: (_address: string, hop: number) => hop < ctx.config.TRUST_PROXY_HOPS,
     bodyLimit: 20 * 1024 * 1024,
     // Signed local upload links carry their token in the path.
     routerOptions: { maxParamLength: 2048 },
@@ -55,10 +56,19 @@ export async function buildApp(ctx: AppContext, opts: AppOptions = {}): Promise<
   await app.register(rateLimit, {
     max: ctx.config.NODE_ENV === "test" ? 10_000 : 600,
     timeWindow: "1 minute",
-    // Per signed-in user where possible, so a classroom behind one NAT isn't throttled as a single client.
-    keyGenerator: (req) => {
+    // Per signed-in user where possible, so a classroom behind one NAT isn't throttled as a single client. Only a
+    // verified token counts: an invented Authorization header falls back to the client address instead of
+    // opening a fresh bucket on every request. Verified tokens are cached, so this adds no work to the request.
+    keyGenerator: async (req) => {
       const auth = req.headers.authorization
-      return auth ? createHash("sha256").update(auth).digest("base64url").slice(0, 24) : req.ip
+      if (auth?.startsWith("Bearer ")) {
+        try {
+          return `user:${(await ctx.verifyToken(auth.slice(7))).sub}`
+        } catch {
+          // Not a valid token; limit by address.
+        }
+      }
+      return `ip:${req.ip}`
     },
   })
 

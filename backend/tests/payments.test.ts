@@ -13,7 +13,7 @@ import { loadConfig } from "../src/config.js"
 
 let h: TestHarness, student: TestUser, other: TestUser, admin: TestUser, studentId: string, otherId: string
 const remoteOrders = new Map<string, ProviderOrder>(), remotePayments = new Map<string, ProviderPayment>(), remoteRefunds = new Map<string, ProviderRefund>()
-let createCalls = 0, refundCalls = 0, loseCreateResponse = false, loseRefundResponse = false
+let createCalls = 0, refundCalls = 0, loseCreateResponse = false, loseRefundResponse = false, rejectRefund = false
 const fake: PaymentProvider = {
   name: "razorpay", publicKey: "rzp_test_fixture",
   async createOrder(input) {
@@ -28,7 +28,8 @@ const fake: PaymentProvider = {
   async refund(input) {
     refundCalls++
     if (remoteRefunds.has(input.idempotencyKey)) return remoteRefunds.get(input.idempotencyKey)!
-    const row = { id: `rfnd_${randomUUID().replaceAll("-", "")}`, payment_id: input.paymentId, amount: input.amount, currency: "INR", status: "pending" }
+    const row = { id: `rfnd_${randomUUID().replaceAll("-", "")}`, payment_id: input.paymentId, amount: input.amount, currency: "INR", status: rejectRefund ? "failed" : "pending" }
+    rejectRefund = false
     remoteRefunds.set(input.idempotencyKey, row)
     if (loseRefundResponse) { loseRefundResponse = false; throw new Error("Connection lost after refund commit") }
     return row
@@ -122,6 +123,24 @@ test("refund stays pending through a lost response; confirmed refund revokes onl
   assert.equal(await hasEntitlement(h.ctx.db, studentId, id), true, "independent source remains")
   const grants = await h.ctx.db.select().from(entitlement_grants).where(and(eq(entitlement_grants.course_id, id), eq(entitlement_grants.source_type, "payment"))); assert.ok(grants[0].revoked_at)
   assert.ok(refundCalls >= 2); assert.equal([...remoteRefunds.values()].filter(r => r.payment_id === payment.id).length, 1)
+})
+test("a refund the provider rejects stays failed until an admin retries it with a new idempotency key", async () => {
+  const id = await offer(), order = await buy(id), payment = capture(order); await reconcilePayment(h.ctx, payment)
+  assert.equal((await admin.call("POST", `/api/admin/orders/${order.id}/refund`, { reason: "Requested by learner" })).status, 200)
+  const [local] = await h.ctx.db.select().from(refunds).where(eq(refunds.order_id, order.id))
+  await h.ctx.db.execute(sql`update lms.refunds set available_at=now()+interval '1 day' where id<>${local.id}`)
+  rejectRefund = true; await processRefund(h.ctx)
+  const [failed] = await h.ctx.db.select().from(refunds).where(eq(refunds.id, local.id)); assert.equal(failed.status, "failed")
+  // The worker never picks a failed refund up again on its own.
+  await h.ctx.db.update(refunds).set({ available_at: new Date(0) }).where(eq(refunds.id, local.id))
+  const calls = refundCalls; assert.equal(await processRefund(h.ctx), false); assert.equal(refundCalls, calls)
+  assert.equal((await admin.call("POST", `/api/admin/orders/${order.id}/refund`, { reason: "Retry after rejection" })).status, 200)
+  const [retried] = await h.ctx.db.select().from(refunds).where(eq(refunds.id, local.id))
+  assert.equal(retried.status, "pending"); assert.equal(retried.retry_round, 1); assert.equal(retried.provider_refund_id, null)
+  await processRefund(h.ctx)
+  assert.ok(remoteRefunds.has(`${local.id}:retry-1`), "the retry used a fresh idempotency key")
+  const [processing] = await h.ctx.db.select().from(refunds).where(eq(refunds.id, local.id)); assert.equal(processing.status, "processing")
+  assert.equal((await h.ctx.db.select().from(orders).where(eq(orders.id, order.id)))[0].status, "refund_pending")
 })
 test("paid admission is exactly once and duplicate capture refunds the extra payment", async () => {
   const id = await offer("live", 1), order = await buy(id, "live"), payment = capture(order)

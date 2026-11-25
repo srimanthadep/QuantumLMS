@@ -119,42 +119,19 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
   const [code, setCode] = useState("")
   const [newPassword, setNewPassword] = useState("")
 
-  // Update mode or handle OAuth / Cognito callback params
+  // Sign-in only goes through Amplify (Cognito). Tokens are never accepted from the URL, where they would end up
+  // in browser history, logs and Referer headers.
   useEffect(() => {
     if (searchParams.get("mode") === "signup") {
       setMode("signup")
     }
 
+    // searchParams.get already decodes the value.
     const errorParam = searchParams.get("error")
     if (errorParam) {
-      setErrorMessage(decodeURIComponent(errorParam))
+      setErrorMessage(errorParam)
     }
-
-    const authSuccess = searchParams.get("auth_success")
-    const accessTokenParam = searchParams.get("access_token")
-    if (authSuccess || accessTokenParam) {
-      setIsLoading(true)
-      fetch("/api/me", {
-        headers: accessTokenParam
-          ? { Authorization: `Bearer ${accessTokenParam}` }
-          : {},
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((user) => {
-          if (user) {
-            onLogin({
-              id: user.id,
-              name: user.full_name || "Learner",
-              role: user.role || "Student",
-              email: user.email,
-              avatar: user.avatar_url ?? undefined,
-            })
-          }
-        })
-        .catch(() => undefined)
-        .finally(() => setIsLoading(false))
-    }
-  }, [searchParams, onLogin])
+  }, [searchParams])
 
   /** Runs an async Cognito/API auth step and handles completion */
   const runAccount = async (

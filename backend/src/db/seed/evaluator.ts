@@ -2,6 +2,7 @@ import { and, eq, inArray, notInArray, sql } from "drizzle-orm"
 import type { Tx } from "../client.js"
 import * as t from "../schema.js"
 import { DEMO_ACCOUNTS } from "../../demo-accounts.js"
+import { grantAccess } from "../../learning/entitlements.js"
 import { letterGrade, type Scores } from "../../modules/evaluator/grading.js"
 import type { Storage } from "../../storage/storage.js"
 import { demoRows } from "./data.js"
@@ -561,6 +562,8 @@ export async function seedEvaluatorDemo(tx: Tx, o: EvaluatorSeedOptions) {
     .insert(t.enrollments)
     .values(LEARNERS.flatMap((l) => ["c-1", "c-2", "c-3", "c-4"].map((c) => ({ student_id: ids[l.key], course_id: c, enrolled_at: T.ago({ days: 60 }) }))))
     .onConflictDoNothing()
+  // Course access is decided by entitlement grants; an enrollment row alone no longer opens a course.
+  for (const l of LEARNERS) for (const course of ["c-1", "c-2", "c-3", "c-4"]) await grantAccess(tx, { student: ids[l.key], course, sourceType: "seed", sourceId: "demo" })
   const learnerIds = Object.values(ids)
   await tx.delete(t.assignment_submissions).where(inArray(t.assignment_submissions.student_id, learnerIds))
   await tx.delete(t.notifications).where(inArray(t.notifications.student_id, learnerIds))

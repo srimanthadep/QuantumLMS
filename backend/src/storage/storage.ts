@@ -4,12 +4,41 @@ import { randomUUID } from "node:crypto"
  * Browsers upload straight to the returned URL with PUT, then send the key to the API, which checks the object
  * before referencing it. Downloads use short-lived URLs.
  */
+const IMAGES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const
+/**
+ * Files staff open in the browser. Only types that can't run script when shown inline: no HTML, SVG, XML or
+ * JavaScript. Several names per format because browsers and operating systems report them differently.
+ */
+const DOCUMENTS = [
+  ...IMAGES,
+  "application/pdf",
+  "text/plain", "text/csv", "text/markdown", "text/x-python", "text/x-script.python", "application/x-python-code",
+  "application/json", "application/x-ipynb+json",
+  "application/zip", "application/x-zip-compressed", "application/x-tar", "application/gzip", "application/x-gzip", "application/x-compressed",
+  "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/octet-stream",
+] as const
+
 export const BUCKETS = {
-  submissions: { maxBytes: 50 * 1024 * 1024, types: null },
-  "ticket-attachments": { maxBytes: 10 * 1024 * 1024, types: null },
-  avatars: { maxBytes: 2 * 1024 * 1024, types: ["image/png", "image/jpeg", "image/webp", "image/gif"] },
-  videos: { maxBytes: 5 * 1024 * 1024 * 1024, types: null },
+  submissions: { maxBytes: 50 * 1024 * 1024, types: DOCUMENTS, label: "a PDF, notebook, archive, document, image or text file" },
+  "ticket-attachments": { maxBytes: 10 * 1024 * 1024, types: DOCUMENTS, label: "a PDF, document, image or text file" },
+  avatars: { maxBytes: 2 * 1024 * 1024, types: IMAGES, label: "a PNG, JPG, WebP or GIF image" },
+  videos: { maxBytes: 5 * 1024 * 1024 * 1024, types: ["video/mp4", "video/webm", "video/quicktime"], label: "an MP4, WebM or MOV video" },
 } as const
+
+/** Lower-cased media type with no parameters, or null when it isn't a plain `type/subtype`. */
+export function normalizeContentType(value: string): string | null {
+  const type = value.trim().toLowerCase()
+  return /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(type) ? type : null
+}
+
+export function allowedContentType(bucket: keyof typeof BUCKETS, value: string): string | null {
+  const type = normalizeContentType(value)
+  return type && (BUCKETS[bucket].types as readonly string[]).includes(type) ? type : null
+}
 export type Bucket = keyof typeof BUCKETS
 
 export interface UploadTarget {

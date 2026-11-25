@@ -84,15 +84,30 @@ export async function checkout(ctx: AppContext, student: string, input: { offer_
   return { order: row, key: gateway.publicKey, test_mode: true }
 }
 
-export async function queueRefund(tx: Tx, payment: typeof payments.$inferSelect, reason: string, actor?: string) {
+/**
+ * One refund row per payment. `retryFailed` is for an admin asking again: a refund the provider rejected goes back
+ * to the queue with a new idempotency key. Automatic callers leave a failed refund alone, so a rejection that keeps
+ * happening isn't retried in a loop.
+ */
+export async function queueRefund(tx: Tx, payment: typeof payments.$inferSelect, reason: string, actor?: string, opts: { retryFailed?: boolean } = {}) {
   if (!["captured", "refunded"].includes(payment.status)) throw conflict("Only captured payments can be refunded")
   if (payment.refunded_amount > 0 && payment.refunded_amount < payment.amount) throw conflict("A partial provider refund exists. Reconcile it before requesting a full refund.")
   const [inserted] = await tx.insert(refunds).values({ id: randomUUID(), payment_id: payment.id, order_id: payment.order_id,
     amount: payment.amount, currency: payment.currency, reason, actor_id: actor,
     status: payment.refunded_amount >= payment.amount ? "processed" : "pending", confirmed_at: payment.refunded_amount >= payment.amount ? new Date() : null }).onConflictDoNothing().returning()
-  const [existing] = inserted ? [inserted] : await tx.select().from(refunds).where(eq(refunds.payment_id, payment.id))
-  await tx.update(orders).set({ status: existing.status === "processed" ? "refunded" : "refund_pending", updated_at: new Date() })
-    .where(and(eq(orders.id, payment.order_id), sql`(${orders.fulfilled_payment_id} is null or ${orders.fulfilled_payment_id}=${payment.id})`))
+  let [existing] = inserted ? [inserted] : await tx.select().from(refunds).where(eq(refunds.payment_id, payment.id)).for("update")
+  if (existing.status === "failed" && opts.retryFailed) {
+    ;[existing] = await tx.update(refunds).set({
+      status: "pending", provider_refund_id: null, retry_round: sql`${refunds.retry_round} + 1`, attempts: 0,
+      available_at: new Date(), lease_token: null, lease_until: null, reason, actor_id: actor ?? existing.actor_id,
+      error: existing.provider_refund_id ? `Retrying after provider refund ${existing.provider_refund_id} failed` : null,
+    }).where(eq(refunds.id, existing.id)).returning()
+  }
+  // A failed refund that isn't being retried leaves the order as it was instead of claiming a refund is under way.
+  if (existing.status !== "failed") {
+    await tx.update(orders).set({ status: existing.status === "processed" ? "refunded" : "refund_pending", updated_at: new Date() })
+      .where(and(eq(orders.id, payment.order_id), sql`(${orders.fulfilled_payment_id} is null or ${orders.fulfilled_payment_id}=${payment.id})`))
+  }
   return existing
 }
 
@@ -171,7 +186,7 @@ export async function requestOrderRefund(ctx: AppContext, id: string, reason: st
     const captured = await tx.select().from(payments).where(and(eq(payments.order_id, id), sql`${payments.captured_at} is not null`))
     if (!captured.length) throw conflict("No captured payment to refund")
     const result = []
-    for (const payment of captured) result.push(await queueRefund(tx, payment, reason, actor))
+    for (const payment of captured) result.push(await queueRefund(tx, payment, reason, actor, { retryFailed: true }))
     await tx.insert(audit_events).values({ actor_id: actor, actor_role: "Admin", action: "refund.requested", target: id, outcome: "pending" })
     return result
   })

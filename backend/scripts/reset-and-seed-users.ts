@@ -7,6 +7,7 @@ import {
   CreateGroupCommand,
   ListUsersCommand,
   UpdateUserPoolCommand,
+  type UserType,
 } from "@aws-sdk/client-cognito-identity-provider"
 import { eq, sql } from "drizzle-orm"
 import { GROUP_ROLES } from "../src/auth/tokens.js"
@@ -16,6 +17,7 @@ import { createDb, createPool } from "../src/db/client.js"
 import { users } from "../src/db/schema.js"
 import { seedEvaluatorDemo } from "../src/db/seed/evaluator.js"
 import { seedContent, seedStudentDemo } from "../src/db/seed/index.js"
+import { confirmDestructiveRun } from "./destructive-guard.js"
 
 const config = loadConfig()
 const poolId = config.COGNITO_USER_POOL_ID
@@ -23,6 +25,12 @@ if (!poolId) {
   console.error("COGNITO_USER_POOL_ID is not configured in backend/.env")
   process.exit(1)
 }
+// Deletes every Cognito user and every lms.users row, and creates accounts with a 6-character password.
+confirmDestructiveRun({
+  script: "reset-and-seed-users",
+  databaseUrl: config.DATABASE_URL,
+  localCognito: { endpoint: config.COGNITO_ENDPOINT, poolId },
+})
 
 const cognito = new CognitoIdentityProviderClient({
   region: config.COGNITO_REGION,
@@ -123,8 +131,14 @@ async function run() {
   }
 
   // 3. List and delete ALL existing Cognito users
-  const listRes = await cognito.send(new ListUsersCommand({ UserPoolId: poolId }))
-  const existingCognitoUsers = listRes.Users || []
+  // ListUsers returns at most 60 users per page.
+  const existingCognitoUsers: UserType[] = []
+  let paginationToken: string | undefined
+  do {
+    const page = await cognito.send(new ListUsersCommand({ UserPoolId: poolId, PaginationToken: paginationToken }))
+    existingCognitoUsers.push(...(page.Users ?? []))
+    paginationToken = page.PaginationToken
+  } while (paginationToken)
   console.log(`Found ${existingCognitoUsers.length} existing Cognito users to remove.`)
 
   for (const u of existingCognitoUsers) {

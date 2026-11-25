@@ -72,6 +72,37 @@ test("upload finalization quarantines mismatched bytes and rejects forged conten
   assert.equal((await student.call("GET", `/api/student/files?key=${encodeURIComponent(target.body.key)}`)).status, 403)
 })
 
+test("uploads only accept allowlisted types, so active content can't be smuggled in with parameters or aliases", async () => {
+  for (const content_type of ["text/html", "text/html; charset=utf-8", "TEXT/HTML", "application/xhtml+xml", "image/svg+xml", "image/svg+xml;x=1", "text/xml", "application/javascript", "text/javascript"]) {
+    const r = await student.call("POST", "/api/student/uploads", { bucket: "submissions", filename: "page.html", content_type, size: 10 })
+    assert.equal(r.status, 400, content_type)
+  }
+  const pdf = await student.call("POST", "/api/student/uploads", { bucket: "submissions", filename: "report.pdf", content_type: "Application/PDF", size: 10 })
+  assert.equal(pdf.status, 200, JSON.stringify(pdf.body))
+  assert.equal(pdf.body.headers["Content-Type"], "application/pdf")
+})
+
+test("rate limits count invented Authorization headers against the caller's address", async () => {
+  const remaining = async (headers: Record<string, string>) => Number((await h.app.inject({ method: "GET", url: "/api/health", headers })).headers["x-ratelimit-remaining"])
+  const first = await remaining({ authorization: "Bearer made-up-1" })
+  const second = await remaining({ authorization: "Bearer made-up-2" })
+  // Same bucket: a new header doesn't reset the count.
+  assert.ok(Number.isFinite(first) && second < first, `${first} -> ${second}`)
+  // A verified user is counted in a bucket of their own, not the address's.
+  await remaining({ authorization: `Bearer ${student.token}` })
+  assert.equal(await remaining({}), second - 1)
+})
+
+test("local file links are served sandboxed", async () => {
+  const key = "submissions/sandbox-fixture/note.txt"
+  await h.ctx.storage.put(key, Buffer.from("hello"), "text/plain")
+  const url = await h.ctx.storage.createDownloadUrl(key, { filename: "note.txt" })
+  const res = await h.app.inject({ method: "GET", url })
+  assert.equal(res.statusCode, 200)
+  assert.match(String(res.headers["content-security-policy"]), /sandbox/)
+  assert.equal(res.headers["x-content-type-options"], "nosniff")
+})
+
 test("a batch-only teacher cannot read another cohort's learners on the same course", async () => {
   const teacherId = (await teacher.call("GET", "/api/me")).body.id
   const studentId = (await student.call("GET", "/api/me")).body.id

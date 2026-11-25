@@ -378,7 +378,7 @@ export default function QuizRunner({ quiz, reviewAttemptId, onClose }: QuizRunne
               </div>
             )}
 
-            {phase === "result" && review && <Result quiz={shown} questions={review.questions} attempt={review.attempt} onClose={onClose} />}
+            {phase === "result" && review && <Result quiz={shown} questions={review.questions} attempt={review.attempt} answersReleased={review.answersReleased} onClose={onClose} />}
           </>
         )}
       </DialogContent>
@@ -517,7 +517,7 @@ function QuestionView({
   )
 }
 
-function Result({ quiz, questions, attempt, onClose }: { quiz: QuizData; questions: AssessmentQuestion[]; attempt: AssessmentAttempt; onClose: () => void }) {
+function Result({ quiz, questions, attempt, answersReleased, onClose }: { quiz: QuizData; questions: AssessmentQuestion[]; attempt: AssessmentAttempt; answersReleased: boolean; onClose: () => void }) {
   const items = useMemo(
     () =>
       questions.map((q, i) => {
@@ -591,8 +591,16 @@ function Result({ quiz, questions, attempt, onClose }: { quiz: QuizData; questio
           </div>
         </div>
 
-        <h4 className="mb-2 mt-8 text-sm font-semibold text-foreground">Review answers</h4>
-        <Accordion items={items} multiple defaultOpen={wrong} />
+        {answersReleased ? (
+          <>
+            <h4 className="mb-2 mt-8 text-sm font-semibold text-foreground">Review answers</h4>
+            <Accordion items={items} multiple defaultOpen={wrong} />
+          </>
+        ) : (
+          <p className="mt-8 rounded-md border border-border bg-surface-2 px-4 py-3 text-sm text-muted-foreground">
+            Correct answers and explanations appear once you've used your last attempt or the quiz has closed.
+          </p>
+        )}
       </div>
       <div className="flex justify-end border-t border-border px-6 py-4">
         <Button onClick={onClose}>Done</Button>
