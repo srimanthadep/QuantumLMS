@@ -103,13 +103,22 @@ export async function processMedia(storage: Storage, config: Config, assetId: st
     // A video without a sound track has nothing to transcribe; it still gets its variants.
     const transcribing = hasAudio ? transcribe(config, input, format, dir, controller.signal, s => { transcribed = s / duration; report() }).then(t => { transcribed = 1; report(); return t })
       : Promise.resolve([] as MediaResult["transcript"])
+    // A source that is already web-ready H.264 at 720p or less is copied as the 720p version instead of re-encoded
+    // (well under a second instead of minutes). Its audio is copied too when it is already AAC.
+    const video = probe.streams.find((s: { codec_type: string }) => s.codec_type === "video") as { codec_name?: string; pix_fmt?: string; height?: number }
+    const audioCodec = (probe.streams.find((s: { codec_type: string }) => s.codec_type === "audio") as { codec_name?: string } | undefined)?.codec_name
+    const copyTop = video.codec_name === "h264" && video.pix_fmt === "yuv420p" && Number(video.height) > 0 && Number(video.height) <= 720
     const encoding = (async () => {
       const variants: MediaResult["variants"] = []
       for (const [index, height] of [720, 480].entries()) {
         const output = path.join(dir, `${height}.mp4`)
+        const copy = copyTop && height === 720
+        // Otherwise "veryfast" on every core: about 4x quicker than "fast" on two threads, for slightly larger files.
+        const videoArgs = copy ? ["-c:v", "copy"] : ["-vf", `scale=-2:'min(${height},ih)'`, "-c:v", "libx264", "-preset", "veryfast", "-crf", "24"]
+        const audioArgs = copy && audioCodec === "aac" ? ["-c:a", "copy"] : ["-c:a", "aac", "-b:a", "96k"]
         await runProcess(config.MEDIA_FFMPEG, ["-nostdin", "-y", "-v", "error", "-protocol_whitelist", "file,pipe", "-f", format, "-i", input,
-          "-map", "0:v:0", "-map", "0:a:0?", "-vf", `scale=-2:'min(${height},ih)'`, "-c:v", "libx264", "-threads", "2", "-preset", "fast", "-crf", "24",
-          "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", "-fs", String(config.MEDIA_TEMP_BUDGET_BYTES - source.size), "-progress", "pipe:1", "-nostats", output], controller.signal,
+          "-map", "0:v:0", "-map", "0:a:0?", ...videoArgs,
+          ...audioArgs, "-movflags", "+faststart", "-fs", String(config.MEDIA_TEMP_BUDGET_BYTES - source.size), "-progress", "pipe:1", "-nostats", output], controller.signal,
           line => { const m = /^out_time_us=(\d+)$/.exec(line); if (m) { encoded = (index + Math.min(1, Number(m[1]) / 1e6 / duration)) / 2; report() } })
         const info = await stat(output)
         const outputProbe = JSON.parse(await runProcess(config.MEDIA_FFPROBE, ["-v", "error", "-show_format", "-show_streams", "-of", "json", output], controller.signal))
