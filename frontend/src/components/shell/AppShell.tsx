@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { useNavigate } from "react-router-dom"
 import type { UserRole } from "@/types"
 import { useSession } from "@/app/session"
+import useRoleSwitch from "@/app/useRoleSwitch"
 import { useToast } from "@/components/ui/toast"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { isDemoStudentEmail, isDemoEvaluatorEmail } from "@/lib/api"
 import CloverAssistantButton from "./CloverAssistantButton"
+import UploadTray from "./UploadTray"
 import { useAiAssistant } from "./AiAssistantDialog"
 import CommandPalette from "./CommandPalette"
 import MobileNav from "./MobileNav"
@@ -100,13 +102,7 @@ export default function AppShell({
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const switchRole = useCallback(
-    (r: UserRole) => {
-      navigate(session.switchRole(r))
-      toast.show(`Sign in to your ${r} account`)
-    },
-    [navigate, session, toast],
-  )
+  const switchRole = useRoleSwitch()
   const logout = useCallback(() => {
     session.logout()
     navigate("/auth")
@@ -183,6 +179,7 @@ export default function AppShell({
           badges={badges}
         />
         <CloverAssistantButton onOpen={openAi} />
+        <UploadTray />
         <CommandPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}

@@ -366,7 +366,7 @@ export interface CalendarEventItem {
   startDate: string // "YYYY-MM-DD"
   startTime: string // "HH:MM"
   endTime: string // "HH:MM"
-  category: "Class" | "Deadline" | "Quiz" | "Meeting" | "Office Hours" | "Reminder"
+  category: "Class" | "Deadline" | "Quiz" | "Meeting" | "Office Hours" | "Reminder" | "Event"
   courseId?: string
   courseName?: string
   location?: string

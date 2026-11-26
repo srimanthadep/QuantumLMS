@@ -3,6 +3,7 @@ import { Video } from "lucide-react"
 import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import type { AdminBatch } from "@/data/adminStore"
 import { cn } from "@/lib/utils"
@@ -17,10 +18,14 @@ interface BatchRowProps {
   onDuplicate: () => void
   onToggleArchive: () => void
   onDelete: () => void
+  /** Select mode: a leading checkbox cell, and a click ticks the row instead of opening it. */
+  selecting?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }
 
 /** Dense table row for the batches list view. The whole row opens the batch page. */
-export default function BatchRow({ batch, theme, onOpen, onEdit, onDuplicate, onToggleArchive, onDelete }: BatchRowProps) {
+export default function BatchRow({ batch, theme, onOpen, onEdit, onDuplicate, onToggleArchive, onDelete, selecting = false, selected = false, onToggleSelect }: BatchRowProps) {
   const pct = seatUtilization(batch.enrolledSeats, batch.maxSeats)
   const meetingHref = safeHref(batch.meetingUrl)
   const timeline = batchTimeline(batch)
@@ -28,17 +33,24 @@ export default function BatchRow({ batch, theme, onOpen, onEdit, onDuplicate, on
     <tr
       role="button"
       tabIndex={0}
-      aria-label={`Open ${batch.name}`}
-      onClick={onOpen}
+      aria-label={selecting ? `Select ${batch.name}` : `Open ${batch.name}`}
+      aria-pressed={selecting ? selected : undefined}
+      onClick={selecting ? onToggleSelect : onOpen}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          onOpen()
+          if (selecting) onToggleSelect?.()
+          else onOpen()
         }
       }}
-      className="group cursor-pointer border-b border-border transition-colors last:border-b-0 hover:bg-surface-2/70 focus-visible:bg-surface-2 focus-visible:outline-none"
+      className={cn("group cursor-pointer border-b border-border transition-colors last:border-b-0 hover:bg-surface-2/70 focus-visible:bg-surface-2 focus-visible:outline-none", selected && "bg-primary-soft/60 hover:bg-primary-soft/70")}
     >
+      {selecting && (
+        <td className="w-10 pl-4 pr-0">
+          <Checkbox checked={selected} onCheckedChange={() => {}} tabIndex={-1} aria-hidden="true" className="pointer-events-none" />
+        </td>
+      )}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <CourseCover title={batch.name} category={theme.category} showTitle={false} hoverZoom={false} className="aspect-auto h-10 w-16 shrink-0 rounded-md" />
@@ -95,7 +107,7 @@ export default function BatchRow({ batch, theme, onOpen, onEdit, onDuplicate, on
         </Badge>
       </td>
       <td className="py-3 pl-2 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
-        <BatchActionsMenu batch={batch} onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />
+        {!selecting && <BatchActionsMenu batch={batch} onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />}
       </td>
     </tr>
   )

@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Clock3, Hourglass } from "lucide-react"
 import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import type { AdminBatch } from "@/data/adminStore"
 import { transition } from "@/lib/motion"
@@ -19,6 +20,10 @@ interface BatchCardProps {
   onDuplicate: () => void
   onToggleArchive: () => void
   onDelete: () => void
+  /** Select mode: a click ticks the card instead of opening it. */
+  selecting?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
   className?: string
   /** React 19 passes `ref` as a prop; AnimatePresence popLayout needs it on the DOM node. */
   ref?: React.Ref<HTMLDivElement>
@@ -42,7 +47,7 @@ function DateTile({ iso }: { iso: string }) {
 }
 
 /** Batch tile in the learner card style. The whole tile opens the batch page. */
-export default function BatchCard({ batch, theme, onOpen, onEdit, onDuplicate, onToggleArchive, onDelete, className, ref }: BatchCardProps) {
+export default function BatchCard({ batch, theme, onOpen, onEdit, onDuplicate, onToggleArchive, onDelete, selecting = false, selected = false, onToggleSelect, className, ref }: BatchCardProps) {
   const pct = seatUtilization(batch.enrolledSeats, batch.maxSeats)
   const available = Math.max(0, batch.maxSeats - batch.enrolledSeats)
   const accepting = batch.status === "Active" || batch.status === "Upcoming"
@@ -58,18 +63,21 @@ export default function BatchCard({ batch, theme, onOpen, onEdit, onDuplicate, o
       transition={transition.base}
       role="button"
       tabIndex={0}
-      aria-label={`Open ${batch.name}, ${batch.enrolledSeats} of ${batch.maxSeats} seats filled`}
-      onClick={onOpen}
+      aria-label={selecting ? `Select ${batch.name}` : `Open ${batch.name}, ${batch.enrolledSeats} of ${batch.maxSeats} seats filled`}
+      aria-pressed={selecting ? selected : undefined}
+      onClick={selecting ? onToggleSelect : onOpen}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          onOpen()
+          if (selecting) onToggleSelect?.()
+          else onOpen()
         }
       }}
       className={cn(
         "group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--elev-xs)] transition-[translate,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]",
         "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        selected && "border-primary ring-2 ring-primary/40",
         className,
       )}
     >
@@ -78,7 +86,14 @@ export default function BatchCard({ batch, theme, onOpen, onEdit, onDuplicate, o
           {batchPriceLabel(batch.price)}{batch.courseTitle ? ` · ${batch.courseCode || batch.courseTitle}` : ""}
         </span>
         <div className="absolute right-2.5 top-2.5 z-10">
-          <BatchActionsMenu batch={batch} onCover onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />
+          {selecting ? (
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink-950/70 ring-1 ring-white/15 backdrop-blur-sm">
+              {/* The card itself takes the click; this only shows the state. */}
+              <Checkbox checked={selected} onCheckedChange={() => {}} tabIndex={-1} aria-hidden="true" className="pointer-events-none" />
+            </span>
+          ) : (
+            <BatchActionsMenu batch={batch} onCover onOpenWorkspace={onOpen} onEdit={onEdit} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive} onDelete={onDelete} />
+          )}
         </div>
         <div className="absolute bottom-3 left-3 z-10">
           <Badge tone={batchStatusTone(batch)} dot className="bg-ink-950/75 text-white ring-1 ring-white/15 backdrop-blur-md">

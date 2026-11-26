@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { after, before, describe, test } from "node:test"
 import { eq } from "drizzle-orm"
-import { users } from "../src/db/schema.js"
+import { cohort_batches, users } from "../src/db/schema.js"
 import { createHarness, TEST_DOMAIN, type TestHarness, type TestUser } from "./helpers.js"
 
 let h: TestHarness
@@ -257,3 +257,29 @@ describe("admin cohort batches CRUD and student roster management", () => {
   })
 })
 
+
+describe("batch dates set the live scheduling window", () => {
+  test("a batch made from plain dates can be scheduled, and editing the dates moves the window", async () => {
+    const created = await admin.call("POST", "/api/admin/batches", {
+      name: "Live window batch",
+      start_date: "2031-03-03",
+      end_date: "2031-03-10",
+      timezone: "Asia/Kolkata",
+    })
+    assert.equal(created.status, 201, JSON.stringify(created.body))
+    const id = created.body.batch.id as string
+    createdBatchIds.push(id)
+
+    const window = async () => (await h.ctx.db.select().from(cohort_batches).where(eq(cohort_batches.id, id)))[0]!
+    let row = await window()
+    // Midnight in Kolkata (UTC+5:30) on the first day, to midnight after the last day.
+    assert.equal(row.starts_at?.toISOString(), "2031-03-02T18:30:00.000Z")
+    assert.equal(row.ends_at?.toISOString(), "2031-03-10T18:30:00.000Z")
+
+    const edited = await admin.call("PATCH", `/api/admin/batches/${id}`, { start_date: "2031-04-01", end_date: "2031-04-02" })
+    assert.equal(edited.status, 200, JSON.stringify(edited.body))
+    row = await window()
+    assert.equal(row.starts_at?.toISOString(), "2031-03-31T18:30:00.000Z")
+    assert.equal(row.ends_at?.toISOString(), "2031-04-02T18:30:00.000Z")
+  })
+})

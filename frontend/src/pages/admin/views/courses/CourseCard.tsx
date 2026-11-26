@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, Tag, Users } from "lucide-react"
 import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { AdminCourse } from "@/data/adminStore"
@@ -15,13 +16,17 @@ interface CourseCardProps {
   onEdit: (course: AdminCourse) => void
   onToggleStatus: (course: AdminCourse) => void
   onDelete: (course: AdminCourse) => void
+  /** Select mode: a click ticks the card instead of opening it. */
+  selecting?: boolean
+  selected?: boolean
+  onToggleSelect?: (course: AdminCourse) => void
 }
 
 const CHIP =
   "rounded-full border border-white/15 bg-ink-950/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur-sm"
 
 /** Catalog tile, styled like the learner course card. The whole tile opens the course page. */
-function CourseCard({ course, onOpen, onEdit, onToggleStatus, onDelete }: CourseCardProps) {
+function CourseCard({ course, onOpen, onEdit, onToggleStatus, onDelete, selecting = false, selected = false, onToggleSelect }: CourseCardProps) {
   const pct = seatPercent(course)
   const seatTone = pct >= 100 ? "danger" : pct >= 85 ? "warning" : "primary"
   const chapters = course.modulesCount ?? 0
@@ -31,32 +36,42 @@ function CourseCard({ course, onOpen, onEdit, onToggleStatus, onDelete }: Course
     <article
       role="button"
       tabIndex={0}
-      aria-label={`Open ${course.title}`}
-      onClick={() => onOpen(course)}
+      aria-label={selecting ? `Select ${course.title}` : `Open ${course.title}`}
+      aria-pressed={selecting ? selected : undefined}
+      onClick={() => (selecting ? onToggleSelect?.(course) : onOpen(course))}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          onOpen(course)
+          if (selecting) onToggleSelect?.(course)
+          else onOpen(course)
         }
       }}
       className={cn(
         "group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--elev-xs)]",
         "transition-[translate,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong/60 hover:shadow-[var(--elev-md)]",
         "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        selected && "border-primary ring-2 ring-primary/40",
       )}
     >
       <CourseCover title={course.title} category={course.category} showTitle={false} className={cn("aspect-[16/8]", course.status === "Archived" && "grayscale-[60%]")}>
         <span className={cn(CHIP, "absolute left-3 top-3 z-10 max-w-[65%] truncate")}>{course.category}</span>
-        <CourseActionsMenu
-          appearance="overlay"
-          course={course}
-          onOpen={onOpen}
-          onEdit={onEdit}
-          onToggleStatus={onToggleStatus}
-          onDelete={onDelete}
-          className="absolute right-2.5 top-2.5 z-10"
-        />
+        {selecting ? (
+          <span className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-ink-950/70 ring-1 ring-white/15 backdrop-blur-sm">
+            {/* The card itself takes the click; this only shows the state. */}
+            <Checkbox checked={selected} onCheckedChange={() => {}} tabIndex={-1} aria-hidden="true" className="pointer-events-none" />
+          </span>
+        ) : (
+          <CourseActionsMenu
+            appearance="overlay"
+            course={course}
+            onOpen={onOpen}
+            onEdit={onEdit}
+            onToggleStatus={onToggleStatus}
+            onDelete={onDelete}
+            className="absolute right-2.5 top-2.5 z-10"
+          />
+        )}
         <div className="absolute inset-x-3 bottom-3 z-10 flex items-end justify-between gap-2">
           <Badge tone={STATUS_TONE[course.status]} dot className="bg-ink-950/75 text-white ring-1 ring-white/15 backdrop-blur-md">
             {course.status}

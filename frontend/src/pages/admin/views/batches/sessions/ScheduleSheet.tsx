@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Switch } from "@/components/ui/switch"
 import type { Links } from "@/components/live/SessionScheduleForm"
 import { api } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { cn, dayInZone, lastDayInZone } from "@/lib/utils"
 import { InlineAlert } from "../parts"
 import MeetingLinkFields from "./MeetingLinkFields"
 
@@ -81,8 +81,8 @@ export default function ScheduleSheet({ open, onOpenChange, batchId, onSaved }: 
         const meta = b.batches.find((x) => x.id === batchId) ?? null
         setBatch(meta)
         setTimezone(meta?.timezone ?? "Asia/Kolkata")
-        setStart(meta?.starts_at?.slice(0, 10) ?? "")
-        setEnd(meta?.ends_at?.slice(0, 10) ?? "")
+        setStart(dayInZone(meta?.starts_at, meta?.timezone ?? "Asia/Kolkata"))
+        setEnd(lastDayInZone(meta?.ends_at, meta?.timezone ?? "Asia/Kolkata"))
         setLinks({ provider: s.provider === "meet_link" ? "meet_link" : "zoom_link", join_url: s.join_url ?? "", host_url: s.host_url ?? "", passcode: s.passcode ?? "" })
         setTeachers(s.teachers)
         setTeacher(s.teachers[0]?.id ?? "")
@@ -132,8 +132,8 @@ export default function ScheduleSheet({ open, onOpenChange, batchId, onSaved }: 
     setId(crypto.randomUUID())
     setTitle("")
     setPreview(null)
-    setStart(batch?.starts_at?.slice(0, 10) ?? "")
-    setEnd(batch?.ends_at?.slice(0, 10) ?? "")
+    setStart(dayInZone(batch?.starts_at, timezone))
+    setEnd(lastDayInZone(batch?.ends_at, timezone))
   }
 
   const blockers = useMemo(() => {

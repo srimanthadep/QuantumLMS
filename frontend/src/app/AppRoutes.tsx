@@ -27,19 +27,12 @@ function usePortalProps() {
   const toast = useToast()
   const navigate = useNavigate()
   const onToast = useCallback((msg: string) => toast.show(msg), [toast])
-  const onSwitchRole = useCallback(
-    (role: UserRole) => {
-      navigate(session.switchRole(role))
-      toast.show(`Sign in to your ${role} account`)
-    },
-    [navigate, session, toast],
-  )
   const onLogout = useCallback(() => {
     session.logout()
     navigate("/auth")
     toast.show("You have been signed out.")
   }, [navigate, session, toast])
-  return { currentUser: session.user, onToast, onSwitchRole, onLogout }
+  return { currentUser: session.user, onToast, onLogout }
 }
 
 function Guard({ role, children }: { role: UserRole; children: ReactNode }) {

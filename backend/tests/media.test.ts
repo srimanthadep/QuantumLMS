@@ -78,3 +78,42 @@ test("expired worker leases can be reclaimed; stale workers cannot complete; tra
   assert.equal(failed?.state, "failed"); assert.match(failed?.error ?? "", /Transcription failed/)
   assert.deepEqual(failed?.transcript, [])
 })
+
+test("admins see every upload with its processing state; others are refused", async () => {
+  const asset = await upload()
+  const overview = await admin.call("GET", "/api/admin/media/overview")
+  assert.equal(overview.status, 200, JSON.stringify(overview.body))
+  const row = overview.body.assets.find((a: { id: string }) => a.id === asset.id)
+  assert.equal(row.course_title, "Media course")
+  assert.equal(row.state, "queued")
+  assert.equal(row.job_state, "queued")
+  const student = await h.user()
+  assert.equal((await student.call("GET", "/api/admin/media/overview")).status, 403)
+})
+
+test("an upload remembers its lesson, and a finished video fills that lesson only while it has no video", async () => {
+  const { attachAssetToLesson } = await import("../src/media/attach.js")
+  const { media_variants } = await import("../src/db/schema.js")
+  const target = await lesson("Auto attach target")
+  const ready = async (lessonId?: string) => {
+    const r = await admin.call("POST", "/api/admin/media/uploads", { courseId: course, filename: "auto.mp4", contentType: "video/mp4", bytes: 10, lessonId })
+    assert.equal(r.status, 200, JSON.stringify(r.body))
+    const id = r.body.asset.id as string
+    await h.ctx.db.update(media_assets).set({ state: "ready", duration_seconds: 125 }).where(eq(media_assets.id, id))
+    await h.ctx.db.insert(media_variants).values({ asset_id: id, quality: "720p", key: `videos/assets/${id}/a/720p.mp4`, bytes: 10, height: 720 })
+    return r.body.asset as typeof media_assets.$inferSelect
+  }
+  const first = await ready(target)
+  assert.equal(first.target_lesson_id, target)
+  const attached = await attachAssetToLesson(h.ctx.db, first.id, target, first.owner_id, { onlyIfEmpty: true })
+  assert.equal(attached?.media_asset_id, first.id)
+  assert.equal(attached?.minutes, 3)
+  // A second upload for the same lesson waits for an author instead of replacing the video on its own.
+  const second = await ready(target)
+  assert.equal(await attachAssetToLesson(h.ctx.db, second.id, target, second.owner_id, { onlyIfEmpty: true }), null)
+  const [row] = await h.ctx.db.select().from(lessons).where(eq(lessons.id, target))
+  assert.equal(row.media_asset_id, first.id)
+  // A lesson from somewhere else is refused at upload time.
+  const bad = await admin.call("POST", "/api/admin/media/uploads", { courseId: course, filename: "x.mp4", contentType: "video/mp4", bytes: 10, lessonId: "not-a-lesson" })
+  assert.equal(bad.status, 400)
+})

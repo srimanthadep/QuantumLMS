@@ -24,6 +24,7 @@ const StudentsView = lazy(() => import("./views/StudentsView"))
 const OrdersView = lazy(() => import("./views/OrdersView"))
 const AlumniView = lazy(() => import("./views/AlumniView"))
 const ReportsView = lazy(() => import("./views/ReportsView"))
+const VideoUploadsView = lazy(() => import("./views/VideoUploadsView"))
 const SettingsView = lazy(() => import("./views/SettingsView"))
 const TeacherApprovalsView = lazy(() => import("./views/TeacherApprovalsView"))
 
@@ -53,6 +54,7 @@ const NAV_PATHS: Record<string, string> = {
   students: "/admin/students",
   alumni: "/admin/alumni",
   orders: "/admin/orders",
+  uploads: "/admin/uploads",
   reports: "/admin/reports",
   settings: "/admin/settings",
 }
@@ -219,6 +221,7 @@ export default function AdminPortal({
               path="/alumni"
               element={<AlumniView onToast={onToast} />}
             />
+            <Route path="/uploads" element={<VideoUploadsView onToast={onToast} />} />
             <Route
               path="/reports"
               element={<ReportsView store={store} onToast={onToast} />}

@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import DateTile from "@/components/student/DateTile"
+import StudentCalendar from "./StudentCalendar"
 import type { AnnouncementItem, EventItem, StudentNavPage } from "./studentTypes"
 import { downloadTextFile } from "./studentUtils"
 import { useStudentResource } from "./data/StudentDataProvider"
 
 import { loadCampusFeed, markAnnouncementsRead, setEventRegistration, type CampusFeed } from "./data/schedule"
 
-export type ScheduleTab = "timetable" | "attendance" | "events" | "announcements"
+export type ScheduleTab = "calendar" | "timetable" | "attendance" | "events" | "announcements"
 
 interface SchedulePageProps {
   onToast: (msg: string) => void
@@ -41,7 +42,7 @@ function useCampusFeed() {
   return useStudentResource<CampusFeed>("campus", () => loadCampusFeed(), 120_000)
 }
 
-export default function SchedulePage({ onToast, initialTab = "timetable", onNavigate }: SchedulePageProps) {
+export default function SchedulePage({ onToast, initialTab = "calendar", onNavigate }: SchedulePageProps) {
   const [tab, setTab] = useState<ScheduleTab>(initialTab)
   const feed = useCampusFeed()
   const unread = feed.data?.announcements.filter((a) => !a.isRead).length ?? 0
@@ -70,8 +71,12 @@ export default function SchedulePage({ onToast, initialTab = "timetable", onNavi
       />
       <Tabs value={tab} onValueChange={(v) => setTab(v as ScheduleTab)}>
         <TabsList aria-label="Schedule sections">
-          <TabsTrigger value="timetable">
+          <TabsTrigger value="calendar">
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
+            Calendar
+          </TabsTrigger>
+          <TabsTrigger value="timetable">
+            <Clock className="h-4 w-4" aria-hidden="true" />
             Timetable
           </TabsTrigger>
           <TabsTrigger value="attendance">
@@ -92,6 +97,9 @@ export default function SchedulePage({ onToast, initialTab = "timetable", onNavi
             )}
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="calendar" className="mt-5">
+          <StudentCalendar onNavigate={(page, courseId) => onNavigate?.(page, courseId)} onOpenTab={setTab} />
+        </TabsContent>
         <TabsContent value="timetable" className="mt-5">
           <LiveSessionsPanel role="Student" />
         </TabsContent>

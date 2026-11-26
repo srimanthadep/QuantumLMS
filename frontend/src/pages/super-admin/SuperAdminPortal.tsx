@@ -34,6 +34,7 @@ const StudentsView = lazy(() => import("../admin/views/StudentsView"))
 const OrdersView = lazy(() => import("../admin/views/OrdersView"))
 const AlumniView = lazy(() => import("../admin/views/AlumniView"))
 const ReportsView = lazy(() => import("../admin/views/ReportsView"))
+const VideoUploadsView = lazy(() => import("../admin/views/VideoUploadsView"))
 
 interface SuperAdminPortalProps {
   currentUser?: CurrentUser
@@ -51,6 +52,7 @@ const NAV_PATHS: Record<string, string> = {
   students: "/super-admin/students",
   alumni: "/super-admin/alumni",
   orders: "/super-admin/orders",
+  uploads: "/super-admin/uploads",
   reports: "/super-admin/reports",
   // Super Admin platform console scope
   health: "/super-admin/health",
@@ -241,6 +243,7 @@ export default function SuperAdminPortal({
               path="/alumni"
               element={<AlumniView onToast={onToast} />}
             />
+            <Route path="/uploads" element={<VideoUploadsView onToast={onToast} />} />
             <Route
               path="/reports"
               element={<ReportsView store={adminStore} onToast={onToast} />}

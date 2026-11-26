@@ -1,6 +1,5 @@
 import { authorizeRecordingAsset } from "../recordings/access.js"
 import { lessonPlayback } from "../storage/lesson-playback.js"
-import { contentChanged, lockCourse, snapshotLesson } from "../learning/content.js"
 import { randomUUID } from "node:crypto"
 import { and, eq, sql } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
@@ -11,6 +10,7 @@ import { lessons, media_assets, media_variants, processing_jobs } from "../db/sc
 import { badRequest, notFound } from "../errors.js"
 import { parse } from "../http.js"
 import { beginUpload, verifyUpload } from "../storage/uploads.js"
+import { attachAssetToLesson } from "./attach.js"
 import { objectKey } from "../storage/storage.js"
 import { invalidateCatalogCache } from "../modules/student/courses.js"
 
@@ -31,12 +31,17 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
   })
   app.post("/media/uploads", async req => {
     const input = parse(z.object({ courseId: z.string().min(1), filename: z.string().min(1).max(200),
-      contentType: z.enum(["video/mp4", "video/webm", "video/quicktime"]), bytes: z.number().int().positive().max(ctx.config.MEDIA_MAX_UPLOAD_BYTES) }), req.body)
+      contentType: z.enum(["video/mp4", "video/webm", "video/quicktime"]), bytes: z.number().int().positive().max(ctx.config.MEDIA_MAX_UPLOAD_BYTES),
+      lessonId: z.string().min(1).optional() }), req.body)
     await assertCourseAccess(ctx.db, req.user!, input.courseId)
+    if (input.lessonId) {
+      const [target] = await ctx.db.select().from(lessons).where(and(eq(lessons.id, input.lessonId), eq(lessons.course_id, input.courseId)))
+      if (!target || target.archived_at || target.type !== "video") throw badRequest("Select an active video lesson in this course")
+    }
     const id = randomUUID()
     const key = objectKey("videos", req.user!.id, id, input.filename)
     const target = await beginUpload(ctx, req.user!.id, { key, bucket: "videos", type: input.contentType, size: input.bytes })
-    const [asset] = await ctx.db.insert(media_assets).values({ id, course_id: input.courseId, owner_id: req.user!.id, source_key: key }).returning()
+    const [asset] = await ctx.db.insert(media_assets).values({ id, course_id: input.courseId, owner_id: req.user!.id, source_key: key, target_lesson_id: input.lessonId ?? null }).returning()
     return { asset, upload: target }
   })
   app.post<{ Params: { id: string } }>("/media/:id/finalize", async req => {
@@ -71,26 +76,26 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post<{ Params: { id: string } }>("/media/:id/attach", async req => {
     const input = parse(z.object({ lessonId: z.string().min(1) }), req.body)
     const asset = await getAsset(req.params.id, req.user!)
-    if (asset.state !== "ready") throw badRequest("Wait for successful processing before attaching this asset")
-    const variants = await ctx.db.select().from(media_variants).where(eq(media_variants.asset_id, asset.id))
-    const qualities = Object.fromEntries(variants.map(v => [v.quality, { url: `/api/files/videos/${v.key}`, height: v.height }]))
-    const preferred = variants.find(v => v.quality === "720p") ?? variants[0]
-    if (!preferred) throw badRequest("No playable variants exist")
-    const courseId = asset.course_id
-    if (!courseId) throw badRequest("Batch videos belong to their batch and cannot be attached to a course lesson")
-    const lesson = await ctx.db.transaction(async tx => {
-      await lockCourse(tx, courseId)
-      const [freshAsset] = await tx.select().from(media_assets).where(eq(media_assets.id,asset.id)).for("update")
-      if (freshAsset.session_id) throw badRequest("Recordings cannot be attached to course lessons; use batch replay")
-      const [current] = await tx.select().from(lessons).where(and(eq(lessons.id, input.lessonId), eq(lessons.course_id, courseId)))
-      if (!current || current.archived_at || current.type !== "video") throw badRequest("Select an active video lesson in this asset's course")
-      await snapshotLesson(tx, current, req.user!.id, "replace-media")
-      const [row] = await tx.update(lessons).set({ media_asset_id: asset.id, video_url: `/api/files/videos/${preferred.key}`,
-        video_qualities: qualities, minutes: Math.ceil((asset.duration_seconds ?? 0) / 60) }).where(eq(lessons.id, current.id)).returning()
-      await contentChanged(tx, courseId, req.user!.id, "lesson.media-replaced")
-      return row
-    })
+    const lesson = await attachAssetToLesson(ctx.db, asset.id, input.lessonId, req.user!.id)
     invalidateCatalogCache()
     return { lesson }
+  })
+}
+
+/** Admin only: every upload and its processing state, newest first, for the Video uploads page. */
+export async function mediaOverviewRoutes(app: FastifyInstance, ctx: AppContext) {
+  app.get("/media/overview", async () => {
+    const rows = await ctx.db.execute(sql`
+      select a.id, a.state, a.error, a.created_at, a.duration_seconds, a.source_key, a.course_id, a.batch_id,
+        c.title as course_title, b.name as batch_name, u.full_name as uploader,
+        j.state as job_state, j.attempts, j.max_attempts, j.error as job_error, j.completed_at
+      from lms.media_assets a
+      left join lms.courses c on c.id = a.course_id
+      left join lms.cohort_batches b on b.id = a.batch_id
+      left join lms.users u on u.id = a.owner_id
+      left join lms.processing_jobs j on j.asset_id = a.id
+      order by a.created_at desc
+      limit 200`)
+    return { assets: rows.rows }
   })
 }

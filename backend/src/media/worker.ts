@@ -6,6 +6,7 @@ import { createStorage } from "../bootstrap.js"
 import { media_assets } from "../db/schema.js"
 import { claimJob, failJob, finishJob, renewLease } from "./jobs.js"
 import { processMedia } from "./processor.js"
+import { attachAssetToLesson } from "./attach.js"
 
 const config = loadConfig()
 const pool = createPool({ ...config, DATABASE_POOL_MAX: 2 })
@@ -33,7 +34,11 @@ try {
       const asset = await db.query.media_assets.findFirst({ where: eq(media_assets.id, job.asset_id) })
       if (!asset) throw new Error("Asset missing")
       const result = await processMedia(storage, config, asset.id, asset.source_key, job.lease_token!, controller.signal)
-      await finishJob(db, job, result)
+      if (await finishJob(db, job, result) && asset.target_lesson_id) {
+        // Its own transaction after the job is done: a lesson that changed meanwhile never fails a finished video.
+        try { await attachAssetToLesson(db, asset.id, asset.target_lesson_id, asset.owner_id, { onlyIfEmpty: true }) }
+        catch { console.error(JSON.stringify({ event: "media_auto_attach_skipped", asset: asset.id })) }
+      }
     } catch (error) {
       console.error(JSON.stringify({ event: "media_job_failed", job: job.id, attempt: job.attempts }))
       await failJob(db, job, error)

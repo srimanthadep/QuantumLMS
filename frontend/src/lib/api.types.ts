@@ -571,6 +571,7 @@ export interface Rows {
     course_id: string | null
     batch_id: string | null
     owner_id: string
+    target_lesson_id: string | null
     source_key: string
     state: string
     duration_seconds: number | null
@@ -938,6 +939,7 @@ export interface Rows {
     error: string | null
     created_at: string
     confirmed_at: string | null
+    retry_round: number
   }
   reminders: {
     student_id: string

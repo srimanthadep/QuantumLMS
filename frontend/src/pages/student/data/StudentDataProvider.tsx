@@ -94,7 +94,8 @@ function DataLoader({ uid, children }: { uid: string; children: ReactNode }) {
   useChannel(`user:${uid}`, (event, payload) => {
     if (event === "notification") {
       refresh(notesKey)
-      if (payload?.title) {
+      // The class alerts below announce "starting soon" themselves, in the learner's own time, so skip the duplicate.
+      if (payload?.title && payload.title !== "Class starting soon") {
         toast.show(`${payload.title}: ${payload.message}`)
       }
     }

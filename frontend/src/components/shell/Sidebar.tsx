@@ -69,9 +69,7 @@ function NavButton({
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
           aria-hidden="true"
           className="absolute inset-0 z-0 rounded-md border border-border bg-surface-2 shadow-2xs"
-        >
-          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
-        </motion.span>
+        />
       )}
       <Icon className={cn("relative z-10 h-4 w-4 shrink-0 transition-colors", active ? "text-primary-text" : "group-hover:text-foreground")} aria-hidden="true" />
       {!collapsed && <span className="relative z-10 min-w-0 flex-1 truncate text-left">{item.label}</span>}

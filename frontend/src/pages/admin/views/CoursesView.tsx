@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useDeferredValue, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAdminBase } from "./shared/useAdminBase"
-import { BookOpen, FilePenLine, LayoutGrid, List, Plus, Search, SearchX, Trash2, Users, Video, Wallet, X } from "lucide-react"
+import { BookOpen, FilePenLine, LayoutGrid, List, ListChecks, Plus, Search, SearchX, Trash2, Users, Video, Wallet, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/page-header"
 import { CustomSelect } from "@/components/ui/select"
@@ -14,9 +15,12 @@ import EmptyState from "@/components/ui/empty-state"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { useAdminStore, AdminCourse } from "@/data/adminStore"
+import BulkDeleteDialog, { type BulkDeleteRequest } from "./shared/BulkDeleteDialog"
+import { BulkActionBar, bulkResultMessage, useBulkSelect } from "./shared/bulkSelect"
 import CourseCard from "./courses/CourseCard"
 import CourseRow from "./courses/CourseRow"
 import CourseFormDialog, { type CourseFormValues } from "./courses/CourseFormDialog"
+import { batchInstructorNames } from "./batches/batchTheme"
 import { CATEGORIES, compactINR, SORT_OPTIONS, type SortKey } from "./courses/courseTheme"
 
 const VideoCourseUploadModal = lazy(() => import("./VideoCourseUploadModal"))
@@ -29,14 +33,13 @@ interface CoursesViewProps {
 type StatusFilter = "All" | AdminCourse["status"]
 type ViewMode = "grid" | "list"
 
-const DEFAULT_INSTRUCTORS = ["Srimanth", "Dr. Vikram Sen", "Meera Nair", "Ananya Roy"]
 const STATUS_FILTERS: StatusFilter[] = ["All", "Published", "Draft", "Archived"]
 
 /** Admin course catalog: headline numbers, filters, and a grid or table of courses. Each course opens its own page. */
 export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const navigate = useNavigate()
   const base = useAdminBase()
-  const { courses, addCourse, updateCourse, toggleCourseStatus, deleteCourse, refreshCourses } = store
+  const { courses, teachers, addCourse, updateCourse, toggleCourseStatus, deleteCourse, refreshCourses } = store
 
   const [search, setSearch] = useState("")
   const deferredSearch = useDeferredValue(search)
@@ -50,8 +53,14 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const [deleting, setDeleting] = useState(false)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false)
+  const bulk = useBulkSelect()
+  const [bulkRequest, setBulkRequest] = useState<BulkDeleteRequest | null>(null)
 
-  const instructors = useMemo(() => Array.from(new Set([...DEFAULT_INSTRUCTORS, ...courses.map((c) => c.instructor)])), [courses])
+  // The real teachers, plus anyone already named on a course.
+  const instructors = useMemo(
+    () => Array.from(new Set([...batchInstructorNames(teachers), ...courses.map((c) => c.instructor.trim())].filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [teachers, courses],
+  )
 
   // Catalog-wide numbers, independent of the active filters.
   const summary = useMemo(() => {
@@ -106,6 +115,9 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
     }
   }, [courses, deferredSearch, status, category, sort])
 
+  // Only courses that are on screen count. A ticked course hidden by a filter is never deleted by accident.
+  const chosen = useMemo(() => visible.filter((c) => bulk.selected.has(c.id)), [visible, bulk.selected])
+
   const hasFilters = search !== "" || status !== "All" || category !== "All"
   const clearFilters = () => {
     setSearch("")
@@ -117,6 +129,8 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
   const openCourse = useCallback((c: AdminCourse) => navigate(`${base}/courses/${c.id}`), [navigate, base])
   const editCourse = useCallback((c: AdminCourse) => setEditingCourse(c), [])
   const askDelete = useCallback((c: AdminCourse) => setDeletingCourse(c), [])
+  const { toggle: toggleTick } = bulk
+  const toggleSelect = useCallback((c: AdminCourse) => toggleTick(c.id), [toggleTick])
   const toggleStatus = useCallback(
     async (c: AdminCourse) => {
       try {
@@ -167,7 +181,26 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
     }
   }
 
+  const askBulkDelete = () => {
+    const targets = chosen
+    if (!targets.length) return
+    setBulkRequest({
+      items: targets.map((c) => ({ id: c.id, title: c.title, meta: `${c.category} · ${c.enrolledStudents} ${c.enrolledStudents === 1 ? "learner" : "learners"} · ${c.status}` })),
+      noun: { one: "course", many: "courses" },
+      verbs: { do: "Remove", doing: "Removing", done: "removed" },
+      summary: `Enrollment closes and ${targets.length === 1 ? "the course leaves" : "these courses leave"} the catalog. Learners keep their access, content and progress.`,
+      confirmLabel: `Remove ${targets.length} ${targets.length === 1 ? "course" : "courses"}`,
+      remove: deleteCourse,
+      onFinished: ({ done, failed }) => {
+        onToast(bulkResultMessage("Removed", { one: "course", many: "courses" }, done.length, failed))
+        if (failed.length) bulk.keepOnly(failed.map((f) => f.id))
+        else bulk.stop()
+      },
+    })
+  }
+
   const cardProps = { onOpen: openCourse, onEdit: editCourse, onToggleStatus: toggleStatus, onDelete: askDelete }
+  const selectProps = (c: AdminCourse) => ({ selecting: bulk.selecting, selected: bulk.selected.has(c.id), onToggleSelect: toggleSelect })
 
   return (
     <Stagger className="flex flex-col gap-5" stagger={0.05}>
@@ -244,6 +277,16 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
               />
             </div>
             <div className="flex items-center gap-2">
+              {courses.length > 0 && (
+                <Button
+                  variant={bulk.selecting ? "secondary" : "outline"}
+                  aria-pressed={bulk.selecting}
+                  onClick={bulk.selecting ? bulk.stop : bulk.start}
+                  leftIcon={<ListChecks aria-hidden="true" />}
+                >
+                  {bulk.selecting ? "Cancel" : "Select"}
+                </Button>
+              )}
               <CustomSelect className="min-w-0 flex-1 sm:w-48 sm:flex-none" value={sort} onChange={(v) => setSort(v as SortKey)} options={SORT_OPTIONS} />
               <div className="hidden sm:block">
                 <SegmentedControl
@@ -314,7 +357,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {visible.map((c) => (
-              <CourseCard key={c.id} course={c} {...cardProps} />
+              <CourseCard key={c.id} course={c} {...cardProps} {...selectProps(c)} />
             ))}
           </div>
         ) : (
@@ -323,6 +366,15 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
               <table className="w-full min-w-[980px] text-left text-sm">
                 <thead className="border-b border-border bg-surface-2/80 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
+                    {bulk.selecting && (
+                      <th className="w-10 pl-4 pr-0">
+                        <Checkbox
+                          aria-label="Select all courses"
+                          checked={chosen.length === visible.length ? true : chosen.length > 0 ? "indeterminate" : false}
+                          onCheckedChange={(on) => bulk.setMany(visible.map((c) => c.id), on)}
+                        />
+                      </th>
+                    )}
                     <th className="px-4 py-3">Course</th>
                     <th className="px-4 py-3">Instructor</th>
                     <th className="px-4 py-3">Content</th>
@@ -338,7 +390,7 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {visible.map((c) => (
-                    <CourseRow key={c.id} course={c} {...cardProps} />
+                    <CourseRow key={c.id} course={c} {...cardProps} {...selectProps(c)} />
                   ))}
                 </tbody>
               </table>
@@ -347,13 +399,14 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
         )}
       </StaggerItem>
 
-      <CourseFormDialog open={isAddOpen} onOpenChange={setIsAddOpen} mode="create" instructors={instructors} onSubmit={handleCreate} />
+      <CourseFormDialog open={isAddOpen} onOpenChange={setIsAddOpen} mode="create" instructors={instructors} categories={categories} onSubmit={handleCreate} />
       <CourseFormDialog
         open={!!editingCourse}
         onOpenChange={(o) => !o && setEditingCourse(null)}
         mode="edit"
         course={editingCourse}
         instructors={instructors}
+        categories={categories}
         onSubmit={handleSaveEdit}
       />
 
@@ -390,6 +443,19 @@ export default function CoursesView({ store, onToast }: CoursesViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkDeleteDialog request={bulkRequest} onClose={() => setBulkRequest(null)} />
+      {bulk.selecting && (
+        <BulkActionBar
+          count={chosen.length}
+          total={visible.length}
+          onSelectAll={() => bulk.setMany(visible.map((c) => c.id), true)}
+          onClearSelection={bulk.clear}
+          onDelete={askBulkDelete}
+          onDone={bulk.stop}
+          deleteLabel="Remove"
+        />
+      )}
 
       {isVideoUploadOpen && (
         <Suspense fallback={null}>

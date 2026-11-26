@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
 
-const isOfflineError = (_err: unknown) => false // Server failures must not create local success records.
-
 export interface AdminCourse {
   id: string
   title: string
@@ -452,27 +450,23 @@ export function useAdminStore() {
         "id" | "enrolledStudents" | "revenue" | "rating" | "completionRate" | "updatedAt"
       >,
     ) => {
-      try {
-        const res = await api.post<{ ok: boolean; course: any }>("/admin/courses", {
-          title: newCourse.title,
-          category: newCourse.category,
-          instructor: newCourse.instructor,
-          instructor_role: "Lead Instructor",
-          description: `Comprehensive track in ${newCourse.title} covering architecture, practical applications and production deployment.`,
-          level: "Beginner",
-          credits: 4,
-          duration: "12 Weeks",
-          price: newCourse.price,
-          capacity: newCourse.capacity,
-          status: newCourse.status,
-        })
-        const created = res?.course ? mapApiCourse(res.course) : null
-        if (created) {
-          setCourses((prev) => [created, ...prev])
-          return created
-        }
-      } catch (err) {
-        if (!isOfflineError(err)) throw err
+      const res = await api.post<{ ok: boolean; course: any }>("/admin/courses", {
+        title: newCourse.title,
+        category: newCourse.category,
+        instructor: newCourse.instructor,
+        instructor_role: "Lead Instructor",
+        description: `Comprehensive track in ${newCourse.title} covering architecture, practical applications and production deployment.`,
+        level: "Beginner",
+        credits: 4,
+        duration: "12 Weeks",
+        price: newCourse.price,
+        capacity: newCourse.capacity,
+        status: newCourse.status,
+      })
+      const created = res?.course ? mapApiCourse(res.course) : null
+      if (created) {
+        setCourses((prev) => [created, ...prev])
+        return created
       }
 
       throw new Error("The server did not confirm course creation. Refresh and try again.")
@@ -485,11 +479,7 @@ export function useAdminStore() {
       const target = courses.find((c) => c.id === courseId)
       const nextStatus: AdminCourse["status"] = target?.status === "Published" ? "Archived" : "Published"
 
-      try {
-        await api.patch(`/admin/courses/${courseId}`, { status: nextStatus })
-      } catch (err) {
-        if (!isOfflineError(err)) throw err
-      }
+      await api.patch(`/admin/courses/${courseId}`, { status: nextStatus })
 
       const today = new Date().toISOString().split("T")[0]
       setCourses((prev) =>
@@ -508,12 +498,8 @@ export function useAdminStore() {
     if (patch.capacity !== undefined) apiPayload.capacity = patch.capacity
     if (patch.status !== undefined) apiPayload.status = patch.status
 
-    try {
-      if (Object.keys(apiPayload).length > 0) {
-        await api.patch(`/admin/courses/${courseId}`, apiPayload)
-      }
-    } catch (err) {
-      if (!isOfflineError(err)) throw err
+    if (Object.keys(apiPayload).length > 0) {
+      await api.patch(`/admin/courses/${courseId}`, apiPayload)
     }
 
     const today = new Date().toISOString().split("T")[0]
@@ -531,11 +517,7 @@ export function useAdminStore() {
   }, [])
 
   const deleteCourse = useCallback(async (courseId: string) => {
-    try {
-      await api.delete(`/admin/courses/${courseId}`)
-    } catch (err) {
-      if (!isOfflineError(err)) throw err
-    }
+    await api.delete(`/admin/courses/${courseId}`)
     setCourses((prev) => prev.filter((c) => c.id !== courseId))
     // Batches do not belong to a course. Deleting one only clears the optional topic label.
     setBatches((prev) => prev.map((b) => (b.courseId === courseId ? { ...b, courseId: "", courseTitle: "", courseCode: undefined } : b)))
@@ -545,57 +527,42 @@ export function useAdminStore() {
     async (
       batchData: Omit<AdminBatch, "id" | "enrolledSeats" | "waitlistedSeats"> & { waitlistedSeats?: number },
     ) => {
-      try {
-        const res = await api.post<{ ok: boolean; batch: any }>("/admin/batches", {
-          name: batchData.name,
-          course_id: batchData.courseId || null,
-          price: batchData.price ?? 0,
-          instructor: batchData.instructor,
-          start_date: batchData.startDate,
-          end_date: batchData.endDate,
-          schedule: batchData.schedule,
-          timezone: batchData.timezone || "Asia/Kolkata",
-          max_seats: batchData.maxSeats,
-          delivery_mode: batchData.deliveryMode,
-          replay_delay_hours: batchData.replayDelayHours,
-          access_expiry_months: batchData.accessExpiryMonths,
-          meeting_url: batchData.meetingUrl || null,
-          features: batchData.features,
-          status: batchData.status,
-          notes: batchData.notes || "",
-        })
-        if (res?.batch) {
-          const created = mapApiBatch(res.batch)
-          setBatches((prev) => [created, ...prev])
-          return created
-        }
-      } catch (err) {
-        if (!isOfflineError(err)) throw err
-      }
-
-      const fallbackBatch: AdminBatch = {
-        ...batchData,
-        id: `batch-${Date.now()}`,
-        enrolledSeats: 0,
-        waitlistedSeats: 0,
+      const res = await api.post<{ ok: boolean; batch: any }>("/admin/batches", {
+        name: batchData.name,
+        course_id: batchData.courseId || null,
+        price: batchData.price ?? 0,
+        instructor: batchData.instructor,
+        start_date: batchData.startDate,
+        end_date: batchData.endDate,
+        schedule: batchData.schedule,
         timezone: batchData.timezone || "Asia/Kolkata",
-      }
-      setBatches((prev) => [fallbackBatch, ...prev])
-      return fallbackBatch
-    },
-    [],
-  )
-
-  const duplicateBatch = useCallback(async (batchId: string) => {
-    try {
-      const res = await api.post<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}/duplicate`, {})
+        max_seats: batchData.maxSeats,
+        delivery_mode: batchData.deliveryMode,
+        replay_delay_hours: batchData.replayDelayHours,
+        access_expiry_months: batchData.accessExpiryMonths,
+        meeting_url: batchData.meetingUrl || null,
+        features: batchData.features,
+        status: batchData.status,
+        notes: batchData.notes || "",
+      })
       if (res?.batch) {
         const created = mapApiBatch(res.batch)
         setBatches((prev) => [created, ...prev])
         return created
       }
-    } catch (err) {
-      if (!isOfflineError(err)) throw err
+
+      // Never invent a local batch: it would look saved but not exist on the server.
+      throw new Error("The server did not confirm batch creation. Refresh and try again.")
+    },
+    [],
+  )
+
+  const duplicateBatch = useCallback(async (batchId: string) => {
+    const res = await api.post<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}/duplicate`, {})
+    if (res?.batch) {
+      const created = mapApiBatch(res.batch)
+      setBatches((prev) => [created, ...prev])
+      return created
     }
     return null
   }, [])
@@ -619,16 +586,12 @@ export function useAdminStore() {
     if (patch.status !== undefined) apiPayload.status = patch.status
     if (patch.notes !== undefined) apiPayload.notes = patch.notes
 
-    try {
-      const res = await api.patch<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}`, apiPayload)
-      if (res?.batch) {
-        const mapped = mapApiBatch(res.batch)
-        setBatches((prev) => prev.map((b) => (b.id === batchId ? mapped : b)))
-        await Promise.allSettled([refreshCourses(), refreshOperations()])
-        return mapped
-      }
-    } catch (err) {
-      if (!isOfflineError(err)) throw err
+    const res = await api.patch<{ ok: boolean; batch: any }>(`/admin/batches/${batchId}`, apiPayload)
+    if (res?.batch) {
+      const mapped = mapApiBatch(res.batch)
+      setBatches((prev) => prev.map((b) => (b.id === batchId ? mapped : b)))
+      await Promise.allSettled([refreshCourses(), refreshOperations()])
+      return mapped
     }
 
     setBatches((prev) => prev.map((b) => (b.id === batchId ? { ...b, ...patch } : b)))
@@ -636,11 +599,7 @@ export function useAdminStore() {
   }, [refreshCourses, refreshOperations])
 
   const deleteBatch = useCallback(async (batchId: string) => {
-    try {
-      await api.delete(`/admin/batches/${batchId}`)
-    } catch (err) {
-      if (!isOfflineError(err)) throw err
-    }
+    await api.delete(`/admin/batches/${batchId}`)
     setBatches((prev) => prev.filter((b) => b.id !== batchId))
   }, [])
 
@@ -764,50 +723,16 @@ export function useAdminStore() {
 
   const enrolStudent = useCallback(
     async (studentData: { name: string; email: string; courseId: string; batchId: string }) => {
-      try {
-        await api.post("/admin/students/enrol", {
-          name: studentData.name,
-          email: studentData.email,
-          ...(studentData.courseId ? { course_id: studentData.courseId } : {}),
-          ...(studentData.batchId ? { batch_id: studentData.batchId } : {}),
-        })
-        await Promise.allSettled([refreshCourses(), refreshOperations()])
-        return null
-      } catch (err) {
-        if (!isOfflineError(err)) throw err
-      }
-
-      const course = courses.find((c) => c.id === studentData.courseId)
-      const batch = batches.find((b) => b.id === studentData.batchId)
-      const student: AdminStudent = {
-        id: `stu-${Date.now()}`,
+      await api.post("/admin/students/enrol", {
         name: studentData.name,
         email: studentData.email,
-        avatar: "",
-        courseId: studentData.courseId,
-        courseTitle: course ? course.title : "AI Course",
-        batchId: studentData.batchId,
-        batchName: batch ? batch.name : "Active Cohort",
-        enrolledAt: new Date().toISOString().split("T")[0],
-        progress: 0,
-        attendanceRate: 100,
-        evaluationScore: 100,
-        status: "Active",
-      }
-      setStudents((prev) => [student, ...prev])
-      if (batch) {
-        setBatches((prev) =>
-          prev.map((b) => (b.id === batch.id ? { ...b, enrolledSeats: b.enrolledSeats + 1 } : b)),
-        )
-      }
-      if (course) {
-        setCourses((prev) =>
-          prev.map((c) => (c.id === course.id ? { ...c, enrolledStudents: c.enrolledStudents + 1 } : c)),
-        )
-      }
-      return student
+        ...(studentData.courseId ? { course_id: studentData.courseId } : {}),
+        ...(studentData.batchId ? { batch_id: studentData.batchId } : {}),
+      })
+      await Promise.allSettled([refreshCourses(), refreshOperations()])
+      return null
     },
-    [courses, batches, refreshCourses, refreshOperations],
+    [refreshCourses, refreshOperations],
   )
 
   const updateStudent = useCallback(async (studentId:string,patch:Partial<AdminStudent>)=>{

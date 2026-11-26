@@ -2,11 +2,12 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAdminBase } from "./shared/useAdminBase"
 import { AnimatePresence, motion } from "framer-motion"
-import { AlertTriangle, ArrowRight, Clock3, Gauge, Layers, LayoutGrid, List, Plus, Search, Users, X } from "lucide-react"
+import { AlertTriangle, ArrowRight, Clock3, Gauge, Layers, LayoutGrid, List, ListChecks, Plus, Search, Users, X } from "lucide-react"
 import Stagger, { StaggerItem } from "@/components/motion/Stagger"
 import { StatCard } from "@/components/ui/StatCard"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/page-header"
@@ -19,6 +20,8 @@ import BatchFormDialog, { type BatchFormValues } from "./batches/BatchFormDialog
 import BatchRow from "./batches/BatchRow"
 import { batchInstructorNames, resolveBatchTheme, seatUtilization } from "./batches/batchTheme"
 import ConfirmDialog, { type ConfirmRequest } from "./shared/ConfirmDialog"
+import BulkDeleteDialog, { type BulkDeleteRequest } from "./shared/BulkDeleteDialog"
+import { BulkActionBar, bulkResultMessage, useBulkSelect } from "./shared/bulkSelect"
 
 interface BatchesViewProps {
   store: ReturnType<typeof useAdminStore>
@@ -65,6 +68,8 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const [editingBatch, setEditingBatch] = useState<AdminBatch | null>(null)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const bulk = useBulkSelect()
+  const [bulkRequest, setBulkRequest] = useState<BulkDeleteRequest | null>(null)
 
   const instructorList = useMemo(() => batchInstructorNames(teachers), [teachers])
 
@@ -120,6 +125,9 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
       return (a.startDate || "").localeCompare(b.startDate || "")
     })
   }, [batches, deferredSearch, statusFilter, courseFilter, sortBy, capacityFilter])
+
+  // Only batches that are on screen count. A ticked batch hidden by a filter is never deleted by accident.
+  const chosen = useMemo(() => filteredBatches.filter((b) => bulk.selected.has(b.id)), [filteredBatches, bulk.selected])
 
   const hasFilters = Boolean(search.trim()) || statusFilter !== "All" || capacityFilter !== "All" || courseFilter !== ALL_COURSES
 
@@ -196,6 +204,30 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
       },
     })
 
+  const askBulkDelete = () => {
+    const targets = chosen
+    if (!targets.length) return
+    setBulkRequest({
+      items: targets.map((b) => ({
+        id: b.id,
+        title: b.name,
+        meta: `${b.lifecycle ?? b.status} · ${b.enrolledSeats} ${b.enrolledSeats === 1 ? "learner" : "learners"}`,
+        flag: b.enrolledSeats > 0 ? "Has learners" : undefined,
+      })),
+      noun: { one: "batch", many: "batches" },
+      verbs: { do: "Delete", doing: "Deleting", done: "deleted" },
+      summary: "Their rosters are deleted too. Course enrollments and submitted work stay in the course.",
+      flagNote: "A batch with registration history can't be deleted. It is skipped and stays selected.",
+      confirmLabel: `Delete ${targets.length} ${targets.length === 1 ? "batch" : "batches"}`,
+      remove: deleteBatch,
+      onFinished: ({ done, failed }) => {
+        onToast?.(bulkResultMessage("Deleted", { one: "batch", many: "batches" }, done.length, failed))
+        if (failed.length) bulk.keepOnly(failed.map((f) => f.id))
+        else bulk.stop()
+      },
+    })
+  }
+
   const itemProps = (batch: AdminBatch) => ({
     batch,
     theme: resolveBatchTheme(batch, courses),
@@ -204,6 +236,9 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
     onDuplicate: () => void handleDuplicate(batch),
     onToggleArchive: () => void handleToggleArchive(batch),
     onDelete: () => askDelete(batch),
+    selecting: bulk.selecting,
+    selected: bulk.selected.has(batch.id),
+    onToggleSelect: () => bulk.toggle(batch.id),
   })
 
   return (
@@ -311,6 +346,16 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:ml-auto">
               <CustomSelect aria-label="Filter by topic" value={courseFilter} onChange={setCourseFilter} options={courseOptions} className="w-full sm:w-52" />
               <div className="flex items-center gap-2">
+                {batches.length > 0 && (
+                  <Button
+                    variant={bulk.selecting ? "secondary" : "outline"}
+                    aria-pressed={bulk.selecting}
+                    onClick={bulk.selecting ? bulk.stop : bulk.start}
+                    leftIcon={<ListChecks aria-hidden="true" />}
+                  >
+                    {bulk.selecting ? "Cancel" : "Select"}
+                  </Button>
+                )}
                 <CustomSelect aria-label="Sort batches" value={sortBy} onChange={(v) => setSortBy(v as SortKey)} options={SORT_OPTIONS} className="min-w-0 flex-1 sm:w-40 sm:flex-none" />
                 <div className="hidden sm:block">
                   <SegmentedControl
@@ -391,6 +436,18 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
                         {group.title}
                       </h2>
                       <span className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{group.batches.length}</span>
+                      {bulk.selecting && (
+                        <label className="ml-1 flex cursor-pointer items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground">
+                          <Checkbox
+                            aria-label={`Select all in ${group.title}`}
+                            checked={
+                              group.batches.every((b) => bulk.selected.has(b.id)) ? true : group.batches.some((b) => bulk.selected.has(b.id)) ? "indeterminate" : false
+                            }
+                            onCheckedChange={(on) => bulk.setMany(group.batches.map((b) => b.id), on)}
+                          />
+                          Select group
+                        </label>
+                      )}
                     </div>
                     <p className="mt-1 text-caption text-muted-foreground">{group.description}</p>
                   </div>
@@ -411,6 +468,7 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
                         <caption className="sr-only">{group.title}: instructors, dates and seats</caption>
                         <thead>
                           <tr className="border-b border-border bg-surface-2/80 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {bulk.selecting && <th className="w-10 pl-4 pr-0"><span className="sr-only">Select</span></th>}
                             <th className="px-4 py-3">Batch</th>
                             <th className="hidden px-3 py-3 md:table-cell">Instructor</th>
                             <th className="hidden px-3 py-3 lg:table-cell">Dates</th>
@@ -447,6 +505,18 @@ export default function BatchesView({ store, onOpenCreateBatch, onToast }: Batch
         onSubmit={handleSaveQuickEdit}
       />
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+      <BulkDeleteDialog request={bulkRequest} onClose={() => setBulkRequest(null)} />
+      {bulk.selecting && (
+        <BulkActionBar
+          count={chosen.length}
+          total={filteredBatches.length}
+          onSelectAll={() => bulk.setMany(filteredBatches.map((b) => b.id), true)}
+          onClearSelection={bulk.clear}
+          onDelete={askBulkDelete}
+          onDone={bulk.stop}
+          deleteLabel="Delete"
+        />
+      )}
     </Stagger>
   )
 }

@@ -19,6 +19,7 @@ import {
 } from "../../db/schema.js"
 import { badRequest, conflict, notFound } from "../../errors.js"
 import { parse } from "../../http.js"
+import { localInstant } from "../../live/calendar.js"
 
 const BATCHES_INITIALIZED_KEY = "batches_initialized"
 
@@ -71,6 +72,22 @@ function defaultEndDate(startIso: string, durationDays = 90): string {
   const parsed = Date.parse(startIso)
   const base = Number.isNaN(parsed) ? Date.now() : parsed
   return new Date(base + durationDays * 86_400_000).toISOString().slice(0, 10)
+}
+
+/**
+ * Live classes are checked against the batch's exact start and end times. A batch made from plain dates gets that
+ * window from them: the start of the first day to the end of the last day, in the batch's timezone.
+ */
+function liveWindow(startDate: string, endDate: string, timezone: string): { starts_at: Date; ends_at: Date } {
+  const midnight = (day: string) => {
+    try {
+      return localInstant(day, "00:00", timezone).instant
+    } catch {
+      return new Date(`${day}T00:00:00Z`) // a clock change at midnight; the offset is irrelevant at this precision
+    }
+  }
+  const dayAfterEnd = new Date(Date.parse(`${endDate}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+  return { starts_at: midnight(startDate), ends_at: midnight(dayAfterEnd) }
 }
 
 function assertDateOrder(startDate: string, endDate: string) {
@@ -206,6 +223,7 @@ export async function seedBatchesDefaults(dbOrTx: Db | Tx, { force = false } = {
       instructor_avatar: "",
       start_date: seed.start_date,
       end_date: seed.end_date,
+      ...liveWindow(seed.start_date, seed.end_date, seed.timezone),
       schedule: seed.schedule,
       timezone: seed.timezone,
       max_seats: seed.max_seats,
@@ -553,6 +571,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         instructor_avatar: b.instructor_avatar ?? "",
         start_date: startDate,
         end_date: endDate,
+        ...liveWindow(startDate, endDate, b.timezone),
         schedule: b.schedule,
         timezone: b.timezone,
         max_seats: b.max_seats,
@@ -620,6 +639,7 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
         instructor_avatar: source.instructor_avatar,
         start_date: startDate,
         end_date: endDate,
+        ...liveWindow(startDate, endDate, source.timezone),
         schedule: source.schedule,
         timezone: source.timezone,
         max_seats: source.max_seats,
@@ -696,6 +716,11 @@ export async function adminBatchRoutes(app: FastifyInstance, ctx: AppContext) {
       if (b.instructor_avatar !== undefined) updateSet.instructor_avatar = b.instructor_avatar
       if (b.start_date !== undefined) updateSet.start_date = b.start_date
       if (b.end_date !== undefined) updateSet.end_date = b.end_date
+      // Keep the live window in step with the dates, unless the batch is already running or closed.
+      const datesChanged = b.start_date !== undefined || b.end_date !== undefined || (b.timezone !== undefined && b.timezone !== existing.timezone)
+      if (datesChanged && !["Running", "Completed", "Cancelled"].includes(locked.lifecycle)) {
+        Object.assign(updateSet, liveWindow(nextStart, nextEnd, b.timezone ?? existing.timezone))
+      }
       if (b.schedule !== undefined) updateSet.schedule = b.schedule
       if (b.timezone !== undefined) updateSet.timezone = b.timezone
       if (b.max_seats !== undefined) updateSet.max_seats = b.max_seats

@@ -1,0 +1,2 @@
+ALTER TABLE "lms"."media_assets" ADD COLUMN "target_lesson_id" text;--> statement-breakpoint
+ALTER TABLE "lms"."media_assets" ADD CONSTRAINT "media_assets_target_lesson_id_lessons_id_fk" FOREIGN KEY ("target_lesson_id") REFERENCES "lms"."lessons"("id") ON DELETE set null ON UPDATE no action;

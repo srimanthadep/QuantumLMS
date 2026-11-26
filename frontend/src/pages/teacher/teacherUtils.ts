@@ -1,11 +1,12 @@
 import type { CourseCategoryName } from "@/components/shared/CourseCover"
+import { isoDay } from "@/lib/utils"
 import type { BadgeTone } from "@/components/ui"
 import type { AttendanceStatus, CalendarEventItem, CourseItem, DoubtItem, LiveAttendanceRecord, LiveSessionItem, StudentItem } from "@/types"
 
 /** "Now" in the teacher demo timeline: Thursday 22 Oct 2026, during the live lab (11:30–13:00). */
 // Compatibility names retained for existing views; dates now use the current device clock.
 export const DEMO_NOW = new Date()
-export const DEMO_DATE = `${DEMO_NOW.getFullYear()}-${String(DEMO_NOW.getMonth()+1).padStart(2,"0")}-${String(DEMO_NOW.getDate()).padStart(2,"0")}`
+export const DEMO_DATE = isoDay(DEMO_NOW)
 
 const COURSE_ART: Record<string, CourseCategoryName> = {
   c1: "Generative AI",
@@ -47,7 +48,7 @@ export function toDate(iso?: string, time = "00:00"): Date {
 
 export function isoDate(d: Date): string {
   if (!d || isNaN(d.getTime())) return DEMO_DATE
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  return isoDay(d)
 }
 
 export function addDays(d: Date, n: number): Date {
@@ -158,6 +159,8 @@ export const EVENT_STYLE: Record<CalendarEventItem["category"], { block: string;
   Quiz: { block: "border-l-warning bg-warning-soft", dot: "bg-warning", tone: "warning" },
   Meeting: { block: "border-l-info bg-info-soft", dot: "bg-info", tone: "info" },
   Reminder: { block: "border-l-success bg-success-soft", dot: "bg-success", tone: "success" },
+  /** Campus events on the student calendar. */
+  Event: { block: "border-l-border-strong bg-surface-2", dot: "bg-subtle-foreground", tone: "neutral" },
 }
 
 /** Live sessions shown as calendar events. */

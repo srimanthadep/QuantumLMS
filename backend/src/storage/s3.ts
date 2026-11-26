@@ -11,6 +11,8 @@ export function createS3Storage(opts: {
 }): Storage {
   const client = new S3Client({
     region: opts.region ?? "auto",
+    // The SDK's default adds a checksum of an empty body to presigned PUT links, so R2 rejects the real upload.
+    requestChecksumCalculation: "WHEN_REQUIRED",
     ...(opts.endpoint ? { endpoint: opts.endpoint, forcePathStyle: true } : {}),
     ...(opts.credentials ? { credentials: opts.credentials } : {}),
   })

@@ -109,7 +109,7 @@ const ENTITLEMENTS: {
   },
 ]
 
-/** Shared form sections used by both BatchFormDialog and BatchWorkspaceModal Settings. */
+/** Shared form sections for creating and editing a batch. */
 export default function BatchFormFields({
   values,
   onChange,

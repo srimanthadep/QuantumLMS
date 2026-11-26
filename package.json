@@ -11,7 +11,8 @@
     "format": "npm --prefix frontend run format",
     "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck && npm --prefix infra run typecheck",
     "lint": "node backend/node_modules/oxlint/bin/oxlint backend/src backend/scripts backend/tests frontend/src infra/bin infra/lib infra/scripts",
-    "test": "npm --prefix backend run test:ci",
+    "test": "npm --prefix frontend run test && npm --prefix backend run test:ci",
+    "test:frontend": "npm --prefix frontend run test",
     "db:migrate": "npm --prefix backend run db:migrate",
     "test:backend": "npm --prefix backend run test"
   }

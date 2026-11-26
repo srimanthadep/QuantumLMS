@@ -1,5 +1,5 @@
 import RecordingLibrary from "./RecordingLibrary"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { CalendarDays, ExternalLink, RefreshCw, Video } from "lucide-react"
 import { Button, CustomSelect, DateTimePicker, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input } from "@/components/ui"
 import { api } from "@/lib/api"
@@ -21,12 +21,15 @@ export default function LiveSessionsPanel({ role, batchId, sessionId, attendance
   const [records, setRecords] = useState<{ student_id: string; name: string; joined_at: string; last_joined_at: string; join_clicks: number }[]>([])
   const [replaySession, setReplaySession] = useState<string | null>(null)
   const [target, setTarget] = useState<{ url: string; passcode?: string | null } | null>(null)
+  // Only the newest load may write: switching the filter while an older load is in flight must not show its rows.
+  const latest = useRef(0)
   const reload = useCallback(async () => {
+    const call = ++latest.current
     try {
       const query = new URLSearchParams(); if (batchId) query.set("batch_id", batchId); if (sessionId) query.set("id", sessionId)
       if (!sessionId && filter === "upcoming" && !attendanceOnly) query.set("from", new Date().toISOString())
-      const r = await api.get<{ sessions: DatedSession[]; now: string }>(`/sessions?${query}`, { bypassCache: true }); setSessions(r.sessions); setOffset(Date.parse(r.now) - Date.now()); setError("")
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to load classes") } finally { setLoading(false) }
+      const r = await api.get<{ sessions: DatedSession[]; now: string }>(`/sessions?${query}`, { bypassCache: true }); if (call !== latest.current) return; setSessions(r.sessions); setOffset(Date.parse(r.now) - Date.now()); setError("")
+    } catch (e) { if (call === latest.current) setError(e instanceof Error ? e.message : "Unable to load classes") } finally { if (call === latest.current) setLoading(false) }
   }, [batchId, sessionId, filter, attendanceOnly])
   useEffect(() => { void reload(); const timer = window.setInterval(() => void reload(), 15000); return () => window.clearInterval(timer) }, [reload])
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer) }, [])

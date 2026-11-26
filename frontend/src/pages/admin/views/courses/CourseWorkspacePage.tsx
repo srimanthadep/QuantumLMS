@@ -8,12 +8,9 @@ import {
   Check,
   CircleDashed,
   Clock,
-  Copy,
   FileText,
-  MoreHorizontal,
   Rocket,
   SearchX,
-  Trash2,
   Upload,
   Users,
   Video,
@@ -23,7 +20,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import EmptyState from "@/components/ui/empty-state"
 import { PageHeader } from "@/components/ui/page-header"
 import { Progress } from "@/components/ui/progress"
@@ -195,33 +191,6 @@ export default function CourseWorkspacePage({ store, onToast }: CourseWorkspaceP
     }
   }
 
-  const askRemove = () =>
-    setConfirm({
-      title: "Remove this course from the catalog?",
-      description: "Enrollment closes and the course leaves the list. Learners keep their access, content and progress.",
-      confirmLabel: "Remove course",
-      onConfirm: async () => {
-        try {
-          await store.deleteCourse(courseId)
-          onToast(`Removed "${title}" from the catalog`)
-          setSettingsDirty(false)
-          navigate(`${base}/courses`)
-        } catch (err) {
-          onToast(err instanceof Error ? err.message : "Could not remove course.")
-          return false
-        }
-      },
-    })
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
-      onToast("Link copied")
-    } catch {
-      onToast("Could not copy the link")
-    }
-  }
-
   const breadcrumb = [{ label: "Courses", onClick: goBack }, { label: title }]
 
   if (loadState === "missing" || (loadState === "error" && !detail)) {
@@ -278,22 +247,6 @@ export default function CourseWorkspacePage({ store, onToast }: CourseWorkspaceP
                 Publish
               </Button>
             )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="More course actions">
-                  <MoreHorizontal aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onSelect={() => void copyLink()}>
-                  <Copy className="h-4 w-4" aria-hidden="true" /> Copy page link
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={askRemove} destructive>
-                  <Trash2 className="h-4 w-4" aria-hidden="true" /> Remove from catalog
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </>
         }
       />

@@ -103,10 +103,7 @@ export function startOfDay(d: Date = new Date()): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
-/** "2026-11-04" for the local day (the format of SQL dates and <input type="date">). */
-export function isoDay(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
+export { isoDay } from "@/lib/utils"
 
 /** A SQL date ("2026-11-04") as local midnight. */
 export function fromIsoDay(s: string): Date {

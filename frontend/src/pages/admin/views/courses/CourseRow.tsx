@@ -2,7 +2,9 @@ import { memo } from "react"
 import CourseCover from "@/components/shared/CourseCover"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
+import { cn } from "@/lib/utils"
 import type { AdminCourse } from "@/data/adminStore"
 import CourseActionsMenu from "./CourseActionsMenu"
 import { compactINR, formatINR, isFreeCourse, seatPercent, STATUS_TONE } from "./courseTheme"
@@ -13,10 +15,14 @@ interface CourseRowProps {
   onEdit: (course: AdminCourse) => void
   onToggleStatus: (course: AdminCourse) => void
   onDelete: (course: AdminCourse) => void
+  /** Select mode: a leading checkbox cell, and a click ticks the row instead of opening it. */
+  selecting?: boolean
+  selected?: boolean
+  onToggleSelect?: (course: AdminCourse) => void
 }
 
 /** Dense list-view row. The whole row opens the course page. */
-function CourseRow({ course, onOpen, onEdit, onToggleStatus, onDelete }: CourseRowProps) {
+function CourseRow({ course, onOpen, onEdit, onToggleStatus, onDelete, selecting = false, selected = false, onToggleSelect }: CourseRowProps) {
   const pct = seatPercent(course)
   const seatTone = pct >= 100 ? "danger" : pct >= 85 ? "warning" : "primary"
 
@@ -24,17 +30,24 @@ function CourseRow({ course, onOpen, onEdit, onToggleStatus, onDelete }: CourseR
     <tr
       role="button"
       tabIndex={0}
-      aria-label={`Open ${course.title}`}
-      onClick={() => onOpen(course)}
+      aria-label={selecting ? `Select ${course.title}` : `Open ${course.title}`}
+      aria-pressed={selecting ? selected : undefined}
+      onClick={() => (selecting ? onToggleSelect?.(course) : onOpen(course))}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          onOpen(course)
+          if (selecting) onToggleSelect?.(course)
+          else onOpen(course)
         }
       }}
-      className="group cursor-pointer transition-colors hover:bg-surface-2/70 focus-visible:bg-surface-2 focus-visible:outline-none"
+      className={cn("group cursor-pointer transition-colors hover:bg-surface-2/70 focus-visible:bg-surface-2 focus-visible:outline-none", selected && "bg-primary-soft/60 hover:bg-primary-soft/70")}
     >
+      {selecting && (
+        <td className="w-10 pl-4 pr-0">
+          <Checkbox checked={selected} onCheckedChange={() => {}} tabIndex={-1} aria-hidden="true" className="pointer-events-none" />
+        </td>
+      )}
       <td className="px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <CourseCover title={course.title} category={course.category} showTitle={false} hoverZoom={false} className="aspect-auto h-10 w-16 shrink-0 rounded-md" />
@@ -80,7 +93,7 @@ function CourseRow({ course, onOpen, onEdit, onToggleStatus, onDelete }: CourseR
         </Badge>
       </td>
       <td className="px-2 py-3 text-right">
-        <CourseActionsMenu course={course} onOpen={onOpen} onEdit={onEdit} onToggleStatus={onToggleStatus} onDelete={onDelete} appearance="plain" className="inline-flex" />
+        {!selecting && <CourseActionsMenu course={course} onOpen={onOpen} onEdit={onEdit} onToggleStatus={onToggleStatus} onDelete={onDelete} appearance="plain" className="inline-flex" />}
       </td>
     </tr>
   )

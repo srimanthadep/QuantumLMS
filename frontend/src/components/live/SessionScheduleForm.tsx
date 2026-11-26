@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Button, CustomSelect, DatePicker, Input, TimePicker } from "@/components/ui"
 import { api } from "@/lib/api"
+import { dayInZone, lastDayInZone } from "@/lib/utils"
 
 export type Links = { provider: "zoom_link" | "meet_link"; join_url: string; host_url: string; passcode: string }
 type Batch = { id: string; name: string; course_id: string; timezone: string; starts_at: string | null; ends_at: string | null }
@@ -41,7 +42,7 @@ export default function SessionScheduleForm({ batchId, courseId, onSaved }: { ba
     api.get<Links & { teachers: { id: string; name: string }[]; rules: Rule[] }>(`/live/batches/${selected}/settings`, { bypassCache: true }).then(r => {
       if (!active) return
       setLinks({ provider: r.provider === "meet_link" ? "meet_link" : "zoom_link", join_url: r.join_url ?? "", host_url: r.host_url ?? "", passcode: r.passcode ?? "" }); setTeachers(r.teachers); setTeacher(r.teachers[0]?.id ?? ""); setRules(r.rules)
-      const batch = batches.find(b => b.id === selected); setTimezone(batch?.timezone ?? "Asia/Kolkata"); setStart(batch?.starts_at?.slice(0, 10) ?? ""); setEnd(batch?.ends_at?.slice(0, 10) ?? "")
+      const batch = batches.find(b => b.id === selected); setTimezone(batch?.timezone ?? "Asia/Kolkata"); setStart(dayInZone(batch?.starts_at, batch?.timezone ?? "Asia/Kolkata")); setEnd(lastDayInZone(batch?.ends_at, batch?.timezone ?? "Asia/Kolkata"))
     }).catch(e => { if (active) setError(e.message) }); return () => { active = false }
   }, [selected, batches])
   const payload = { batch_id: selected, title, teacher_id: teacher || undefined, timezone, weekdays: days, local_start: time, duration_minutes: duration, start_date: start, end_date: end, ...links }

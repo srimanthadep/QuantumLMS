@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast"
 import type { StudentNavPage, CourseItem } from "./studentTypes"
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton"
 import StudentDataProvider, { useStudentData } from "./data/StudentDataProvider"
+import { useLiveClassAlerts } from "./data/useLiveClassAlerts"
 import type { SubmissionInput } from "./data/actions"
 import { relTime } from "./studentUtils"
 const StudentDashboardPage = lazy(() => import("./StudentDashboardPage"))
@@ -135,13 +136,10 @@ function parseInitialTab(): StudentNavPage {
       target === "live"
     )
       return "Live Class"
-    if (
-      target === "timetable" ||
-      target === "schedule" ||
-      target === "events" ||
-      target === "announcements"
-    )
-      return "Schedule"
+    if (target === "timetable") return "Timetable"
+    if (target === "events") return "Events & Notices"
+    if (target === "announcements") return "Announcements"
+    if (target === "schedule" || target === "calendar") return "Schedule"
     if (target === "attendance") return "Attendance"
     if (
       target === "my-courses" ||
@@ -257,6 +255,9 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
     }
   }, [])
 
+  // Toasts when a class is about to start or has started.
+  useLiveClassAlerts(useCallback(() => navigateTo("Timetable"), [navigateTo]))
+
   useEffect(() => {
     const handlePopState = () => {
       setActiveTabState(parseInitialTab())
@@ -336,10 +337,11 @@ function StudentPortalBody({ onOpenAiModal, onLogout, onToast }: StudentPortalPr
       case "Announcements":
         return (
           <SchedulePage
+            key={activeTab}
             onToast={onToast}
             onNavigate={navigateTo}
             initialTab={
-              activeTab === "Attendance" ? "attendance" : activeTab === "Events & Notices" ? "events" : activeTab === "Announcements" ? "announcements" : "timetable"
+              activeTab === "Attendance" ? "attendance" : activeTab === "Events & Notices" ? "events" : activeTab === "Announcements" ? "announcements" : activeTab === "Timetable" ? "timetable" : "calendar"
             }
           />
         )

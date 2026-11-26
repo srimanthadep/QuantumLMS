@@ -1319,6 +1319,8 @@ export const media_assets = lms.table("media_assets", {
   course_id: text().references(() => courses.id, { onDelete: "cascade" }),
   batch_id: text().references(() => cohort_batches.id, { onDelete: "cascade" }),
   owner_id: uuid().notNull().references(() => users.id),
+  /** The lesson this upload was made for. The worker attaches the video there once it is ready. */
+  target_lesson_id: text().references(() => lessons.id, { onDelete: "set null" }),
   source_key: text().notNull().unique(),
   state: text().notNull().default("uploading"),
   duration_seconds: integer(),

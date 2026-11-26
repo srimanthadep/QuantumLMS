@@ -32,7 +32,7 @@ import { SegmentedControl } from "@/components/ui/tabs"
 import type { DatedSession } from "@/components/live/LiveSessionsPanel"
 import type { Links } from "@/components/live/SessionScheduleForm"
 import { api } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { cn, dayInZone as dayKey } from "@/lib/utils"
 import { deviceTimezone, EmptyBlock, InlineAlert, MiniStat, TabHeader, toLocalInput } from "../parts"
 import MeetingLinkFields from "./MeetingLinkFields"
 import ScheduleSheet from "./ScheduleSheet"
@@ -46,7 +46,6 @@ const PROVIDER: Record<string, string> = { zoom_link: "Zoom", meet_link: "Google
 const OP_TITLE: Record<Operation, string> = { attendance: "Join records", settings: "Meeting link", reschedule: "Reschedule class", cancel: "Cancel class", override: "Override status" }
 
 const timeLabel = (iso: string, tz?: string) => new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", timeZone: tz })
-const dayKey = (iso: string, tz?: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: tz })
 function dayHeading(iso: string, tz?: string) {
   const key = dayKey(iso, tz)
   const today = dayKey(new Date().toISOString(), tz)

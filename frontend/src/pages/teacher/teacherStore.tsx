@@ -16,6 +16,7 @@ import type {
   TeachingSuggestionItem,
 } from "@/types"
 import { useSession } from "@/app/session"
+import { isoDate } from "./teacherUtils"
 
 const KEYS = {
   sessions: "quantum_teacher_sessions_v2",
@@ -57,6 +58,18 @@ function save(key: string, value: unknown) {
       }
     }, 250),
   )
+}
+
+
+/** Day and local start and end of a campus event. A missing or next-day end shows as one hour, kept within the day. */
+function campusEventTimes(startsAt?: string | null, endsAt?: string | null): Pick<CalendarEventItem, "startDate" | "startTime" | "endTime"> {
+  const start = startsAt ? new Date(startsAt) : null
+  if (!start || Number.isNaN(start.getTime())) return { startDate: "", startTime: "10:00", endTime: "11:00" }
+  const clock = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  const end = endsAt ? new Date(endsAt) : null
+  const sameDay = end && isoDate(end) === isoDate(start) && end > start
+  const fallback = new Date(Math.min(start.getTime() + 3_600_000, new Date(start).setHours(23, 59, 0, 0)))
+  return { startDate: isoDate(start), startTime: clock(start), endTime: clock(sameDay ? end : fallback) }
 }
 
 export const assignmentKey = (courseId: string, moduleId: string) => `${courseId}:${moduleId}`
@@ -132,8 +145,6 @@ interface TeacherData {
   replyToDoubt: (id: string, text: string, resolve: boolean) => void
   setDoubtStatus: (id: string, status: DoubtItem["status"]) => void
 
-  addEvent: (e: Omit<CalendarEventItem, "id" | "isReadOnly">) => void
-  deleteEvent: (id: string) => void
 
 
   addReport: (r: Omit<ReportItem, "id">) => void
@@ -240,12 +251,12 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
             id: e.id,
             title: e.title,
             category: "Meeting",
-            startDate: e.starts_at ? new Date(e.starts_at).toISOString().split("T")[0] : "",
-            startTime: e.time_label?.split("-")[0]?.trim() || "10:00",
-            endTime: e.time_label?.split("-")[1]?.trim() || "11:30",
+            // The day and clock this teacher sees, not the UTC date.
+            ...campusEventTimes(e.starts_at, e.ends_at),
             location: e.location || "Online Lab",
             description: e.description || "",
-            isReadOnly: false,
+            // Campus events are run by admins. A teacher can't change or delete them.
+            isReadOnly: true,
           }))
           setEvents(apiEvents)
         }
@@ -378,20 +389,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
   )
   const setDoubtStatus = useCallback((id: string, status: DoubtItem["status"]) => setDoubts((list) => list.map((d) => (d.id === id ? { ...d, status } : d))), [])
 
-  const addEvent = useCallback((e: Omit<CalendarEventItem, "id" | "isReadOnly">) => {
-    setEvents((list) => [...list, { ...e, id: `ev-${Date.now()}`, isReadOnly: false }])
-    api
-      .post("/teacher/calendar", {
-        title: e.title,
-        description: e.description || "",
-        location: e.location || "Online Lab",
-        starts_at: e.startDate ? `${e.startDate}T10:00:00Z` : new Date().toISOString(),
-        category: "Workshops",
-        time_label: `${e.startTime || "10:00"} - ${e.endTime || "11:30"}`,
-      })
-      .catch(() => {})
-  }, [])
-  const deleteEvent = useCallback((id: string) => setEvents((list) => list.filter((e) => e.id !== id)), [])
 
   const addReport = useCallback((r: Omit<ReportItem, "id">) => setReports((list) => [{ ...r, id: `r-${Date.now()}` }, ...list]), [])
   const updateStudent = useCallback((id: string, patch: Partial<StudentItem>) => setStudents((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s))), [])
@@ -574,8 +571,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       toggleLessonDelivered,
       replyToDoubt,
       setDoubtStatus,
-      addEvent,
-      deleteEvent,
       addReport,
       updateStudent,
       addStudent,
@@ -606,8 +601,6 @@ export function TeacherDataProvider({ onToast, children }: { onToast: (msg: stri
       toggleLessonDelivered,
       replyToDoubt,
       setDoubtStatus,
-      addEvent,
-      deleteEvent,
       addReport,
       updateStudent,
       addStudent,

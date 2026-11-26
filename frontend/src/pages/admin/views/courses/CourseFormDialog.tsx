@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { AdminCourse } from "@/data/adminStore"
-import { CATEGORIES, STATUSES } from "./courseTheme"
+import { STATUSES } from "./courseTheme"
 import CoursePricingField from "./CoursePricingField"
 
 export interface CourseFormValues {
@@ -32,6 +32,7 @@ interface CourseFormDialogProps {
   mode: "create" | "edit"
   course?: AdminCourse | null
   instructors: string[]
+  categories: string[]
   onSubmit: (values: CourseFormValues) => Promise<void> | void
 }
 
@@ -62,8 +63,30 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+const OTHER = "__other__"
+
+/** A dropdown of known choices, plus "Other" to type one that isn't listed. A value outside the list opens the text box. */
+function PickOrType({ value, options, placeholder, typePlaceholder, onChange }: { value: string; options: string[]; placeholder: string; typePlaceholder: string; onChange: (value: string) => void }) {
+  const [typing, setTyping] = useState(false)
+  const custom = typing || (value !== "" && !options.includes(value))
+  return (
+    <div className="space-y-2">
+      <CustomSelect
+        value={custom ? OTHER : value}
+        placeholder={placeholder}
+        options={[...options.map((o) => ({ value: o, label: o })), { value: OTHER, label: "Other (type it)…" }]}
+        onChange={(v) => {
+          setTyping(v === OTHER)
+          onChange(v === OTHER ? "" : v)
+        }}
+      />
+      {custom && <Input autoFocus value={value} onChange={(e) => onChange(e.target.value)} placeholder={typePlaceholder} />}
+    </div>
+  )
+}
+
 /** One form for both creating a course and quick-editing its catalog details. */
-export default function CourseFormDialog({ open, onOpenChange, mode, course, instructors, onSubmit }: CourseFormDialogProps) {
+export default function CourseFormDialog({ open, onOpenChange, mode, course, instructors, categories, onSubmit }: CourseFormDialogProps) {
   const [values, setValues] = useState<CourseFormValues>(EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,8 +95,8 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
   useEffect(() => {
     if (!open) return
     setError(null)
-    setValues(mode === "edit" && course ? toValues(course) : { ...EMPTY, instructor: instructors[0] ?? "" })
-  }, [open, mode, course, instructors])
+    setValues(mode === "edit" && course ? toValues(course) : { ...EMPTY, category: categories[0] ?? "", instructor: instructors[0] ?? "" })
+  }, [open, mode, course, instructors, categories])
 
   const set = <K extends keyof CourseFormValues>(key: K, value: CourseFormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
 
@@ -81,6 +104,10 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
     e.preventDefault()
     if (values.title.trim().length < 3) {
       setError("Course title must be at least 3 characters.")
+      return
+    }
+    if (!values.category.trim()) {
+      setError("Domain category is required.")
       return
     }
     if (values.instructor.trim().length < 2) {
@@ -98,7 +125,7 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
     setError(null)
     setSaving(true)
     try {
-      await onSubmit({ ...values, title: values.title.trim(), instructor: values.instructor.trim() })
+      await onSubmit({ ...values, title: values.title.trim(), category: values.category.trim(), instructor: values.instructor.trim() })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save course.")
     } finally {
@@ -106,11 +133,6 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
     }
   }
 
-  const instructorList = Array.from(new Set([...instructors, values.instructor].map((n) => n.trim()).filter(Boolean)))
-  const instructorOptions = instructorList.map((n) => ({
-    value: n,
-    label: mode === "edit" && !instructors.includes(n) ? `${n} (current)` : n,
-  }))
   const Icon = mode === "create" ? BookOpen : Pencil
 
   return (
@@ -144,19 +166,10 @@ export default function CourseFormDialog({ open, onOpenChange, mode, course, ins
 
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Domain category">
-              <CustomSelect value={values.category} onChange={(v) => set("category", v)} options={[...CATEGORIES]} />
+              <PickOrType value={values.category} options={categories} placeholder="Select a category" typePlaceholder="Type a category" onChange={(v) => set("category", v)} />
             </FormField>
             <FormField label="Lead instructor">
-              {instructorOptions.length > 0 ? (
-                <CustomSelect
-                  value={values.instructor}
-                  onChange={(v) => set("instructor", v)}
-                  placeholder="Select lead instructor"
-                  options={instructorOptions}
-                />
-              ) : (
-                <Input required value={values.instructor} onChange={(e) => set("instructor", e.target.value)} placeholder="Instructor name" />
-              )}
+              <PickOrType value={values.instructor} options={instructors} placeholder="Select lead instructor" typePlaceholder="Type the instructor's name" onChange={(v) => set("instructor", v)} />
             </FormField>
           </div>
 

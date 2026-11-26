@@ -53,14 +53,11 @@ export interface RequestOptions {
 
 interface CacheEntry {
   data: unknown
-  etag?: string
   expiresAt: number
 }
 
 // In-memory response cache: path -> CacheEntry
 const memoryCache = new Map<string, CacheEntry>()
-// ETag cache: path -> ETag string
-const etagCache = new Map<string, string>()
 // In-flight GET request deduplication: path -> Promise<unknown>
 const inFlightGet = new Map<string, Promise<unknown>>()
 
@@ -130,15 +127,11 @@ export function invalidateCache(pathPrefix?: string) {
   clearStorageCache(pathPrefix)
   if (!pathPrefix) {
     memoryCache.clear()
-    etagCache.clear()
     inFlightGet.clear()
     return
   }
   for (const key of memoryCache.keys()) {
-    if (key.startsWith(pathPrefix) || key.includes(pathPrefix)) {
-      memoryCache.delete(key)
-      etagCache.delete(key)
-    }
+    if (key.startsWith(pathPrefix) || key.includes(pathPrefix)) memoryCache.delete(key)
   }
   // Later reads start a fresh request instead of joining one that began before the write.
   for (const key of inFlightGet.keys()) {
@@ -221,11 +214,6 @@ export async function request<T>(
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       }
 
-      // Attach the conditional ETag header only when there is cached data a 304 could reuse.
-      if (method === "GET" && etagCache.has(key) && (memoryCache.has(key) || readStorageCache(key) !== null)) {
-        headers["If-None-Match"] = etagCache.get(key)!
-      }
-
       res = await fetch(`${BASE}${path}`, {
         method,
         headers,
@@ -236,23 +224,6 @@ export async function request<T>(
     }
 
     assertCurrentSession(generation)
-
-    // 304 Not Modified: Reuse cached data and extend TTL
-    if (res.status === 304) {
-      const cached = memoryCache.get(key)?.data ?? readStorageCache<T>(key)
-      if (cached) {
-        if (epoch === cacheEpoch) {
-          const ttl = options.ttl ?? 30_000
-          memoryCache.set(key, {
-            data: cached,
-            etag: etagCache.get(key),
-            expiresAt: Date.now() + ttl,
-          })
-          writeStorageCache(key, cached, ttl)
-        }
-        return cached as T
-      }
-    }
 
     if (res.status === 204) {
       invalidateCacheForMutation(method, path)
@@ -280,16 +251,9 @@ export async function request<T>(
 
     // Store in browser cache on successful GET, unless a write invalidated the cache while this read was in flight.
     if (method === "GET" && epoch === cacheEpoch) {
-      const etag = res.headers.get("etag")
-      if (etag) etagCache.set(key, etag)
-
       const ttl = options.ttl ?? 30_000
       if (ttl > 0) {
-        memoryCache.set(key, {
-          data,
-          etag: etag ?? undefined,
-          expiresAt: Date.now() + ttl,
-        })
+        memoryCache.set(key, { data, expiresAt: Date.now() + ttl })
         writeStorageCache(key, data, ttl)
       }
     } else if (method !== "GET") {
@@ -356,7 +320,7 @@ export const api = {
   cache: {
     invalidate: invalidateCache,
     clear: () => invalidateCache(),
-    stats: () => ({ cachedEntries: memoryCache.size, etagEntries: etagCache.size }),
+    stats: () => ({ cachedEntries: memoryCache.size }),
   },
 }
 

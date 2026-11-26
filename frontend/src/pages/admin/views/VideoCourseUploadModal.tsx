@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CustomSelect } from "@/components/ui/select"
 import { api } from "@/lib/api"
+import { uploadTracker } from "@/lib/uploadTracker"
 import type { AdminCourse } from "@/data/adminStore"
 
 interface Props {
@@ -66,26 +67,33 @@ export default function VideoCourseUploadModal(props: Props) {
         const data = await api.post<{ course: AdminCourse }>("/admin/courses", { title, instructor, category: "General", status: "Draft" })
         target = data.course.id; setCourseId(target); props.onCourseCreated?.(data.course)
       }
+      let targetLesson = replaceLessonId
       if (replaceLessonId) setLessonId(replaceLessonId)
       else {
         let moduleId = props.initialCourseId === target ? props.initialModuleId : undefined
         if (!moduleId) moduleId = (await api.post<{ module: { id: string } }>(`/admin/courses/${target}/modules`, { title })).module.id
         const created = await api.post<{ lesson: Lesson }>(`/admin/courses/${target}/lessons`, { moduleId, title, type: "video" })
+        targetLesson = created.lesson.id
         setLessonId(created.lesson.id); setLessons(previous => [...previous.filter(l => l.id !== created.lesson.id), created.lesson])
       }
       const data = await api.post<{ asset: Asset; upload: { url: string; method: string; headers: Record<string, string> } }>("/admin/media/uploads", {
-        courseId: target, filename: file.name, contentType: file.type || "video/mp4", bytes: file.size,
+        courseId: target, filename: file.name, contentType: file.type || "video/mp4", bytes: file.size, lessonId: targetLesson,
       })
+      // The tray follows this upload from here on, even after this window is closed.
+      const tracked = uploadTracker.add({ name: file.name, assetId: data.asset.id })
+      try {
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open(data.upload.method, data.upload.url)
         Object.entries(data.upload.headers).forEach(([name, value]) => xhr.setRequestHeader(name, value))
-        xhr.upload.onprogress = event => { if (event.lengthComputable) setProgress(Math.round(event.loaded / event.total * 100)) }
+        xhr.upload.onprogress = event => { if (event.lengthComputable) { const percent = Math.round(event.loaded / event.total * 100); setProgress(percent); uploadTracker.update(tracked, { percent }) } }
         xhr.onerror = () => reject(new Error("Upload failed. Check the connection and storage CORS settings."))
         xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload rejected (${xhr.status})`))
         xhr.send(file)
       })
       await api.post(`/admin/media/${data.asset.id}/finalize`, {})
+      uploadTracker.update(tracked, { phase: "queued", percent: 100 })
+      } catch (e) { uploadTracker.update(tracked, { phase: "failed", error: e instanceof Error ? e.message : "Upload failed" }); throw e }
       setDetail(null); setAssetId(data.asset.id); props.onSuccess?.()
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") }
     finally { setBusy(false) }
@@ -98,7 +106,7 @@ export default function VideoCourseUploadModal(props: Props) {
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to attach video") }
     finally { setBusy(false) }
   }
-  return <Dialog open={props.open} onOpenChange={open => { if (!busy) props.onOpenChange(open) }}>
+  return <Dialog open={props.open} onOpenChange={props.onOpenChange}>
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle className="flex items-center gap-2"><Film className="h-5 w-5 text-primary" /> Course video</DialogTitle>
         <DialogDescription>Upload a video, review the processed result, then attach it to a lesson. Replacements preserve lesson progress and the previous content history.</DialogDescription></DialogHeader>
@@ -149,6 +157,7 @@ export default function VideoCourseUploadModal(props: Props) {
         <Button onClick={() => void upload()} disabled={busy || !file || title.trim().length < 3 || (!courseId && instructor.trim().length < 2)} className="w-full">
           {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {progress < 100 ? `Uploading ${progress}%` : "Saving…"}</> : "Upload and process"}
         </Button>
+        {busy && <p className="text-center text-xs text-muted-foreground">You can close this window. Progress shows in the uploads panel. Keep this tab open until it finishes.</p>}
         {assets.length > 0 && (
           <label className="block space-y-2 text-sm font-medium">
             Resume a previous upload

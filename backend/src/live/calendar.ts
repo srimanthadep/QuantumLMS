@@ -22,6 +22,7 @@ export function localInstant(day: string, time: string, zone: string) {
 }
 export function occurrences(rule: RuleInput, bounds: { starts_at: Date | null; ends_at: Date | null }) {
   if (!bounds.starts_at || !bounds.ends_at) throw badRequest("Set the batch start and end before creating a schedule")
+  if (bounds.ends_at <= bounds.starts_at) throw badRequest("This batch's end is before its start. Fix the batch dates in Admissions & team, then try again.")
   validTimezone(rule.timezone)
   const start = Date.parse(`${rule.start_date}T00:00:00Z`), end = Date.parse(`${rule.end_date}T00:00:00Z`)
   if (!Number.isFinite(start) || !Number.isFinite(end) || new Date(start).toISOString().slice(0,10) !== rule.start_date || new Date(end).toISOString().slice(0,10) !== rule.end_date || end < start || end-start > 3*366*86400000) throw badRequest("Choose a valid schedule date range of up to three years")
