@@ -1,7 +1,7 @@
 import { api } from "@/lib/api"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Captions, Check, FileText, FlaskConical, Maximize2, Minimize2, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
+import { Captions, Check, FileText, FlaskConical, Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, Settings, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { spring, transition } from "@/lib/motion"
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui"
@@ -135,13 +135,29 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   const [speed, setSpeed] = useState("1")
   const [captions, setCaptions] = useState(true)
   const [muted, setMuted] = useState(false)
-  const [isCompact, setIsCompact] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
 
   const stage = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const [playback, setPlayback] = useState<{ url: string; qualities: Record<string, { url: string; label?: string; height?: number }> } | null>(null)
+  const [playback, setPlayback] = useState<{
+    url: string
+    qualities: Record<string, { url: string; label?: string; height?: number }>
+    /** Timed transcript from video processing; drives the subtitles when present. */
+    transcript?: { start: number; end: number; text: string }[]
+  } | null>(null)
+
+  // Follow the browser's full-screen state, including Esc, so the button and the menus stay right.
+  useEffect(() => {
+    const sync = () => setFullscreen(document.fullscreenElement === stage.current)
+    document.addEventListener("fullscreenchange", sync)
+    return () => document.removeEventListener("fullscreenchange", sync)
+  }, [])
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    else stage.current?.requestFullscreen?.().catch(() => {})
+  }
   const [playbackError, setPlaybackError] = useState<string | null>(null)
   const resumeAt = useRef(0)
   useEffect(() => {
@@ -150,7 +166,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     setPlaybackError(null)
     resumeAt.current = 0
     if (lesson.type !== "video") return
-    const load = () => api.post<{ url: string; qualities: Record<string, { url: string }> }>(playbackEndpoint ?? `/student/lessons/${encodeURIComponent(lesson.id)}/playback`)
+    const load = () => api.post<{ url: string; qualities: Record<string, { url: string }>; transcript?: { start: number; end: number; text: string }[] }>(playbackEndpoint ?? `/student/lessons/${encodeURIComponent(lesson.id)}/playback`)
       .then((result) => { if (!disposed) { resumeAt.current = videoRef.current?.currentTime ?? 0; setPlayback(result); setPlaybackError(null) } })
       .catch((error) => { if (!disposed) { setPlayback(null); setPlaying(false); setPlaybackError((error as Error).message) } })
     void load()
@@ -181,6 +197,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
 
   // Parse [mm:ss - mm:ss] or [mm:ss.ms - mm:ss.ms] transcript time stamps for live synchronized captions
   const transcriptSegments = useMemo(() => {
+    if (playback?.transcript?.length) return sliceIntoSubtitles(playback.transcript)
     if (!lesson.summary) return []
     // Supports [0:00 - 0:30], [01:04.2 - 01:06.2], [1:04 - 1:06], etc.
     const regex = /\[(\d+):(\d+(?:\.\d+)?)\s*-\s*(\d+):(\d+(?:\.\d+)?)\]\s*([^[]+)/g
@@ -204,7 +221,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
     if (!rawText) return []
     const fallbackDuration = duration > 0 ? duration : 300
     return sliceIntoSubtitles([{ start: 0, end: Math.min(fallbackDuration, 180), text: rawText }])
-  }, [lesson.summary, duration])
+  }, [playback?.transcript, lesson.summary, duration])
 
   const activeCaption = useMemo(() => {
     if (transcriptSegments.length === 0) return ""
@@ -343,11 +360,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
         skip(10)
       } else if (e.key === "f" || e.key === "F") {
         e.preventDefault()
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {})
-        } else {
-          stage.current?.requestFullscreen?.().catch(() => {})
-        }
+        toggleFullscreen()
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault()
         toggleMute()
@@ -397,13 +410,13 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
   }
 
   return (
-    <div className={cn("w-full transition-all duration-300 ease-out", isCompact ? "max-w-2xl mx-auto" : "w-full")}>
+    <div className="w-full">
       <div
         ref={stage}
         className={cn(
           "group/player relative isolate aspect-video w-full overflow-hidden rounded-xl border border-border bg-black transition-all duration-300",
           playing && "shadow-[var(--glow-primary)]",
-          isCompact && "shadow-2xl ring-1 ring-border/50",
+          fullscreen && "rounded-none border-0",
         )}
       >
       {!activeVideoSrc && <p role="status" className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-white">{playbackError ?? "Preparing secure playback..."}</p>}
@@ -565,7 +578,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
                 <span>{quality === "auto" ? "AUTO" : quality.toUpperCase()}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[10rem]">
+            <DropdownMenuContent align="end" className="min-w-[10rem]" container={fullscreen ? stage.current : undefined}>
               <DropdownMenuLabel>Video Quality</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={quality} onValueChange={handleQualityChange}>
                 <DropdownMenuRadioItem value="auto">
@@ -579,7 +592,8 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
                       return hB - hA
                     })
                     .map(([key, val]) => {
-                      const label = typeof val === "object" ? val.label : key.toUpperCase()
+                      // The server sends just the URL per quality, so the key ("720p") is the label.
+                      const label = (typeof val === "object" && val.label) || key
                       return (
                         <DropdownMenuRadioItem key={key} value={key}>
                           {label}
@@ -605,7 +619,7 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
                 {speed}x
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[8rem]">
+            <DropdownMenuContent align="end" className="min-w-[8rem]" container={fullscreen ? stage.current : undefined}>
               <DropdownMenuLabel>Speed</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={speed} onValueChange={handleSpeedChange}>
                 {SPEEDS.map((s) => (
@@ -617,17 +631,8 @@ export default function LessonPlayer({ lesson, moduleTitle, poster, completed, o
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Small Ratio / Expand Ratio Collapse Button */}
-          <PlayerButton
-            label={isCompact ? "Expand video ratio" : "Small video ratio"}
-            onClick={() => setIsCompact((c) => !c)}
-            pressed={isCompact}
-          >
-            {isCompact ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-          </PlayerButton>
-
-          <PlayerButton label="Full screen" onClick={() => stage.current?.requestFullscreen?.().catch(() => undefined)}>
-            <Maximize2 className="h-4 w-4" />
+          <PlayerButton label={fullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen}>
+            {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </PlayerButton>
         </div>
       </div>

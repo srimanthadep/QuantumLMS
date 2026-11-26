@@ -16,9 +16,12 @@ const itemClasses =
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 6, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
+    /** Where the menu opens. Defaults to the page; a full-screen element must pass itself or the menu stays hidden. */
+    container?: HTMLElement | null
+  }
+>(({ className, sideOffset = 6, container, ...props }, ref) => (
+  <DropdownMenuPrimitive.Portal container={container ?? undefined}>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
