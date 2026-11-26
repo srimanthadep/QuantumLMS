@@ -60,7 +60,7 @@ export async function mediaRoutes(app: FastifyInstance, ctx: AppContext) {
     const asset = await getAsset(req.params.id, req.user!)
     const job = await ctx.db.query.processing_jobs.findFirst({ where: eq(processing_jobs.asset_id, asset.id) })
     const variants = await ctx.db.select().from(media_variants).where(eq(media_variants.asset_id, asset.id))
-    return { asset, job: job ? { state: job.state, attempts: job.attempts, error: job.error } : null,
+    return { asset, job: job ? { state: job.state, attempts: job.attempts, error: job.error, progress: job.progress, uploaded_at: job.created_at, started_at: job.started_at, completed_at: job.completed_at } : null,
       variants: await Promise.all(variants.map(async v => ({ ...v, url: await ctx.storage.createDownloadUrl(v.key, { expiresInSeconds: 300 }) }))) }
   })
   app.post<{ Params: { id: string } }>("/media/:id/retry", async req => {
@@ -88,7 +88,7 @@ export async function mediaOverviewRoutes(app: FastifyInstance, ctx: AppContext)
     const rows = await ctx.db.execute(sql`
       select a.id, a.state, a.error, a.created_at, a.duration_seconds, a.source_key, a.course_id, a.batch_id,
         c.title as course_title, b.name as batch_name, u.full_name as uploader,
-        j.state as job_state, j.attempts, j.max_attempts, j.error as job_error, j.completed_at
+        j.state as job_state, j.attempts, j.max_attempts, j.error as job_error, j.completed_at, j.progress, j.started_at, j.created_at as uploaded_at
       from lms.media_assets a
       left join lms.courses c on c.id = a.course_id
       left join lms.cohort_batches b on b.id = a.batch_id

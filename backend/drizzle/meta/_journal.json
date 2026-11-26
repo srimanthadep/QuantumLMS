@@ -148,6 +148,13 @@
       "when": 1795682598107,
       "tag": "0020_media_target_lesson",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795685607060,
+      "tag": "0021_job_progress",
+      "breakpoints": true
     }
   ]
 }

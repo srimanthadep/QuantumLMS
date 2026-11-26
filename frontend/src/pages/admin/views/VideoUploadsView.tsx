@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { AlertCircle, CheckCircle2, Clock, Film, Loader2, RefreshCw, RotateCcw, UploadCloud } from "lucide-react"
-import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, Skeleton } from "@/components/ui"
+import { Badge, Button, Card, EmptyState, PageHeader, Progress, SegmentedControl, Skeleton } from "@/components/ui"
 import type { BadgeTone } from "@/components/ui"
 import { api } from "@/lib/api"
+import { formatDateTime, formatDuration, timeAgo } from "@/lib/utils"
 
 interface UploadRow {
   id: string
@@ -18,6 +19,12 @@ interface UploadRow {
   attempts: number | null
   max_attempts: number | null
   job_error: string | null
+  /** 0-100 while processing. */
+  progress: number | null
+  /** When the file finished sending, when this processing attempt started, and when it finished. */
+  uploaded_at: string | null
+  started_at: string | null
+  completed_at: string | null
 }
 
 type Filter = "all" | "active" | "failed" | "ready"
@@ -37,6 +44,12 @@ export default function VideoUploadsView({ onToast }: { onToast: (msg: string) =
   const [error, setError] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
   const [retrying, setRetrying] = useState<string | null>(null)
+  // Ticks every second so "3 mins ago" and the running time stay current between refreshes.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const tick = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(tick)
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -143,8 +156,33 @@ export default function VideoUploadsView({ onToast }: { onToast: (msg: string) =
                     {fileName(r.source_key)}
                   </p>
                   <p className="mt-0.5 truncate text-caption text-muted-foreground">
-                    {[r.course_title ?? r.batch_name ?? "No course", r.uploader && `by ${r.uploader}`, duration(r.duration_seconds), new Date(r.created_at).toLocaleString()].filter(Boolean).join(" · ")}
+                    {[r.course_title ?? r.batch_name ?? "No course", r.uploader && `by ${r.uploader}`, duration(r.duration_seconds)].filter(Boolean).join(" · ")}
                   </p>
+                  <p className="mt-0.5 text-caption text-muted-foreground">
+                    {r.uploaded_at ? (
+                      <>
+                        Uploaded <span className="font-medium text-foreground">{formatDateTime(r.uploaded_at)}</span> · {timeAgo(r.uploaded_at, now)}
+                      </>
+                    ) : (
+                      <>Upload started {formatDateTime(r.created_at)} · {timeAgo(r.created_at, now)}</>
+                    )}
+                  </p>
+                  {r.state === "processing" && (
+                    <div className="mt-2 max-w-md">
+                      <Progress value={r.progress ?? 0} size="sm" label={`Processing ${fileName(r.source_key)}`} />
+                      <p className="mt-1 text-caption tabular-nums text-muted-foreground">
+                        <span className="font-semibold text-foreground">{r.progress ?? 0}% done</span>
+                        {r.started_at && ` · running ${formatDuration(now - Date.parse(r.started_at))}`}
+                      </p>
+                    </div>
+                  )}
+                  {r.state === "queued" && <p className="mt-1 text-caption text-muted-foreground">Waiting for the media worker{r.uploaded_at && ` · queued ${timeAgo(r.uploaded_at, now)}`}</p>}
+                  {r.state === "ready" && r.completed_at && (
+                    <p className="mt-1 flex items-center gap-1.5 text-caption text-success">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      Processed in {formatDuration(Date.parse(r.completed_at) - Date.parse(r.started_at ?? r.uploaded_at ?? r.completed_at))} · finished {formatDateTime(r.completed_at)}
+                    </p>
+                  )}
                   {r.state === "failed" && reason && <p className="mt-1 flex items-start gap-1.5 text-caption text-danger"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />{reason}</p>}
                   {r.state === "uploading" && <p className="mt-1 flex items-center gap-1.5 text-caption text-warning"><Clock className="h-3.5 w-3.5" aria-hidden="true" />The file never finished sending. Upload it again from the course.</p>}
                 </div>

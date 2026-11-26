@@ -9,11 +9,21 @@ import type { Config } from "../config.js"
 import type { Storage } from "../storage/storage.js"
 import type { MediaResult } from "./jobs.js"
 
-export function runProcess(command: string, args: string[], signal?: AbortSignal): Promise<string> {
+/** Runs a tool and returns its stdout. With `onLine`, stdout is handed over line by line instead and not kept. */
+export function runProcess(command: string, args: string[], signal?: AbortSignal, onLine?: (line: string) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { windowsHide: true, signal, stdio: ["ignore", "pipe", "pipe"] })
-    let output = "", overflow = false
-    child.stdout.on("data", chunk => { output += chunk.toString(); if (output.length > 1024 * 1024) { overflow = true; child.kill() } })
+    let output = "", overflow = false, partial = ""
+    child.stdout.on("data", chunk => {
+      if (onLine) {
+        const lines = (partial + chunk.toString()).split("\n")
+        partial = lines.pop() ?? ""
+        if (partial.length > 64 * 1024) partial = ""
+        for (const line of lines) onLine(line.trim())
+        return
+      }
+      output += chunk.toString(); if (output.length > 1024 * 1024) { overflow = true; child.kill() }
+    })
     child.stderr.on("data", () => {}) // consume the stream without retaining unbounded diagnostics or source paths
     child.once("error", reject)
     child.once("close", code => code === 0 && !overflow ? resolve(output) : reject(new Error("Media subprocess failed")))
@@ -24,14 +34,15 @@ export function runProcess(command: string, args: string[], signal?: AbortSignal
  * Speech-to-text for one job: ffmpeg pulls the audio out as a small 16 kHz mono WAV (a fraction of a second), then the
  * local Whisper model reads that instead of decoding the whole video. Half the cores go to it, the encodes use two threads.
  */
-async function transcribe(config: Config, input: string, format: string, dir: string, signal: AbortSignal): Promise<MediaResult["transcript"]> {
+async function transcribe(config: Config, input: string, format: string, dir: string, signal: AbortSignal, onSeconds: (s: number) => void): Promise<MediaResult["transcript"]> {
   const audio = path.join(dir, "audio.wav")
   const transcriptPath = path.join(dir, "transcript.json")
   try {
     await runProcess(config.MEDIA_FFMPEG, ["-nostdin", "-y", "-v", "error", "-protocol_whitelist", "file,pipe", "-f", format, "-i", input,
       "-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", audio], signal)
     const threads = Math.max(2, Math.floor(availableParallelism() / 2))
-    await runProcess(config.MEDIA_PYTHON, ["worker/transcribe.py", audio, transcriptPath, config.MEDIA_MODEL_PATH, String(threads)], signal)
+    await runProcess(config.MEDIA_PYTHON, ["worker/transcribe.py", audio, transcriptPath, config.MEDIA_MODEL_PATH, String(threads)], signal,
+      line => { const m = /^progress ([\d.]+)$/.exec(line); if (m) onSeconds(Number(m[1])) })
   } catch { throw Object.assign(new Error("Transcription failed"), { name: "TranscriptionError" }) }
   if ((await stat(transcriptPath)).size > 10 * 1024 * 1024) throw new Error("Transcript too large")
   const transcript = JSON.parse(await readFile(transcriptPath, "utf8")) as MediaResult["transcript"]
@@ -40,7 +51,8 @@ async function transcribe(config: Config, input: string, format: string, dir: st
 }
 
 /** One job per worker, one encode at a time, with transcription running alongside. Neither input nor variants are held in RAM. */
-export async function processMedia(storage: Storage, config: Config, assetId: string, sourceKey: string, attempt: string, signal?: AbortSignal): Promise<MediaResult> {
+export async function processMedia(storage: Storage, config: Config, assetId: string, sourceKey: string, attempt: string, signal?: AbortSignal,
+  onProgress?: (percent: number) => void): Promise<MediaResult> {
   if (!storage.stream || !storage.putStream) throw new Error("Streaming storage is required")
   const source = await storage.head(sourceKey)
   if (!source || source.size > config.MEDIA_MAX_UPLOAD_BYTES) throw new Error("Invalid input size")
@@ -85,15 +97,20 @@ export async function processMedia(storage: Storage, config: Config, assetId: st
     const duration = Number(probe.format.duration)
     if (!Number.isFinite(duration) || duration <= 0 || duration > config.MEDIA_MAX_DURATION_SECONDS || !probe.streams.some((s: { codec_type: string }) => s.codec_type === "video")) throw new Error("Invalid video")
     const hasAudio = probe.streams.some((s: { codec_type: string }) => s.codec_type === "audio")
+    // Progress: the two encodes are 75% of the work, the transcript 25%; 100% is set when the job is saved.
+    let encoded = 0, transcribed = hasAudio ? 0 : 1
+    const report = () => onProgress?.(95 * (0.75 * Math.min(1, encoded) + 0.25 * Math.min(1, transcribed)))
     // A video without a sound track has nothing to transcribe; it still gets its variants.
-    const transcribing = hasAudio ? transcribe(config, input, format, dir, controller.signal) : Promise.resolve([] as MediaResult["transcript"])
+    const transcribing = hasAudio ? transcribe(config, input, format, dir, controller.signal, s => { transcribed = s / duration; report() }).then(t => { transcribed = 1; report(); return t })
+      : Promise.resolve([] as MediaResult["transcript"])
     const encoding = (async () => {
       const variants: MediaResult["variants"] = []
-      for (const height of [720, 480]) {
+      for (const [index, height] of [720, 480].entries()) {
         const output = path.join(dir, `${height}.mp4`)
         await runProcess(config.MEDIA_FFMPEG, ["-nostdin", "-y", "-v", "error", "-protocol_whitelist", "file,pipe", "-f", format, "-i", input,
           "-map", "0:v:0", "-map", "0:a:0?", "-vf", `scale=-2:'min(${height},ih)'`, "-c:v", "libx264", "-threads", "2", "-preset", "fast", "-crf", "24",
-          "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", "-fs", String(config.MEDIA_TEMP_BUDGET_BYTES - source.size), output], controller.signal)
+          "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", "-fs", String(config.MEDIA_TEMP_BUDGET_BYTES - source.size), "-progress", "pipe:1", "-nostats", output], controller.signal,
+          line => { const m = /^out_time_us=(\d+)$/.exec(line); if (m) { encoded = (index + Math.min(1, Number(m[1]) / 1e6 / duration)) / 2; report() } })
         const info = await stat(output)
         const outputProbe = JSON.parse(await runProcess(config.MEDIA_FFPROBE, ["-v", "error", "-show_format", "-show_streams", "-of", "json", output], controller.signal))
         if (Math.abs(Number(outputProbe.format.duration) - duration) > 2) throw new Error("Output was truncated")
@@ -101,6 +118,7 @@ export async function processMedia(storage: Storage, config: Config, assetId: st
         await storage.putStream!(key, createReadStream(output), info.size, "video/mp4") // checked at the top
         variants.push({ quality: `${height}p`, key, bytes: info.size, height: Number(outputProbe.streams.find((s: { codec_type: string }) => s.codec_type === "video").height) })
         await rm(output)
+        encoded = (index + 1) / 2; report()
       }
       return variants
     })()

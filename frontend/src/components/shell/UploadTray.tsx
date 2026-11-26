@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { AlertCircle, CheckCircle2, ChevronDown, Film, Loader2, X } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { api } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime, formatDuration, timeAgo } from "@/lib/utils"
 import { uploadTracker, useUploads, type UploadItem } from "@/lib/uploadTracker"
 
 const POLL_MS = 3000
@@ -18,6 +18,14 @@ const LABEL: Record<UploadItem["phase"], string> = {
 export default function UploadTray() {
   const uploads = useUploads()
   const [open, setOpen] = useState(true)
+  const busy = uploads.some((u) => u.phase !== "ready" && u.phase !== "failed")
+  // Ticks while something is in progress, so the running times move.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!busy) return
+    const tick = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(tick)
+  }, [busy])
 
   // Follow server-side processing for every upload that has finished sending.
   const waiting = uploads.filter((u) => u.assetId && (u.phase === "queued" || u.phase === "processing")).map((u) => `${u.id}:${u.assetId}`).join(",")
@@ -27,9 +35,19 @@ export default function UploadTray() {
       for (const pair of waiting.split(",")) {
         const [id, assetId] = pair.split(":")
         try {
-          const { asset } = await api.get<{ asset: { state: string; error?: string | null } }>(`/admin/media/${assetId}`, { bypassCache: true })
+          const { asset, job } = await api.get<{
+            asset: { state: string; error?: string | null }
+            job: { progress: number; uploaded_at: string; started_at: string | null; completed_at: string | null } | null
+          }>(`/admin/media/${assetId}`, { bypassCache: true })
           const phase = asset.state === "ready" || asset.state === "failed" || asset.state === "processing" ? asset.state : "queued"
-          uploadTracker.update(id!, { phase, error: asset.error ?? undefined })
+          uploadTracker.update(id!, {
+            phase,
+            error: asset.error ?? undefined,
+            processed: job?.progress,
+            uploadedAt: job?.uploaded_at,
+            startedAt: job?.started_at ?? undefined,
+            completedAt: job?.completed_at ?? undefined,
+          })
         } catch {
           // A missed check is fine; the next one tries again.
         }
@@ -76,9 +94,23 @@ export default function UploadTray() {
                 )}
               </div>
               {u.phase === "uploading" && <Progress value={u.percent} size="sm" label={`Uploading ${u.name}`} />}
-              <p className={cn("text-caption", u.phase === "failed" ? "text-danger" : "text-muted-foreground")}>
-                {u.phase === "uploading" ? `Uploading ${u.percent}%. Keep this tab open.` : u.phase === "failed" ? (u.error ?? "Failed") : LABEL[u.phase]}
+              {u.phase === "processing" && <Progress value={u.processed ?? 0} size="sm" tone="info" label={`Processing ${u.name}`} />}
+              <p className={cn("text-caption tabular-nums", u.phase === "failed" ? "text-danger" : u.phase === "ready" ? "text-success" : "text-muted-foreground")}>
+                {u.phase === "uploading"
+                  ? `Uploading ${u.percent}%${u.addedAt ? ` · ${formatDuration(now - u.addedAt)}` : ""}. Keep this tab open.`
+                  : u.phase === "processing"
+                    ? `Processing ${u.processed ?? 0}% done${u.startedAt ? ` · ${formatDuration(now - Date.parse(u.startedAt))}` : ""}`
+                    : u.phase === "ready" && u.completedAt
+                      ? `Ready · processed in ${formatDuration(Date.parse(u.completedAt) - Date.parse(u.startedAt ?? u.uploadedAt ?? u.completedAt))}`
+                      : u.phase === "failed"
+                        ? (u.error ?? "Failed")
+                        : LABEL[u.phase]}
               </p>
+              {u.uploadedAt && (
+                <p className="text-[11px] text-subtle-foreground">
+                  Uploaded {formatDateTime(u.uploadedAt)} · {timeAgo(u.uploadedAt, now)}
+                </p>
+              )}
             </li>
           ))}
         </ul>

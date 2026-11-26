@@ -14,5 +14,9 @@ model = WhisperModel(model_dir, device="cpu", compute_type="int8", cpu_threads=t
 # Speed: silence is cut out (VAD), the speech chunks are decoded in batches, and greedy search (beam 1) replaces beam 5.
 # Timestamps stay on so the transcript keeps sentence-level segments for captions and chapters.
 segments, _ = BatchedInferencePipeline(model).transcribe(audio, batch_size=8, beam_size=1, vad_filter=True, without_timestamps=False)
+result = []
+for s in segments:
+    result.append({"start": s.start, "end": s.end, "text": s.text.strip()})
+    print(f"progress {s.end:.1f}", flush=True)  # read by the worker for the progress bar
 with open(output_path, "w", encoding="utf-8") as output:
-    json.dump([{"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments], output, ensure_ascii=False)
+    json.dump(result, output, ensure_ascii=False)

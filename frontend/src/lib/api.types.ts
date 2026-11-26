@@ -772,6 +772,8 @@ export interface Rows {
     error: string | null
     created_at: string
     completed_at: string | null
+    started_at: string | null
+    progress: number
   }
   profiles: {
     id: string

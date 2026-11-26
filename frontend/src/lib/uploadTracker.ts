@@ -12,6 +12,13 @@ export interface UploadItem {
   error?: string
   /** The media asset, once the server knows it. The tray follows its processing by this id. */
   assetId?: string
+  /** When the file started sending (ms), and the server's times for the finished upload and its processing. */
+  addedAt?: number
+  uploadedAt?: string
+  startedAt?: string
+  completedAt?: string
+  /** Server-side processing, 0-100. */
+  processed?: number
 }
 
 /** Video uploads started in this tab, so one tray can show them wherever the admin navigates. */
@@ -42,7 +49,7 @@ const set = (next: UploadItem[]) => {
 export const uploadTracker = {
   add(item: Omit<UploadItem, "id" | "percent" | "phase"> & Partial<Pick<UploadItem, "percent" | "phase">>): string {
     const id = crypto.randomUUID()
-    set([{ percent: 0, phase: "uploading", ...item, id }, ...items])
+    set([{ percent: 0, phase: "uploading", addedAt: Date.now(), ...item, id }, ...items])
     return id
   },
   update(id: string, patch: Partial<UploadItem>) {

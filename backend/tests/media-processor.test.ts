@@ -31,8 +31,13 @@ test("real FFmpeg streams separate variants, and a silent video finishes with an
   try {
     await h.ctx.storage.put("videos/processor-fixture/silent.mp4", await fixture(dir, false), "video/mp4")
     // The interpreter does not exist, so a call to it would fail the job.
+    const progress: number[] = []
     const result = await processMedia(h.ctx.storage, { ...h.ctx.config, MEDIA_TEMP_BUDGET_BYTES: 32 * 1024 * 1024,
-      MEDIA_PYTHON: path.join(dir, "missing-interpreter"), MEDIA_JOB_TIMEOUT_SECONDS: 30 }, "asset-two", "videos/processor-fixture/silent.mp4", "attempt-one")
+      MEDIA_PYTHON: path.join(dir, "missing-interpreter"), MEDIA_JOB_TIMEOUT_SECONDS: 30 }, "asset-two", "videos/processor-fixture/silent.mp4", "attempt-one", undefined, p => progress.push(p))
+    // Progress only moves forward and ends at 95%; the last 5% is saving the job.
+    assert.ok(progress.length >= 2, `progress reports: ${progress.length}`)
+    assert.ok(progress.every((p, i) => i === 0 || p >= progress[i - 1]))
+    assert.equal(Math.round(progress.at(-1)!), 95)
     assert.deepEqual(result.transcript, [])
     assert.deepEqual(result.chapters, [])
     assert.deepEqual(result.variants.map(v => v.quality), ["720p", "480p"])

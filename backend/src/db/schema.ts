@@ -1340,6 +1340,8 @@ export const processing_jobs = lms.table("processing_jobs", {
   max_attempts: integer().notNull().default(3), lease_token: text(), lease_until: timestamp({ withTimezone: true }),
   available_at: timestamp({ withTimezone: true }).notNull().defaultNow(), error: text(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(), completed_at: timestamp({ withTimezone: true }),
+  /** When the current attempt started, and how far it has got (0-100), for the uploads page. */
+  started_at: timestamp({ withTimezone: true }), progress: integer().notNull().default(0),
 }, t => [index("processing_jobs_claim_idx").on(t.state, t.available_at), check("processing_job_state", sql`${t.state} in ('queued','processing','failed','ready')`)]);
 
 // Source-aware grants are authoritative. enrollments is a compatibility projection, never payment history.

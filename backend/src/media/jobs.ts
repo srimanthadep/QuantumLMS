@@ -21,7 +21,7 @@ export async function claimJob(db: Db, leaseSeconds = 120): Promise<ClaimedJob |
     const id = (result.rows[0] as { id: string } | undefined)?.id
     if (!id) return
     const [job] = await tx.update(processing_jobs).set({ state: "processing", attempts: sql`${processing_jobs.attempts} + 1`,
-      lease_token: randomUUID(), lease_until: new Date(Date.now() + leaseSeconds * 1000) }).where(eq(processing_jobs.id, id)).returning()
+      lease_token: randomUUID(), lease_until: new Date(Date.now() + leaseSeconds * 1000), started_at: new Date(), progress: 0 }).where(eq(processing_jobs.id, id)).returning()
     if (job.attempts > job.max_attempts) {
       await tx.update(processing_jobs).set({ state: "failed", error: "Worker retry limit reached", lease_token: null, lease_until: null }).where(eq(processing_jobs.id, id))
       await tx.update(media_assets).set({ state: "failed", error: "Worker retry limit reached" }).where(eq(media_assets.id, job.asset_id))
@@ -38,6 +38,12 @@ export async function renewLease(db: Db, job: ClaimedJob, seconds = 120) {
   return rows.length === 1
 }
 
+/** Saves how far a job has got. Only the worker holding the lease can write it. */
+export async function reportProgress(db: Db, job: ClaimedJob, progress: number) {
+  await db.update(processing_jobs).set({ progress: Math.max(0, Math.min(99, Math.round(progress))) })
+    .where(and(eq(processing_jobs.id, job.id), eq(processing_jobs.state, "processing"), eq(processing_jobs.lease_token, job.lease_token!)))
+}
+
 export async function finishJob(db: Db, job: ClaimedJob, result: MediaResult) {
   if (!Number.isFinite(result.duration) || result.duration <= 0 || !result.variants.length) throw new Error("Invalid processing output")
   if (result.transcript.some(s => s.start < 0 || s.end <= s.start || s.end > result.duration + 1)) throw new Error("Invalid transcript timestamps")
@@ -48,7 +54,7 @@ export async function finishJob(db: Db, job: ClaimedJob, result: MediaResult) {
     await tx.insert(media_variants).values(result.variants.map(v => ({ ...v, asset_id: job.asset_id })))
     await tx.update(media_assets).set({ state: "ready", duration_seconds: Math.ceil(result.duration), transcript: result.transcript, draft_chapters: result.chapters, error: null }).where(eq(media_assets.id, job.asset_id))
     await initializeAssetRecordings(tx,job.asset_id)
-    await tx.update(processing_jobs).set({ state: "ready", completed_at: new Date(), lease_token: null, lease_until: null, error: null }).where(eq(processing_jobs.id, job.id))
+    await tx.update(processing_jobs).set({ state: "ready", completed_at: new Date(), progress: 100, lease_token: null, lease_until: null, error: null }).where(eq(processing_jobs.id, job.id))
     return true
   })
 }
